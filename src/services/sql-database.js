@@ -2,27 +2,55 @@ import "sugar";
 import _ from "underscore";
 import { v4 as uuid } from "uuid";
 
+import Storage from "./storage";
+
+
 const worker = new Worker("/worker.sql-wasm.js");
 window.worker = worker;
 
 export default {
   allTerms: [],
-  dictionaries: [],
 
   async init() {
     let response = await fetch("./TibetanTranslator.sqlite");
     let buffer = await response.arrayBuffer();
     await postMessageAsync({ action: "open", buffer: buffer });
-    let terms = await this.exec("SELECT DISTINCT term FROM entries ORDER BY term");
+    await this.loadDictionariesIntoLocalStorage();
+    let terms = await this.exec(
+      "SELECT DISTINCT term FROM entries ORDER BY term"
+    );
     this.allTerms = terms.map("term");
-    this.dictionaries = await this.exec("SELECT * FROM dictionaries");
+  },
+
+  async loadDictionariesIntoLocalStorage() {
+    let databaseDictionaries = await this.exec("SELECT * FROM dictionaries");
+    let existingDictionaries = Storage.get("dictionaries") || [];
+    Storage.set(
+      "dictionaries",
+      databaseDictionaries.map((databaseDictionary, index) => {
+        let existingDictionary = existingDictionaries.find(
+          (existingDictionary) =>
+            existingDictionary.name == databaseDictionary.name
+        );
+        console.log(existingDictionary);
+        return {
+          ...databaseDictionary,
+          enabled: existingDictionary
+            ? existingDictionary.enabled != false
+            : true,
+          position: existingDictionary
+            ? existingDictionary.position
+            : index + 1,
+        };
+      })
+    );
   },
 
   async exec(query, params) {
     return postMessageAsync({
       action: "exec",
       sql: query,
-      params: params
+      params: params,
     });
   },
 

@@ -1,264 +1,217 @@
 <script>
-  import Vue from 'vue'
+import Vue from 'vue'
 
-  import $ from 'jquery'
-  import _ from 'underscore'
+import $ from 'jquery'
+import _ from 'underscore'
 
-  import Storage from '../services/storage'
-  import SqlDatabase from '../services/sql-database'
-  import Entries from './Entries'
-  import TibetanTextField from './TibetanTextField'
-  import DictionariesMenuMixin from './DictionariesMenuMixin'
-  import DictionariesDetailsMixin from './DictionariesDetailsMixin'
-  import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries'
+import Storage from '../services/storage'
+import SqlDatabase from '../services/sql-database'
+import Entries from './Entries'
+import TibetanTextField from './TibetanTextField'
+import DictionariesMenuMixin from './DictionariesMenuMixin'
+import DictionariesDetailsMixin from './DictionariesDetailsMixin'
+import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries'
 
-  export default {
-    mixins: [
-      DictionariesDetailsMixin,
-      DictionariesMenuMixin
-    ],
-    components: {
-      Entries,
-      TibetanTextField,
-      ResultsAndPaginationAndDictionaries
+export default {
+  mixins: [
+    DictionariesDetailsMixin,
+    DictionariesMenuMixin
+  ],
+  components: {
+    Entries,
+    TibetanTextField,
+    ResultsAndPaginationAndDictionaries
+  },
+  data() {
+    return {
+      searchTerm: undefined,
+      entries: [],
+      termsPage: 1,
+      loading: false
+    }
+  },
+  watch: {
+    searchTerm() {
+      this.debouncedSelectFirstTermOrClearEntries();
     },
-    data () {
-      return {
-        searchTerm: undefined,
-        entries: [],
-        termsPage: 1,
-        loading: false
-      }
-    },
-    watch: {
-      searchTerm () {
-        this.debouncedSelectFirstTermOrClearEntries();
-      },
-      selectedTerm () {
-        this.setSearchTerm();
-        this.debouncedSetEntriesForSelectedTerm();
-        this.termsPage = Math.floor(this.selectedTermIndex / this.numberOfTermsPerPage) + 1;
-      }
-    },
-    beforeRouteEnter (to, from, next) {
-      var storedKey = Storage.get('selectedTerm');
-      if (!to.params.term && storedKey)
-        next('/define/' + storedKey);
-      else
-        next();
-    },
-    beforeRouteUpdate (to, from, next) {
+    selectedTerm() {
+      this.setSearchTerm();
+      this.debouncedSetEntriesForSelectedTerm();
+      this.termsPage = Math.floor(this.selectedTermIndex / this.numberOfTermsPerPage) + 1;
+    }
+  },
+  beforeRouteEnter(to, from, next) {
+    var storedKey = Storage.get('selectedTerm');
+    if (!to.params.term && storedKey)
+      next('/define/' + storedKey);
+    else
       next();
-      Storage.set('selectedTerm', to.params.term);
-      $(window).scrollTop(0);
+  },
+  beforeRouteUpdate(to, from, next) {
+    next();
+    Storage.set('selectedTerm', to.params.term);
+    $(window).scrollTop(0);
+  },
+  computed: {
+    numberOfTermsPerPage() {
+      return 100;
     },
-    computed: {
-      numberOfTermsPerPage () {
-        return 100;
-      },
-      selectedTerm () {
-        return this.$route.params.term;
-      },
-      selectedTermIndex () {
-        return this.termsStartingWithSearchTerm.indexOf(this.selectedTerm);
-      },
-      limitedTermsStartingWithSearchTerm () {
-        return this.termsStartingWithSearchTerm.
-          from((this.termsPage - 1) * this.numberOfTermsPerPage).
-          to(this.numberOfTermsPerPage)
-      },
-      termsStartingWithSearchTerm () {
-        if (!this.searchTerm)
-          return [];
-        return SqlDatabase.allTerms.filter((key) => key.indexOf(this.searchTerm) == 0).sort();
-      },
-      numberOfTermsStartingWithSearchTerm () {
-        return this.termsStartingWithSearchTerm.length;
+    selectedTerm() {
+      return this.$route.params.term;
+    },
+    selectedTermIndex() {
+      return this.termsStartingWithSearchTerm.indexOf(this.selectedTerm);
+    },
+    limitedTermsStartingWithSearchTerm() {
+      return this.termsStartingWithSearchTerm.
+        from((this.termsPage - 1) * this.numberOfTermsPerPage).
+        to(this.numberOfTermsPerPage)
+    },
+    termsStartingWithSearchTerm() {
+      if (!this.searchTerm)
+        return [];
+      return SqlDatabase.allTerms.filter((key) => key.indexOf(this.searchTerm) == 0).sort();
+    },
+    numberOfTermsStartingWithSearchTerm() {
+      return this.termsStartingWithSearchTerm.length;
+    }
+  },
+  methods: {
+    pushRoute(term) {
+      var path = '/define';
+      if (term)
+        path = path + '/' + encodeURIComponent(term);
+      if (path != this.$route.path) {
+        this.setPageTitle(term);
+        this.$router.push({ path: path });
       }
     },
-    methods: {
-      pushRoute (term) {
-        var path = '/define/' + encodeURIComponent(term);
-        if (path != this.$route.path) {
-          this.setPageTitle(term);
-          this.$router.push({ path: path });
-        }
-      },
-      clear () {
-        Storage.delete('selectedTerm');
-        this.entries = [];
-        this.pushRoute('');
-      },
-      setSearchTerm () {
-        if (
-          !this.searchTerm ||
-          !this.selectedTerm?.includes(this.searchTerm)
-        )
-          this.searchTerm = this.selectedTerm;
-      },
-      setPageTitle (term) {
-        if (term)
-          document.title = 'Translator / Define / ' + term;
-        else
-          document.title = 'Translator / Define';
-      },
-      setEntriesForSelectedTerm() {
-        if (this.selectedTerm) {
-          this.loading = true;
-          SqlDatabase.getEntriesFor(this.selectedTerm).
+    clear() {
+      Storage.delete('selectedTerm');
+      this.entries = [];
+      this.pushRoute('');
+    },
+    setSearchTerm() {
+      if (
+        !this.searchTerm ||
+        !this.selectedTerm?.includes(this.searchTerm)
+      )
+        this.searchTerm = this.selectedTerm;
+    },
+    setPageTitle(term) {
+      return;
+      document.title = 'Translator / Define';
+      if (term)
+        document.title += ' / ' + term;
+    },
+    setEntriesForSelectedTerm() {
+      if (this.selectedTerm) {
+        this.loading = true;
+        SqlDatabase.getEntriesFor(this.selectedTerm).
           then((rows) => {
             this.entries = rows;
             this.resetDictionariesToDefaultAndSetNumberOfEntries();
           }).
           finally(() => this.loading = false);
-        }
-      },
-      selectFirstTermOrClearEntries () {
-        var firstTerm = this.limitedTermsStartingWithSearchTerm?.first();
-        if (firstTerm) {
-          if (firstTerm == this.searchTerm && !this.entriesForEnabledDictionaries.length)
-            this.setEntriesForSelectedTerm();
-          else
-            this.pushRoute(firstTerm);
-        } else
-          this.entries = [];
-      },
-      selectPreviousTerm () {
-        if (this.selectedTermIndex > 0) {
-          var previousTerm = this.termsStartingWithSearchTerm[this.selectedTermIndex - 1];
-          this.pushRoute(previousTerm);
-        }
-      },
-      selectNextTerm (event) {
-        if (this.selectedTermIndex < this.termsStartingWithSearchTerm.length - 1) {
-          var nextTerm = this.termsStartingWithSearchTerm[this.selectedTermIndex + 1];
-          this.pushRoute(nextTerm);
-        }
-      },
-      focusInput () {
-        this.$refs.input.focus();
       }
     },
-    mounted () {
-      this.setSearchTerm();
-      this.setPageTitle(this.selectedTerm);
-      this.setEntriesForSelectedTerm();
-      this.debouncedSetEntriesForSelectedTerm =
-        _.debounce(this.setEntriesForSelectedTerm, 500);
-      this.debouncedSelectFirstTermOrClearEntries =
-        _.debounce(this.selectFirstTermOrClearEntries, 500);
+    selectFirstTermOrClearEntries() {
+      var firstTerm = this.limitedTermsStartingWithSearchTerm?.first();
+      if (firstTerm) {
+        if (firstTerm == this.searchTerm && !this.entriesForEnabledDictionaries.length)
+          this.setEntriesForSelectedTerm();
+        else
+          this.pushRoute(firstTerm);
+      } else
+        this.entries = [];
     },
-    updated () {
-      $('td.active').get(0)?.scrollIntoViewIfNeeded();
+    selectPreviousTerm() {
+      if (this.selectedTermIndex > 0) {
+        var previousTerm = this.termsStartingWithSearchTerm[this.selectedTermIndex - 1];
+        this.pushRoute(previousTerm);
+      }
+    },
+    selectNextTerm(event) {
+      if (this.selectedTermIndex < this.termsStartingWithSearchTerm.length - 1) {
+        var nextTerm = this.termsStartingWithSearchTerm[this.selectedTermIndex + 1];
+        this.pushRoute(nextTerm);
+      }
+    },
+    focusInput() {
+      this.$refs.input.focus();
     }
+  },
+  mounted() {
+    this.setSearchTerm();
+    this.setPageTitle(this.selectedTerm);
+    this.setEntriesForSelectedTerm();
+    this.debouncedSetEntriesForSelectedTerm =
+      _.debounce(this.setEntriesForSelectedTerm, 500);
+    this.debouncedSelectFirstTermOrClearEntries =
+      _.debounce(this.selectFirstTermOrClearEntries, 500);
+  },
+  updated() {
+    $('td.active').get(0)?.scrollIntoViewIfNeeded();
   }
+}
 </script>
 
 <template>
   <div class="define-page">
-
-    <v-system-bar
-      app
-      height="63"
-    >
-
-      <TibetanTextField
-        dense
-        autofocus
-        clearable
-        hide-details
-        height="56"
-        ref="input"
-        v-model="searchTerm"
-        :menu-props="{ maxHeight: '80vh' }"
-        @click:clear="clear"
-        @keydown.up.native="selectPreviousTerm"
-        @keydown.down.native="selectNextTerm"
-        class="flex-grow-1"
-      />
-
+  
+    <v-system-bar app height="63">
+  
+      <TibetanTextField dense autofocus clearable hide-details height="56" ref="input" v-model="searchTerm"
+        :menu-props="{ maxHeight: '80vh' }" @click:clear="clear" @keydown.up.native="selectPreviousTerm"
+        @keydown.down.native="selectNextTerm" class="flex-grow-1" />
+  
     </v-system-bar>
-
-    <v-navigation-drawer
-      app
-      width="30%"
-    >
-      <ResultsAndPaginationAndDictionaries
-        :page="termsPage"
-        :dictionaries="dictionariesForCurrentResults"
-        :numberOfEntriesPerPage="numberOfTermsPerPage"
-        :totalNumberOfEntries="numberOfTermsStartingWithSearchTerm"
-        @change:page="termsPage = $event"
-        @close:dictionariesMenu="focusInput"
-      />
-      <v-simple-table
-        v-if="termsStartingWithSearchTerm.length"
-      >
+  
+    <v-navigation-drawer app width="400px" permanent>
+      <ResultsAndPaginationAndDictionaries :page="termsPage" :dictionaries="dictionariesForCurrentResults"
+        :numberOfEntriesPerPage="numberOfTermsPerPage" :totalNumberOfEntries="numberOfTermsStartingWithSearchTerm"
+        @change:page="termsPage = $event" @close:dictionariesMenu="focusInput" />
+      <v-simple-table v-if="termsStartingWithSearchTerm.length">
         <tbody>
-          <tr
-            v-for="term in limitedTermsStartingWithSearchTerm"
-            class="term"
-          >
-            <td
-              class="link tibetan"
-              :class="{
-                'active primary': selectedTerm == term,
-                'lighten-3': !$vuetify.theme.dark
-              }"
-              @click="pushRoute(term)"
-            >
+          <tr v-for="term in limitedTermsStartingWithSearchTerm" class="term">
+            <td class="link tibetan" :class="{
+                  'active primary': selectedTerm == term,
+                  'lighten-3': !$vuetify.theme.dark
+                }" @click="pushRoute(term)">
               <span v-html="term" />
             </td>
           </tr>
         </tbody>
       </v-simple-table>
-      <div
-        v-else-if="searchTerm"
-        class="d-flex align-center mx-4 caption grey--text"
-        style="height: 48px"
-      >
+      <div v-else-if="searchTerm" class="d-flex align-center mx-4 caption grey--text" style="height: 48px">
         No results.
       </div>
     </v-navigation-drawer>
-
-    <v-container
-      fluid
-    >
-
-      <v-overlay
-        absolute
-        opacity="1"
-        :value="loading"
-      >
-        <v-progress-circular
-          indeterminate
-          size="64"
-        />
+  
+    <v-container fluid>
+  
+      <v-overlay absolute opacity="1" :value="loading">
+        <v-progress-circular indeterminate size="64" />
       </v-overlay>
-
+  
       <v-row no-gutters>
-
+  
         <v-col cols="12">
-
+  
           <v-fade-transition mode="out-in" appear>
-
-            <div
-              v-if="entriesForEnabledDictionaries.length"
-            >
-              <Entries
-                :entries="entriesForEnabledDictionaries"
-                :initialNumberOfEntries="25"
-              />
+  
+            <div v-if="entriesForEnabledDictionaries.length">
+              <Entries :entries="entriesForEnabledDictionaries" :initialNumberOfEntries="25" />
             </div>
-
+  
           </v-fade-transition>
-
+  
         </v-col>
-
+  
       </v-row>
-
+  
     </v-container>
-
+  
   </div>
 </template>
 

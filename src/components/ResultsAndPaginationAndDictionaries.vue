@@ -224,7 +224,7 @@
               mdi-book-multiple
             </v-icon>
             <span>{{enabledDictionaries.length}}</span>
-            <span class="caption grey--text text--darken-1">/{{dictionaries.length}}</span>
+            <span class="caption">/{{dictionaries.length}}</span>
           </v-btn>
         </template>
 

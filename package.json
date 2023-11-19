@@ -1,21 +1,26 @@
 {
-  "name": "@jbro/tibetan-translator",
+  "name": "tibetan-translator",
   "version": "0.8.0",
-  "description": "",
-  "main": "main.js",
+  "description": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",
+  "author": "",
   "scripts": {
+    "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
     "build:database": "node ./build/build-database.js",
-    "serve": "vue-cli-service serve"
+    "electron:build": "vue-cli-service electron:build",
+    "electron:serve": "vue-cli-service electron:serve",
+    "postinstall": "electron-builder install-app-deps",
+    "postuninstall": "electron-builder install-app-deps"
   },
-  "author": "",
-  "license": "MIT",
+  "main": "background.js",
+  "engines": {
+    "node": "16.x"
+  },
   "dependencies": {
     "fuzzysort": "^2.0.4",
     "jquery": "^3.7.1",
     "jquery-tokenizer": "^1.0.0",
     "moment": "^2.29.4",
-    "stylus-loader": "^7.1.3",
     "sugar": "^2.0.6",
     "tibetan-normalizer": "^0.1.0",
     "tibetan-regexps": "^1.0.3",
@@ -36,13 +41,19 @@
     "babel-loader": "^9.1.3",
     "css-loader": "^6.8.1",
     "date-fns": "^2.30.0",
+    "electron": "^13.0.0",
+    "electron-builder": "^24.6.4",
+    "electron-devtools-installer": "^3.1.0",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.3",
     "http-server": "^14.1.1",
     "progress": "^2.0.3",
-    "register-service-worker": "^1.7.2",
+    "sass": "^1.69.5",
+    "sass-loader": "^13.3.2",
     "sql.js": "^1.8.0",
+    "stylus-loader": "^7.1.3",
     "vue": "^2.7.15",
+    "vue-cli-plugin-electron-builder": "^2.1.1",
     "vue-cli-plugin-vuetify": "^2.5.8",
     "vue-loader": "^15.11.1",
     "vue-style-loader": "^4.1.3",
@@ -50,5 +61,6 @@
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^4.15.1"
-  }
+  },
+  "license": "MIT"
 }

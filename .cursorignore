@@ -1,0 +1,7 @@
+build/dictionaries*/
+build/stardict/
+build/wylieLines*
+dist/
+dist_electron/
+node_modules/
+*.log

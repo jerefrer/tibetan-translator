@@ -1,6 +1,5 @@
 import Vue from "vue";
 import vuetify from "./plugins/vuetify";
-import "./registerServiceWorker.js";
 import router from "./router";
 
 import App from "./components/App";
