@@ -1,0 +1,34 @@
+@font-face {
+  font-family: "DDC_Uchen";
+  src: url("../../vendor/fonts/DDC_Uchen-webfont.ttf") format('truetype');
+}
+
+.tibetan,
+.v-input.tibetan textarea,
+.v-input.tibetan input[type=text] {
+  font-family: DDC_Uchen;
+  font-size: 19px;
+  line-height: 21.6px;
+  vertical-align: middle;
+}
+.v-input.tibetan textarea,
+.v-input.tibetan input[type=text] {
+  height: 36px;
+  line-height: 36px;
+  max-height: none !important;
+}
+
+.tibetan .v-btn {
+  font-family: "Roboto", sans-serif !important;
+}
+
+a.tibetan,
+.tibetan a {
+  text-decoration: none !important;
+}
+
+.v-autocomplete__content .v-list-item .v-list-item__title {
+  font-family: DDC_Uchen;
+  font-size: 13px;
+  line-height: 18px;
+}

@@ -1,0 +1,12 @@
+node_modules/
+build/dictionaries/99-Illuminator_x
+build/dictionaries-debug/
+build/stardict/
+build/wylieLinesWithMistakes*
+*.sql
+*.db
+*.sqlite
+!PublicDictionaries.db
+public/*.sqlite*
+dist/*.sqlite*
+demo.mp4
