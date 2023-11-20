@@ -58,9 +58,9 @@
             [this.word.source]
           ).
           then((rows) => {
-            this.definitions = rows.map('definition');
+            this.definitions = rows.map((row) => row.definition);
             if (autoPickFirstDefinition)
-              this.word.translation = this.definitions.first();
+              this.word.translation = this.definitions[0];
           });
       },
       autoLoadDefinitions () {

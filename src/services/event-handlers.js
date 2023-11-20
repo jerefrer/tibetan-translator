@@ -32,7 +32,7 @@ const EventHandlers = {
     _(['keyup', 'keydown', 'keypress', 'visibilitychange', 'resize', 'scroll']).each((type) => {
       $(window).on(type, (event) => {
         var events = _(this.handlers).where({type: type, active: true});
-        events.each((e) => e.callback(event));
+        _(events).each((e) => e.callback(event));
       });
     });
   }

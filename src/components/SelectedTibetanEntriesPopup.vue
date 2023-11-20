@@ -5,7 +5,7 @@
 
   import Entries from './Entries'
   import SqlDatabase from '../services/sql-database'
-  import { withTrailingTshek } from '../utils'
+  import { withTrailingTshek } from '../utils.js'
 
   var mouseX;
   var mouseY;

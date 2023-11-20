@@ -1,4 +1,4 @@
-import WylieToUnicode from '../../../wylie-to-unicode'
+import WylieToUnicode from './wylie-to-unicode'
 var wylieToUnicode = new WylieToUnicode();
 
 import SqlDatabase from './sql-database'

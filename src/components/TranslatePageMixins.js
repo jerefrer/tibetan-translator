@@ -21,7 +21,7 @@ export default {
       var translationLines = [];
       var promises = [];
       var translationLine = this.newTranslationLine();
-      text.trim().split('\n').each((line) => {
+      text.trim().split('\n').forEach((line) => {
         if (this.isSource(line)) {
           if (translationLine.source) {
             translationLines.push(translationLine);
@@ -75,7 +75,7 @@ export default {
           LIMIT 1`,
           [term]
         ).
-        then((rows) => resolve(rows.first().definition)).
+        then((rows) => resolve(rows[0].definition)).
         catch((error)  => reject(error));
       })
     },
@@ -129,22 +129,22 @@ export default {
           position = 999999;
         return position;
       }
-      var definedWordsLongestThenRightmost = definedWords
+      var definedWordsLongestThenRightmost = _.chain(definedWords)
         .sortBy((word) => {
           var numberOfSyllables = syllablesFor(word.source).length;
           var positionInLine = positionFor(word);
           var pad = (number) => number.toString().padStart(6, '0');
           return [pad(numberOfSyllables), pad(positionInLine)];
         })
-        .reverse();
-      definedWordsLongestThenRightmost.each((word) => {
+        .reverse().value();
+      definedWordsLongestThenRightmost.forEach((word) => {
         var sourceWithoutTshek = this.withoutTshek(word.source);
-        if (sourceBuffer.has(sourceWithoutTshek)) {
+        if (sourceBuffer.includes(sourceWithoutTshek)) {
           sourceBuffer = sourceBuffer.replace(sourceWithoutTshek, '');
           words.push(word)
         }
       })
-      return words.sortBy((word) => positionFor(word));
+      return _(words).sortBy((word) => positionFor(word));
     },
     everyDefinedWordsFor (source, options = {}) {
       var definedWords = this.definedWordsFor(this.everyCombinationsFor(source));
@@ -153,10 +153,10 @@ export default {
       return definedWords;
     },
     definedWordsFor(sources) {
-      return sources.map((source) => {
+      return _.compact(sources.map((source) => {
         if (SqlDatabase.allTerms.includes(source))
           return this.newWord(source, '')
-      }).compact();
+      }));
     },
     withoutTshek (source) {
       return source.replace(/་$/, '')
@@ -183,8 +183,7 @@ export default {
           }
         }
       }
-      combinations = _(combinations).without('པ་', 'བ་');
-      return combinations.unique();
+      return _.chain(combinations).without('པ་', 'བ་').uniq().value();
     },
     newTranslationLine (source, translation, words, opened) {
       return {
@@ -201,7 +200,7 @@ export default {
       return !(
         line.source ||
         line.translation ||
-        line.words.any((word) => word.source || word.translation)
+        line.words.find((word) => word.source || word.translation)
       )
     },
     emptyWords () {

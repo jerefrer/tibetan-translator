@@ -25,8 +25,8 @@ export default {
       var about = DICTIONARIES_DETAILS[dictionaryName]?.about;
       if (about) {
         var split = about.split('|');
-        var title = split.first();
-        var description = substituteLinksWithATags(split.from(1).join('<br />'));
+        var title = split[0];
+        var description = substituteLinksWithATags(split.slice(1).join('<br />'));
         var formattedAbout = `<strong>${title}</strong><br />${description}`;
         return Decorator.wrapAllTibetanWithSpansAndAddTshekIfMissing(formattedAbout);
       }

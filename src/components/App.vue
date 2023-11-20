@@ -1,12 +1,12 @@
 <script>
 import $ from "jquery";
-import "sugar";
+import _ from "underscore";
 
 import db from "../services/sql-database";
 import Storage from "../services/storage";
 import EventHandlers from "../services/event-handlers";
 
-import { substituteLinksWithATags } from "../utils";
+import { substituteLinksWithATags } from "../utils.js";
 import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup";
 import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton";
 import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton";
@@ -26,8 +26,6 @@ if (Storage.get("autoFillWords") == undefined)
 
 if (Storage.get("keepLongestOnly") == undefined)
   Storage.set("keepLongestOnly", true);
-
-var allTerms;
 
 export default {
   components: {
@@ -58,10 +56,10 @@ export default {
       ];
     },
     currentTabId() {
-      return this.$route.path.split("/").compact(true).first();
+      return _.compact(this.$route.path.split("/"))[0];
     },
     tabIndex() {
-      return this.tabs.findIndex({ id: this.currentTabId });
+      return this.tabs.findIndex((tab) => tab.id == this.currentTabId);
     },
   },
   methods: {

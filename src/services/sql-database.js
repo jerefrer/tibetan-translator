@@ -1,9 +1,7 @@
-import "sugar";
 import _ from "underscore";
 import { v4 as uuid } from "uuid";
 
 import Storage from "./storage";
-
 
 const worker = new Worker("/worker.sql-wasm.js");
 window.worker = worker;
@@ -19,7 +17,7 @@ export default {
     let terms = await this.exec(
       "SELECT DISTINCT term FROM entries ORDER BY term"
     );
-    this.allTerms = terms.map("term");
+    this.allTerms = terms.map((row) => row.term);
   },
 
   async loadDictionariesIntoLocalStorage() {
@@ -32,7 +30,6 @@ export default {
           (existingDictionary) =>
             existingDictionary.name == databaseDictionary.name
         );
-        console.log(existingDictionary);
         return {
           ...databaseDictionary,
           enabled: existingDictionary
@@ -57,20 +54,20 @@ export default {
   setAllTermsVariable() {
     return new Promise((resolve, reject) => {
       this.exec("SELECT DISTINCT term FROM entries ORDER BY term")
-        .then((terms) => (this.allTerms = terms.map("term")))
+        .then((terms) => (this.allTerms = terms.map((row) => row.term)))
         .catch((error) => {}) // Do nothing, this will happen before DB is initialized
         .finally(resolve);
     });
   },
 
   getEntriesFor(term) {
-    console.log("getEntriesFor", term);
     return this.exec(
-      `SELECT entries.*, dictionaries.name AS dictionary
-       FROM entries
-       INNER JOIN dictionaries ON dictionaries.id = dictionaryId
-       WHERE term = ?
-       ORDER BY dictionaries.position
+      `
+      SELECT entries.*, dictionaries.name AS dictionary
+      FROM entries
+      INNER JOIN dictionaries ON dictionaries.id = dictionaryId
+      WHERE term = ?
+      ORDER BY dictionaries.position
       `,
       [term]
     );
@@ -82,7 +79,6 @@ function postMessageAsync(message) {
     const messageId = uuid();
     message.id = messageId;
     console.log(message);
-
     const handler = function (event) {
       if (event.data.id === messageId) {
         worker.removeEventListener("message", handler);

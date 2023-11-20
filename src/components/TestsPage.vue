@@ -1,5 +1,4 @@
 <script>
-  import Vue from 'vue'
   import $ from 'jquery'
   import _ from 'underscore'
 
@@ -21,7 +20,7 @@
     data () {
       var passedCount = 0;
       var ranTests = testGroups.map(function(testGroup) {
-        testGroup.tests.each(function(test) {
+        _(testGroup.tests).each(function(test) {
           test.runTest = function() {
             var method = (test.method || testGroup.method);
             test.value = method(test.input);

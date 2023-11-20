@@ -21,7 +21,7 @@ export default {
     enabledDictionariesIds() {
       return this.dictionariesForCurrentResults
         .filter((dictionary) => dictionary.enabled)
-        .map("id");
+        .map((dictionary) => dictionary.id);
     },
     entriesForEnabledDictionaries() {
       if (this.entries == undefined) return [];
@@ -32,12 +32,12 @@ export default {
   },
   methods: {
     resetDictionariesToDefaultAndSetNumberOfEntries() {
-      this.dictionaries.each((dictionary) => {
+      this.dictionaries.forEach((dictionary) => {
         dictionary.shortLabel = this.shortLabelFor(dictionary);
         dictionary.enabled = dictionary.enabledInPreferences;
-        dictionary.numberOfEntries = this.entries.count(
+        dictionary.numberOfEntries = this.entries.filter(
           (entry) => entry.dictionaryId == dictionary.id
-        );
+        ).length;
       });
     },
   },

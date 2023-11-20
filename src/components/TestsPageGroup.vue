@@ -11,7 +11,7 @@
       tests: Array
     },
     data: function() {
-      var passedCount = this.tests.count(function(test) { return test.pass; });
+      var passedCount = this.tests.filter((test) => test.pass).length;
       var allPassed = passedCount == this.tests.length;
       return {
         allPassed: allPassed,

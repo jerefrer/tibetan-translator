@@ -49,7 +49,7 @@
           updatedAt: moment().format(),
           lines: JSON.parse(JSON.stringify(this.lines))
         })
-        setTimeout(() => $(this.$refs.projectsNameFields.last()).select().focus(), 10);
+        setTimeout(() => $(_.last(this.$refs.projectsNameFields)).select().focus(), 10);
       },
       updateProject (project) {
         project.lines = JSON.parse(JSON.stringify(this.lines));

@@ -1,7 +1,8 @@
 import _ from 'underscore'
-import { Tokenizer } from 'jquery-tokenizer'
 import TibetanRegExps from 'tibetan-regexps'
 import { TibetanToPhonetics, Settings } from 'tibetan-to-phonetics'
+
+import { Tokenizer } from './services/tokenizer'
 
 export const phoneticsForGroups = function (setting, groups) {
   return groups.map((group) => {
@@ -68,7 +69,7 @@ export const replaceTibetanGroups = function (text, handler) {
 }
 
 export const syllablesFor = function (tibetan) {
-  return tibetanWithPunctuationAsTsheks(tibetan).split('་').compact(true);
+  return _.compact(tibetanWithPunctuationAsTsheks(tibetan).split('་'));
 }
 
 export const cleanTerm = function (text) {
@@ -86,7 +87,7 @@ export const withTrailingTshek = function (tibetan) {
 }
 
 export const arrayPositionInArray = function (termArray, array) {
-  var firstElement = termArray.first();
+  var firstElement = termArray[0];
   var indexesForFirstElement = array.reduce((indexes, value, index) => {
     if (value == firstElement)
       indexes.push(index);
@@ -95,7 +96,7 @@ export const arrayPositionInArray = function (termArray, array) {
   var position = indexesForFirstElement.find((index) => {
     return _.isEqual(
       termArray,
-      array.from(index).to(termArray.length)
+      array.slice(index).slice(0, termArray.length)
     );
   });
   if (position >= 0)

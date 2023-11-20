@@ -1,39 +1,33 @@
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
-const { StringDecoder } = require('string_Decoder');
+import fs from 'fs';
+import path from 'path';
+import readline from 'readline';
+import { StringDecoder } from 'string_decoder';
 const utf8Decoder = new StringDecoder('utf8');
 
-require('sugar');
-const JSZip = require('jszip');
-const rimraf = require('rimraf');
-const ProgressBar = require('progress');
-const { formatDuration } = require('date-fns');
+import Sugar from 'sugar';
+Sugar.extend();
 
-const WylieToUnicode = require('../../wylie-to-unicode');
+import rimraf from 'rimraf';
+import ProgressBar from 'progress';
+import { formatDuration } from 'date-fns';
 
-const { DICTIONARIES_DETAILS } = require('../src/services/dictionaries-details.umd.js');
-const {
+import DICTIONARIES_DETAILS from '../src/services/dictionaries-details.js';
+import {
   cleanTerm,
-  strictAndLoosePhoneticsFor,
   convertWylieButKeepNonTibetanParts
-} = require('../src/utils.umd.js');
+} from '../src/utils.js';
 
-
-const outputFilename = 'dictionaries.zip';
 const linesWithMissedWylieFilename = 'wylieLinesWithMistakesForStarDict.txt';
 
 var StarDictTextFilesBuilder = {
 
   outputFolder: path.join(__dirname, 'stardict'),
   dictionariesFolder: path.join(__dirname, 'dictionaries'),
-  linesWithMissedWylieForStarDictFilePath: path.join(__dirname, linesWithMissedWylieFilename),
 
   build () {
     this.startedAt = Date.now();
     this.printNewLineAtTheBeginning();
     this.cleanup();
-    this.setupWylieToUnicodeWithLoggingOfMissedLines();
     this.loadDictionaries();
     this.computeNumberOfLines();
     this.setupProgressBar();
@@ -47,17 +41,6 @@ var StarDictTextFilesBuilder = {
   cleanup () {
     rimraf.sync(this.outputFolder);
     fs.mkdirSync(this.outputFolder);
-    if (fs.existsSync(this.linesWithMissedWylieForStarDictFilePath))
-      fs.unlinkSync(this.linesWithMissedWylieForStarDictFilePath);
-  },
-
-  setupWylieToUnicodeWithLoggingOfMissedLines () {
-    this.wylieToUnicode = new WylieToUnicode((source, converted) => {
-      fs.appendFileSync(
-        this.linesWithMissedWylieForStarDictFilePath,
-        source + ' ===> ' + converted + '\n'
-      )
-    })
   },
 
   loadDictionaries () {
@@ -75,11 +58,11 @@ var StarDictTextFilesBuilder = {
   computeNumberOfLines () {
     console.log('Calculating total number of lines to process ...');
     this.totalNumberOfLines = 0;
-    this.dictionaries.each((dictionary, index) => {
+    this.dictionaries.forEach((dictionary) => {
       var text = utf8Decoder.write(fs.readFileSync(dictionary.path));
       var lines = text.split(/[\r][\n]/);
-      dictionary.numberOfLines = lines.count();
-      if (lines.last().trim() == '')
+      dictionary.numberOfLines = lines.length;
+      if (_.last(lines).trim() == '')
         dictionary.numberOfLines -= 1;
       this.totalNumberOfLines += dictionary.numberOfLines;
     });
@@ -103,20 +86,13 @@ var StarDictTextFilesBuilder = {
             'Done !\n' +
             `StarDict files generated in "stardict/" in ${totalTime}`
           );
-          if (fs.existsSync(_this.linesWithMissedWylieForStarDictFilePath)) {
-            console.log(
-              '\n'+
-              'Some lines contained malformed Wylie that could not be properly ' +
-              'converted to Unicode.\n' +
-              `They were logged to "build/${linesWithMissedWylieFilename}".`);
-          }
         }
       }
     );
   },
 
   insertEntries () {
-    this.dictionaries.each((dictionary) => {
+    this.dictionaries.forEach((dictionary) => {
       this.eachLineForFile(dictionary.path, (line) => {
         this.processLine(dictionary, line);
         this.progressBar.tick();

@@ -19,7 +19,7 @@
     },
     computed: {
       limitedEntries () {
-        return this.entries.first(this.numberOfEntriesShown);
+        return this.entries.slice(0, this.numberOfEntriesShown);
       },
       limitedAndDecoratedEntries () {
         return this.limitedEntries.map((entry) => {

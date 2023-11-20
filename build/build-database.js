@@ -1,39 +1,41 @@
-const fs = require('fs');
-const path = require('path');
-const readline = require('readline');
-const { StringDecoder } = require('string_decoder');
-const utf8Decoder = new StringDecoder('utf8');
+import fs from "fs";
+import path from "path";
+import _ from "underscore";
+import readline from "readline";
+import { StringDecoder } from "string_decoder";
+const utf8Decoder = new StringDecoder("utf8");
 
-require('sugar');
-const ProgressBar = require('progress');
-const { formatDuration, intervalToDuration } = require('date-fns');
+import ProgressBar from "progress";
+import { formatDuration, intervalToDuration } from "date-fns";
 
-const initSqlJs = require('../public/sql-wasm.js');
+import initSqlJs from "../public/sql-wasm.js";
 
-const WylieToUnicode = require('../../wylie-to-unicode');
+import WylieToUnicode from "../src/services/wylie-to-unicode.js";
 
-const { DICTIONARIES_DETAILS } = require('../src/services/dictionaries-details.umd.js');
-const {
+import DICTIONARIES_DETAILS from "../src/services/dictionaries-details.js";
+import {
   cleanTerm,
   strictAndLoosePhoneticsFor,
-  convertWylieButKeepNonTibetanParts
-} = require('../src/utils.umd.js');
+  convertWylieButKeepNonTibetanParts,
+} from "../src/utils.js";
 
-const outputFilename = 'TibetanTranslator.sqlite';
-const outputFilepath = path.join(__dirname, '..', 'public', outputFilename);
-const linesWithMissedWylieFilename = 'wylieLinesWithMistakes.txt';
+const outputFilename = "TibetanTranslatorDebug.sqlite";
+const outputFilepath = path.join(__dirname, "..", "public", outputFilename);
+const linesWithMissedWylieFilename = "wylieLinesWithMistakes.txt";
 
 var DatabaseBuilder = {
+  dictionariesFolder: path.join(__dirname, "dictionaries-debug"),
+  linesWithMissedWylieFilePath: path.join(
+    __dirname,
+    linesWithMissedWylieFilename
+  ),
 
-  dictionariesFolder: path.join(__dirname, 'dictionaries'),
-  linesWithMissedWylieFilePath: path.join(__dirname, linesWithMissedWylieFilename),
-
-  async build () {
+  async build() {
     this.database = await this.initDatabase();
     this.startedAt = Date.now();
     this.printNewLineAtTheBeginning();
     this.cleanup();
-    this.setupWylieToUnicodeWithLoggingOfMissedLines();
+    this.setupWylieToUnicode();
     this.loadDictionaries();
     this.computeNumberOfLines();
     this.setupProgressBar();
@@ -42,7 +44,7 @@ var DatabaseBuilder = {
     this.insertEntries();
   },
 
-  async initDatabase () {
+  async initDatabase() {
     const SQL = await initSqlJs();
     return new SQL.Database();
   },
@@ -53,76 +55,81 @@ var DatabaseBuilder = {
     fs.writeFileSync(outputFilepath, buffer);
   },
 
-  printNewLineAtTheBeginning () {
+  printNewLineAtTheBeginning() {
     console.log();
   },
 
-  cleanup () {
+  cleanup() {
     if (fs.existsSync(this.linesWithMissedWylieFilePath))
       fs.unlinkSync(this.linesWithMissedWylieFilePath);
   },
 
-  setupWylieToUnicodeWithLoggingOfMissedLines () {
-    this.wylieToUnicode = new WylieToUnicode((source, converted) => {
-      fs.appendFileSync(
-        this.linesWithMissedWylieFilePath,
-        source + ' ===> ' + converted + '\n'
-      )
-    })
+  setupWylieToUnicode() {
+    this.wylieToUnicode = new WylieToUnicode();
   },
 
-  loadDictionaries () {
-    this.dictionaries =
-      fs.readdirSync(this.dictionariesFolder).map((filename, index) => {
+  writeWylieMistakes() {
+    const warnings = this.wylieToUnicode.get_warnings();
+    if (warnings.length)
+      fs.writeFileSync(this.linesWithMissedWylieFilePath, warnings.join("\n"));
+  },
+
+  loadDictionaries() {
+    this.dictionaries = fs
+      .readdirSync(this.dictionariesFolder)
+      .map((filename, index) => {
         return {
           id: index + 1,
           filename: filename,
-          name: filename.replace(/^\d+-/, ''),
-          path: this.dictionariesFolder + '/' + filename,
-        }
+          name: filename.replace(/^\d+-/, ""),
+          path: this.dictionariesFolder + "/" + filename,
+        };
       });
   },
 
-  computeNumberOfLines () {
+  computeNumberOfLines() {
     this.totalNumberOfLines = 0;
-    this.dictionaries.each((dictionary, index) => {
+    this.dictionaries.forEach((dictionary) => {
       var text = utf8Decoder.write(fs.readFileSync(dictionary.path));
       var lines = text.split(/[\r][\n]/);
-      dictionary.numberOfLines = lines.count();
-      if (lines.last().trim() == '')
-        dictionary.numberOfLines -= 1;
+      dictionary.numberOfLines = lines.length;
+      if (_.last(lines).trim() == "") dictionary.numberOfLines -= 1;
       this.totalNumberOfLines += dictionary.numberOfLines;
     });
   },
 
-  setupProgressBar () {
+  setupProgressBar() {
     this.progressBar = new ProgressBar(
-      'Generating database (:percent) [:bar] :elapseds since starting [:current/:total]',
+      "Generating database (:percent) [:bar] :elapsed since starting [:current/:total]",
       {
-        incomplete: ' ',
+        incomplete: " ",
         width: 30,
         total: this.totalNumberOfLines,
         callback: () => {
+          this.writeWylieMistakes();
           this.exportDatabase();
-          var totalTime = formatDuration(intervalToDuration({start: Date.now(), end: this.startedAt}));
+          var totalTime = formatDuration(
+            intervalToDuration({ start: Date.now(), end: this.startedAt })
+          );
           console.log(
-            '\n' +
-            'Done !\n' +
-            `Database generated as "public/${outputFilename}" in ${totalTime}`
+            "\n" +
+              "Done !\n" +
+              `Database generated as "public/${outputFilename}" in ${totalTime}`
           );
           if (fs.existsSync(this.linesWithMissedWylieFilePath)) {
             console.log(
-              '\n'+
-              'Some lines contained malformed Wylie that could not be properly ' +
-              'converted to Unicode.\n' +
-              `They were logged to "build/${linesWithMissedWylieFilename}".`);
+              "\n" +
+                "Some lines contained malformed Wylie that could not be properly " +
+                "converted to Unicode.\n" +
+                `They were logged to "build/${linesWithMissedWylieFilename}".`
+            );
           }
-        }
+        },
       }
     );
   },
 
-  createTables () {
+  createTables() {
     this.database.run(`
       CREATE TABLE dictionaries (
         id                              integer primary key,
@@ -236,79 +243,96 @@ var DatabaseBuilder = {
       END;
     `);
   },
-  insertDictionaries () {
-    this.dictionaries.each((dictionary, index) => {
+  insertDictionaries() {
+    this.dictionaries.forEach((dictionary) => {
       var id = dictionary.id;
       var position = id;
       var escapedDictionaryName = this.SQLEscape(dictionary.name);
       var statement = `INSERT INTO dictionaries VALUES (${id}, '${escapedDictionaryName}', ${position}, 1);`;
       this.database.run(statement);
-    })
+    });
   },
 
-  insertEntries () {
-    this.dictionaries.each((dictionary) => {
+  insertEntries() {
+    this.dictionaries.forEach((dictionary) => {
       this.eachLineForFile(dictionary.path, (line) => {
         this.processLine(dictionary, line);
         this.progressBar.tick();
-      })
-    })
+      });
+    });
   },
 
-  processLine (dictionary, line) {
+  processLine(dictionary, line) {
     line = line.trim();
 
-    if (!line)
-      return;
+    if (!line) return;
 
-    var split = line.split('|');
+    var split = line.split("|");
     var wylieTerm = cleanTerm(split[0]);
     var definitionWithMaybeWylie = split[1] && split[1].trim();
 
-    if (line.match(/^#/) || !definitionWithMaybeWylie)
-      return;
+    if (line.match(/^#/) || !definitionWithMaybeWylie) return;
 
     var term = this.wylieToUnicode.convert(wylieTerm);
     var definition;
     var dictionaryDetails = DICTIONARIES_DETAILS[dictionary.name];
     if (dictionaryDetails && dictionaryDetails.containsOnlyTibetan) {
-      definition = convertWylieButKeepNonTibetanParts(definitionWithMaybeWylie, this.wylieToUnicode);
+      definition = convertWylieButKeepNonTibetanParts(
+        definitionWithMaybeWylie,
+        this.wylieToUnicode
+      );
     } else
-      definition = this.wylieToUnicode.substituteCurlyBrackets(definitionWithMaybeWylie, (englishPart) => {
-        englishPart = englishPart.replace(/([,\.]) */g,'$1 ');
-        englishPart = englishPart.replace(/ *- */g,' - ');
-        return englishPart;
-      });
-    var [termPhoneticsStrict, termPhoneticsLoose] = strictAndLoosePhoneticsFor(term);
-    var [definitionWylieWordsStrict, definitionWylieWordsLoose] = strictAndLoosePhoneticsFor(definition);
+      definition = this.wylieToUnicode.substituteCurlyBrackets(
+        definitionWithMaybeWylie,
+        (englishPart) => {
+          englishPart = englishPart.replace(/([,\.]) */g, "$1 ");
+          englishPart = englishPart.replace(/ *- */g, " - ");
+          return englishPart;
+        }
+      );
+    var [termPhoneticsStrict, termPhoneticsLoose] =
+      strictAndLoosePhoneticsFor(term);
+    var [definitionWylieWordsStrict, definitionWylieWordsLoose] =
+      strictAndLoosePhoneticsFor(definition);
     var statement =
       "INSERT INTO entries VALUES(NULL, " +
-        "'" + this.SQLEscape(term) + "', " +
-        "'" + this.SQLEscape(termPhoneticsStrict) + "', " +
-        "'" + this.SQLEscape(termPhoneticsLoose) + "', " +
-        "'" + this.SQLEscape(definition) + "', " +
-        "'" + this.SQLEscape(definitionWylieWordsStrict) + "', " +
-        "'" + this.SQLEscape(definitionWylieWordsLoose) + "', " +
-        dictionary.id +
-      ");"
+      "'" +
+      this.SQLEscape(term) +
+      "', " +
+      "'" +
+      this.SQLEscape(termPhoneticsStrict) +
+      "', " +
+      "'" +
+      this.SQLEscape(termPhoneticsLoose) +
+      "', " +
+      "'" +
+      this.SQLEscape(definition) +
+      "', " +
+      "'" +
+      this.SQLEscape(definitionWylieWordsStrict) +
+      "', " +
+      "'" +
+      this.SQLEscape(definitionWylieWordsLoose) +
+      "', " +
+      dictionary.id +
+      ");";
     this.database.run(statement);
   },
 
-  SQLEscape (text) {
+  SQLEscape(text) {
     return text.replace(/'/g, "''");
   },
 
   eachLineForFile(filepath, callback) {
     const rl = readline.createInterface({
       input: fs.createReadStream(filepath),
-      crlfDelay: Infinity
+      crlfDelay: Infinity,
     });
-    rl.on('line', (line) => {
+    rl.on("line", (line) => {
       var utf8Line = utf8Decoder.write(line);
       callback(utf8Line);
     });
-  }
-
-}
+  },
+};
 
 DatabaseBuilder.build();

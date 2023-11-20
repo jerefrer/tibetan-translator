@@ -59,7 +59,7 @@ export default {
     setPageTitle() {
       return;
       document.title = 'Translator / Translate';
-    }
+    },
   },
   mounted() {
     this.setPageTitle();
@@ -99,12 +99,12 @@ export default {
   
       <v-spacer />
   
-      <v-btn icon large id="open-all-lines-button" title="Open all" :disabled="lines.all((line) => line.opened)"
+      <v-btn icon large id="open-all-lines-button" title="Open all" :disabled="lines.every((line) => line.opened)"
         @click="setAllLinesOpenStateTo(true)">
         <v-icon>mdi-arrow-split-horizontal</v-icon>
       </v-btn>
   
-      <v-btn icon large id="close-all-lines-button" title="Close all" :disabled="lines.all((line) => !line.opened)"
+      <v-btn icon large id="close-all-lines-button" title="Close all" :disabled="lines.every((line) => !line.opened)"
         @click="setAllLinesOpenStateTo(false)">
         <v-icon>mdi-arrow-collapse-vertical</v-icon>
       </v-btn>

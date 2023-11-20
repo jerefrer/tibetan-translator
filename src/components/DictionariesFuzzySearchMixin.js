@@ -12,7 +12,7 @@ export default {
         return fuzzysort.go(this.term, this.dictionaries, {
           key: 'shortLabel',
           allowTypo: false
-        }).map('obj');
+        }).map((result) => result.obj);
       else
         return this.dictionaries;
     }

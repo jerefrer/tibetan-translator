@@ -55,7 +55,7 @@
               line.words
               .slice(0, wordIndex + 1)
               .concat(definedWords)
-              .concat(line.words.from(wordIndex + 1))
+              .concat(line.words.slice(wordIndex + 1))
             line.loading = false;
           })
       },

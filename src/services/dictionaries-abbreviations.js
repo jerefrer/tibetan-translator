@@ -2,7 +2,7 @@ import _ from 'underscore'
 
 import Decorator from './decorator'
 import ABBREVIATIONS from './dictionaries-abbreviations-list'
-import WylieToUnicode from '../../../wylie-to-unicode'
+import WylieToUnicode from './wylie-to-unicode'
 const wylieToUnicode = new WylieToUnicode()
 
 export default {
@@ -56,8 +56,8 @@ export default {
 
   processAbbreviations (dictionaryIdentifier, text) {
     var abbreviations = this.getAbbreviations(dictionaryIdentifier);
-    _(abbreviations).each((items, abbreviation) => {
-      items.each((item) => {
+    _(abbreviations).each((items) => {
+      _(items).each((item) => {
         var explanation = item.explanation.replace(/[|]/g, '<br />');
         explanation = wylieToUnicode.substituteCurlyBrackets(explanation);
         text = text.replace(
