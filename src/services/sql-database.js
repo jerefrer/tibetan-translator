@@ -84,7 +84,7 @@ function postMessageAsync(message) {
         worker.removeEventListener("message", handler);
         let results = event.data.results;
         let result = results && results[0];
-        let response = result ? buildObjectsFrom(result) : true;
+        let response = result ? buildObjectsFrom(result) : [];
         resolve(response);
       }
     };
