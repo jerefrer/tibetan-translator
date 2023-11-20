@@ -2,7 +2,25 @@
   "name": "tibetan-translator",
   "version": "0.8.0",
   "description": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",
-  "author": "",
+  "author": "Jeremy FRERE",
+  "keywords": [
+    "tibetan",
+    "dictionary",
+    "dictionaries",
+    "translation",
+    "translating",
+    "phonetics",
+    "languages",
+    "linguistics"
+  ],
+  "homepage": "https://github.com/jerefrer/tibetan-translator#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jerefrer/tibetan-translator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jerefrer/tibetan-translator/issues"
+  },
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
