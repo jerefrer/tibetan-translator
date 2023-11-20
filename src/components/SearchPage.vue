@@ -392,82 +392,80 @@ export default {
       </v-text-field>
     </v-system-bar>
 
-    <v-fade-transition mode="out-in" appear>
-      <template v-if="!loading">
-        <template v-if="entries == undefined">
-          <div
-            v-if="previousQueries.length > 0"
-            class="previous-queries grey--text"
-          >
-            <div class="header">
-              <v-btn
-                fab
-                x-small
-                class="mr-2 grey--text"
-                elevation="0"
-                @click="clearPreviousQueries"
-              >
-                <v-icon>mdi-delete-clock</v-icon>
-              </v-btn>
-              Last Queries:
-            </div>
-
-            <v-fade-transition group tag="div" class="buttons">
-              <v-btn
-                text
-                v-for="query in previousQueries"
-                :key="query"
-                color="grey"
-                class="previous-query"
-                @click="performSearch({ query: query })"
-                v-html="wrapAllTibetanWithSpansAndAddTshekIfMissing(query)"
-              />
-            </v-fade-transition>
-          </div>
-        </template>
-
-        <v-simple-table
-          v-else-if="limitedAndDecoratedEntries.length"
-          key="entries"
+    <template v-if="!loading">
+      <template v-if="entries == undefined">
+        <div
+          v-if="previousQueries.length > 0"
+          class="previous-queries grey--text"
         >
-          <tbody>
-            <tr v-for="entry in limitedAndDecoratedEntries" class="entry">
-              <td>
-                <v-row>
-                  <v-col cols="12" sm="2">
-                    <div class="term tibetan" v-html="entry.term" />
-                  </v-col>
-                  <v-col cols="12" sm="2">
-                    <v-chip
-                      label
-                      small
-                      class="ml-2 px-2"
-                      color="dictionary-label grey darken-2"
-                      v-html="shortDictionaryLabelFor(entry)"
-                      :class="{
-                        'has-tibetan': shortDictionaryLabelForHasTibetan(entry),
-                      }"
-                      @click="
-                        $root.openSnackbarWith(
-                          dictionaryAboutFor(entry.dictionary)
-                        )
-                      "
-                    />
-                  </v-col>
-                  <v-col cols="12" sm="8" class="d-flex">
-                    <div class="definition" v-html="entry.definition" />
-                  </v-col>
-                </v-row>
-              </td>
-            </tr>
-          </tbody>
-        </v-simple-table>
+          <div class="header">
+            <v-btn
+              fab
+              x-small
+              class="mr-2 grey--text"
+              elevation="0"
+              @click="clearPreviousQueries"
+            >
+              <v-icon>mdi-delete-clock</v-icon>
+            </v-btn>
+            Last Queries:
+          </div>
 
-        <v-alert v-else class="text-center" key="no-entries">
-          No entries
-        </v-alert>
+          <v-fade-transition group tag="div" class="buttons">
+            <v-btn
+              text
+              v-for="query in previousQueries"
+              :key="query"
+              color="grey"
+              class="previous-query"
+              @click="performSearch({ query: query })"
+              v-html="wrapAllTibetanWithSpansAndAddTshekIfMissing(query)"
+            />
+          </v-fade-transition>
+        </div>
       </template>
-    </v-fade-transition>
+
+      <v-simple-table
+        v-else-if="limitedAndDecoratedEntries.length"
+        key="entries"
+      >
+        <tbody>
+          <tr v-for="entry in limitedAndDecoratedEntries" class="entry">
+            <td>
+              <v-row>
+                <v-col cols="12" sm="2">
+                  <div class="term tibetan" v-html="entry.term" />
+                </v-col>
+                <v-col cols="12" sm="2">
+                  <v-chip
+                    label
+                    small
+                    class="ml-2 px-2"
+                    color="dictionary-label grey darken-2"
+                    v-html="shortDictionaryLabelFor(entry)"
+                    :class="{
+                      'has-tibetan': shortDictionaryLabelForHasTibetan(entry),
+                    }"
+                    @click="
+                      $root.openSnackbarWith(
+                        dictionaryAboutFor(entry.dictionary)
+                      )
+                    "
+                  />
+                </v-col>
+                <v-col cols="12" sm="8" class="d-flex">
+                  <div class="definition" v-html="entry.definition" />
+                </v-col>
+              </v-row>
+            </td>
+          </tr>
+        </tbody>
+      </v-simple-table>
+
+      <v-alert v-else class="text-center" key="no-entries">
+        No entries
+      </v-alert>
+    </template>
   </div>
 </template>
 
