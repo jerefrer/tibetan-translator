@@ -173,7 +173,35 @@ export default {
             <SearchPageHelpDialogWithButton v-if="tab.id == 'search'" />
             <TranslatePageHelpDialogWithButton v-if="tab.id == 'translate'" />
 
-            <div v-html="tab.name"></div>
+            <div>
+              <div v-html="tab.name"></div>
+              <v-slide-y-reverse-transition appear>
+                <div
+                  v-if="tab.id == 'translate' && currentTabId == 'translate'"
+                  style="
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    display: flex;
+                    justify-content: center;
+                  "
+                >
+                  <v-chip
+                    label
+                    x-small
+                    style="
+                      text-transform: lowercase;
+                      background: #2196f3 !important;
+                      border-bottom-left-radius: 0 !important;
+                      border-bottom-right-radius: 0 !important;
+                    "
+                  >
+                    Experimental
+                  </v-chip>
+                </div>
+              </v-slide-y-reverse-transition>
+            </div>
           </v-tab>
         </v-tabs>
       </v-system-bar>
