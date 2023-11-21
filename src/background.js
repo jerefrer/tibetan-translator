@@ -2,13 +2,14 @@
 
 import path from 'path';
 import { app, protocol, BrowserWindow } from "electron";
+import { autoUpdater } from "electron-updater";
 import { createProtocol } from "vue-cli-plugin-electron-builder/lib";
 import installExtension, { VUEJS_DEVTOOLS } from "electron-devtools-installer";
 const isDevelopment = process.env.NODE_ENV !== "production";
 
 // Scheme must be registered before the app is ready
 protocol.registerSchemesAsPrivileged([
-  { scheme: "app", privileges: { secure: true, standard: true } },
+  { scheme: "app", privileges: { secure: true, standard: true, supportFetchAPI: true } },
 ]);
 
 async function createWindow() {
@@ -66,6 +67,7 @@ app.on("ready", async () => {
       console.error("Vue Devtools failed to install:", e.toString());
     }
   }
+  autoUpdater.checkForUpdatesAndNotify();
   createWindow();
 });
 

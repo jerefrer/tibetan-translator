@@ -1,5 +1,5 @@
 <script>
-  import JsDiff from '../../../diff'
+  import JsDiff from 'jsdiff'
 
   export default {
     props: {

@@ -69,14 +69,12 @@ interface for all devices.
   match a strict phonetic search, show them first.
 * Find a way to match ལྟ་བ་ཡིས། when looking for ལྟ་བ་ཡིས་
 * Make `npm run build:database` multi-threaded to speed up the process
-
 * Find a way to prevent the freezes when having a lot of Tibetan in a search:
   * {selwar} & vivid => yields a lot of Negi results, therefore much time spent
     trying to find matches for the phonetic {selwar}.
     * Maybe make the highlighting asynchronous and entry by entry so that the first
       one will show up immediately and by the time the user starts scrolling the
       others are ready.
-
 * Consider treating "nyi" as "ni" (yi > i) in loose phonetic search
 * Consider being able to use wildcards (%)
   * For instance I needed to find something that starts with དབྱིངས་ and ends
