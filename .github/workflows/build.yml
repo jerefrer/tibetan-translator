@@ -17,12 +17,6 @@ jobs:
         os: [macos-latest, ubuntu-latest, windows-latest]
 
     steps:
-      - uses: dev-drprasad/delete-older-releases@v0.3.2
-        with:
-          keep_latest: 0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Checkout
         uses: actions/checkout@v2
 
