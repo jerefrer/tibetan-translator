@@ -3,12 +3,8 @@ build/dictionaries/99-Illuminator_x
 build/dictionaries-debug/
 build/stardict/
 build/wylieLines*
-*.sql
-*.db
-*.sqlite
-!PublicDictionaries.db
-public/*.sqlite*
-dist/*.sqlite*
+public/*.sqlite
+TibetanTranslatorWithIlluminator.sqlite
 demo.mp4
 
 dist/
