@@ -20,6 +20,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      - name: Extract the database
+        run: cd public && 7z x database.7z && rm database.7z
+
       - name: Install Node.js
         uses: actions/setup-node@v2
         with:
