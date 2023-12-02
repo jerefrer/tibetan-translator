@@ -6,6 +6,7 @@ module.exports = {
     category: "public.app-category.education",
     // artifactName: "${name}-${version}.${arch}.${ext}",
     target: ["zip"],
+    icon: "./docs/favicon-full-upscaled.png",
   },
   win: {
     icon: "./public/img/logo.png",
