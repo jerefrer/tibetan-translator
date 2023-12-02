@@ -46,7 +46,7 @@ export const convertWylieButKeepNonTibetanParts = function (text, wylieToUnicode
   var result = '';
   var tokenizer = new Tokenizer(
     [
-      /{[^}]*}/,        // Everything between {} (rules are inversed in tibetan only dictionaries)
+      /{[^}]*}/,        // Everything between {} (rules are reversed in tibetan only dictionaries)
       /\([A-Z:,\d]+\)/, // Things like (1234) or (WP:1,194)
     ],
     (chunk, isSeparator) => {
