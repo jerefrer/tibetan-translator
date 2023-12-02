@@ -1,0 +1,24 @@
+.download-button {
+  padding: 10px 20px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 17px;
+  display: inline-flex;
+  gap: 5px;
+  margin-right: 10px;
+  border: none;
+  transition: 0.3s ease all;
+}
+
+.download-button,
+.download-button svg {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
+.download-button:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.download-button:hover svg {
+  transform: translateX(3px) scale(1.1);
+}
