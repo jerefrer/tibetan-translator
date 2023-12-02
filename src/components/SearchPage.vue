@@ -134,7 +134,7 @@ export default {
     substituteWylieTerms(text) {
       return text.replace(/\(([^)]*)\)/g, (wylieWithParenthesis) => {
         let wylieWithoutParenthesis = wylieWithParenthesis.slice(1, -1);
-        return wylieToUnicode.convert();
+        return wylieToUnicode.convert(wylieWithoutParenthesis);
       });
     },
     phoneticsTerms(regexp, convert) {

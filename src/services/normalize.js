@@ -119,7 +119,7 @@ buildNormalizeMap();
  *   'ＦＵＬＬＷＩＤＴＨ'.normalize() -> 'FULLWIDTH'
  *
  ***/
-export const normalize = function (text) {
+export default function (text) {
   return text.replace(NormalizeReg, function (character) {
     return NormalizeMap[character];
   });

@@ -1,6 +1,6 @@
 import _ from "underscore";
 
-import "../services/normalize";
+import normalize from "../services/normalize";
 
 export default {
   prepareTermForStrictMatching(term) {
