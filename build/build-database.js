@@ -19,12 +19,12 @@ import {
   convertWylieButKeepNonTibetanParts,
 } from "../src/utils.js";
 
-const outputFilename = "TibetanTranslatorDebug.sqlite";
+const outputFilename = "TibetanTranslator.sqlite";
 const outputFilepath = path.join(__dirname, "..", "public", outputFilename);
 const linesWithMissedWylieFilename = "wylieLinesWithMistakes.txt";
 
 var DatabaseBuilder = {
-  dictionariesFolder: path.join(__dirname, "dictionaries-debug"),
+  dictionariesFolder: path.join(__dirname, "dictionaries"),
   linesWithMissedWylieFilePath: path.join(
     __dirname,
     linesWithMissedWylieFilename
