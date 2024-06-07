@@ -65,32 +65,45 @@ export default {
       return 100;
     },
     sortedEntries() {
-      return _(this.entriesForEnabledDictionaries).sortBy((entry) => {
-        var positions = [];
-        this.regularSearchTerms.forEach((term) => {
-          positions.push((entry.term + entry.definition).indexOf(term));
-        });
-        this.phoneticsStrictSearchTerms.forEach((phoneticsStrictTerm) => {
-          positions.push(
-            (
-              entry.termPhoneticsStrict + entry.definitionPhoneticsWordsStrict
-            ).indexOf(phoneticsStrictTerm)
-          );
-        });
-        this.phoneticsLooseSearchTerms.forEach((phoneticsLooseTerm) => {
-          positions.push(
-            (
-              entry.termPhoneticsLoose + entry.definitionPhoneticsWordsLoose
-            ).indexOf(phoneticsLooseTerm)
-          );
-        });
-        return [
-          positions.reduce((sum, n) => sum + n), // [  9 ] < [ 10 ] => false
-          entry.term.length, // ["09"] < ["10"] => true
-          entry.term, // Comparison is actually made on strings
-          entry.dictionaryPosition, // So we take the initiative
-        ].map((x) => x.toString().padStart(10, "0")); // To toString & padStart all ourselves
-      });
+      return _.chain(this.entriesForEnabledDictionaries)
+        .map((entry) => {
+          entry.matchPositions = [];
+          this.regularSearchTerms.forEach((term) => {
+            entry.matchPositions.push((entry.term + entry.definition).indexOf(term));
+          });
+          this.phoneticsStrictSearchTerms.forEach((phoneticsStrictTerm) => {
+            entry.matchPositions.push(
+              (
+                entry.termPhoneticsStrict + entry.definitionPhoneticsWordsStrict
+              ).indexOf(phoneticsStrictTerm)
+            );
+          });
+          this.phoneticsLooseSearchTerms.forEach((phoneticsLooseTerm) => {
+            entry.matchPositions.push(
+              (
+                entry.termPhoneticsLoose + entry.definitionPhoneticsWordsLoose
+              ).indexOf(phoneticsLooseTerm)
+            );
+          });
+          return entry;
+        })
+        .reject(entry => {
+          return _(entry.matchPositions).all((pos) => pos == -1);
+        })
+        .sortBy(entry => {
+          return [
+            entry.matchPositions.reduce((sum, n) => sum + n),
+            entry.term.length,
+            entry.term,
+            entry.dictionaryPosition,
+          ].map((x) => x.toString().padStart(10, "0"));
+          // ----------------^----------^--------------
+          // We need toString & padStart because
+          // comparison is actually made on strings:
+          // [  9 ] < [ 10 ] => false
+          // ["09"] < ["10"] => true
+        })
+        .value();
     },
     limitedEntries() {
       return this.sortedEntries
