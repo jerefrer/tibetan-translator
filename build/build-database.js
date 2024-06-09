@@ -100,7 +100,7 @@ var DatabaseBuilder = {
 
   setupProgressBar() {
     this.progressBar = new ProgressBar(
-      "Generating database (:percent) [:bar] :elapsed since starting [:current/:total]",
+      "Generating database (:percent) [:bar] :elapsed seconds since starting [:current/:total]",
       {
         incomplete: " ",
         width: 30,
@@ -158,8 +158,8 @@ var DatabaseBuilder = {
         definition,
         definitionPhoneticsWordsStrict,
         definitionPhoneticsWordsLoose,
-        content='entries',
-        content_rowid='id'
+        content = 'entries',
+        content_rowid = 'id'
       );
     `);
     this.database.run(`
