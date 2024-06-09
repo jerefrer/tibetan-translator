@@ -91,7 +91,7 @@ var DatabaseBuilder = {
     this.totalNumberOfLines = 0;
     this.dictionaries.forEach((dictionary) => {
       var text = utf8Decoder.write(fs.readFileSync(dictionary.path));
-      var lines = text.split(/[\r][\n]/);
+      var lines = text.split(/\r?\n/);
       dictionary.numberOfLines = lines.length;
       if (_.last(lines).trim() == "") dictionary.numberOfLines -= 1;
       this.totalNumberOfLines += dictionary.numberOfLines;
