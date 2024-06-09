@@ -274,6 +274,8 @@ var DatabaseBuilder = {
     if (line.match(/^#/) || !definitionWithMaybeWylie) return;
 
     var term = this.wylieToUnicode.convert(wylieTerm);
+    if (!term.match(/[་།༑༔]$/))
+      term += "་";
     var definition;
     var dictionaryDetails = DICTIONARIES_DETAILS[dictionary.name];
     if (dictionaryDetails && dictionaryDetails.containsOnlyTibetan) {
