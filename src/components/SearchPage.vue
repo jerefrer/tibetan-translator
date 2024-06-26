@@ -363,6 +363,7 @@ export default {
         height="63"
         ref="input"
         class="flex-grow-1 text-center tibetan"
+        placeholder="Type in your query"
         :value="searchQuery"
         @keyup.enter="performSearch()"
         @click:clear="clear"
