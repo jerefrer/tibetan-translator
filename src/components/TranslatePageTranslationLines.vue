@@ -25,10 +25,9 @@
       splitTextIntoDefinedLinesAndInsert (text, line, lineIndex) {
         line.loading = true;
         this.splitTextIntoDefinedLines(text).then((splitLines) => {
-          var linesWithSplitLinesInserted =
-            this.lines.
-            removeAt(lineIndex).
-            insert(splitLines, lineIndex);
+          var linesWithSplitLinesInserted = this.lines.slice();
+          linesWithSplitLinesInserted.splice(lineIndex, 1);
+          linesWithSplitLinesInserted.splice(lineIndex, 0, ...splitLines);
           this.$emit('paste:multiple', linesWithSplitLinesInserted);
           line.loading = false;
         })

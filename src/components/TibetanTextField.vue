@@ -27,7 +27,7 @@ export default {
     },
     convertWylie(text) {
       var textWithConvertedWylie = (text || "").replace(
-        TibetanRegExps.anythingNonTibetan,
+        new RegExp(`[^${TibetanRegExps.expressions.allTibetanCharacters}\r\n]+`, 'iug'),
         (wylie) => wylieToUnicode.convert(wylie)
       );
       textWithConvertedWylie = textWithConvertedWylie.replace(/་+/g, "་");
@@ -48,7 +48,7 @@ export default {
       if (this.$listeners["paste:multiple"]) {
         var pastedText = event.clipboardData.getData("text/plain");
         event.clipboardData.setData("text/plain", pastedText);
-        if (pastedText.split(/\r\n|\r|\n/).length > 1) {
+        if (pastedText.split(/[\r\n]+/).length > 1) {
           event.preventDefault();
           this.$emit("paste:multiple", this.convertWylie(pastedText));
         }
