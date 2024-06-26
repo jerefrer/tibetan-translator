@@ -1,5 +1,4 @@
 html.theme--light {
-  --contentBackground: #fff;
   --sidebarBackground: #f9f9f9;
   --transparentSidebarBackground: rgba(249, 249, 249, 0);
   --sidebarBorder: #e1e1e1;
@@ -8,7 +7,6 @@ html.theme--light {
 }
 
 html.theme--dark {
-  --contentBackground: var(--black-background);
   --sidebarBackground: #24282a;
   --transparentSidebarBackground: rgba(36, 40, 42, 0);
   --sidebarBorder: #000;

@@ -195,7 +195,8 @@ export default {
               class="link tibetan"
               :class="{
                 'active primary': selectedTerm == term,
-                'lighten-3': !$vuetify.theme.dark,
+                'white--text': selectedTerm == term && !$vuetify.theme.dark,
+                'darken-2': selectedTerm == term && $vuetify.theme.dark,
               }"
               @click="pushRoute(term)"
             >

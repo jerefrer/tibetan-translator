@@ -32,7 +32,7 @@
           icon large
           v-on="on"
           v-bind="attrs"
-          class="help-button grey--text text--darken-2"
+          class="help-button"
         >
           <v-icon>mdi-help-circle</v-icon>
         </v-btn>

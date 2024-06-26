@@ -173,12 +173,12 @@ export default {
 
             <div>
               <div v-html="tab.name"></div>
-              <v-slide-y-reverse-transition appear>
+              <v-slide-y-transition appear>
                 <div
                   v-if="tab.id == 'translate' && currentTabId == 'translate'"
                   style="
                     position: absolute;
-                    bottom: 0;
+                    top: 0;
                     left: 0;
                     right: 0;
                     display: flex;
@@ -190,15 +190,15 @@ export default {
                     x-small
                     style="
                       text-transform: lowercase;
-                      background: #2196f3 !important;
-                      border-bottom-left-radius: 0 !important;
-                      border-bottom-right-radius: 0 !important;
+                      background: var(--yellow) !important;
+                      border-top-left-radius: 0 !important;
+                      border-top-right-radius: 0 !important;
                     "
                   >
                     Experimental
                   </v-chip>
                 </div>
-              </v-slide-y-reverse-transition>
+              </v-slide-y-transition>
             </div>
           </v-tab>
         </v-tabs>

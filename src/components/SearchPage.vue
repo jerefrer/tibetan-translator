@@ -542,7 +542,10 @@ export default {
 
 .search-page .v-input .v-input__slot .v-input__append-inner .v-btn .v-icon {
   margin: 0;
-  color: #2196f3;
+  color: var(--deep-red);
+}
+.theme--dark .search-page .v-input .v-input__slot .v-input__append-inner .v-btn .v-icon {
+  color: var(--yellow);
 }
 
 .search-page .v-input .v-input__slot .v-input__append-inner .v-icon {

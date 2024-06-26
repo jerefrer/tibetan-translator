@@ -77,3 +77,7 @@
 .keyboard-square + .keyboard-square {
   margin-left: 2px;
 }
+
+.help-dialog .v-tabs-slider-wrapper {
+  bottom: 7px;
+}
