@@ -13,7 +13,6 @@ export default {
             .replace(/a'?i/g, "e")
             .replace(/[éèë]/g, "e")
             .replace(/w/, "p") // to match ba as wa
-            .replace(/al$/, "el")
         )
     ).join(" ");
   },
