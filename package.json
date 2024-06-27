@@ -1,8 +1,8 @@
 {
-  "name": "tibetan-translator",
+  "name": "TibetanTranslator",
   "version": "0.9.0",
   "description": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",
-  "author": "Jeremy FRERE",
+  "author": "Lekshe (Jeremy FRERE)",
   "keywords": [
     "tibetan",
     "dictionary",
@@ -24,14 +24,9 @@
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
-    "build:database": "babel-node ./build/build-database.js",
-    "electron:build": "vue-cli-service electron:build",
-    "electron:serve": "vue-cli-service electron:serve"
+    "build:database": "babel-node ./build/build-database.js"
   },
   "main": "background.js",
-  "engines": {
-    "node": "16.x"
-  },
   "dependencies": {
     "filedrop": "^2.1.0",
     "fuzzysort": "^2.0.4",
@@ -50,19 +45,17 @@
     "vuetify": "^2.7.1"
   },
   "devDependencies": {
+    "7zip-min": "^1.4.4",
     "@babel/core": "^7.23.3",
     "@babel/node": "^7.22.19",
     "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@babel/preset-env": "^7.23.3",
+    "@tauri-apps/cli": "2.0.0-beta.20",
     "@vue/cli-plugin-pwa": "^5.0.8",
     "@vue/cli-service": "^5.0.8",
     "babel-loader": "^9.1.3",
     "css-loader": "^6.8.1",
     "date-fns": "^2.30.0",
-    "electron": "^13.6.9",
-    "electron-builder": "^24.9.1",
-    "electron-devtools-installer": "^3.2.0",
-    "electron-updater": "^6.1.7",
     "file-loader": "^6.2.0",
     "html-webpack-plugin": "^5.5.3",
     "http-server": "^14.1.1",
@@ -75,7 +68,6 @@
     "stylus-loader": "^7.1.3",
     "tibetan-ewts-converter": "^1.0.1",
     "vue": "^2.7.15",
-    "vue-cli-plugin-electron-builder": "^2.1.1",
     "vue-cli-plugin-vuetify": "^2.5.8",
     "vue-loader": "^15.11.1",
     "vue-style-loader": "^4.1.3",
@@ -84,5 +76,6 @@
     "webpack-cli": "^5.1.4",
     "webpack-dev-server": "^4.15.1"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "pnpm@9.4.0+sha512.f549b8a52c9d2b8536762f99c0722205efc5af913e77835dbccc3b0b0b2ca9e7dc8022b78062c17291c48e88749c70ce88eb5a74f1fa8c4bf5e18bb46c8bd83a"
 }

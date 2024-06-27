@@ -5,9 +5,9 @@ build/dictionaries-debug/
 build/stardict/
 build/wylieLines*
 public/*.sqlite
-TibetanTranslatorWithIlluminator.sqlite
+*.sqlite
 demo.mp4
 
 dist/
-#Electron-builder output
-/dist_electron
+#Tauri build output
+/src-tauri/target/

@@ -13,6 +13,7 @@
 }
 .v-input.tibetan textarea,
 .v-input.tibetan input[type=text] {
+  padding: 0;
   height: 36px;
   line-height: 36px;
   max-height: none !important;
