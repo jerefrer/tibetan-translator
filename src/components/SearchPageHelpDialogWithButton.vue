@@ -40,7 +40,6 @@
     <v-card>
 
       <v-toolbar
-        color="black"
         height="54"
         class="mb-1"
       >

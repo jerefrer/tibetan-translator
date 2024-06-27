@@ -1,3 +1,22 @@
+.help-dialog .v-toolbar__content {
+  justify-content: center;;
+}
+.help-dialog .v-toolbar__content .mdi-help-circle {
+  position: relative;
+  top: -2px;
+}
+
+.theme--light .help-dialog .v-toolbar {
+  background: var(--yellow);
+}
+.theme--light .help-dialog .v-toolbar__content * {
+  color: var(--deep-red) !important;
+}
+
+.theme--dark .help-dialog .v-toolbar {
+  background: black;
+}
+
 .help-dialog code {
   display: inline-block;
   position: relative;
