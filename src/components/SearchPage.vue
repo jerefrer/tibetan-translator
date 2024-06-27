@@ -526,8 +526,9 @@ export default {
 }
 
 .search-page .v-input .v-input__slot .v-text-field__slot input {
-  font-size: 26px !important;
+  padding: 0;
   height: 46px !important;
+  font-size: 26px !important;
   line-height: 46px !important;
 }
 
