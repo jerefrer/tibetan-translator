@@ -7,6 +7,7 @@ const utf8Decoder = new StringDecoder("utf8");
 
 import ProgressBar from "progress";
 import { formatDuration, intervalToDuration } from "date-fns";
+import _7z from '7zip-min';
 
 import initSqlJs from "../public/sql-wasm.js";
 
@@ -19,8 +20,9 @@ import {
   convertWylieButKeepNonTibetanParts,
 } from "../src/utils.js";
 
+const publicFolder = path.join(__dirname, "..", "public");
 const outputFilename = "TibetanTranslator.sqlite";
-const outputFilepath = path.join(__dirname, "..", "public", outputFilename);
+const outputFilepath = path.join(publicFolder, outputFilename);
 const linesWithMissedWylieFilename = "wylieLinesWithMistakes.txt";
 
 var DatabaseBuilder = {
@@ -33,15 +35,49 @@ var DatabaseBuilder = {
   async build() {
     this.database = await this.initDatabase();
     this.startedAt = Date.now();
-    this.printNewLineAtTheBeginning();
-    this.cleanup();
+    // this.printNewLineAtTheBeginning();
+    // this.cleanup();
     this.setupWylieToUnicode();
-    this.loadDictionaries();
-    this.computeNumberOfLines();
-    this.setupProgressBar();
-    this.createTables();
-    this.insertDictionaries();
-    this.insertEntries();
+    // this.loadDictionaries();
+    // this.computeNumberOfLines();
+    // this.setupProgressBar({onComplete: this.writeDatabaseThenZipThenLogMistakes});
+    // this.createTables();
+    // this.insertDictionaries();
+    // this.insertEntries();
+    this.writeDatabaseThenZipThenLogMistakes();
+  },
+
+  writeDatabaseThenZipThenLogMistakes () {
+    this.writeWylieMistakes();
+    // this.exportDatabase();
+    const generatedAt = Date.now();
+    var totalTime = formatDuration(
+      intervalToDuration({ start: generatedAt, end: this.startedAt })
+    );
+    console.log(
+      "\n" +
+        "Done !\n" +
+        `Database generated as "public/${outputFilename}" in ${totalTime} \n\n` +
+        "Zipping ..."
+    );
+    const zipFilePath = path.join(publicFolder, 'database.7z');
+    if (fs.existsSync(zipFilePath)) fs.unlinkSync(zipFilePath);
+    _7z.pack(outputFilepath, zipFilePath, () => {
+      const zipTime = formatDuration(
+        intervalToDuration({ start: Date.now(), end: generatedAt })
+      );
+      console.log(
+        `\nDone !\n7zip file generated in ${zipTime}\n`
+      );
+      if (fs.existsSync(this.linesWithMissedWylieFilePath)) {
+        console.log(
+          "\n" +
+            "Some lines contained malformed Wylie that could not be properly " +
+            "converted to Unicode.\n" +
+            `They were logged to "build/${linesWithMissedWylieFilename}".`
+        );
+      }
+    });
   },
 
   async initDatabase() {
@@ -98,33 +134,14 @@ var DatabaseBuilder = {
     });
   },
 
-  setupProgressBar() {
+  setupProgressBar({ onComplete = () => {} }) {
     this.progressBar = new ProgressBar(
       "Generating database (:percent) [:bar] :elapsed seconds since starting [:current/:total]",
       {
         incomplete: " ",
         width: 30,
         total: this.totalNumberOfLines,
-        callback: () => {
-          this.writeWylieMistakes();
-          this.exportDatabase();
-          var totalTime = formatDuration(
-            intervalToDuration({ start: Date.now(), end: this.startedAt })
-          );
-          console.log(
-            "\n" +
-              "Done !\n" +
-              `Database generated as "public/${outputFilename}" in ${totalTime}`
-          );
-          if (fs.existsSync(this.linesWithMissedWylieFilePath)) {
-            console.log(
-              "\n" +
-                "Some lines contained malformed Wylie that could not be properly " +
-                "converted to Unicode.\n" +
-                `They were logged to "build/${linesWithMissedWylieFilename}".`
-            );
-          }
-        },
+        callback: onComplete,
       }
     );
   },
