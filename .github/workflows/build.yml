@@ -6,6 +6,8 @@ on:
       - 'v*'
 jobs:
   publish-tauri:
+    permissions:
+      contents: write
     strategy:
       fail-fast: false
       matrix:
@@ -21,12 +23,6 @@ jobs:
 
     runs-on: ${{ matrix.platform }}
     steps:
-
-      - name: Output GitHub Token
-        run: echo ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Output GitHub Token
-        run: echo ${{ secrets.github_token }}
 
       - uses: actions/checkout@v4
 
