@@ -2780,7 +2780,7 @@ input, select, textarea {
 
 		}
 
-/* Table */
+/* Table 
 
 	.table-wrapper {
 		-webkit-overflow-scrolling: touch;
@@ -2846,7 +2846,7 @@ input, select, textarea {
 
 			table.alt tfoot {
 				border-top: 0;
-			}
+			} */
 
 /* Button */
 
