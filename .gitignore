@@ -10,3 +10,5 @@ demo.mp4
 dist/
 #Electron-builder output
 /dist_electron
+
+.DS_Store
