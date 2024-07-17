@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-
 jobs:
   publish-tauri:
     permissions:
@@ -59,46 +58,15 @@ jobs:
       - name: Extract the database
         run: cd public && 7z x database.7z && rm database.7z
 
-      - name: Decode and Import Certificate
-        if: matrix.platform == 'macos-latest'
-        env:
-          CERTIFICATE_P12: ${{ secrets.CERTIFICATE_P12 }}
-          CERTIFICATE_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
-        run: |
-          echo $CERTIFICATE_P12 | base64 --decode > certificate.p12
-          security create-keychain -p "" build.keychain
-          security import certificate.p12 -k build.keychain -P $CERTIFICATE_PASSWORD -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple: -s -k "" build.keychain
-
-      - name: Build Tauri app
-        run: npm run tauri build
-
-      - name: Code sign the app
-        if: matrix.platform == 'macos-latest'
-        run: |
-          codesign --deep --force --verbose --sign "Developer ID Application: Your Name (Team ID)" src-tauri/target/release/bundle/macos/YourApp.app
-
-      - name: Create zip for notarization
-        if: matrix.platform == 'macos-latest'
-        run: |
-          ditto -c -k --sequesterRsrc --keepParent src-tauri/target/release/bundle/macos/YourApp.app YourApp.zip
-
-      - name: Notarize app
-        if: matrix.platform == 'macos-latest'
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-        run: |
-          xcrun altool --notarize-app --primary-bundle-id "com.yourcompany.yourapp" --username "$APPLE_ID" --password "$APPLE_PASSWORD" --file YourApp.zip
-
-      - name: Staple notarization
-        if: matrix.platform == 'macos-latest'
-        run: |
-          xcrun stapler staple src-tauri/target/release/bundle/macos/YourApp.app
-
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
           tagName: app-v__VERSION__
           releaseName: 'App v__VERSION__'
