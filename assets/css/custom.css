@@ -1,14 +1,52 @@
+.download-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 205px);
+  grid-template-areas:
+    'button1 button2 button3'
+    'button4 button5 button6';
+  gap: 15px;
+}
+
+@media (max-width: 767px) {
+  .download-buttons {
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-areas:
+      'button1 button4'
+      'button2 button5'
+      'button3 button6';
+  }
+}
+
+.download-button:nth-child(1) {
+  grid-area: button1;
+}
+.download-button:nth-child(2) {
+  grid-area: button2;
+}
+.download-button:nth-child(3) {
+  grid-area: button3;
+}
+.download-button:nth-child(4) {
+  grid-area: button4;
+}
+.download-button:nth-child(5) {
+  grid-area: button5;
+}
+.download-button:nth-child(6) {
+  grid-area: button6;
+}
+
 .download-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
   padding: 10px 25px 10px 20px;
+  font-weight: bold;
   background: rgba(0, 0, 0, 0.5);
   border-radius: 17px;
-  display: inline-flex;
-  gap: 5px;
-  margin-right: 10px;
   border: none;
+  color: #fffd;
   transition: 0.3s ease all;
-  font-weight: bold;
-  color: #fffd
 }
 
 .download-button span {
@@ -27,7 +65,6 @@
   opacity: 0.5;
 }
 
-
 .download-button:hover {
   background: rgba(0, 0, 0, 0.7);
   transform: scale(1.1);
@@ -41,8 +78,4 @@
 .download-button.macos svg {
   position: relative;
   top: -1px;
-}
-
-table td {
-  padding: 10px 10px 0 0;
 }
