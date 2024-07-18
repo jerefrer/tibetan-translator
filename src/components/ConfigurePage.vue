@@ -94,6 +94,7 @@ export default {
 
       .dictionary
         display: flex
+        user-select: none
 
         &.disabled .v-icon:before, &.disabled .switch .v-input__control
           opacity: 0.25
