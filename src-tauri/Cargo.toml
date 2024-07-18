@@ -1,6 +1,6 @@
 [package]
 name = "TibetanTranslator"
-version = "0.9.6"
+version = "0.9.7"
 description = "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices."
 authors = ["Lekshe (Jeremy FRERE)"]
 license = "MIT"
