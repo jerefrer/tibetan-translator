@@ -79,3 +79,17 @@
   position: relative;
   top: -1px;
 }
+
+.contact li.with-image img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: inline-block;
+  width: 2.5em;
+  height: 2.5em;
+  line-height: 2.35em;
+  border-radius: 100%;
+  border: solid 2px rgba(255, 255, 255, 0.125);
+  font-size: 0.8em;
+  text-align: center;
+}
