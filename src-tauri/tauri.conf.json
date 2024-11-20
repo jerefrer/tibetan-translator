@@ -1,6 +1,6 @@
 {
   "productName": "TibetanTranslator",
-  "version": "0.9.7",
+  "version": "0.9.8",
   "identifier": "com.jerefrer.TibetanTranslator",
   "build": {
     "frontendDist": "../dist",
@@ -32,7 +32,9 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "shortDescription": "The best Tibetan dictionaries in a pleasant interface for all devices",
+    "longDescription": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices."
   },
   "$schema": "../node_modules/@tauri-apps/cli/schema.json"
 }
