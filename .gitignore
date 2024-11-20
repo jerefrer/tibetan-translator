@@ -12,3 +12,4 @@ dist/
 /dist_electron
 
 .DS_Store
+src-tauri/
