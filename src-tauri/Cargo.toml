@@ -1,6 +1,6 @@
 [package]
 name = "TibetanTranslator"
-version = "0.9.9"
+version = "0.9.10"
 description = "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices."
 authors = ["Lekshe (Jeremy FRERE)"]
 license = "MIT"
@@ -15,10 +15,10 @@ name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.0.0-rc.0", features = [] }
+tauri-build = { version = "2.0.0-rc.13", features = [] }
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "2.0.0-rc.2", features = [] }
+tauri = { version = "2.1.1", features = [] }
 open = "5.0"

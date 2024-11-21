@@ -1,6 +1,6 @@
 {
   "name": "tibetan-translator",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "description": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",
   "author": "Lekshe (Jeremy FRERE)",
   "keywords": [
@@ -51,7 +51,8 @@
     "@babel/node": "^7.22.19",
     "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@babel/preset-env": "^7.23.3",
-    "@tauri-apps/cli": "2.1.0",
+    "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/cli": "^2.1.1",
     "@vue/cli-plugin-pwa": "^5.0.8",
     "@vue/cli-service": "^5.0.8",
     "babel-loader": "^9.1.3",

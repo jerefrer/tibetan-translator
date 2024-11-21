@@ -1,6 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::menu::{Menu, Submenu, MenuItem};
+use tauri::menu::{Menu, Submenu, MenuItem, SubmenuBuilder, MenuItemBuilder, AboutMetadata};
 
 fn main() {
     tauri::Builder::default()
@@ -8,47 +8,6 @@ fn main() {
             let app_handle = app.handle();
             
             let app_menu = Menu::new(app_handle).unwrap();
-
-            // Add version number as non-clickable menu item
-            let version_menu = MenuItem::with_id(
-                app_handle,
-                "version",
-                format!("Version {}", env!("CARGO_PKG_VERSION")),
-                false,  // Set to false to make it non-clickable
-                None::<&str>
-            ).unwrap();
-
-            // Add separator
-            let separator = MenuItem::new(
-                app_handle,
-                "-------------",  // empty text for separator
-                false,  // disabled
-                None::<&str>
-            ).unwrap();
-
-            let website_menu = MenuItem::with_id(
-                app_handle,
-                "website",
-                "Website",
-                true,
-                None::<&str>
-            ).unwrap();
-
-            let github_menu = MenuItem::with_id(
-                app_handle,
-                "github",
-                "Source code",
-                true,
-                None::<&str>
-            ).unwrap();
-
-            let support_menu = MenuItem::with_id(
-                app_handle,
-                "support",
-                "Support me",
-                true,
-                None::<&str>
-            ).unwrap();
 
             let feature_menu = MenuItem::with_id(
                 app_handle,
@@ -69,16 +28,48 @@ fn main() {
             let contact_menu = MenuItem::with_id(
                 app_handle,
                 "contact",
-                "Contact me",
+                "Contact the author",
                 true,
                 None::<&str>
             ).unwrap();
 
-            let app_submenu = Submenu::new(
-                app_handle,
-                "App",
-                true
-            ).unwrap();
+            let website = MenuItemBuilder::new("Project website")
+                .id("website")
+                .build(app)?;
+
+            let github = MenuItemBuilder::new("Source code on Github")
+                .id("github")
+                .build(app)?;
+
+            let support = MenuItemBuilder::new("Support the author")
+                .id("support")
+                .build(app)?;
+
+            let app_submenu = SubmenuBuilder::new(app, "App")
+                .about(Some(AboutMetadata {
+                    ..Default::default()
+                }))
+                .separator()
+                .item(&website)
+                .item(&github)
+                .item(&support)
+                .separator()
+                .services()
+                .separator()
+                .hide()
+                .hide_others()
+                .quit()
+                .build()?;
+
+            let edit_submenu = SubmenuBuilder::new(app, "Edit")
+                .undo()
+                .redo()
+                .separator()
+                .cut()
+                .copy()
+                .paste()
+                .select_all()
+                .build()?;
 
             let help_submenu = Submenu::new(
                 app_handle,
@@ -86,19 +77,13 @@ fn main() {
                 true
             ).unwrap();
 
-            // Build the menu structure
-            app_submenu.append(&version_menu).unwrap();
-            app_submenu.append(&separator).unwrap();  // Add separator after version
-            app_submenu.append(&website_menu).unwrap();
-            app_submenu.append(&github_menu).unwrap();
-            app_submenu.append(&support_menu).unwrap();
-
             help_submenu.append(&feature_menu).unwrap();
             help_submenu.append(&bug_menu).unwrap();
             help_submenu.append(&contact_menu).unwrap();
 
             let menu = app_menu;
             menu.append(&app_submenu).unwrap();
+            menu.append(&edit_submenu).unwrap();
             menu.append(&help_submenu).unwrap();
 
             app.set_menu(menu).unwrap();
