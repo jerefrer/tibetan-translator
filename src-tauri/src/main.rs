@@ -9,18 +9,21 @@ fn main() {
             
             let app_menu = Menu::new(app_handle).unwrap();
 
-            let quit_menu = MenuItem::with_id(
+            // Add version number as non-clickable menu item
+            let version_menu = MenuItem::with_id(
                 app_handle,
-                "quit",
-                "Quit",
-                true,
-                Some("")
+                "version",
+                format!("Version {}", env!("CARGO_PKG_VERSION")),
+                false,  // Set to false to make it non-clickable
+                None::<&str>
             ).unwrap();
 
-            let app_submenu = Submenu::new(
+            // Add separator
+            let separator = MenuItem::new(
                 app_handle,
-                "App",
-                true
+                "-------------",  // empty text for separator
+                false,  // disabled
+                None::<&str>
             ).unwrap();
 
             let website_menu = MenuItem::with_id(
@@ -34,31 +37,7 @@ fn main() {
             let github_menu = MenuItem::with_id(
                 app_handle,
                 "github",
-                "Source code on Github",
-                true,
-                None::<&str>
-            ).unwrap();
-
-            let bug_menu = MenuItem::with_id(
-                app_handle,
-                "bug",
-                "Report a bug",
-                true,
-                None::<&str>
-            ).unwrap();
-
-            let feature_menu = MenuItem::with_id(
-                app_handle,
-                "feature",
-                "Request a feature",
-                true,
-                None::<&str>
-            ).unwrap();
-
-            let contact_menu = MenuItem::with_id(
-                app_handle,
-                "contact",
-                "Contact me",
+                "Source code",
                 true,
                 None::<&str>
             ).unwrap();
@@ -71,6 +50,36 @@ fn main() {
                 None::<&str>
             ).unwrap();
 
+            let feature_menu = MenuItem::with_id(
+                app_handle,
+                "feature",
+                "Request a feature",
+                true,
+                None::<&str>
+            ).unwrap();
+
+            let bug_menu = MenuItem::with_id(
+                app_handle,
+                "bug",
+                "Report a bug",
+                true,
+                None::<&str>
+            ).unwrap();
+
+            let contact_menu = MenuItem::with_id(
+                app_handle,
+                "contact",
+                "Contact me",
+                true,
+                None::<&str>
+            ).unwrap();
+
+            let app_submenu = Submenu::new(
+                app_handle,
+                "App",
+                true
+            ).unwrap();
+
             let help_submenu = Submenu::new(
                 app_handle,
                 "Help",
@@ -78,50 +87,47 @@ fn main() {
             ).unwrap();
 
             // Build the menu structure
-            let app_submenu = app_submenu;
-            app_submenu.append(&quit_menu).unwrap();
+            app_submenu.append(&version_menu).unwrap();
+            app_submenu.append(&separator).unwrap();  // Add separator after version
+            app_submenu.append(&website_menu).unwrap();
+            app_submenu.append(&github_menu).unwrap();
+            app_submenu.append(&support_menu).unwrap();
 
-            let help_submenu = help_submenu;
-            help_submenu.append(&website_menu).unwrap();
-            help_submenu.append(&github_menu).unwrap();
-            help_submenu.append(&bug_menu).unwrap();
             help_submenu.append(&feature_menu).unwrap();
+            help_submenu.append(&bug_menu).unwrap();
             help_submenu.append(&contact_menu).unwrap();
-            help_submenu.append(&support_menu).unwrap();
 
             let menu = app_menu;
             menu.append(&app_submenu).unwrap();
             menu.append(&help_submenu).unwrap();
 
             app.set_menu(menu).unwrap();
+            
             Ok(())
         })
-        .on_menu_event(|app_handle, event| {
-          match event.id().0.as_str() {
-              "quit" => {
-                  app_handle.exit(0);
-              },
-              "website" => {
-                  let _ = open::that("https://jerefrer.github.io/tibetan-translator/");
-              },
-              "github" => {
-                  let _ = open::that("https://github.com/jerefrer/tibetan-translator/");
-              },
-              "bug" => {
-                  let _ = open::that("https://github.com/jerefrer/tibetan-translator/issues/new");
-              },
-              "feature" => {
-                  let _ = open::that("https://github.com/jerefrer/tibetan-translator/issues/new");
-              },
-              "contact" => {
-                  let _ = open::that("https://frerejeremy.me");
-              },
-              "support" => {
-                  let _ = open::that("https://frerejeremy.me");
-              },
-              _ => {}
-          }
-      })
-      .run(tauri::generate_context!())
-      .expect("error while running application");
+        .on_menu_event(|_app_handle, event| {  // Added underscore to mark as intentionally unused
+            match event.id().0.as_str() {
+                "website" => {
+                    let _ = open::that("https://jerefrer.github.io/tibetan-translator/");
+                },
+                "github" => {
+                    let _ = open::that("https://github.com/jerefrer/tibetan-translator/");
+                },
+                "bug" => {
+                    let _ = open::that("https://github.com/jerefrer/tibetan-translator/issues/new");
+                },
+                "feature" => {
+                    let _ = open::that("https://github.com/jerefrer/tibetan-translator/issues/new");
+                },
+                "contact" => {
+                    let _ = open::that("https://frerejeremy.me");
+                },
+                "support" => {
+                    let _ = open::that("https://frerejeremy.me");
+                },
+                _ => {}
+            }
+        })
+        .run(tauri::generate_context!())
+        .expect("error while running application");
 }
