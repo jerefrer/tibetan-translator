@@ -73,7 +73,7 @@ importers:
         specifier: ^2.1.1
         version: 2.1.1
       '@tauri-apps/cli':
-        specifier: ^2.1.0
+        specifier: ^2.0.0
         version: 2.1.0
       '@vue/cli-plugin-pwa':
         specifier: ^5.0.8
