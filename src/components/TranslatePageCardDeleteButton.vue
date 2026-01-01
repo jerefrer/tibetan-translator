@@ -20,31 +20,31 @@
 
 <template>
   <v-tooltip
-    content-class="caption"
-    right
-    nudge-left="6"
+    location="end"
     offset="0"
-    color="red darken-4"
+    color="red-darken-4"
     v-model="clicked"
   >
 
-    <span>Click again to confirm</span>
+    <template v-slot:default>
+      <span class="text-caption">Click again to confirm</span>
+    </template>
 
-    <template v-slot:activator="{ on, attrs }">
+    <template v-slot:activator>
       <v-btn
-        :text="!!$slots.default"
+        variant="text"
         :icon="!$slots.default"
-        v-bind="Object.assign({}, attrs, $attrs)"
+        v-bind="$attrs"
         class="delete-button"
         :class="{
-          'red darken-4': clicked,
-          'red--text': $slots.default
+          'bg-red-darken-4': clicked,
+          'text-red': $slots.default
         }"
         @click="click"
       >
         <v-icon
           v-bind="$attrs"
-          v-text="clicked ? 'mdi-help' : 'mdi-delete'"
+          :icon="clicked ? 'mdi-help' : 'mdi-delete'"
         />
         <slot />
       </v-btn>

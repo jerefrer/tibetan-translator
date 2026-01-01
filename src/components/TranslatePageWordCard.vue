@@ -4,10 +4,10 @@
   import SqlDatabase from '../services/sql-database'
   import TranslatePageMixins from './TranslatePageMixins'
 
-  import TranslatePageSplitIcon from './TranslatePageSplitIcon'
-  import TranslatePageCardDeleteButton from './TranslatePageCardDeleteButton'
-  import TranslatePageCardColorPicker from './TranslatePageCardColorPicker'
-  import TibetanTextField from './TibetanTextField'
+  import TranslatePageSplitIcon from './TranslatePageSplitIcon.vue'
+  import TranslatePageCardDeleteButton from './TranslatePageCardDeleteButton.vue'
+  import TranslatePageCardColorPicker from './TranslatePageCardColorPicker.vue'
+  import TibetanTextField from './TibetanTextField.vue'
 
   export default {
     mixins: [TranslatePageMixins],
@@ -93,13 +93,13 @@
       </div>
 
       <TranslatePageCardColorPicker
-        small
+        size="small"
         :color="word.color"
         @change="$emit('change:color', $event)"
       />
 
       <TranslatePageCardDeleteButton
-        small
+        size="small"
         @confirm="$emit('click:delete')"
       />
 
@@ -108,7 +108,7 @@
     <v-card-text>
 
       <TibetanTextField
-        dense
+        density="compact"
         height="44"
         v-model="word.source"
         class="text-center"
@@ -122,6 +122,8 @@
         >
           <v-btn
             icon
+            variant="text"
+            size="small"
             title="Insert cards with sub-words"
             @click="$emit('click:insertDefinedWords', $event)"
           >
@@ -133,14 +135,16 @@
       <v-combobox
         v-if="definitions.length"
         v-model="word.translation"
-        clearable dense hide-details
+        clearable
+        density="compact"
+        hide-details
         :items="definitions"
         class="tibetan text-center"
       />
 
       <v-text-field
         v-else
-        dense
+        density="compact"
         hide-details
         spellcheck="false"
         v-model="word.translation"

@@ -17,7 +17,8 @@
 <template>
   <span class="diff">
     <span
-      v-for="part in parts"
+      v-for="(part, index) in parts"
+      :key="index"
       :style="[
         part.added ? {color: '#2185d0', 'font-weight': 'bold'} : '',
         part.removed ? {color: '#db2828', 'font-weight': 'bold'} : ''

@@ -1,5 +1,21 @@
+/* Limit help dialog height on all platforms */
+.help-dialog {
+  max-height: 85vh !important;
+  max-height: calc(85dvh) !important;
+}
+.help-dialog .v-card {
+  max-height: inherit;
+  display: flex;
+  flex-direction: column;
+}
+.help-dialog .v-card-text {
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
 .help-dialog .v-toolbar__content {
-  justify-content: center;;
+  justify-content: center;
 }
 .help-dialog .v-toolbar__content .mdi-help-circle {
   position: relative;
@@ -12,18 +28,66 @@
 .theme--light .help-dialog .v-toolbar__content * {
   color: var(--deep-red) !important;
 }
+/* Vuetify 3: Tabs extension should be red */
+.theme--light .help-dialog .v-toolbar__extension {
+  background: var(--deep-red) !important;
+}
+.theme--light .help-dialog .v-toolbar__extension .v-tab {
+  color: white !important;
+  text-transform: uppercase;
+  font-weight: bold;
+}
+.theme--light .help-dialog .v-toolbar__extension .v-tab--selected {
+  color: var(--yellow) !important;
+}
+.theme--light .help-dialog .v-toolbar__extension .v-tab__slider {
+  background: var(--yellow) !important;
+  width: 21px !important;
+  height: 4px !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%);
+  border-radius: 4px;
+}
 
 .theme--dark .help-dialog .v-toolbar {
   background: black;
+}
+
+/* Text styling for help dialog content */
+.help-dialog .v-card-text {
+  font-size: 14px !important;
+  line-height: 1.5;
+}
+.help-dialog .v-card-text p {
+  margin-bottom: 1em;
+  font-size: 14px !important;
+  line-height: 1.8em;
+}
+.help-dialog .v-card-text p:last-child {
+  margin-bottom: 0;
+}
+/* Links should be red */
+.help-dialog a {
+  color: var(--deep-red);
+  text-decoration: none;
+}
+.help-dialog a:hover {
+  text-decoration: underline;
 }
 
 .help-dialog code {
   display: inline-block;
   position: relative;
   top: -0.8px;
-  padding: 2px 3px;
+  padding: 2px 6px;
   font-size: 100%;
   white-space: nowrap;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 3px;
+}
+.theme--dark .help-dialog code {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .help-dialog .mixed.terms-list {
@@ -50,18 +114,18 @@
 .help-dialog table tr:last-child td {
   padding-bottom: 0;
 }
-  .help-dialog table tr td:first-child {
-    padding-left: 0;
-    padding-right: 12px;
-  }
-    .help-dialog table tr td:first-child code {
-      display: flex;
-      align-items: center;
-      height: 40px;
-    }
-  .help-dialog table tr td .tibetan {
-    line-height: 1.375rem !important;
-  }
+.help-dialog table tr td:first-child {
+  padding-left: 0;
+  padding-right: 12px;
+}
+.help-dialog table tr td:first-child code {
+  display: flex;
+  align-items: center;
+  height: 40px;
+}
+.help-dialog table tr td .tibetan {
+  line-height: 1.375rem !important;
+}
 
 .help-dialog .demo-instructions {
   font-size: 1em;
@@ -76,14 +140,16 @@
 .theme--dark .help-dialog .demo-container {
   background: black;
 }
-  .help-dialog .demo-container .lines {
-    margin: 0;
-  }
+.help-dialog .demo-container .lines {
+  margin: 0;
+}
 
 .keyboard-square {
   display: inline-flex;
   justify-content: center;
+  align-items: center;
   min-width: 36px;
+  height: 36px;
   padding: 0 5px;
   color: black !important;
   font-weight: bold;
@@ -92,11 +158,190 @@
   border: 1px solid #777;
   border-radius: 4px;
   vertical-align: top;
+  box-sizing: border-box;
 }
 .keyboard-square + .keyboard-square {
   margin-left: 2px;
 }
 
+/* Vuetify 2 */
 .help-dialog .v-tabs-slider-wrapper {
   bottom: 7px;
+}
+/* Vuetify 3 */
+.help-dialog .v-tab__slider {
+  bottom: 7px;
+}
+
+/* Mobile styles for help dialogs */
+@media (max-width: 600px) {
+  /* Ensure overlay covers full screen including safe areas */
+  .v-overlay:has(.help-dialog) .v-overlay__scrim {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+  }
+
+  /* Limit dialog size on mobile - 80% of viewport to leave breathing room */
+  .help-dialog {
+    margin: auto !important;
+    max-height: 80vh !important;
+    max-height: 80dvh !important;
+    width: calc(100% - 24px) !important;
+    max-width: calc(100% - 24px) !important;
+  }
+
+  .help-dialog .v-card {
+    max-height: 80vh !important;
+    max-height: 80dvh !important;
+    background: white !important;
+  }
+
+  .v-theme--dark .help-dialog .v-card {
+    background: #1e1e1e !important;
+  }
+
+  /* Remove extra bottom padding that can cause gaps */
+  .help-dialog .v-card-actions {
+    padding-bottom: 8px !important;
+  }
+
+  .help-dialog .v-toolbar-title {
+    font-size: 1rem;
+  }
+
+  /* Tabs should scroll horizontally and be smaller */
+  .help-dialog .v-toolbar__extension {
+    overflow-x: auto;
+  }
+
+  .help-dialog .v-toolbar__extension .v-tab {
+    font-size: 0.7rem;
+    min-width: auto;
+    padding: 0 8px;
+  }
+
+  /* Examples table: stack vertically */
+  .help-dialog table,
+  .help-dialog table tbody,
+  .help-dialog table tr,
+  .help-dialog table td {
+    display: block;
+    width: 100%;
+  }
+
+  .help-dialog table tr {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  }
+
+  .help-dialog table tr:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .help-dialog table tr td:first-child {
+    padding-right: 0;
+    margin-bottom: 8px;
+  }
+
+  .help-dialog table tr td:first-child code {
+    height: auto;
+    padding: 6px 10px;
+  }
+
+  /* Keyboard shortcuts table */
+  .help-dialog .v-table {
+    background: transparent !important;
+  }
+
+  .help-dialog .v-table > .v-table__wrapper > table,
+  .help-dialog .v-table > .v-table__wrapper > table tbody,
+  .help-dialog .v-table > .v-table__wrapper > table tr,
+  .help-dialog .v-table > .v-table__wrapper > table td {
+    display: block;
+    width: 100%;
+  }
+
+  .help-dialog .v-table > .v-table__wrapper > table tr {
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  }
+
+  .help-dialog .v-table > .v-table__wrapper > table tr:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+  }
+
+  .help-dialog .v-table > .v-table__wrapper > table td {
+    padding: 0 !important;
+    border: none !important;
+    height: auto !important;
+  }
+
+  .help-dialog .v-table > .v-table__wrapper > table td:first-child {
+    margin-bottom: 6px;
+  }
+
+  /* Alerts: icon centered on top */
+  .help-dialog .v-alert {
+    padding: 12px !important;
+  }
+
+  .help-dialog .v-alert.v-alert--prominent {
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  .help-dialog .v-alert.v-alert--prominent > .v-alert__prepend {
+    margin: 0 0 8px 0 !important;
+    padding: 0 !important;
+  }
+
+  .help-dialog .v-alert.v-alert--prominent > .v-alert__content {
+    text-align: left;
+    width: 100%;
+  }
+
+  /* Keyboard squares smaller on mobile */
+  .keyboard-square {
+    min-width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+    line-height: 28px !important;
+  }
+
+  /* Demo container padding */
+  .help-dialog .demo-container {
+    padding: 16px;
+  }
+
+  .help-dialog .demo-instructions {
+    padding: 16px;
+  }
+
+  /* Two-column layouts to single column */
+  .help-dialog .v-row .v-col-sm-5,
+  .help-dialog .v-row .v-col-sm-7 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  /* Code blocks */
+  .help-dialog code {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Mixed terms list */
+  .help-dialog .mixed.terms-list code {
+    height: auto;
+    padding: 4px 8px;
+  }
 }

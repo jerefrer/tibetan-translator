@@ -1,16 +1,28 @@
-import Vue from "vue";
+import { createApp, reactive } from "vue";
 import vuetify from "./plugins/vuetify";
 import router from "./router";
 
-import App from "./components/App";
+import App from "./components/App.vue";
 
-new Vue({
-  router,
-  vuetify,
-  render: (h) => h(App),
-  methods: {
-    openSnackbarWith(text) {
-      this.$children[0].openSnackbarWith(text);
-    },
+// Create reactive snackbar state for provide/inject pattern
+const snackbar = reactive({
+  show: false,
+  content: "",
+  open(text) {
+    this.content = text;
+    this.show = true;
   },
-}).$mount("#app");
+  close() {
+    this.show = false;
+  },
+});
+
+const app = createApp(App);
+
+// Provide snackbar globally (replaces this.$root.openSnackbarWith)
+app.provide("snackbar", snackbar);
+
+app.use(router);
+app.use(vuetify);
+
+app.mount("#app");

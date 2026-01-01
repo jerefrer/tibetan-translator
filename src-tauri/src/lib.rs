@@ -1,6 +1,22 @@
+mod database;
+
+use database::{
+    execute_query, get_all_terms, get_dictionaries, get_entries_for_term, init_database,
+    search_entries,
+};
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-  tauri::Builder::default()
-    .run(tauri::generate_context!())
-    .expect("error while running tauri application");
+    tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
+        .invoke_handler(tauri::generate_handler![
+            init_database,
+            get_all_terms,
+            get_dictionaries,
+            get_entries_for_term,
+            search_entries,
+            execute_query,
+        ])
+        .run(tauri::generate_context!())
+        .expect("error while running tauri application");
 }

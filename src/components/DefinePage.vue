@@ -1,16 +1,15 @@
 <script>
-import Vue from "vue";
-
 import $ from "jquery";
 import _ from "underscore";
+import { useTheme } from "vuetify";
 
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
-import Entries from "./Entries";
-import TibetanTextField from "./TibetanTextField";
+import Entries from "./Entries.vue";
+import TibetanTextField from "./TibetanTextField.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
 import DictionariesDetailsMixin from "./DictionariesDetailsMixin";
-import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries";
+import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries.vue";
 
 export default {
   mixins: [DictionariesDetailsMixin, DictionariesMenuMixin],
@@ -19,20 +18,33 @@ export default {
     TibetanTextField,
     ResultsAndPaginationAndDictionaries,
   },
+  setup() {
+    const theme = useTheme();
+    return { theme };
+  },
   data() {
     return {
       searchTerm: undefined,
       entries: [],
       termsPage: 1,
       loading: false,
+      mobileShowDefinition: false,
+      isMobile: window.innerWidth <= 600,
     };
   },
   watch: {
     searchTerm() {
+      // Reset pagination when search term changes
+      this.termsPage = 1;
       this.debouncedSelectFirstTermOrClearEntries();
     },
-    selectedTerm() {
+    selectedTerm(newTerm, oldTerm) {
       this.setSearchTerm();
+      // Clear entries and show loading immediately when term changes
+      if (newTerm !== oldTerm && newTerm) {
+        this.entries = [];
+        this.loading = true;
+      }
       this.debouncedSetEntriesForSelectedTerm();
       this.termsPage =
         Math.floor(this.selectedTermIndex / this.numberOfTermsPerPage) + 1;
@@ -49,6 +61,9 @@ export default {
     $(window).scrollTop(0);
   },
   computed: {
+    isDark() {
+      return this.theme.global.current.value.dark;
+    },
     numberOfTermsPerPage() {
       return 100;
     },
@@ -140,6 +155,23 @@ export default {
     focusInput() {
       this.$refs.input.focus();
     },
+    handleResize() {
+      this.isMobile = window.innerWidth <= 600;
+      if (!this.isMobile) {
+        this.mobileShowDefinition = false;
+      }
+    },
+    selectTermMobile(term) {
+      this.pushRoute(term);
+      if (this.isMobile) {
+        this.mobileShowDefinition = true;
+      }
+    },
+    showTermsList() {
+      if (this.isMobile) {
+        this.mobileShowDefinition = false;
+      }
+    },
   },
   mounted() {
     this.setSearchTerm();
@@ -153,6 +185,10 @@ export default {
       this.selectFirstTermOrClearEntries,
       500
     );
+    window.addEventListener('resize', this.handleResize);
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize);
   },
   updated() {
     $("td.active").get(0)?.scrollIntoViewIfNeeded();
@@ -161,10 +197,10 @@ export default {
 </script>
 
 <template>
-  <div class="define-page">
-    <v-system-bar app height="63">
+  <div class="define-page" :class="{ 'mobile-show-definition': isMobile && mobileShowDefinition }">
+    <div class="search-bar">
       <TibetanTextField
-        dense
+        density="compact"
         autofocus
         clearable
         hide-details
@@ -173,139 +209,207 @@ export default {
         v-model="searchTerm"
         :menu-props="{ maxHeight: '80vh' }"
         @click:clear="clear"
-        @keydown.up.native="selectPreviousTerm"
-        @keydown.down.native="selectNextTerm"
+        @keydown.up="selectPreviousTerm"
+        @keydown.down="selectNextTerm"
+        @focus="showTermsList"
         class="flex-grow-1"
       />
-    </v-system-bar>
+    </div>
 
-    <v-navigation-drawer app width="400px" permanent>
-      <ResultsAndPaginationAndDictionaries
-        :page="termsPage"
-        :dictionaries="dictionariesForCurrentResults"
-        :numberOfEntriesPerPage="numberOfTermsPerPage"
-        :totalNumberOfEntries="numberOfTermsStartingWithSearchTerm"
-        @change:page="termsPage = $event"
-        @close:dictionariesMenu="focusInput"
-      />
-      <v-simple-table v-if="termsStartingWithSearchTerm.length">
-        <tbody>
-          <tr v-for="term in limitedTermsStartingWithSearchTerm" class="term">
-            <td
-              class="link tibetan"
-              :class="{
-                'active primary': selectedTerm == term,
-                'white--text': selectedTerm == term && !$vuetify.theme.dark,
-                'darken-2': selectedTerm == term && $vuetify.theme.dark,
-              }"
-              @click="pushRoute(term)"
-            >
-              <span v-html="term" />
-            </td>
-          </tr>
-        </tbody>
-      </v-simple-table>
-      <div
-        v-else-if="searchTerm"
-        class="d-flex align-center mx-4 caption grey--text"
-        style="height: 48px"
-      >
-        No results.
+    <div class="define-content-area">
+      <div class="terms-drawer">
+        <ResultsAndPaginationAndDictionaries
+          :page="termsPage"
+          :dictionaries="dictionariesForCurrentResults"
+          :numberOfEntriesPerPage="numberOfTermsPerPage"
+          :totalNumberOfEntries="numberOfTermsStartingWithSearchTerm"
+          @change:page="termsPage = $event"
+          @close:dictionariesMenu="focusInput"
+        />
+        <v-table v-if="termsStartingWithSearchTerm.length" class="terms-table">
+          <tbody>
+            <tr v-for="term in limitedTermsStartingWithSearchTerm" class="term">
+              <td
+                class="link tibetan"
+                :class="{
+                  'active bg-primary': selectedTerm == term,
+                  'text-white': selectedTerm == term && !isDark,
+                  'bg-primary-darken-2': selectedTerm == term && isDark,
+                }"
+                @click="selectTermMobile(term)"
+              >
+                <span v-html="term" />
+              </td>
+            </tr>
+          </tbody>
+        </v-table>
+        <div
+          v-else-if="searchTerm"
+          class="d-flex align-center mx-4 text-caption text-grey"
+          style="height: 48px"
+        >
+          No results.
+        </div>
       </div>
-    </v-navigation-drawer>
 
-    <v-container fluid>
-      <v-overlay absolute opacity="1" :value="loading">
-        <v-progress-circular indeterminate size="64" />
-      </v-overlay>
+      <div class="definitions-container">
+        <!-- Loading state when fetching definitions -->
+        <div v-if="loading" class="loading-state">
+          <v-progress-circular indeterminate size="64" color="primary" />
+          <div class="mt-4 text-grey">Loading definitions...</div>
+        </div>
 
-      <v-row no-gutters>
-        <v-col cols="12">
-          <v-fade-transition mode="out-in" appear>
-            <div v-if="entriesForEnabledDictionaries.length">
-              <Entries
-                :entries="entriesForEnabledDictionaries"
-                :initialNumberOfEntries="25"
-              />
-            </div>
-          </v-fade-transition>
-        </v-col>
-      </v-row>
-    </v-container>
+        <v-fade-transition mode="out-in" appear v-else>
+          <div v-if="entriesForEnabledDictionaries.length">
+            <Entries
+              :entries="entriesForEnabledDictionaries"
+              :initialNumberOfEntries="25"
+            />
+          </div>
+        </v-fade-transition>
+      </div>
+    </div>
   </div>
 </template>
 
 <style lang="stylus">
 .define-page
+  display flex
+  flex-direction column
   height 100%
 
-  .v-system-bar
-    top 63px
-    padding 0
+  .search-bar
+    flex-shrink 0
+    height 63px
+    padding 0 15px
     background #f0f0f0
-    &.theme--dark
-      background #1e1e1e
+    display flex
+    align-items center
 
-    .v-text-field__slot
-      margin 0 16px
-      input
-        height 46px !important
-        line-height 46px !important
-        font-size 26px !important
-        font-family "DDC_Uchen" !important
-        max-height none !important
+  .define-content-area
+    flex 1
+    display flex
+    overflow hidden
 
-  .v-input
-    .v-input__slot
-      .v-input__append-inner
-        height 100%
-        align-items center
-        .v-input__icon
-          width 40px
-        .v-icon
-          font-size 28px
-
-  .v-navigation-drawer
+  .terms-drawer
+    width 400px
+    flex-shrink 0
     background #f0f0f0
-    &.theme--dark
-      background #1e1e1e
+    overflow-y auto
 
     .results-and-pagination-and-dictionaries
-      position fixed
+      position sticky
+      top 0
+      z-index 1
       padding 7px 15px
       height 48px
-      left 0
-      right 16px
       background #f0f0f0
-      border-bottom 2px solid rgba(255, 255, 255, 0.12)
+      border-bottom 2px solid rgba(0, 0, 0, 0.08)
 
-    .v-data-table,
-    .v-data-table *
+    .v-table,
+    .v-table *
       border-radius 0 !important
-    .v-data-table
-      margin-top 48px
-      td:last-child
-        border-bottom thin solid rgba(255, 255, 255, 0.12)
 
-    .v-data-table td.link
+    .v-table.terms-table
+      td:last-child
+        border-bottom thin solid rgba(0, 0, 0, 0.08)
+
+    .v-table td.link
       height 42px !important
       line-height 42px !important
       font-size 21px !important
       transition all 0.28s cubic-bezier(0.4, 0, 0.2, 1)
       cursor pointer
 
-  .container
+  .definitions-container
+    flex 1
+    overflow-y auto
     padding 0
+    position relative
 
-.theme--dark
-  .results-and-pagination-and-dictionaries
-    background #1e1e1e !important
-  .v-data-table > .v-data-table__wrapper > table > tbody > tr > td.link:hover
-    background #444
-    border-bottom 1px solid #444
+    .loading-state,
+    .empty-state
+      display flex
+      flex-direction column
+      align-items center
+      justify-content center
+      height 200px
+      text-align center
 
-.theme--light
-  .v-data-table > .v-data-table__wrapper > table > tbody > tr > td.link:hover
-    background #aaa
-    border-bottom 1px solid #aaa
+  .v-input
+    .v-input__control
+      height 63px
+    .v-field
+      padding 0
+      height 63px
+    .v-field__input
+      padding 0
+      height 63px !important
+      min-height 63px !important
+      font-size 26px !important
+      font-family "DDC_Uchen" !important
+    .v-field__append-inner
+      height 100%
+      align-items center
+      padding 0
+      .v-icon
+        font-size 28px
+    .v-field__outline
+      display none
+    .v-field__overlay
+      display none
+
+// Dark theme
+.v-theme--dark .define-page
+  .search-bar
+    background #1e1e1e
+  .terms-drawer
+    background #1e1e1e
+    .results-and-pagination-and-dictionaries
+      background #1e1e1e
+      border-bottom-color rgba(255, 255, 255, 0.12)
+    .v-table.terms-table td:last-child
+      border-bottom-color rgba(255, 255, 255, 0.12)
+    .v-table td.link:hover
+      background #444
+
+// Light theme hover
+.v-theme--light .define-page
+  .terms-drawer
+    .v-table td.link:hover
+      background #ddd
+
+// Mobile styles
+@media (max-width: 600px)
+  .define-page
+    .search-bar
+      padding 0 10px
+
+    .define-content-area
+      flex-direction column
+
+    .terms-drawer
+      width 100%
+      flex none
+      overflow-y visible
+
+      .results-and-pagination-and-dictionaries
+        position relative
+        padding 7px 10px
+
+      .v-table td.link
+        padding-left 10px
+
+    .definitions-container
+      display none
+      padding 0 10px
+
+    // When showing definition on mobile
+    &.mobile-show-definition
+      .terms-drawer
+        display none
+
+      .definitions-container
+        display block
+        flex 1
 </style>

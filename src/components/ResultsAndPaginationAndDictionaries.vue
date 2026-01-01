@@ -3,10 +3,14 @@ import $ from "jquery";
 import pluralize from "pluralize";
 
 import DictionariesFuzzySearchMixin from "./DictionariesFuzzySearchMixin";
+import DictionariesMenuHelpTab from "./DictionariesMenuHelpTab.vue";
 import EventHandlers from "../services/event-handlers";
 
 export default {
   mixins: [DictionariesFuzzySearchMixin],
+  components: {
+    DictionariesMenuHelpTab,
+  },
   props: {
     page: Number,
     loading: Boolean,
@@ -14,6 +18,7 @@ export default {
     numberOfEntriesPerPage: Number,
     totalNumberOfEntries: Number,
   },
+  emits: ['change:page', 'close:dictionariesMenu'],
   data() {
     return {
       dictionariesMenu: false,
@@ -101,7 +106,7 @@ export default {
       id: "dictionary-menu",
       type: "keydown",
       callback(event) {
-        if (event.ctrlKey && event.key == " ") vm.openMenu();
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() == "d" && !vm.menuIsOpened()) vm.openMenu();
         else if (vm.menuIsOpened()) {
           var highlightedDictionary = $(
             ".dictionaries-menu .v-list-item--highlighted"
@@ -135,7 +140,7 @@ export default {
       },
     });
   },
-  destroyed() {
+  unmounted() {
     EventHandlers.remove("dictionary-menu");
   },
 };
@@ -145,7 +150,7 @@ export default {
   <transition-group
     name="list"
     tag="div"
-    class="results-and-pagination-and-dictionaries d-flex align-center caption grey--text"
+    class="results-and-pagination-and-dictionaries d-flex align-center text-caption text-grey"
   >
     <span
       class="list-item"
@@ -187,54 +192,50 @@ export default {
 
     <div key="pagination-and-dictionaries" class="pagination-and-dictionaries">
       <v-pagination
-        circle
+        rounded
         v-if="totalNumberOfEntries > numberOfEntriesPerPage"
         class="list-item"
-        :value="page"
+        :model-value="page"
         :length="Math.ceil(totalNumberOfEntries / numberOfEntriesPerPage)"
         :total-visible="0"
         :disabled="loading"
         :prev-icon="loading ? 'mdi-loading mdi-spin' : 'mdi-chevron-left'"
         :next-icon="loading ? 'mdi-loading mdi-spin' : 'mdi-chevron-right'"
-        @input="$emit('change:page', $event)"
+        @update:model-value="$emit('change:page', $event)"
       />
 
       <v-menu
-        bottom
-        left
         v-model="dictionariesMenu"
-        content-class="dictionaries-menu"
-        :offset-y="true"
+        location="bottom end"
         :close-on-content-click="false"
       >
-        <template v-slot:activator="{ on, attrs }">
+        <template v-slot:activator="{ props }">
           <v-btn
             rounded
             height="32"
             class="ml-2 dictionaries-menu-button"
             :class="{
-              primary: dictionariesDifferentThanGlobally,
+              'bg-primary': dictionariesDifferentThanGlobally,
             }"
             key="filter-menu"
-            v-bind="attrs"
-            v-on="on"
+            v-bind="props"
           >
             <v-icon class="ma-0" style="font-size: 21px">
               mdi-book-multiple
             </v-icon>
             <span>{{ enabledDictionaries.length }}</span>
-            <span class="caption">/{{ dictionaries.length }}</span>
+            <span class="text-caption">/{{ dictionaries.length }}</span>
           </v-btn>
         </template>
 
-        <v-card>
+        <v-card class="dictionaries-menu">
           <v-toolbar>
             <v-text-field
               autofocus
               clearable
               hide-details
               v-model="term"
-              append-icon="mdi-magnify"
+              append-inner-icon="mdi-magnify"
             />
 
             <v-btn
@@ -243,7 +244,7 @@ export default {
               @click="enableAllMatchedDictionaries"
             >
               <u>E</u>nable all
-              <span class="ml-1 caption secondary--text">
+              <span class="ml-1 text-caption text-secondary">
                 ({{ pluralize("dict", fuzzyMatchedDictionaries.length, true) }},
                 {{
                   pluralize(
@@ -251,13 +252,13 @@ export default {
                     numberOfEntriesForAllMatchedDictionaries,
                     true
                   )
-                }}
+                }})
               </span>
             </v-btn>
 
             <v-btn
               class="ml-2"
-              color="primary darken-2"
+              color="primary-darken-2"
               @click="disableAllMatchedDictionaries"
             >
               <u>D</u>isable all
@@ -269,7 +270,7 @@ export default {
               @click="enableOnlyPreferedDictionaries"
             >
               <u>R</u>estore preferences
-              <span class="ml-1 caption secondary--text">
+              <span class="ml-1 text-caption text-secondary">
                 ({{ pluralize("dict", preferedDictionaries.length, true) }},
                 {{
                   pluralize(
@@ -277,50 +278,49 @@ export default {
                     numberOfEntriesForPreferedDictionaries,
                     true
                   )
-                }}
+                }})
               </span>
             </v-btn>
           </v-toolbar>
 
           <v-card-text>
-            <v-list v-if="fuzzyMatchedDictionaries.length" dense>
+            <v-list v-if="fuzzyMatchedDictionaries.length" density="compact">
               <v-list-item
-                link
                 v-for="(dictionary, index) in fuzzyMatchedDictionaries"
                 :key="index"
                 :data-dictionary-index="index"
                 @click="selectSingleDictionary(dictionary)"
               >
                 <v-list-item-title>
-                  <span class="grey--text text--darken-1"
+                  <span class="text-grey-darken-1"
                     >{{ index + 1 }}.
                   </span>
                   <span
                     :class="{
-                      'grey--text text--darken-1':
+                      'text-grey-darken-1':
                         !dictionary.enabledInPreferences,
                     }"
                     v-html="fuzzyDisplayFor(dictionary)"
                   />
                 </v-list-item-title>
-                <v-list-item-action
-                  class="nowrap grey--text text--darken-1 caption flex-shrink-0"
-                >
-                  ({{ dictionary.numberOfEntries }}
-                  {{ pluralize("result", dictionary.numberOfEntries) }})
-                </v-list-item-action>
-                <v-list-item-action>
+                <template v-slot:append>
+                  <span class="nowrap text-grey-darken-1 text-caption flex-shrink-0 mr-2">
+                    ({{ dictionary.numberOfEntries }}
+                    {{ pluralize("result", dictionary.numberOfEntries) }})
+                  </span>
                   <v-switch
                     v-model="dictionary.enabled"
                     hide-details
+                    density="compact"
                     class="switch ml-2"
+                    color="primary"
                     @click.stop
                   />
-                </v-list-item-action>
+                </template>
               </v-list-item>
             </v-list>
 
-            <div v-else class="text-center grey--text text--darken-2">
+            <div v-else class="text-center text-grey-darken-2">
               No matching dictionary.
             </div>
           </v-card-text>
@@ -332,6 +332,7 @@ export default {
 
 <style lang="stylus">
 .results-and-pagination-and-dictionaries
+  white-space nowrap
   .list-item
     margin 0 2px
     cursor pointer
@@ -339,22 +340,31 @@ export default {
     flex 1
     display flex
     justify-content flex-end
-    nav
-      ul.v-pagination
-        margin-left 10px
-        li button.v-pagination__navigation
-          background #333333
-          margin 0 5px
-          i.v-icon
+    align-items center
+    /* Vuetify 3 pagination structure */
+    .v-pagination
+      margin-left 10px
+      .v-pagination__list
+        gap 0
+      .v-pagination__prev,
+      .v-pagination__next
+        .v-btn
+          width 32px !important
+          height 32px !important
+          min-width 32px !important
+          background #333333 !important
+          border-radius 50% !important
+          margin 0 3px
+          box-shadow none !important
+          .v-icon
             margin 0
-            font-size 24px
+            font-size 20px
+            color white
 
-.theme--light
+.v-theme--light
   .results-and-pagination-and-dictionaries
-    .caption
+    .text-caption
       color #616161 !important
-    nav ul.v-pagination li button.v-pagination__navigation i.v-icon
-      color white
 
 .dictionaries-menu-button
   .v-btn__content
@@ -364,7 +374,8 @@ export default {
       left -2px
 
 .dictionaries-menu
-  width 80%
+  width 80vw
+  max-width 1200px
   .v-card__text
     max-height 60vh
     overflow-y auto

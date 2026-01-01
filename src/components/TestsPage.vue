@@ -2,7 +2,7 @@
   import $ from 'jquery'
   import _ from 'underscore'
 
-  import TestsPageGroup from './TestsPageGroup'
+  import TestsPageGroup from './TestsPageGroup.vue'
   import PhoneticSearchPrepareTermForLooseMatchingTests from '../../tests/phonetic-search/prepare-term-for-loose-matching.js'
   import PhoneticSearchSplitSyllablesTests from '../../tests/phonetic-search/split-syllables.js'
   import WordSplittingTests from '../../tests/word-splitting.js'
@@ -60,9 +60,9 @@
 
 <template>
   <div>
-    <v-simple-table>
+    <v-table>
       <thead
-        style="background: #fff1;"
+        style="background: #fff1"
       >
         <tr>
           <td class="ui header" colspan="10">
@@ -85,7 +85,7 @@
           :tests="test.tests"
         />
       </tbody>
-    </v-simple-table>
+    </v-table>
   </div>
 </template>
 

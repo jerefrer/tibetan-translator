@@ -3,7 +3,13 @@
     computed: {
       shorcuts () {
         return [
-          { key: 'Spacebar',             ctrl: true, text: 'Opens the dictionary filter menu' },
+          {
+            keys: [
+              { key: 'D', ctrl: true },
+              { key: 'D', meta: true }
+            ],
+            text: 'Opens the dictionary filter menu'
+          },
           { key: 'Esc',                              text: 'Closes the dictionary filter menu' },
           { key: 'mdi-arrow-up',                     text: 'Highlights the previous dictionary the list' },
           { key: 'mdi-arrow-down',                   text: 'Highlights the next dictionary in the list' },
@@ -53,7 +59,7 @@
 </script>
 
 <template>
-  <v-tab-item>
+  <v-tabs-window-item>
 
     <div class="d-flex align-center">
       <v-btn
@@ -68,7 +74,7 @@
           mdi-book-multiple
         </v-icon>
         <span>21</span>
-        <span class="caption grey--text text--darken-1">/36</span>
+        <span class="text-caption text-grey-darken-1">/36</span>
       </v-btn>
       <div>
         The dictionaries filter button allows you to choose which dictionaries
@@ -77,11 +83,11 @@
     </div>
 
     <v-alert
-      text
-      dense
+      variant="tonal"
+      density="compact"
       prominent
       type="info"
-      class="caption mt-4"
+      class="text-caption mt-4"
     >
       Clicking a dictionary will show results only for this one dictionary.
       <br />
@@ -90,23 +96,24 @@
     </v-alert>
 
     <v-alert
-      text
-      dense
+      variant="tonal"
+      density="compact"
       prominent
       type="info"
-      class="caption mt-4"
+      class="text-caption mt-4"
     >
       The search is "fuzzy", meaning that for example typing
       <code>ry</code> will match <code>Rangjung Yeshe</code> and
       <code>rcb</code> will match <code>Richard Barron</code>.
     </v-alert>
 
+    <!-- Keyboard shortcuts section - hidden on mobile -->
     <v-alert
-      text
-      dense
+      variant="tonal"
+      density="compact"
       prominent
       type="info"
-      class="caption mt-4"
+      class="text-caption mt-4 d-none d-sm-flex"
       icon="mdi-lightbulb-on-outline"
     >
       <div>
@@ -117,9 +124,11 @@
         For instance to display only the results contained in any of Hopkins'
         dictionaries and hide results from all the others, you could do:
       </div>
-      <div class="d-flex align-center mt-2">
+      <div class="d-flex align-center flex-wrap mt-2">
         <div class="keyboard-square">Ctrl</div>
-        <div class="keyboard-square ml-1 mr-2">Spacebar</div>
+        <div class="text-caption text-grey-darken-1 mx-1">or</div>
+        <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+        <div class="keyboard-square ml-1 mr-2">D</div>
         <div>
           to open the menu, then type <code>hop</code> and then
           press
@@ -131,18 +140,19 @@
       </div>
     </v-alert>
 
-    <div class="text-h6 mt-3 mb-2">
+    <div class="text-h6 mt-3 mb-2 d-none d-sm-block">
       Keyboard shortcuts
     </div>
 
-    <v-simple-table>
+    <v-table class="d-none d-sm-table">
       <tbody>
-        <tr v-for="shortcut in shorcuts">
+        <tr v-for="shortcut in shorcuts" :key="shortcut.text">
           <td
             class="pl-0"
           >
             <template
               v-for="(hotkey, index) in shortcut.keys"
+              :key="index"
             >
               <div v-if="hotkey.ctrl" class="keyboard-square">
                 Ctrl
@@ -153,6 +163,9 @@
               <v-icon v-if="hotkey.shift" class="keyboard-square">
                 mdi-apple-keyboard-shift
               </v-icon>
+              <v-icon v-if="hotkey.meta" class="keyboard-square">
+                mdi-apple-keyboard-command
+              </v-icon>
               <v-icon v-if="hotkey.key.match('mdi')" class="keyboard-square">
                 {{ hotkey.key }}
               </v-icon>
@@ -161,7 +174,8 @@
               </div>
               <div
                 v-if="index < shortcut.keys.length - 1"
-                class="caption grey--text text--darken-1 d-inline-flex mx-2"
+                class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2"
+                style="height: 36px"
               >or</div>
             </template>
           </td>
@@ -171,6 +185,6 @@
           />
         </tr>
       </tbody>
-    </v-simple-table>
-  </v-tab-item>
+    </v-table>
+  </v-tabs-window-item>
 </template>

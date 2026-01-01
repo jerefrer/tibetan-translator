@@ -26,7 +26,7 @@
   >
     <v-icon
       class="mr-2"
-      v-text="clicked ? 'mdi-check-bold' : 'mdi-content-copy'"
+      :icon="clicked ? 'mdi-check-bold' : 'mdi-content-copy'"
     />
     <span>{{clicked ? 'Copied!' : 'Copy'}}</span>
   </v-btn>

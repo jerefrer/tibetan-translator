@@ -8,8 +8,8 @@
 
   import Storage from '../services/storage'
   import TranslatePageMixins from './TranslatePageMixins'
-  import TranslatePageCardDeleteButton from './TranslatePageCardDeleteButton'
-  import TranslatePageProjectUpdateButtonWithConfirmationDialog from './TranslatePageProjectUpdateButtonWithConfirmationDialog'
+  import TranslatePageCardDeleteButton from './TranslatePageCardDeleteButton.vue'
+  import TranslatePageProjectUpdateButtonWithConfirmationDialog from './TranslatePageProjectUpdateButtonWithConfirmationDialog.vue'
 
   export default {
     mixins: [TranslatePageMixins],
@@ -80,17 +80,19 @@
     :max-width="1024"
   >
 
-    <template v-slot:activator="{ on, attrs }">
+    <template v-slot:activator="{ props }">
       <v-badge
         id="save-dialog-button"
-        bottom
-        overlap
+        location="bottom"
+        floating
         dot
         :color="syncedProject ? 'green' : 'red'"
-        :value="!onlyOneEmptyLine"
+        :model-value="!onlyOneEmptyLine"
       >
         <v-btn
-          icon large
+          icon
+          variant="text"
+          size="large"
           @click="dialog = true"
         >
           <v-icon>mdi-content-save-all</v-icon>
@@ -98,7 +100,7 @@
       </v-badge>
     </template>
 
-    <template>
+    <template v-slot:default>
 
       <v-card>
 
@@ -123,17 +125,12 @@
           <draggable
             v-model="projects"
             handle=".project-handle"
+            item-key="id"
+            class="projects"
           >
-
-            <transition-group
-              name="list"
-              tag="div"
-              class="projects"
-            >
+            <template #item="{ element: project, index: projectIndex }">
 
               <v-card
-                v-for="(project, projectIndex) in projects"
-                :key="project.id"
                 class="project list-item"
               >
 
@@ -169,7 +166,7 @@
                   <v-spacer />
 
                   <v-btn
-                    text
+                    variant="text"
                     color="green"
                     :disabled="project == syncedProject"
                     @click="loadProject(project); dialog = false"
@@ -191,26 +188,23 @@
                 <v-progress-linear
                   v-if="project == syncedProject"
                   color="green"
-                  value="100"
+                  model-value="100"
                 />
 
               </v-card>
-
-              <v-btn
-                x-large
-                key="new-project-button"
-                class="new-project list-item"
-                @click="saveProject"
-              >
-                <v-icon x-large>mdi-content-save</v-icon>
-                <div class="text-left ml-2">
-                  Save current state<br />as new translation
-                </div>
-              </v-btn>
-
-            </transition-group>
-
+            </template>
           </draggable>
+
+          <v-btn
+            size="x-large"
+            class="new-project list-item"
+            @click="saveProject"
+          >
+            <v-icon size="x-large">mdi-content-save</v-icon>
+            <div class="text-left ml-2">
+              Save current state<br />as new translation
+            </div>
+          </v-btn>
 
         </v-card-text>
 
@@ -219,8 +213,8 @@
           <v-spacer></v-spacer>
 
           <v-btn
-            color="grey darken-1"
-            text
+            color="grey-darken-1"
+            variant="text"
             @click="dialog = false"
           >
             Close

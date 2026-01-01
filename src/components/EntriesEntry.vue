@@ -3,6 +3,7 @@
 
   export default {
     mixins: [DictionariesDetailsMixin],
+    inject: ['snackbar'],
     props: {
       entry: Object,
       isLastEntry: Boolean
@@ -11,6 +12,9 @@
       intersect(entries, observer) {
         if (this.isLastEntry)
           this.$emit('intersect');
+      },
+      showDictionaryAbout() {
+        this.snackbar.open(this.dictionaryAboutFor(this.entry.dictionary));
       }
     }
   }
@@ -24,7 +28,7 @@
 
     <legend
       v-html="dictionaryLabelFor(entry.dictionary)"
-      @click="$root.openSnackbarWith(dictionaryAboutFor(entry.dictionary))"
+      @click="showDictionaryAbout"
     />
 
     <div

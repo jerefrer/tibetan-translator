@@ -32,9 +32,11 @@
     max-width="640px"
   >
 
-    <template v-slot:activator="{ on, attrs }">
+    <template v-slot:activator="{ props }">
       <v-btn
-        icon large
+        icon
+        variant="text"
+        size="large"
         id="paste-dialog-button"
         @click="dialog = true"
       >
@@ -85,8 +87,8 @@
         <v-spacer></v-spacer>
 
         <v-btn
-          color="grey darken-1"
-          text
+          color="grey-darken-1"
+          variant="text"
           @click="dialog = false"
         >
           Cancel
@@ -94,7 +96,7 @@
 
         <v-btn
           color="green"
-          text
+          variant="text"
           @click="$emit('confirm', text); dialog = false"
         >
           Go

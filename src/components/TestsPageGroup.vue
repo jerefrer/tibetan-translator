@@ -1,5 +1,5 @@
 <script>
-  import TestsPageGroupResult from './TestsPageGroupResult'
+  import TestsPageGroupResult from './TestsPageGroupResult.vue'
 
   export default {
     components: {
@@ -26,7 +26,7 @@
 <template>
   <tr
     class="results-group"
-    :class="allPassed ? 'green--text' : 'red--text'""
+    :class="allPassed ? 'text-green' : 'text-red'"
   >
     <td class="header" @click="opened = !opened">
       {{name}}

@@ -1,30 +1,36 @@
 <script>
-import $ from "jquery";
-import _ from "underscore";
+import $ from 'jquery';
+import _ from 'underscore';
+import { useTheme } from 'vuetify';
 
-import TibetanRegExps from "tibetan-regexps";
-import WylieToUnicode from "../services/wylie-to-unicode";
+import TibetanRegExps from 'tibetan-regexps';
+import WylieToUnicode from '../services/wylie-to-unicode';
 const wylieToUnicode = new WylieToUnicode();
 
-import Storage from "../services/storage";
-import Decorator from "../services/decorator";
-import SqlDatabase from "../services/sql-database";
-import PhoneticSearch from "../services/phonetic-search";
-import DictionariesMenuMixin from "./DictionariesMenuMixin";
-import DictionariesDetailsMixin from "./DictionariesDetailsMixin";
+import Decorator from '../services/decorator';
+import PhoneticSearch from '../services/phonetic-search';
+import SqlDatabase from '../services/sql-database';
+import Storage from '../services/storage';
 import {
-  phoneticsStrictFor,
   phoneticsLooseFor,
+  phoneticsStrictFor,
   replaceTibetanGroups,
   syllablesFor,
-} from "../utils.js";
+} from '../utils.js';
+import DictionariesDetailsMixin from './DictionariesDetailsMixin';
+import DictionariesMenuMixin from './DictionariesMenuMixin';
 
-import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries";
+import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries.vue';
 
 export default {
   mixins: [DictionariesDetailsMixin, DictionariesMenuMixin],
   components: {
     ResultsAndPaginationAndDictionaries,
+  },
+  inject: ['snackbar'],
+  setup() {
+    const theme = useTheme();
+    return { theme };
   },
   data() {
     return {
@@ -33,28 +39,31 @@ export default {
       entries: undefined,
       resultsPage: 1,
       searchQuery: this.$route.params.query,
-      previousQueries: Storage.get("previousQueries") || [],
+      previousQueries: Storage.get('previousQueries') || [],
     };
   },
   watch: {
-    "$route.params.query"(value) {
+    '$route.params.query'(value) {
       this.searchQuery = value;
-      Storage.set("searchQuery", value);
+      Storage.set('searchQuery', value);
       if (value) this.performSearch({ query: value, fromNavigation: true });
     },
     previousQueries(value) {
-      Storage.set("previousQueries", value);
+      Storage.set('previousQueries', value);
     },
     resultsPage(value) {
-      this.$vuetify.goTo(0);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
   },
   beforeRouteEnter(to, from, next) {
-    var query = Storage.get("searchQuery");
-    if (!to.params.query && query) next("/search/" + query);
+    var query = Storage.get('searchQuery');
+    if (!to.params.query && query) next('/search/' + query);
     else next();
   },
   computed: {
+    isDark() {
+      return this.theme.global.current.value.dark;
+    },
     numberOfEntriesPerPage() {
       return 25;
     },
@@ -65,43 +74,14 @@ export default {
       return 100;
     },
     sortedEntries() {
+      // FTS5 already returns correct matches - no need to re-filter with indexOf()
+      // The previous implementation rejected valid FTS5 results because indexOf()
+      // uses substring matching while FTS5 uses word tokenization
       return _.chain(this.entriesForEnabledDictionaries)
-        .map((entry) => {
-          entry.matchPositions = [];
-          this.regularSearchTerms.forEach((term) => {
-            entry.matchPositions.push((entry.term + entry.definition).indexOf(term));
-          });
-          this.phoneticsStrictSearchTerms.forEach((phoneticsStrictTerm) => {
-            entry.matchPositions.push(
-              (
-                entry.termPhoneticsStrict + entry.definitionPhoneticsWordsStrict
-              ).indexOf(phoneticsStrictTerm)
-            );
-          });
-          this.phoneticsLooseSearchTerms.forEach((phoneticsLooseTerm) => {
-            entry.matchPositions.push(
-              (
-                entry.termPhoneticsLoose + entry.definitionPhoneticsWordsLoose
-              ).indexOf(phoneticsLooseTerm)
-            );
-          });
-          return entry;
-        })
-        .reject(entry => {
-          return _(entry.matchPositions).all((pos) => pos == -1);
-        })
-        .sortBy(entry => {
-          return [
-            entry.matchPositions.reduce((sum, n) => sum + n),
-            entry.term.length,
-            entry.term,
-            entry.dictionaryPosition,
-          ].map((x) => x.toString().padStart(10, "0"));
-          // ----------------^----------^--------------
-          // We need toString & padStart because
-          // comparison is actually made on strings:
-          // [  9 ] < [ 10 ] => false
-          // ["09"] < ["10"] => true
+        .sortBy((entry) => {
+          return [entry.term.length, entry.term, entry.dictionaryPosition].map(
+            (x) => x.toString().padStart(10, '0')
+          );
         })
         .value();
     },
@@ -123,7 +103,7 @@ export default {
       else
         return _.compact(
           this.substituteWylieTerms(this.searchQuery)
-            .split("&")
+            .split('&')
             .map((t) => t.trim())
         );
     },
@@ -157,7 +137,7 @@ export default {
         .value()
         .map((term) => term.slice(1, -1))
         .map((term) =>
-          replaceTibetanGroups(term, (tibetan) => convert(tibetan) + " ")
+          replaceTibetanGroups(term, (tibetan) => convert(tibetan) + ' ')
         );
     },
     decorateEntries(entries) {
@@ -165,7 +145,6 @@ export default {
         var term = this.highlightSearchTerms(entry.term);
         var definition = Decorator.decorate(entry);
         definition = this.highlightSearchTerms(definition);
-        definition = this.cleanUpEmFromLinks(definition);
         return { ...entry, term: term, definition: definition };
       });
     },
@@ -173,31 +152,43 @@ export default {
       return Decorator.wrapAllTibetanWithSpansAndAddTshekIfMissing(definition);
     },
     highlightSearchTerms(definition) {
-      var highlighted = definition;
-      this.regularSearchTerms.forEach((term) => {
-        var escapedTerm = this.escapeForRegExp(term);
-        var regexp = new RegExp("(" + escapedTerm + ")", "ig");
-        highlighted = highlighted.replace(regexp, "<em>$1</em>");
-      });
-      this.phoneticsStrictSearchTerms.forEach((term) => {
-        highlighted = this.highlightTibetanMatchingPhonetics(
-          highlighted,
-          term,
-          phoneticsStrictFor
-        );
-      });
-      this.phoneticsLooseSearchTerms.forEach((term) => {
-        highlighted = this.highlightTibetanMatchingPhonetics(
-          highlighted,
-          term,
-          phoneticsLooseFor
-        );
-      });
-      return highlighted;
+      // Split by HTML tags - the regex captures tags so they're included in the result
+      const parts = definition.split(/(<[^>]+>)/);
+
+      return parts
+        .map((part) => {
+          // Skip HTML tags - only process text nodes
+          if (part.startsWith('<') && part.endsWith('>')) {
+            return part;
+          }
+          // Apply highlighting to text nodes only
+          let highlighted = part;
+          this.regularSearchTerms.forEach((term) => {
+            var escapedTerm = this.escapeForRegExp(term);
+            var regexp = new RegExp('(' + escapedTerm + ')', 'ig');
+            highlighted = highlighted.replace(regexp, '<em>$1</em>');
+          });
+          this.phoneticsStrictSearchTerms.forEach((term) => {
+            highlighted = this.highlightTibetanMatchingPhonetics(
+              highlighted,
+              term,
+              phoneticsStrictFor
+            );
+          });
+          this.phoneticsLooseSearchTerms.forEach((term) => {
+            highlighted = this.highlightTibetanMatchingPhonetics(
+              highlighted,
+              term,
+              phoneticsLooseFor
+            );
+          });
+          return highlighted;
+        })
+        .join('');
     },
     highlightTibetanMatchingPhonetics(definition, term, convert) {
       return replaceTibetanGroups(definition, (group) => {
-        var numberOfSyllablesForTerm = term.split(" ").length;
+        var numberOfSyllablesForTerm = term.split(' ').length;
         var combinations = this.everySyllablesCombinationsOfGivenLengthFor(
           group,
           numberOfSyllablesForTerm
@@ -207,18 +198,13 @@ export default {
           return groupInPhonetics.includes(term);
         });
         if (match) {
-          var matchWithoutEndingTshek = match.replace(/་$/, "");
+          var matchWithoutEndingTshek = match.replace(/་$/, '');
           return group.replace(
-            new RegExp(`(${matchWithoutEndingTshek}[་།༎༑༔]?)`, "g"),
-            "<em>$1</em>"
+            new RegExp(`(${matchWithoutEndingTshek}[་།༎༑༔]?)`, 'g'),
+            '<em>$1</em>'
           );
         } else return group;
       });
-    },
-    cleanUpEmFromLinks(text) {
-      return text.replace(/href="[^\"]*"/g, (match) =>
-        match.replace(/<\/?em>/g, "")
-      );
     },
     everySyllablesCombinationsOfGivenLengthFor(
       source,
@@ -231,17 +217,17 @@ export default {
         for (var j = numberOfSyllables; j > 0; j--) {
           var slice = syllables.slice(i, j);
           if (slice.length == numberOfSyllablesForTerm)
-            combinations.push(slice.join("་") + "་");
+            combinations.push(slice.join('་') + '་');
         }
       }
-      return _.chain(combinations).uniq().sortBy("length").value();
+      return _.chain(combinations).uniq().sortBy('length').value();
     },
     escapeForRegExp(text) {
-      return text.replace(/([\[\]\{\}\.\*\?])/, "\\$1");
+      return text.replace(/([\[\]\{\}\.\*\?])/, '\\$1');
     },
     clear() {
-      this.searchQuery = "";
-      Storage.delete("searchQuery");
+      this.searchQuery = '';
+      Storage.delete('searchQuery');
       this.pushRoute();
       this.entries = undefined;
     },
@@ -254,8 +240,8 @@ export default {
     },
     setPageTitle() {
       return;
-      document.title = "Translator / Search";
-      if (this.searchQuery) document.title += " / " + this.searchQuery;
+      document.title = 'Translator / Search';
+      if (this.searchQuery) document.title += ' / ' + this.searchQuery;
     },
     prepareTerm(term) {
       return `"${term.replace(/'/g, "''").replace(/"/g, '""')}"`;
@@ -272,7 +258,7 @@ export default {
         );
     },
     pushRoute() {
-      var path = "/search/" + encodeURIComponent(this.searchQuery);
+      var path = '/search/' + encodeURIComponent(this.searchQuery);
       if (path != this.$route.path) {
         this.setPageTitle();
         this.$router.push({ path: path });
@@ -283,7 +269,8 @@ export default {
       setTimeout(() => (this.resultsPage = page), 280);
     },
     performSearch(options = {}) {
-      this.searchQuery = options.query || this.$refs.input.$refs.input.value;
+      this.searchQuery =
+        options.query || this.$refs.input.$el.querySelector('input').value;
       if (this.searchQuery?.trim()) {
         this.loading = true;
         if (!options.fromNavigation) {
@@ -301,19 +288,40 @@ export default {
           );
         });
         this.phoneticsStrictSearchTerms.forEach((phoneticsStrictTerm) => {
+          // Generate syllable split variants for spaceless searches
+          // e.g., "sangye" -> try "sanggye" -> split to "sang gye"
+          const searchVariants = phoneticsStrictTerm.includes(' ')
+            ? [phoneticsStrictTerm]
+            : PhoneticSearch.processSpacelessPhoneticSearch(
+                phoneticsStrictTerm
+              );
+
+          // Build OR conditions for all variants
+          const termConditions = searchVariants
+            .map(
+              (variant) => `termPhoneticsStrict:${this.prepareTerm(variant)}`
+            )
+            .join(' OR ');
+
           conditions.push(
-            `(entries_fts MATCH 'termPhoneticsStrict:${this.prepareTerm(
-              phoneticsStrictTerm
-            )} OR definitionPhoneticsWordsStrict:${this.prepareTerm(
+            `(entries_fts MATCH '(${termConditions}) OR definitionPhoneticsWordsStrict:${this.prepareTerm(
               phoneticsStrictTerm
             )}')`
           );
         });
         this.phoneticsLooseSearchTerms.forEach((phoneticsLooseTerm) => {
+          // Generate syllable split variants for spaceless searches
+          const searchVariants = phoneticsLooseTerm.includes(' ')
+            ? [phoneticsLooseTerm]
+            : PhoneticSearch.processSpacelessPhoneticSearch(phoneticsLooseTerm);
+
+          // Build OR conditions for all variants
+          const termConditions = searchVariants
+            .map((variant) => `termPhoneticsLoose:${this.prepareTerm(variant)}`)
+            .join(' OR ');
+
           conditions.push(
-            `(entries_fts MATCH 'termPhoneticsLoose:${this.prepareTerm(
-              phoneticsLooseTerm
-            )} OR definitionPhoneticsWordsLoose:${this.prepareTerm(
+            `(entries_fts MATCH '(${termConditions}) OR definitionPhoneticsWordsLoose:${this.prepareTerm(
               phoneticsLooseTerm
             )}')`
           );
@@ -323,7 +331,7 @@ export default {
             FROM entries
             INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
             INNER JOIN entries_fts ON entries.id = entries_fts.rowid
-            AND ${conditions.join(" AND ")}
+            WHERE ${conditions.join(' AND ')}
             LIMIT ${this.maxNumberOfEntriesPerRequest}
           `;
         SqlDatabase.exec(query, params)
@@ -342,20 +350,23 @@ export default {
         TibetanRegExps.tibetanGroups
       );
     },
+    openDictionaryAbout(entry) {
+      this.snackbar.open(this.dictionaryAboutFor(entry.dictionary));
+    },
   },
   mounted() {
     this.setPageTitle();
     if (this.searchQuery) this.performSearch();
   },
   updated() {
-    $("td.active").get(0)?.scrollIntoViewIfNeeded();
+    $('td.active').get(0)?.scrollIntoViewIfNeeded();
   },
 };
 </script>
 
 <template>
   <div class="search-page">
-    <v-system-bar app height="63">
+    <v-system-bar height="63">
       <v-text-field
         autofocus
         clearable
@@ -364,7 +375,11 @@ export default {
         ref="input"
         class="flex-grow-1 text-center tibetan"
         placeholder="Type in your query"
-        :value="searchQuery"
+        spellcheck="false"
+        autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        v-model="searchQuery"
         @keyup.enter="performSearch()"
         @click:clear="clear"
       >
@@ -382,7 +397,7 @@ export default {
             @close:dictionariesMenu="focusInput"
           />
         </template>
-        <template v-slot:append>
+        <template v-slot:append-inner>
           <v-progress-circular
             size="24"
             color="info"
@@ -392,31 +407,43 @@ export default {
             }"
           />
           <v-btn
-            text
-            tile
-            x-large
+            variant="text"
+            size="x-large"
             height="60"
             color="primary"
             :disabled="!searchQuery || !searchQuery.trim()"
             @click="performSearch()"
           >
-            <v-icon left>mdi-magnify</v-icon>
+            <v-icon start>mdi-magnify</v-icon>
           </v-btn>
         </template>
       </v-text-field>
     </v-system-bar>
 
+    <!-- Mobile controls (shown below search bar on mobile) -->
+    <div class="mobile-controls d-sm-none" v-if="entries != undefined">
+      <ResultsAndPaginationAndDictionaries
+        :loading="paginationLoading"
+        :page="resultsPage"
+        :dictionaries="dictionariesForCurrentResults"
+        :numberOfEntriesPerPage="numberOfEntriesPerPage"
+        :totalNumberOfEntries="totalNumberOfEntriesForEnabledDictionaries"
+        @change:page="changePage($event)"
+        @close:dictionariesMenu="focusInput"
+      />
+    </div>
+
     <template v-if="!loading">
       <template v-if="entries == undefined">
         <div
           v-if="previousQueries.length > 0"
-          class="previous-queries grey--text"
+          class="previous-queries text-grey"
         >
           <div class="header">
             <v-btn
-              fab
-              x-small
-              class="mr-2 grey--text"
+              icon
+              size="x-small"
+              class="mr-2 text-grey"
               elevation="0"
               @click="clearPreviousQueries"
             >
@@ -427,7 +454,7 @@ export default {
 
           <v-fade-transition group tag="div" class="buttons">
             <v-btn
-              text
+              variant="text"
               v-for="query in previousQueries"
               :key="query"
               color="grey"
@@ -439,10 +466,7 @@ export default {
         </div>
       </template>
 
-      <v-simple-table
-        v-else-if="limitedAndDecoratedEntries.length"
-        key="entries"
-      >
+      <v-table v-else-if="limitedAndDecoratedEntries.length" key="entries">
         <tbody>
           <tr v-for="entry in limitedAndDecoratedEntries" class="entry">
             <td>
@@ -450,21 +474,17 @@ export default {
                 <v-col cols="12" sm="2">
                   <div class="term tibetan" v-html="entry.term" />
                 </v-col>
-                <v-col cols="12" sm="2">
+                <v-col cols="12" sm="2" class="dictionary-label-col">
                   <v-chip
-                    label
-                    small
-                    class="ml-2 px-2"
-                    color="dictionary-label grey darken-2"
+                    variant="flat"
+                    size="small"
+                    class="ml-2 px-2 dictionary-label"
+                    color="grey-darken-2"
                     v-html="shortDictionaryLabelFor(entry)"
                     :class="{
                       'has-tibetan': shortDictionaryLabelForHasTibetan(entry),
                     }"
-                    @click="
-                      $root.openSnackbarWith(
-                        dictionaryAboutFor(entry.dictionary)
-                      )
-                    "
+                    @click="openDictionaryAbout(entry)"
                   />
                 </v-col>
                 <v-col cols="12" sm="8" class="d-flex">
@@ -474,11 +494,9 @@ export default {
             </td>
           </tr>
         </tbody>
-      </v-simple-table>
+      </v-table>
 
-      <v-alert v-else class="text-center" key="no-entries">
-        No entries
-      </v-alert>
+      <v-alert v-else class="text-center" key="no-entries">No entries</v-alert>
     </template>
   </div>
 </template>
@@ -486,85 +504,130 @@ export default {
 <style>
 .search-page {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
 
 .search-page .v-input {
   background: #f0f0f0;
 }
 
-.theme--dark .search-page .v-input {
+.v-theme--dark .search-page .v-input {
   background: #1e1e1e;
 }
 
-.search-page .v-system-bar {
-  top: 63px;
+.search-page > .v-system-bar {
+  position: relative !important;
+  z-index: 1 !important;
+  width: 100%;
+  padding: 0 !important;
+  margin: 0 !important;
+  top: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  --v-layout-top: 0px !important;
 }
 
 .search-page .v-input {
   margin: 0;
   padding: 0;
+  width: 100%;
+  max-width: 100%;
 }
 
-.search-page .v-input .v-input__slot .v-input__prepend-inner {
-  width: 420px;
+/* Vuetify 3: Remove default field padding/borders */
+.search-page .v-input .v-input__control {
+  height: 63px;
+}
+.search-page .v-input .v-field {
+  padding: 0;
+  border-radius: 0;
+  height: 63px;
+  --v-field-padding-start: 0;
+  --v-field-padding-end: 0;
+  --v-field-padding-top: 0;
+  --v-field-padding-bottom: 0;
+}
+.search-page .v-input .v-field__outline {
+  display: none;
+}
+.search-page .v-input .v-field__overlay {
+  display: none;
+}
+
+.search-page .v-input .v-field__prepend-inner {
+  width: 280px;
+  flex: 0 0 280px;
   align-items: center;
   height: 100%;
   margin: 0;
   padding-left: 1em;
 }
 
-.search-page
-  .v-input
-  .v-input__slot
-  .v-input__prepend-inner
-  .results-and-pagination {
-}
-
-.search-page .v-input .v-input__slot .v-text-field__slot {
-  margin-right: 322px;
-}
-
-.search-page .v-input .v-input__slot .v-text-field__slot input {
-  padding: 0;
-  height: 46px !important;
-  font-size: 26px !important;
-  line-height: 46px !important;
-}
-
-.search-page .v-input .v-input__slot .v-input__append-inner {
-  height: 100%;
-  margin: 0;
-  align-items: center;
-}
-
-.search-page .v-input .v-input__slot .v-input__append-inner .v-btn {
-  min-width: 75px;
-}
-
-.search-page .v-input .v-input__slot .v-input__append-inner .v-btn .v-icon {
-  margin: 0;
-  color: var(--deep-red);
-}
-.theme--dark .search-page .v-input .v-input__slot .v-input__append-inner .v-btn .v-icon {
-  color: var(--yellow);
-}
-
-.search-page .v-input .v-input__slot .v-input__append-inner .v-icon {
-  font-size: 28px;
-}
-
-.search-page .v-input .v-input__slot .v-input__append-inner:not(:last-child) {
-  width: 30px;
-}
-
-.search-page .v-data-table {
+.search-page .v-input .v-field__field {
   flex: 1;
 }
 
+.search-page .v-input .v-field__field input {
+  padding: 0 12px;
+  height: 64px !important;
+  font-size: 26px !important;
+  line-height: 46px !important;
+  text-align: center;
+}
+
+.search-page .v-input .v-field__append-inner {
+  width: 280px;
+  flex: 0 0 280px;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Vuetify 3: Clear button styling */
+.search-page .v-input .v-field__clearable {
+  margin: 0;
+  padding: 0 8px;
+  align-items: center;
+}
+.search-page .v-input .v-field__clearable .v-icon {
+  font-size: 24px;
+  opacity: 1;
+}
+
+.search-page .v-input .v-field__append-inner .v-btn {
+  min-width: 75px;
+}
+
+.search-page .v-input .v-field__append-inner .v-btn .v-icon {
+  margin: 0;
+  color: var(--deep-red);
+}
+
+.v-theme--dark .search-page .v-input .v-field__append-inner .v-btn .v-icon {
+  color: var(--yellow);
+}
+
+.search-page .v-input .v-field__append-inner .v-icon {
+  font-size: 28px;
+}
+
+.search-page .v-table {
+  flex: 1;
+  overflow: visible;
+}
+
+.search-page .v-table > .v-table__wrapper {
+  overflow: visible;
+}
+
 .search-page
-  .v-data-table
-  > .v-data-table__wrapper
+  .v-table
+  > .v-table__wrapper
   > table
   > tbody
   > tr:hover:not(.v-data-table__expanded__content):not(
@@ -573,7 +636,7 @@ export default {
   background: transparent !important;
 }
 
-.theme--dark .search-page .v-data-table {
+.v-theme--dark .search-page .v-table {
   background-color: #252525;
 }
 
@@ -600,6 +663,11 @@ export default {
   white-space: break-spaces;
 }
 
+.search-page .entry .v-col:nth-child(2) {
+  display: flex;
+  align-items: flex-start;
+}
+
 .search-page .entry .dictionary-label.has-tibetan {
   margin-top: 5.5px;
 }
@@ -622,7 +690,7 @@ export default {
   padding-right: 50px;
 }
 
-.theme--dark .search-page .v-alert {
+.v-theme--dark .search-page .v-alert {
   background-color: #252525;
 }
 
@@ -636,7 +704,7 @@ export default {
   align-items: baseline;
   margin: 0 16px;
   padding-top: 5px;
-  font-family: "Segoe UI", "Roboto", sans-serif;
+  font-family: 'Segoe UI', 'Roboto', sans-serif;
   font-variant: small-caps;
   white-space: nowrap;
 }
@@ -655,5 +723,60 @@ export default {
 
 .search-page .previous-queries .buttons .previous-query span.tibetan {
   margin: 0 5px;
+}
+
+/* Mobile styles */
+@media (max-width: 600px) {
+  .search-page .v-input .v-field__prepend-inner {
+    display: none;
+  }
+
+  .search-page .v-input .v-field__append-inner {
+    width: auto;
+  }
+
+  .search-page .v-input .v-field__field input {
+    font-size: 20px !important;
+  }
+
+  .search-page .mobile-controls {
+    display: flex;
+    padding: 8px;
+    background: #f0f0f0;
+  }
+
+  .v-theme--dark .search-page .mobile-controls {
+    background: #1e1e1e;
+  }
+
+  .search-page .entry .dictionary-label-col {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .search-page .entry .dictionary-label {
+    margin: 0 !important;
+  }
+
+  .search-page .entry .term {
+    margin-top: 20px;
+  }
+
+  .search-page .entry .definition {
+    padding: 0;
+    margin-bottom: 15px;
+  }
+
+  .search-page .previous-queries {
+    flex-direction: column;
+  }
+
+  .search-page .previous-queries .header {
+    margin: 0 8px;
+  }
+
+  .search-page .previous-queries .buttons .previous-query {
+    padding: 16px;
+  }
 }
 </style>

@@ -2,8 +2,9 @@
   import $ from 'jquery'
   import _ from 'underscore'
   import TibetanRegExps from 'tibetan-regexps'
+  import { useTheme } from 'vuetify'
 
-  import Entries from './Entries'
+  import Entries from './Entries.vue'
   import SqlDatabase from '../services/sql-database'
   import { withTrailingTshek } from '../utils.js'
 
@@ -15,6 +16,10 @@
   export default {
     components: {
       Entries
+    },
+    setup() {
+      const theme = useTheme();
+      return { theme };
     },
     data () {
       return {
@@ -28,6 +33,9 @@
       }
     },
     computed: {
+      isDark() {
+        return this.theme.global.current.value.dark;
+      },
       styles () {
         return {
           position: 'fixed',
@@ -128,7 +136,7 @@
       v-if="show"
       class="selected-tibetan-entries-popup"
       :style="styles"
-      :color="$vuetify.theme.dark ? '' : 'grey lighten-4'"
+      :color="isDark ? '' : 'grey-lighten-4'"
     >
 
       <v-fade-transition mode="out-in">
@@ -164,7 +172,7 @@
 </template>
 
 <style lang="stylus">
-  .theme--dark
+  .v-theme--dark
     .selected-tibetan-entries-popup
       fieldset.entry
         border-color #5c5c5c

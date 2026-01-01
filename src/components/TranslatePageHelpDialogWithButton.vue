@@ -1,10 +1,10 @@
 <script>
   import { v4 as uuid } from 'uuid'
 
-  import TranslatePageWordCard from './TranslatePageWordCard'
-  import TranslatePageSplitIcon from './TranslatePageSplitIcon'
-  import TranslatePageTranslationLines from './TranslatePageTranslationLines'
-  import TranslatePageHelpDialogCopyButton from './TranslatePageHelpDialogCopyButton'
+  import TranslatePageWordCard from './TranslatePageWordCard.vue'
+  import TranslatePageSplitIcon from './TranslatePageSplitIcon.vue'
+  import TranslatePageTranslationLines from './TranslatePageTranslationLines.vue'
+  import TranslatePageHelpDialogCopyButton from './TranslatePageHelpDialogCopyButton.vue'
 
   export default {
     components: {
@@ -58,17 +58,19 @@
     v-model="dialog"
     content-class="help-dialog"
     max-width="1024px"
-    overlay-opacity="0.99"
+    scrim-opacity="0.99"
   >
 
-    <template v-slot:activator="{ on, attrs }">
+    <template v-slot:activator="{ props }">
       <v-fab-transition appear>
         <v-btn
           v-if="$route.path.includes('/translate')"
-          icon large
-          v-on="on"
-          v-bind="attrs"
-          class="help-button grey--text text--darken-2"
+          icon
+          variant="text"
+          size="large"
+          v-bind="props"
+          class="help-button text-grey-darken-2"
+          @click.stop.prevent
         >
           <v-icon>mdi-help-circle</v-icon>
         </v-btn>
@@ -92,10 +94,10 @@
             v-model="tab"
             grow
           >
-            <v-tab>
+            <v-tab :value="0">
               Live definition lookup
             </v-tab>
-            <v-tab>
+            <v-tab :value="1">
               Assisted sentence splitting
             </v-tab>
           </v-tabs>
@@ -105,11 +107,11 @@
 
       <v-card-text class="pt-3 pb-0">
 
-        <v-tabs-items
+        <v-tabs-window
           v-model="tab"
         >
 
-          <v-tab-item>
+          <v-tabs-window-item>
 
             <v-row>
 
@@ -216,12 +218,12 @@
 
             </v-row>
 
-          </v-tab-item>
+          </v-tabs-window-item>
 
-          <v-tab-item>
+          <v-tabs-window-item>
 
             <v-alert
-              text
+              variant="tonal"
               class="demo-instructions mb-0 rounded-b-0"
             >
 
@@ -241,11 +243,11 @@
                     you try it.
                   </p>
                   <v-alert
-                    text
-                    dense
+                    variant="tonal"
+                    density="compact"
                     prominent
                     type="info"
-                    class="caption"
+                    class="text-caption"
                   >
                     If the tutorial seems a little lost it might mean that
                     you did something unexpected instead of following
@@ -293,15 +295,15 @@
                   </div>
 
                   <v-text-field
-                    outlined
+                    variant="outlined"
                     readonly
                     hide-details
                     class="tibetan with-right-button"
-                    value="མྱ་ངན་ལས་འདས་པའི་གྲོང་ཁྱེར་དུ་འགྲོ་བ་རྣམས་ཀྱི་དེད་དཔོན།"
+                    model-value="མྱ་ངན་ལས་འདས་པའི་གྲོང་ཁྱེར་དུ་འགྲོ་བ་རྣམས་ཀྱི་དེད་དཔོན།"
                   >
-                    <template v-slot:append-outer>
+                    <template v-slot:append>
                       <TranslatePageHelpDialogCopyButton
-                        @click.native="copyToClipboard('མྱ་ངན་ལས་འདས་པའི་གྲོང་ཁྱེར་དུ་འགྲོ་བ་རྣམས་ཀྱི་དེད་དཔོན།')"
+                        @click="copyToClipboard('མྱ་ངན་ལས་འདས་པའི་གྲོང་ཁྱེར་དུ་འགྲོ་བ་རྣམས་ཀྱི་དེད་དཔོན།')"
                       />
                     </template>
                   </v-text-field>
@@ -364,11 +366,11 @@
                   </p>
 
                   <v-alert
-                    text
-                    dense
+                    variant="tonal"
+                    density="compact"
                     prominent
                     type="info"
-                    class="caption"
+                    class="text-caption"
                   >
                     All the lines and cards can be repositioned by
                     clicking and holding on the little dots
@@ -377,11 +379,11 @@
                   </v-alert>
 
                   <v-alert
-                    text
-                    dense
+                    variant="tonal"
+                    density="compact"
                     prominent
                     type="info"
-                    class="caption"
+                    class="text-caption"
                   >
                     They can also be assigned a color by clicking on the
                     the color palette button
@@ -393,11 +395,11 @@
                   </v-alert>
 
                   <v-alert
-                    text
-                    dense
+                    variant="tonal"
+                    density="compact"
                     prominent
                     type="info"
-                    class="caption"
+                    class="text-caption"
                   >
                     If you prefer to break down a card into <strong>every
                     single possible defined combination</strong> instead of
@@ -431,8 +433,8 @@
                 <v-btn
                   v-if="step == 'start'"
                   block
-                  x-large
-                  color="primary darken-2"
+                  size="x-large"
+                  color="primary-darken-2"
                   height="128"
                   @click="step = 'create-a-new-line'"
                 >
@@ -450,17 +452,17 @@
 
             </div>
 
-          </v-tab-item>
+          </v-tabs-window-item>
 
-        </v-tabs-items>
+        </v-tabs-window>
 
       </v-card-text>
 
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn
-          color="grey darken-1"
-          text
+          color="grey-darken-1"
+          variant="text"
           @click="dialog = false"
         >
           Close

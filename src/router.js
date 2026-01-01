@@ -1,15 +1,12 @@
-import Vue from 'vue'
-import VueRouter from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 
 import Storage from './services/storage'
 
-import TranslatePage from './components/TranslatePage'
-import DefinePage from './components/DefinePage'
-import SearchPage from './components/SearchPage'
-import ConfigurePage from './components/ConfigurePage'
-import TestsPage from './components/TestsPage'
-
-Vue.use(VueRouter);
+import TranslatePage from './components/TranslatePage.vue'
+import DefinePage from './components/DefinePage.vue'
+import SearchPage from './components/SearchPage.vue'
+import ConfigurePage from './components/ConfigurePage.vue'
+import TestsPage from './components/TestsPage.vue'
 
 const routes = [
   { path: '/', redirect: '/define' },
@@ -22,9 +19,10 @@ const routes = [
   { path: '/tests', component: TestsPage },
 ]
 
-const router = new VueRouter({
+const router = createRouter({
+  history: createWebHistory(),
   routes,
   linkExactActiveClass: 'active'
 })
 
-export default router;
+export default router

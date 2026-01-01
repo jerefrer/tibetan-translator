@@ -1,5 +1,5 @@
 <script>
-  import DictionariesMenuHelpTab from './DictionariesMenuHelpTab'
+  import DictionariesMenuHelpTab from './DictionariesMenuHelpTab.vue'
 
   export default {
     components: {
@@ -20,17 +20,19 @@
     v-model="dialog"
     content-class="help-dialog"
     max-width="1024px"
-    overlay-opacity="0.99"
+    scrim-opacity="0.99"
   >
 
-    <template v-slot:activator="{ on, attrs }">
+    <template v-slot:activator="{ props }">
       <v-fab-transition appear>
         <v-btn
           v-if="$route.path.includes('/search')"
-          icon large
-          v-on="on"
-          v-bind="attrs"
-          class="help-button grey--text text--darken-2"
+          icon
+          variant="text"
+          size="large"
+          v-bind="props"
+          class="help-button text-grey-darken-2"
+          @click.stop.prevent
         >
           <v-icon>mdi-help-circle</v-icon>
         </v-btn>
@@ -54,16 +56,16 @@
             v-model="tab"
             grow
           >
-            <v-tab>
+            <v-tab :value="0">
               Examples
             </v-tab>
-            <v-tab>
+            <v-tab :value="1">
               Phonetic search
             </v-tab>
-            <v-tab>
+            <v-tab :value="2">
               Wylie support
             </v-tab>
-            <v-tab>
+            <v-tab :value="3">
               Dictionaries filter
             </v-tab>
           </v-tabs>
@@ -73,11 +75,11 @@
 
       <v-card-text class="pt-4">
 
-        <v-tabs-items
+        <v-tabs-window
           v-model="tab"
         >
 
-          <v-tab-item>
+          <v-tabs-window-item>
             <table>
               <tbody>
                 <tr>
@@ -85,7 +87,7 @@
                   <td>
                     Matches everything that contains "seven" regardless
                     of case.
-                    <span class="caption grey--text ml-2">
+                    <span class="text-caption text-grey ml-2">
                       ("SeVeN" will be matched as well)
                     </span>
                   </td>
@@ -124,7 +126,7 @@
                     Matches everything that contains "enlightenment" as well
                     as any Tibetan word that <b>sounds like</b>
                     <span class="mr-2">"trenpa".</span>
-                    <span class="caption grey--text nowrap">
+                    <span class="text-caption text-grey nowrap">
                       (See
                         <a @click="tab=1">Phonetic search</a>)
                     </span>
@@ -138,7 +140,7 @@
                     Matches everything that contains any Tibetan word that
                     <b>sounds more or less like</b>
                     <span class="mr-2">"trenpa".</span>
-                    <span class="caption grey--text nowrap">
+                    <span class="text-caption text-grey nowrap">
                       (See
                         <a @click="tab=1">Phonetic search</a>)
                     </span>
@@ -153,7 +155,7 @@
                     <b>pronounced like</b> <span class="tibetan">དྲན་པ་</span>
                     but not necessarily spelled the same
                     <span class="mr-2">way.</span>
-                    <span class="caption grey--text nowrap">
+                    <span class="text-caption text-grey nowrap">
                       (See
                         <a @click="tab=1">Phonetic search</a>)
                     </span>
@@ -167,7 +169,7 @@
                     Matches everything that contains any Tibetan word that
                     <b>sounds more or less like</b>
                     <span class="tibetan mr-2">དྲན་པ་</span>
-                    <span class="caption grey--text nowrap">
+                    <span class="text-caption text-grey nowrap">
                       (See
                         <a @click="tab=1">Phonetic search</a>)
                     </span>
@@ -180,7 +182,7 @@
                   <td>
                     Matches everything that contains
                     <span class="tibetan mr-2">དགའ་བ་</span>
-                    <span class="caption grey--text nowrap">
+                    <span class="text-caption text-grey nowrap">
                       (See
                         <a @click="tab=2">Wylie support</a>)
                     </span>
@@ -188,9 +190,9 @@
                 </tr>
               </tbody>
             </table>
-          </v-tab-item>
+          </v-tabs-window-item>
 
-          <v-tab-item>
+          <v-tabs-window-item>
             <p>
               This enables you to find something <em>by the way it
               is pronounced</em>.
@@ -205,11 +207,11 @@
             </p>
 
             <v-alert
-              text
-              dense
+              variant="tonal"
+              density="compact"
               prominent
               type="warning"
-              class="caption"
+              class="text-caption"
               icon="mdi-exclamation"
             >
               The app will automatically split the different syllables, and
@@ -221,11 +223,11 @@
             </v-alert>
 
             <v-alert
-              text
-              dense
+              variant="tonal"
+              density="compact"
               prominent
               type="warning"
-              class="caption"
+              class="text-caption"
               icon="mdi-exclamation"
             >
               Beware of words with "merged" syllables.
@@ -250,11 +252,11 @@
             </p>
 
             <v-alert
-              text
-              dense
+              variant="tonal"
+              density="compact"
               prominent
               type="info"
-              class="caption"
+              class="text-caption"
               icon="mdi-lightbulb-on-outline"
             >
               [] Square brackets yield a square result.<br />
@@ -273,9 +275,9 @@
               <code>[chom<span class="tibetan">སྡེན་</span>de]</code> will also find
               <span class="tibetan">བཅོམ་ལྡན་འདས་</span>.
             </p>
-          </v-tab-item>
+          </v-tabs-window-item>
 
-          <v-tab-item>
+          <v-tabs-window-item>
             <p>
               Everything between parenthesis will be understood as Wylie.
             </p>
@@ -289,19 +291,19 @@
               <code>(sangs rgyas)<span class="tibetan">ཀྱི་ཆོས་</span></code>
               <code><span class="tibetan">སངས་རྒྱས་ཀྱི་ཆོས་</span></code>
             </div>
-          </v-tab-item>
+          </v-tabs-window-item>
 
           <DictionariesMenuHelpTab />
 
-        </v-tabs-items>
+        </v-tabs-window>
 
       </v-card-text>
 
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn
-          color="grey darken-1"
-          text
+          color="grey-darken-1"
+          variant="text"
           @click="dialog = false"
         >
           Close

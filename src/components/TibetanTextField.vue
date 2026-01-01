@@ -8,15 +8,16 @@ const wylieToUnicode = new WylieToUnicode();
 export default {
   inheritAttrs: false,
   props: {
-    value: String,
+    modelValue: String,
   },
+  emits: ['update:modelValue', 'keydown', 'click:clear', 'paste:multiple'],
   data() {
     return {
-      text: this.value,
+      text: this.modelValue,
     };
   },
   watch: {
-    value(value) {
+    modelValue(value) {
       this.text = value;
     },
   },
@@ -42,16 +43,14 @@ export default {
         (event.ctrlKey && event.key == "v")
       )
         this.text = this.convertWylie(this.text);
-      this.$emit("input", this.text);
+      this.$emit("update:modelValue", this.text);
     },
     handlePasteMultipleIfDefined(event) {
-      if (this.$listeners["paste:multiple"]) {
-        var pastedText = event.clipboardData.getData("text/plain");
-        event.clipboardData.setData("text/plain", pastedText);
-        if (pastedText.split(/[\r\n]+/).length > 1) {
-          event.preventDefault();
-          this.$emit("paste:multiple", this.convertWylie(pastedText));
-        }
+      // Check if paste:multiple listener exists by checking emits
+      var pastedText = event.clipboardData.getData("text/plain");
+      if (pastedText.split(/[\r\n]+/).length > 1) {
+        event.preventDefault();
+        this.$emit("paste:multiple", this.convertWylie(pastedText));
       }
     },
     handleDrop() {
@@ -70,11 +69,12 @@ export default {
     hide-details
     v-model="text"
     v-bind="$attrs"
-    v-on="$listeners"
     placeholder="བོད་ཡིག་"
     class="tibetan"
     spellcheck="false"
     autocomplete="off"
+    autocapitalize="off"
+    autocorrect="off"
     @keydown="preventMoreThanOneTrailingTshek"
     @keyup="convertWylieAndEmit"
     @paste="handlePasteMultipleIfDefined"

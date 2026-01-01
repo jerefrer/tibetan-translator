@@ -1,6 +1,6 @@
 <script>
   import Decorator from '../services/decorator'
-  import Entry from './EntriesEntry'
+  import Entry from './EntriesEntry.vue'
 
   const ENTRIES_BATCH_SIZE = 10;
 

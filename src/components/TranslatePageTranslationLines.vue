@@ -2,11 +2,11 @@
   import draggable from 'vuedraggable'
 
   import TranslatePageMixins from './TranslatePageMixins'
-  import TranslatePageWordCard from './TranslatePageWordCard'
-  import TranslatePageSplitIcon from './TranslatePageSplitIcon'
-  import TranslatePageCardColorPicker from './TranslatePageCardColorPicker'
-  import TranslatePageCardDeleteButton from './TranslatePageCardDeleteButton'
-  import TibetanTextField from './TibetanTextField'
+  import TranslatePageWordCard from './TranslatePageWordCard.vue'
+  import TranslatePageSplitIcon from './TranslatePageSplitIcon.vue'
+  import TranslatePageCardColorPicker from './TranslatePageCardColorPicker.vue'
+  import TranslatePageCardDeleteButton from './TranslatePageCardDeleteButton.vue'
+  import TibetanTextField from './TibetanTextField.vue'
 
   export default {
     mixins: [TranslatePageMixins],
@@ -20,6 +20,17 @@
     },
     props: {
       lines: Array
+    },
+    emits: ['update:lines'],
+    computed: {
+      localLines: {
+        get() {
+          return this.lines;
+        },
+        set(value) {
+          this.$emit('update:lines', value);
+        }
+      }
     },
     methods: {
       splitTextIntoDefinedLinesAndInsert (text, line, lineIndex) {
@@ -59,7 +70,10 @@
           })
       },
       focusFirstTibetanInput () {
-        this.$refs.tibetanInputs && this.$refs.tibetanInputs[0].focus();
+        const inputs = this.$refs.tibetanInputs;
+        if (inputs && inputs.length > 0 && inputs[0] && inputs[0].focus) {
+          inputs[0].focus();
+        }
       }
     },
     mounted () {
@@ -71,19 +85,14 @@
 
 <template>
   <draggable
-    v-model="lines"
+    v-model="localLines"
     handle=".line-handle"
+    item-key="id"
+    class="lines"
   >
-
-    <transition-group
-      name="list"
-      tag="div"
-      class="lines"
-    >
+    <template #item="{ element: line, index: lineIndex }">
 
       <v-card
-        v-for="(line, lineIndex) in lines"
-        :key="line.id"
         class="line list-item"
       >
 
@@ -93,7 +102,7 @@
         >
 
           <div class="line-handle">
-            <v-icon large>mdi-drag</v-icon>
+            <v-icon size="large">mdi-drag</v-icon>
           </div>
 
           <TranslatePageCardColorPicker
@@ -103,6 +112,7 @@
 
           <v-btn
             icon
+            variant="text"
             class="reveal-definitions-button"
             @click="line.opened = !line.opened"
           >
@@ -120,11 +130,11 @@
         </div>
 
         <v-overlay
-          absolute
-          :value="line.loading"
+          contained
+          :model-value="line.loading"
+          class="align-center justify-center"
         >
           <v-progress-circular
-            left
             indeterminate
             size="64"
           />
@@ -148,6 +158,7 @@
               <template v-slot:append>
                 <v-btn
                   icon
+                  variant="text"
                   :disabled="!line.source"
                   title="Auto-generates cards with words and definitions (will remove existing cards)"
                   @click="autoGenerateCardsFor(line, $event)"
@@ -166,40 +177,30 @@
               >
 
                 <draggable
-                  :key="'words-' + line.id"
                   v-if="line.opened"
                   v-model="line.words"
                   group="words"
                   handle=".word-handle"
-                  class="words-container list-item"
+                  item-key="id"
+                  class="words-container words list-item"
                 >
-
-                  <transition-group
-                    name="list"
-                    tag="div"
-                    class="words"
-                  >
-
+                  <template #item="{ element: word, index: wordIndex }">
                     <TranslatePageWordCard
-                      v-for="(word, wordIndex) in line.words"
-                      :key="word.id"
                       :word="word"
                       class="list-item"
                       @click:delete="line.words.splice(wordIndex, 1)"
                       @click:insertDefinedWords="insertDefinedWords(line, word, wordIndex, $event); line.opened = true"
                       @change:color="word.color = $event"
                     />
-
+                  </template>
+                  <template #footer>
                     <v-btn
-                      key="add-word-button"
                       class="add-word-button list-item"
                       @click="line.words.push(newWord())"
                     >
-                      <v-icon color="grey darken-2">mdi-plus</v-icon>
+                      <v-icon color="grey-darken-2">mdi-plus</v-icon>
                     </v-btn>
-
-                  </transition-group>
-
+                  </template>
                 </draggable>
 
               </v-expand-transition>
@@ -228,16 +229,14 @@
         </v-card-text>
 
       </v-card>
-
+    </template>
+    <template #footer>
       <v-btn
-        key="add-line-button"
         class="add-line-button list-item"
         @click="lines.push(newTranslationLine())"
       >
-        <v-icon color="grey darken-2">mdi-plus</v-icon>
+        <v-icon color="grey-darken-2">mdi-plus</v-icon>
       </v-btn>
-
-    </transition-group>
-
+    </template>
   </draggable>
 </template>

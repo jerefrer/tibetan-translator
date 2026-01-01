@@ -1,0 +1,90 @@
+[
+  {
+    "lastSync": "2026-01-01T12:02:39.808Z",
+    "source": "https://github.com/christiansteinert/tibetan-dictionary.git",
+    "changes": {
+      "added": [],
+      "updated": []
+    }
+  },
+  {
+    "lastSync": "2026-01-01T11:44:08.333Z",
+    "source": "https://github.com/christiansteinert/tibetan-dictionary.git",
+    "changes": {
+      "added": [],
+      "updated": []
+    }
+  },
+  {
+    "lastSync": "2026-01-01T11:44:04.133Z",
+    "source": "https://github.com/christiansteinert/tibetan-dictionary.git",
+    "changes": {
+      "added": [],
+      "updated": []
+    }
+  },
+  {
+    "lastSync": "2026-01-01T11:41:02.829Z",
+    "source": "https://github.com/christiansteinert/tibetan-dictionary.git",
+    "changes": {
+      "added": [],
+      "updated": []
+    }
+  },
+  {
+    "lastSync": "2025-12-31T18:59:07.560Z",
+    "source": "https://github.com/christiansteinert/tibetan-dictionary.git",
+    "changes": {
+      "added": [
+        "52-ITLR",
+        "53-Bialek",
+        "54-bod_rgya_nang_don_rig_pai_tshig_mdzod",
+        "55-brda_dkrol_gser_gyi_me_long",
+        "56-chos_rnam_kun_btus",
+        "57-li_shii_gur_khang",
+        "58-sgom_sde_tshig_mdzod_chen_mo",
+        "59-sgra_bye_brag_tu_rtogs_byed_chen_mo",
+        "60-sngas_rgyas_chos_gzhung_tshig_mdzod",
+        "61-gangs_can_mkhas_grub_rim_byon_ming_mdzod",
+        "62-bod_yig_tshig_gter_rgya_mtsho",
+        "63-Mahavyutpatti-Scan-1989",
+        "64-sgra-sbyor-bam-po-gnyis-pa",
+        "65-ChandraDas_Scan",
+        "66-Jaeschke_Scan",
+        "67-hotl1",
+        "67-hotl2",
+        "67-hotl3",
+        "68-tibetanlanguage-school"
+      ],
+      "updated": [
+        "02-RangjungYeshe",
+        "05-Hopkins-Def2015",
+        "06-Hopkins-Comment",
+        "07-JimValby",
+        "08-IvesWaldo",
+        "09-DanMartin",
+        "10-RichardBarron",
+        "11-Hopkins-Divisions2015",
+        "13-Hopkins-Examples",
+        "16-Hopkins-Synonyms1992",
+        "20-Hopkins-others'English2015",
+        "25-tshig-mdzod-chen-mo-Tib",
+        "26-Verbinator",
+        "33-TsepakRigdzin",
+        "34-dung-dkar-tshig-mdzod-chen-mo-Tib",
+        "36-ComputerTerms",
+        "37-dag_tshig_gsar_bsgrigs-Tib",
+        "38-Gaeng,Wetzel",
+        "42-Sera-Textbook-Definitions",
+        "43-84000Dict",
+        "44-84000Definitions",
+        "45-84000Synonyms",
+        "46-84000Skt",
+        "48-TibTermProject",
+        "49-LokeshChandraSkt",
+        "50-NegiSkt",
+        "51-LaineAbbreviations"
+      ]
+    }
+  }
+]

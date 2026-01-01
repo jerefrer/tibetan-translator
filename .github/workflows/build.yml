@@ -56,7 +56,8 @@ jobs:
           workspaces: './src-tauri -> target'
 
       - name: Extract the database
-        run: cd public && 7z x database.7z && rm database.7z
+        run: cd public && 7z x database.7z.001 && rm database.7z.*
+        shell: bash
 
       - uses: tauri-apps/tauri-action@v0
         env:

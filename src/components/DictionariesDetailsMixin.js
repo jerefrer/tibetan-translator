@@ -8,18 +8,18 @@ export default {
       return this.dictionaryLabelFor(dictionary.name, { short: true });
     },
     dictionaryLabelFor (dictionaryName, options = {}) {
-      var dictionaryName = DICTIONARIES_DETAILS[dictionaryName];
+      var dictionaryDetails = DICTIONARIES_DETAILS[dictionaryName];
       var label;
-      if (dictionaryName) {
-        if (options.short && dictionaryName.shortLabel)
-          label = dictionaryName.shortLabel;
+      if (dictionaryDetails) {
+        if (options.short && dictionaryDetails.shortLabel)
+          label = dictionaryDetails.shortLabel;
         else
-          label = dictionaryName.label;
+          label = dictionaryDetails.label;
       }
       if (label)
         return Decorator.wrapAllTibetanWithSpansAndAddTshekIfMissing(label);
       else
-        return dictionaryName;
+        return dictionaryName; // Return original name if not in config
     },
     dictionaryAboutFor (dictionaryName) {
       var about = DICTIONARIES_DETAILS[dictionaryName]?.about;

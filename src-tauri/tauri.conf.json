@@ -33,8 +33,17 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "resources": {
+      "../public/TibetanTranslator.sqlite": "TibetanTranslator.sqlite"
+    },
     "shortDescription": "The best Tibetan dictionaries in a pleasant interface for all devices",
-    "longDescription": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices."
+    "longDescription": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",
+    "iOS": {
+      "minimumSystemVersion": "13.0"
+    },
+    "android": {
+      "minSdkVersion": 24
+    }
   },
   "$schema": "../node_modules/@tauri-apps/cli/schema.json"
 }

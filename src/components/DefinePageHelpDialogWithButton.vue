@@ -1,5 +1,5 @@
 <script>
-  import DictionariesMenuHelpTab from './DictionariesMenuHelpTab'
+  import DictionariesMenuHelpTab from './DictionariesMenuHelpTab.vue'
 
   export default {
     components: {
@@ -11,8 +11,6 @@
         tab: 0
       }
     },
-    computed: {
-    }
   }
 </script>
 
@@ -22,17 +20,19 @@
     v-model="dialog"
     content-class="help-dialog"
     max-width="1024px"
-    overlay-opacity="0.99"
+    scrim-opacity="0.99"
   >
 
-    <template v-slot:activator="{ on, attrs }">
+    <template v-slot:activator="{ props }">
       <v-fab-transition appear>
         <v-btn
           v-if="$route.path.includes('/define')"
-          icon large
-          v-on="on"
-          v-bind="attrs"
+          icon
+          variant="text"
+          size="large"
+          v-bind="props"
           class="help-button"
+          @click.stop.prevent
         >
           <v-icon>mdi-help-circle</v-icon>
         </v-btn>
@@ -56,7 +56,7 @@
             v-model="tab"
             grow
           >
-            <v-tab>
+            <v-tab :value="0">
               Dictionaries filter
             </v-tab>
           </v-tabs>
@@ -66,21 +66,21 @@
 
       <v-card-text class="pt-4">
 
-        <v-tabs-items
+        <v-tabs-window
           v-model="tab"
         >
 
           <DictionariesMenuHelpTab />
 
-        </v-tabs-items>
+        </v-tabs-window>
 
       </v-card-text>
 
       <v-card-actions>
         <v-spacer></v-spacer>
         <v-btn
-          color="grey darken-1"
-          text
+          color="grey-darken-1"
+          variant="text"
           @click="dialog = false"
         >
           Close

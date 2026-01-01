@@ -35,21 +35,20 @@ var DatabaseBuilder = {
   async build() {
     this.database = await this.initDatabase();
     this.startedAt = Date.now();
-    // this.printNewLineAtTheBeginning();
-    // this.cleanup();
+    this.printNewLineAtTheBeginning();
+    this.cleanup();
     this.setupWylieToUnicode();
-    // this.loadDictionaries();
-    // this.computeNumberOfLines();
-    // this.setupProgressBar({onComplete: this.writeDatabaseThenZipThenLogMistakes});
-    // this.createTables();
-    // this.insertDictionaries();
-    // this.insertEntries();
-    this.writeDatabaseThenZipThenLogMistakes();
+    this.loadDictionaries();
+    this.computeNumberOfLines();
+    this.setupProgressBar({onComplete: this.writeDatabaseThenZipThenLogMistakes.bind(this)});
+    this.createTables();
+    this.insertDictionaries();
+    this.insertEntries();
   },
 
   writeDatabaseThenZipThenLogMistakes () {
     this.writeWylieMistakes();
-    // this.exportDatabase();
+    this.exportDatabase();
     const generatedAt = Date.now();
     var totalTime = formatDuration(
       intervalToDuration({ start: generatedAt, end: this.startedAt })
@@ -58,17 +57,30 @@ var DatabaseBuilder = {
       "\n" +
         "Done !\n" +
         `Database generated as "public/${outputFilename}" in ${totalTime} \n\n` +
-        "Zipping ..."
+        "Zipping with 95MB volume splitting..."
     );
-    const zipFilePath = path.join(publicFolder, 'database.7z');
-    if (fs.existsSync(zipFilePath)) fs.unlinkSync(zipFilePath);
-    _7z.pack(outputFilepath, zipFilePath, () => {
+
+    // Clean up any existing archive files
+    const zipBasePath = path.join(publicFolder, 'database.7z');
+    fs.readdirSync(publicFolder)
+      .filter(f => f.startsWith('database.7z'))
+      .forEach(f => fs.unlinkSync(path.join(publicFolder, f)));
+
+    // Use 7z with volume splitting (-v95m = 95MB volumes)
+    _7z.cmd(['a', '-v95m', zipBasePath, outputFilepath], (error) => {
+      if (error) {
+        console.error(`7z error: ${error.message}`);
+        return;
+      }
+
       const zipTime = formatDuration(
         intervalToDuration({ start: Date.now(), end: generatedAt })
       );
-      console.log(
-        `\nDone !\n7zip file generated in ${zipTime}\n`
-      );
+
+      // List created volumes
+      const volumes = fs.readdirSync(publicFolder).filter(f => f.startsWith('database.7z.'));
+      console.log(`\nDone !\n7zip volumes created in ${zipTime}: ${volumes.join(', ')}\n`);
+
       if (fs.existsSync(this.linesWithMissedWylieFilePath)) {
         console.log(
           "\n" +

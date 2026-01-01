@@ -5,11 +5,11 @@ import Storage from '../services/storage'
 import EventHandlers from '../services/event-handlers'
 
 import TranslatePageMixins from './TranslatePageMixins'
-import PasteTextDialog from './TranslatePagePasteTextDialog'
-import ExportDialog from './TranslatePageExportDialog'
-import ProjectsButtonAndDialog from './TranslatePageProjectsButtonAndDialog'
-import EraseButton from './TranslatePageEraseButton'
-import TranslationLines from './TranslatePageTranslationLines'
+import PasteTextDialog from './TranslatePagePasteTextDialog.vue'
+import ExportDialog from './TranslatePageExportDialog.vue'
+import ProjectsButtonAndDialog from './TranslatePageProjectsButtonAndDialog.vue'
+import EraseButton from './TranslatePageEraseButton.vue'
+import TranslationLines from './TranslatePageTranslationLines.vue'
 
 export default {
   mixins: [TranslatePageMixins],
@@ -72,7 +72,7 @@ export default {
       callback: _.throttle(() => Storage.set('scroll', window.scrollY), 100)
     });
   },
-  beforeDestroy() {
+  beforeUnmount() {
     EventHandlers.remove('scroll');
   }
 }
@@ -80,39 +80,39 @@ export default {
 
 <template>
   <div class="translate-page px-2 pb-2">
-  
-    <v-overlay :value="loading">
+
+    <v-overlay :model-value="loading" class="align-center justify-center">
       <v-progress-circular indeterminate size="64" />
     </v-overlay>
-  
+
     <div class="icons-menu">
-  
+
       <PasteTextDialog @confirm="processPastedText($event)" />
-  
+
       <ExportDialog :lines="lines" />
-  
+
       <v-spacer />
-  
+
       <ProjectsButtonAndDialog :lines="lines" @load="lines = $event" />
-  
+
       <EraseButton :disabled="onlyOneEmptyLine" :doConfirm="projectIsUnsaved" @confirm="lines = [newTranslationLine()]" />
-  
+
       <v-spacer />
-  
-      <v-btn icon large id="open-all-lines-button" title="Open all" :disabled="lines.every((line) => line.opened)"
+
+      <v-btn icon variant="text" size="large" id="open-all-lines-button" title="Open all" :disabled="lines.every((line) => line.opened)"
         @click="setAllLinesOpenStateTo(true)">
         <v-icon>mdi-arrow-split-horizontal</v-icon>
       </v-btn>
-  
-      <v-btn icon large id="close-all-lines-button" title="Close all" :disabled="lines.every((line) => !line.opened)"
+
+      <v-btn icon variant="text" size="large" id="close-all-lines-button" title="Close all" :disabled="lines.every((line) => !line.opened)"
         @click="setAllLinesOpenStateTo(false)">
         <v-icon>mdi-arrow-collapse-vertical</v-icon>
       </v-btn>
-  
+
     </div>
-  
+
     <TranslationLines :lines="lines" @paste:multiple="lines = $event" />
-  
+
   </div>
 </template>
 
@@ -130,22 +130,27 @@ export default {
   flex-direction: column;
 }
 
-#save-dialog-button .v-badge__wrapper {
-  top: auto;
-  left: auto;
-  bottom: 5px;
-  right: 5px;
+#save-dialog-button .v-badge__badge {
+  bottom: 8px !important;
+  right: 8px !important;
+  left: auto !important;
+  top: auto !important;
 }
 
 .left-bar {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  align-items: center;
   padding-top: 4px;
   border-top-right-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
   border-bottom-left-radius: 4px !important;
   border-top-left-radius: 4px !important;
+}
+
+.word .left-bar {
+  justify-content: flex-start;
 }
 
 .left-bar .line-handle,
@@ -176,7 +181,7 @@ export default {
   margin-bottom: 2em;
 }
 
-.theme--light .line {
+.v-theme--light .line {
   background-color: #fbfbfb;
 }
 
@@ -197,11 +202,28 @@ export default {
 
 .line-translation .v-input textarea {
   font-size: 16px;
-  line-height: 24px;
+  line-height: 21px;
+  text-align: center;
+  min-height: 52px !important;
+  height: auto !important;
+  overflow-y: hidden !important;
+  padding-top: 15px !important;
+  padding-bottom: 15px !important;
+}
+
+.line-translation .v-field__input {
+  min-height: 52px !important;
+  height: auto !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.line-translation .v-input--density-default {
+  --v-input-control-height: auto !important;
 }
 
 /* To still be centered compared to the source with an appended button */
-.line-translation .v-text-field__slot {
+.line-translation .v-field__field {
   margin-right: 40px;
 }
 
@@ -225,12 +247,20 @@ export default {
   display: flex;
 }
 
-.theme--light .word {
+.v-theme--light .word {
   background-color: #f5f5f5 !important;
 }
 
-.theme--dark .word {
+.v-theme--dark .word {
   background-color: #2f2f2f !important;
+}
+
+.word .v-field__overlay {
+  background: transparent !important;
+}
+
+.word .v-field--variant-filled .v-field__overlay {
+  opacity: 0 !important;
 }
 
 .word-handle {
@@ -246,34 +276,34 @@ export default {
   font-size: 0.8125rem
 }
 
-.word .tibetan.has-button .v-input__append-inner {
+.word .tibetan.has-button .v-field__append-inner {
   margin-right: -6px;
 }
 
-.word .v-autocomplete .v-input__append-inner {
+.word .v-autocomplete .v-field__append-inner {
   cursor: pointer;
 }
 
 /* To prevent the sudden change of style when going from autocomplete to simple text field */
-.word .tibetan:not(.has-button) .v-text-field__slot,
-.word .translation-simple-text-field .v-text-field__slot {
+.word .tibetan:not(.has-button) .v-field__field,
+.word .translation-simple-text-field .v-field__field {
   margin-right: 32px;
 }
 
 /* */
-.word .tibetan .v-text-field__slot textarea {
+.word .tibetan .v-field__field textarea {
   resize: none;
 }
 
 .word .v-autocomplete input,
-.word .translation-simple-text-field .v-text-field__slot input {
+.word .translation-simple-text-field .v-field__field input {
   height: 30px !important;
   font-size: 13px !important;
   line-height: 30px !important;
   letter-spacing: -0.3px;
 }
 
-.theme--dark .v-input__slot:before {
+.v-theme--dark .v-field__outline::before {
   border-color: rgba(255, 255, 255, 0.1) !important;
 }
 
@@ -292,12 +322,12 @@ export default {
   font-size: 32px;
 }
 
-.theme--light .add-line-button.v-btn.v-btn--has-bg,
-.theme--light .add-word-button.v-btn.v-btn--has-bg {
+.v-theme--light .add-line-button.v-btn,
+.v-theme--light .add-word-button.v-btn {
   background-color: #dbdbdb;
 }
 
-.theme--dark .add-word-button.v-btn.v-btn--has-bg {
+.v-theme--dark .add-word-button.v-btn {
   background-color: #3a3a3a;
 }
 
@@ -308,11 +338,11 @@ export default {
   grid-auto-rows: minmax(162px, auto);
 }
 
-.theme--light .projects .project {
+.v-theme--light .projects .project {
   background-color: #fbfbfb;
 }
 
-.theme--dark .projects .project {
+.v-theme--dark .projects .project {
   background-color: #272727;
 }
 
@@ -338,21 +368,21 @@ export default {
   color: #bbb !important;
 }
 
-.theme--dark .color-picker-button i,
-.theme--dark .reveal-definitions-button i,
-.theme--dark .line-handle i,
-.theme--dark .word-handle i,
-.theme--dark .project-handle i,
-.theme--dark .definition-handle i,
-.theme--dark .delete-button i {
+.v-theme--dark .color-picker-button i,
+.v-theme--dark .reveal-definitions-button i,
+.v-theme--dark .line-handle i,
+.v-theme--dark .word-handle i,
+.v-theme--dark .project-handle i,
+.v-theme--dark .definition-handle i,
+.v-theme--dark .delete-button i {
   color: #444 !important;
 }
 
-.theme--dark .v-autocomplete__content .v-list {
+.v-theme--dark .v-autocomplete__content .v-list {
   background: #0e0e0e;
 }
 
-.delete-button.red--text i {
+.delete-button.text-red i {
   color: #F44336 !important;
 }
 </style>

@@ -19,11 +19,11 @@
     :max-width="480"
   >
 
-    <template v-slot:activator="{ on, attrs }">
+    <template v-slot:activator="{ props }">
       <v-btn
-        text
+        variant="text"
         color="amber"
-        v-bind="Object.assign({}, attrs, $attrs)"
+        v-bind="{ ...props, ...$attrs }"
         @click="dialog = true"
       >
         <v-icon>mdi-content-save-edit</v-icon>
@@ -42,7 +42,7 @@
         </v-toolbar-title>
       </v-toolbar>
 
-      <v-card-text class="pt-6 body-1">
+      <v-card-text class="pt-6 text-body-1">
         The previous content of "{{projectName}}" will be lost forever.
       </v-card-text>
 
@@ -51,7 +51,7 @@
         <v-spacer></v-spacer>
 
         <v-btn
-          color="grey darken-1"
+          color="grey-darken-1"
           @click="dialog = false"
         >
           Cancel

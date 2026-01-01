@@ -10,16 +10,16 @@ export default {
 
   decorate (entry) {
     var definition = entry.definition;
-    var dictionaryDetails = DICTIONARIES_DETAILS[entry.dictionary];
+    var dictionaryDetails = DICTIONARIES_DETAILS[entry.dictionary] || {};
     if (entry.dictionary == 'Illuminator_x') {
       definition = this.substituteWylieVerbs(definition);
       definition = this.substituteWylieExamples(definition);
     }
-    definition = this.prettify(definition);
+    definition = this.prettify(definition, entry.dictionary);
     definition = this.breakIntoSections(definition);
     definition = this.highlightDictionarySpecificTerms(dictionaryDetails, definition);
     definition = this.addTagsForAbbreviations(dictionaryDetails, definition);
-    if (dictionaryDetails.containsOnlyTibetan)
+    if (dictionaryDetails?.containsOnlyTibetan)
       definition = this.wrapWithTibetanSpan(definition);
     else {
       definition = this.wrapAllTibetanWithSpansAndAddTshekIfMissing(definition);
@@ -81,7 +81,7 @@ export default {
         var tibetanWithTrailingTshek = withTrailingTshek(tibetan);
         var tibetanActuallyExistsInDictionary = SqlDatabase.allTerms.includes(tibetanWithTrailingTshek);
         if (tibetanActuallyExistsInDictionary)
-          return `<a href='#/define/${tibetanWithTrailingTshek}'>${tibetan}</a>`;
+          return `<a href='/define/${tibetanWithTrailingTshek}'>${tibetan}</a>`;
         else
           return tibetan;
       }
@@ -102,13 +102,38 @@ export default {
     return definition;
   },
 
-  prettify (definition) {
+  prettify (definition, dictKey) {
     definition = definition.replace(/\\+n/g,'<br />');
     definition = definition.replace(/\\/g,'');
     definition = definition.replace(/([a-zA-Z0-9\.]){/g,'$1 {');
     definition = definition.replace(/}([a-zA-Z0-9])/g,'} $1');
     definition = definition.replace(/:([^\/])/g,': $1');
     definition = substituteLinksWithATags(definition);
+
+    // Replace [sound: filename] markers with full audio player
+    definition = definition.replace(
+      /\[sound:\s*([^\]]+)\]/g,
+      (match, filename) => {
+        // Convert .wav to .mp3 (audio files are re-encoded to mp3)
+        const mp3Filename = filename.trim().replace(/\.wav$/i, '.mp3');
+        const audioPath = `/audio/${dictKey}/${mp3Filename}`;
+        // Use SVG for play/pause icons to avoid iOS emoji rendering
+        const playIcon = `<svg class="play-icon" viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>`;
+        const pauseIcon = `<svg class="pause-icon" viewBox="0 0 24 24" width="12" height="12" style="display:none"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
+        return `
+          <div class="audio-player" data-audio="${audioPath}">
+            <button class="audio-play-btn" title="Play audio">${playIcon}${pauseIcon}</button>
+            <div class="audio-progress-container">
+              <div class="audio-progress-bar">
+                <div class="audio-progress-fill"></div>
+                <div class="audio-progress-handle"></div>
+              </div>
+            </div>
+            <span class="audio-time">0:00 / 0:00</span>
+          </div>`;
+      }
+    );
+
     return definition;
   },
 

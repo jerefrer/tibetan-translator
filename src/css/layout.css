@@ -10,6 +10,20 @@ html {
   background: var(--contentBackground) !important;
 }
 
+/* iOS safe area - handled per-element, not on body */
+body {
+  background: var(--contentBackground);
+}
+
+/* Disable iOS text input behaviors globally */
+input, textarea {
+  -webkit-autocorrect: off;
+  -webkit-autocapitalize: off;
+  autocorrect: off;
+  autocapitalize: off;
+  spellcheck: false;
+}
+
 html.theme--dark {
   --contentBackground: var(--black-background);
   background: var(--black-background) !important;
@@ -26,25 +40,63 @@ html.theme--dark {
 
 .v-main {
   transition: none;
+  --v-layout-top: 0px !important;
+  padding-top: 0 !important;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Reset Vuetify's layout top calculation - we handle it with app-content margin */
+.v-main > .v-main__wrap {
+  --v-layout-top: 0px !important;
+  padding-top: 0 !important;
+}
+
+/* Tab content wrapper for text + help button */
+.tab-content {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
 .help-button {
   position: absolute;
-  top: 8px;
-  right: calc(50% - 44px * 2);
+  left: 100%;
+  margin-left: 4px;
   z-index: 99;
   opacity: 0.75;
   transition: opacity 0.2s;
 }
+
+@media (max-width: 600px) {
+  .help-button {
+    margin-left: -10px;
+  }
+
+  .help-button.v-btn--size-large {
+    --v-btn-size: 0.875rem;
+    --v-btn-height: 32px;
+    min-width: 32px;
+    padding: 0 8px;
+  }
+
+  /* Reset navigation drawer layout offset on mobile */
+  .v-main {
+    --v-layout-left: 0px !important;
+  }
+
+  /* Reset overlay layout offset on mobile */
+  .v-overlay-container .v-overlay {
+    --v-layout-left: 0px !important;
+  }
+}
 .help-button:hover {
   opacity: 1;
 }
-  .help-button .v-icon {
-    margin: 0;
-  }
-  .theme--light .help-button .v-icon {
-    color: var(--yellow) !important;
-  }
+.help-button .v-icon {
+  margin: 0;
+}
+.theme--light .help-button .v-icon {
+  color: var(--yellow) !important;
+}
 
 .v-system-bar {
   padding: 0;
@@ -60,58 +112,70 @@ html.theme--dark {
   z-index: 999;
 }
 
-#theme-button {
-  position: fixed;
-  top: 10px;
-  right: 15px;
-  z-index: 999;
-}
 
-.theme--light #theme-button {
-  color: var(--yellow) !important;
-}
-
-.v-tabs-bar {
+/* Vuetify 3: v-system-bar contains the tabs */
+/* Main navbar - extend into top safe area (notch) */
+.main-navbar {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000 !important;
+  height: calc(63px + env(safe-area-inset-top, 0px)) !important;
+  padding-top: env(safe-area-inset-top, 0px);
   background: var(--deep-red) !important;
 }
-  .v-tabs-bar .v-tab {
-    font-weight: bold;
-    color: #f8f8f8 !important;
-  }
-  .v-tabs-bar .v-tab--active {
-    color: var(--yellow) !important;
-  }
-  .v-tabs-bar .v-slide-group__next,
-  .v-tabs-bar .v-slide-group__prev {
-    display: none !important;
-  }
-  .theme--light .v-tabs-bar .v-tab.configure:not(.v-tab--active) {
-    color: #cccccc !important;
-  }
-  .v-tabs-slider-wrapper {
-    display: flex;
-    height: 4px !important;
-    bottom: 12px;
-    align-items: center;
-    justify-content: center;
-  }
-  .v-tabs-slider-wrapper .v-tabs-slider {
-    width: 21px;
-    border-radius: 4px;
-    background: var(--yellow);
-  }
-  
-.theme--dark .v-tabs-bar {
+/* Add margin to content to account for fixed navbar */
+.app-content {
+  margin-top: calc(63px + env(safe-area-inset-top, 0px)) !important;
+  padding: 0 !important;
+}
+.app-content > * {
+  margin-top: 0 !important;
+}
+.main-navbar.v-system-bar {
+  background: var(--deep-red) !important;
+}
+.v-system-bar .v-tabs {
+  background: transparent !important;
+}
+.v-system-bar .v-tab {
+  font-weight: bold;
+  color: #f8f8f8 !important;
+}
+.v-system-bar .v-tab--selected {
+  color: var(--yellow) !important;
+}
+.v-system-bar .v-slide-group__next,
+.v-system-bar .v-slide-group__prev {
+  display: none !important;
+}
+.theme--light .v-system-bar .v-tab.configure:not(.v-tab--selected) {
+  color: #cccccc !important;
+}
+/* Vuetify 3: tab indicator is .v-tab__slider */
+.v-system-bar .v-tab__slider {
+  height: 4px !important;
+  bottom: 12px;
+  width: 21px;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%);
+  border-radius: 4px;
+  background: var(--yellow) !important;
+}
+
+.theme--dark .main-navbar {
   background: black !important;
 }
-  .theme--dark .v-tabs-bar .v-tab:not(.v-tab--active) {
-    font-weight: normal;
-    color: white !important;
-  }
-  .theme--dark .v-tabs-bar .v-tab.configure:not(.v-tab--active) {
-    font-weight: bold;
-    color: #616161 !important;
-  }
+.theme--dark .main-navbar .v-tab:not(.v-tab--selected) {
+  font-weight: normal;
+  color: white !important;
+}
+.theme--dark .main-navbar .v-tab.configure:not(.v-tab--selected) {
+  font-weight: bold;
+  color: #616161 !important;
+}
 
 .v-main .v-main__wrap .container,
 .v-main .v-main__wrap .container .v-tabs-items {
@@ -121,15 +185,8 @@ html.theme--dark {
 .theme--light .v-overlay__scrim {
   background: var(--paper) !important;
 }
-.theme--light .v-overlay .v-progress-circular,
-.theme--light .v-overlay .v-progress-circular * {
+.theme--light .v-overlay .v-progress-circular {
   color: var(--deep-red) !important;
-}
-.dictionary-label {
-  background: #ffc107 !important;
-}
-.theme--light .dictionary-label {
-  color: white;
 }
 .theme--dark .dictionary-label {
   text-shadow: 0px 0px 4px gray;
@@ -212,4 +269,159 @@ abbr[data-title]:hover {
 
 .definition a[href]:hover {
   text-decoration: underline solid 1.7px !important;
+}
+
+/* Audio player in definitions */
+.audio-player {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 400px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
+  gap: 10px;
+  user-select: none;
+}
+
+.audio-play-btn {
+  background: var(--deep-red);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  padding: 0;
+  line-height: 1;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.audio-play-btn:hover {
+  opacity: 0.85;
+  transform: scale(1.05);
+}
+
+.audio-play-btn:active {
+  opacity: 0.7;
+  transform: scale(0.95);
+}
+
+.audio-progress-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.audio-progress-bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.audio-progress-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--deep-red);
+  border-radius: 3px;
+  width: 0%;
+  pointer-events: none;
+}
+
+.audio-progress-handle {
+  position: absolute;
+  top: 50%;
+  left: 0%;
+  width: 14px;
+  height: 14px;
+  background: var(--deep-red);
+  border: 2px solid white;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.1s;
+}
+
+.audio-progress-handle:hover {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+.audio-progress-handle:active {
+  cursor: grabbing;
+  transform: translate(-50%, -50%) scale(1.1);
+}
+
+.audio-time {
+  font-size: 11px;
+  color: #666;
+  white-space: nowrap;
+  min-width: 70px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dark theme */
+.theme--dark .audio-player {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.theme--dark .audio-play-btn {
+  background: var(--yellow);
+  color: var(--black-background);
+}
+
+.theme--dark .audio-progress-bar {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.theme--dark .audio-progress-fill {
+  background: var(--yellow);
+}
+
+.theme--dark .audio-progress-handle {
+  background: var(--yellow);
+  border-color: var(--black-background);
+}
+
+.theme--dark .audio-time {
+  color: #aaa;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .audio-player {
+    max-width: 100%;
+    padding: 6px 10px;
+    gap: 8px;
+  }
+
+  .audio-play-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    font-size: 10px;
+  }
+
+  .audio-time {
+    font-size: 10px;
+    min-width: 60px;
+  }
+
+  .audio-progress-handle {
+    width: 12px;
+    height: 12px;
+  }
 }

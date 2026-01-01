@@ -1,18 +1,19 @@
 <script>
 import $ from "jquery";
 import _ from "underscore";
+import { useTheme } from "vuetify";
 
 import db from "../services/sql-database";
 import Storage from "../services/storage";
 import EventHandlers from "../services/event-handlers";
 
 import { substituteLinksWithATags } from "../utils.js";
-import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup";
-import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton";
-import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton";
-import TranslatePageHelpDialogWithButton from "./TranslatePageHelpDialogWithButton";
+import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup.vue";
+import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton.vue";
+import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton.vue";
+import TranslatePageHelpDialogWithButton from "./TranslatePageHelpDialogWithButton.vue";
 
-import "../../vendor/stylesheets/materialdesignicons.css";
+import "@mdi/font/css/materialdesignicons.css";
 
 import "../css/layout.css";
 import "../css/tibetan.css";
@@ -34,24 +35,30 @@ export default {
     SearchPageHelpDialogWithButton,
     TranslatePageHelpDialogWithButton,
   },
+  inject: ["snackbar"],
+  setup() {
+    const theme = useTheme();
+    return { theme };
+  },
   watch: {
-    "$vuetify.theme.dark"(value) {
+    'theme.global.current.value.dark'(value) {
       this.updateHtmlThemeClass();
     },
   },
   data() {
     return {
       loading: true,
-      snackbar: false,
-      snackbarContent: undefined,
     };
   },
   computed: {
+    isDark() {
+      return this.theme.global.current.value.dark;
+    },
     tabs() {
       return [
         { id: "define", name: "<u>D</u>efine" },
         { id: "search", name: "<u>S</u>earch" },
-        { id: "translate", name: "<u>T</u>ranslate" },
+        // { id: "translate", name: "<u>T</u>ranslate" }, // Hidden for now - to be improved for mobile
         { id: "configure", name: "<u>C</u>onfigure" },
       ];
     },
@@ -63,25 +70,40 @@ export default {
     },
   },
   methods: {
-    toggleTheme() {
-      this.$vuetify.theme.dark = !this.$vuetify.theme.dark;
-      Storage.set("darkTheme", this.$vuetify.theme.dark);
+    initializeTheme() {
+      const preference = Storage.get('themePreference') || 'system';
+      let actualTheme;
+      if (preference === 'system') {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        actualTheme = prefersDark ? 'dark' : 'light';
+      } else {
+        actualTheme = preference;
+      }
+      this.theme.global.name.value = actualTheme;
     },
     updateHtmlThemeClass() {
       $("html")
         .removeClass("theme--dark")
         .removeClass("theme--light")
-        .addClass("theme--" + (this.$vuetify.theme.dark ? "dark" : "light"));
+        .addClass("theme--" + (this.isDark ? "dark" : "light"));
     },
     openSnackbarWith(text) {
-      this.snackbar = true;
-      this.snackbarContent = text;
+      var html = substituteLinksWithATags(text);
+      this.snackbar.open(html);
     },
     addListenerToOpenSnackbarOnAbbreviationClick() {
       $(document).on("click", ".definition abbr", (event) => {
         var html = $(event.currentTarget).attr("data-title");
         var html = substituteLinksWithATags(html);
-        this.openSnackbarWith(html);
+        this.snackbar.open(html);
+      });
+    },
+    addListenerForDefinitionLinks() {
+      var vm = this;
+      $(document).on("click", ".definition a[href^='/define/']", function(event) {
+        event.preventDefault();
+        var href = $(this).attr("href");
+        vm.$router.push(href);
       });
     },
     addListenersForKeyboardTabNavigation() {
@@ -95,16 +117,159 @@ export default {
               vm.$router.push("/define") && event.preventDefault();
             else if (event.key == "s")
               vm.$router.push("/search") && event.preventDefault();
-            else if (event.key == "t")
-              vm.$router.push("/translate") && event.preventDefault();
+            // else if (event.key == "t")
+            //   vm.$router.push("/translate") && event.preventDefault();
             else if (event.key == "c")
               vm.$router.push("/configure") && event.preventDefault();
           }
         },
       });
+    },
+    addListenerForAudioPlayback() {
+      let currentAudio = null;
+      let currentPlayer = null;
+
+      const formatTime = (seconds) => {
+        if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+      };
+
+      const updateProgress = (player, audio) => {
+        const fill = player.find(".audio-progress-fill");
+        const handle = player.find(".audio-progress-handle");
+        const timeDisplay = player.find(".audio-time");
+        const percent = (audio.currentTime / audio.duration) * 100 || 0;
+        fill.css("width", percent + "%");
+        handle.css("left", percent + "%");
+        timeDisplay.text(`${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`);
+      };
+
+      const showPlayIcon = (btn) => {
+        btn.find(".play-icon").show();
+        btn.find(".pause-icon").hide();
+      };
+
+      const showPauseIcon = (btn) => {
+        btn.find(".play-icon").hide();
+        btn.find(".pause-icon").show();
+      };
+
+      const stopCurrentAudio = () => {
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+          if (currentPlayer) {
+            showPlayIcon(currentPlayer.find(".audio-play-btn"));
+            currentPlayer.find(".audio-progress-fill").css("width", "0%");
+            currentPlayer.find(".audio-progress-handle").css("left", "0%");
+          }
+          currentAudio = null;
+          currentPlayer = null;
+        }
+      };
+
+      // Play/pause button click
+      $(document).on("click", ".audio-play-btn", function(event) {
+        const btn = $(this);
+        const player = btn.closest(".audio-player");
+        const audioPath = player.attr("data-audio");
+
+        // If clicking on a different player, stop the current one
+        if (currentPlayer && currentPlayer[0] !== player[0]) {
+          stopCurrentAudio();
+        }
+
+        // If no audio or different audio, create new one
+        if (!currentAudio || currentPlayer[0] !== player[0]) {
+          currentAudio = new Audio(audioPath);
+          currentPlayer = player;
+
+          currentAudio.addEventListener("timeupdate", () => {
+            updateProgress(player, currentAudio);
+          });
+
+          currentAudio.addEventListener("loadedmetadata", () => {
+            updateProgress(player, currentAudio);
+          });
+
+          currentAudio.addEventListener("ended", () => {
+            showPlayIcon(btn);
+            currentAudio.currentTime = 0;
+            updateProgress(player, currentAudio);
+          });
+
+          currentAudio.play().catch(err => {
+            console.error("Audio playback failed:", err);
+          });
+          showPauseIcon(btn);
+        } else {
+          // Toggle play/pause on same audio
+          if (currentAudio.paused) {
+            currentAudio.play();
+            showPauseIcon(btn);
+          } else {
+            currentAudio.pause();
+            showPlayIcon(btn);
+          }
+        }
+      });
+
+      // Progress bar click/drag for seeking
+      $(document).on("mousedown", ".audio-progress-bar", function(event) {
+        const player = $(this).closest(".audio-player");
+        if (!currentAudio || currentPlayer[0] !== player[0]) return;
+
+        const progressBar = $(this);
+        const seek = (e) => {
+          const rect = progressBar[0].getBoundingClientRect();
+          const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+          currentAudio.currentTime = percent * currentAudio.duration;
+          updateProgress(player, currentAudio);
+        };
+
+        seek(event);
+
+        const onMouseMove = (e) => seek(e);
+        const onMouseUp = () => {
+          $(document).off("mousemove", onMouseMove);
+          $(document).off("mouseup", onMouseUp);
+        };
+
+        $(document).on("mousemove", onMouseMove);
+        $(document).on("mouseup", onMouseUp);
+      });
+
+      // Touch support for mobile
+      $(document).on("touchstart", ".audio-progress-bar", function(event) {
+        const player = $(this).closest(".audio-player");
+        if (!currentAudio || currentPlayer[0] !== player[0]) return;
+
+        const progressBar = $(this);
+        const seek = (e) => {
+          const touch = e.touches ? e.touches[0] : e;
+          const rect = progressBar[0].getBoundingClientRect();
+          const percent = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+          currentAudio.currentTime = percent * currentAudio.duration;
+          updateProgress(player, currentAudio);
+        };
+
+        seek(event.originalEvent);
+
+        const onTouchMove = (e) => seek(e.originalEvent);
+        const onTouchEnd = () => {
+          $(document).off("touchmove", onTouchMove);
+          $(document).off("touchend", onTouchEnd);
+        };
+
+        $(document).on("touchmove", onTouchMove);
+        $(document).on("touchend", onTouchEnd);
+      });
     }
   },
   async created() {
+    this.initializeTheme();
     this.updateHtmlThemeClass();
     window.SqlDatabase = db;
     await db.init();
@@ -112,9 +277,11 @@ export default {
   },
   mounted() {
     this.addListenerToOpenSnackbarOnAbbreviationClick();
+    this.addListenerForDefinitionLinks();
     this.addListenersForKeyboardTabNavigation();
+    this.addListenerForAudioPlayback();
   },
-  destroyed() {
+  unmounted() {
     EventHandlers.remove("tabs-shortcuts");
   },
 };
@@ -122,7 +289,12 @@ export default {
 
 <template>
   <v-app>
-    <v-overlay opacity="1" :value="loading">
+    <v-overlay
+      :model-value="loading"
+      persistent
+      class="align-center justify-center"
+      scrim="black"
+    >
       <div class="d-flex flex-column align-center">
         <v-img
           src="/img/logo.png"
@@ -132,8 +304,8 @@ export default {
         />
         <v-progress-circular
           indeterminate
-          width="10"
-          size="192"
+          :width="10"
+          :size="192"
           style="position: absolute; top: -48px; filter: brightness(0.25)"
         />
       </div>
@@ -141,38 +313,31 @@ export default {
 
     <selected-tibetan-entries-popup />
 
-    <v-snackbar v-model="snackbar">
-      <div v-html="snackbarContent" />
-      <template v-slot:action="{ attrs }">
-        <v-btn text v-bind="attrs" @click="snackbar = false"> Close </v-btn>
+    <v-snackbar v-model="snackbar.show">
+      <div v-html="snackbar.content" />
+      <template v-slot:actions>
+        <v-btn variant="text" @click="snackbar.close()"> Close </v-btn>
       </template>
     </v-snackbar>
 
     <v-main v-if="!loading">
-      <v-btn
-        icon
-        large
-        color="grey darken-2"
-        id="theme-button"
-        @click="toggleTheme"
-      >
-        <v-icon>mdi-theme-light-dark</v-icon>
-      </v-btn>
-
-      <v-system-bar app height="63">
-        <v-tabs grow height="63" :value="tabIndex">
+      <v-system-bar height="63" class="main-navbar">
+        <v-tabs grow :model-value="tabIndex" height="63">
           <v-tab
             v-for="tab in tabs"
             :key="tab.id"
             :to="'/' + tab.id"
+            :value="tabs.indexOf(tab)"
             :class="{ configure: tab.id == 'configure' }"
           >
-            <DefinePageHelpDialogWithButton v-if="tab.id == 'define'" />
-            <SearchPageHelpDialogWithButton v-if="tab.id == 'search'" />
-            <TranslatePageHelpDialogWithButton v-if="tab.id == 'translate'" />
+            <div class="tab-content">
+              <span v-html="tab.name"></span>
+              <DefinePageHelpDialogWithButton v-if="tab.id == 'define'" />
+              <SearchPageHelpDialogWithButton v-if="tab.id == 'search'" />
+              <TranslatePageHelpDialogWithButton v-if="tab.id == 'translate'" />
+            </div>
 
             <div>
-              <div v-html="tab.name"></div>
               <v-slide-y-transition appear>
                 <div
                   v-if="tab.id == 'translate' && currentTabId == 'translate'"
@@ -186,16 +351,16 @@ export default {
                   "
                 >
                   <v-chip
-                    label
-                    x-small
+                    variant="flat"
+                    size="x-small"
                     style="
                       text-transform: lowercase;
                       background: var(--yellow) !important;
-                      border-top-left-radius: 0 !important;
-                      border-top-right-radius: 0 !important;
+                      color: var(--deep-red) !important;
+                      border-radius: 0 0 2px 2px !important;
                     "
                   >
-                    Experimental
+                    experimental
                   </v-chip>
                 </div>
               </v-slide-y-transition>
@@ -204,10 +369,8 @@ export default {
         </v-tabs>
       </v-system-bar>
 
-      <v-container fluid class="pa-0">
-        <v-tabs-items :value="currentTabId">
-          <router-view :key="currentTabId" />
-        </v-tabs-items>
+      <v-container fluid class="pa-0 app-content">
+        <router-view :key="currentTabId" />
       </v-container>
     </v-main>
   </v-app>

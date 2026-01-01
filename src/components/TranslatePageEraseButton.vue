@@ -19,11 +19,12 @@
     :max-width="480"
   >
 
-    <template v-slot:activator="{ on, attrs }">
+    <template v-slot:activator="{ props }">
       <v-btn
         icon
-        large
-        v-bind="Object.assign({}, attrs, $attrs)"
+        variant="text"
+        size="large"
+        v-bind="{ ...props, ...$attrs }"
         id="delete-all-lines-button"
         title="Start afresh"
         @click="doConfirm ? dialog = true : $emit('confirm')"
@@ -43,7 +44,7 @@
         </v-toolbar-title>
       </v-toolbar>
 
-      <v-card-text class="pt-6 body-1">
+      <v-card-text class="pt-6 text-body-1">
         Your current translation hasn't been saved. If you proceed you
         might lose your work.
       </v-card-text>
@@ -53,7 +54,7 @@
         <v-spacer></v-spacer>
 
         <v-btn
-          color="grey darken-1"
+          color="grey-darken-1"
           @click="dialog = false"
         >
           Cancel
