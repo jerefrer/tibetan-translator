@@ -1,6 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.tibetan_translator" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <!-- Status bar color matches the app navbar -->
+        <item name="android:statusBarColor">#A30000</item>
+        <item name="android:navigationBarColor">#A30000</item>
+        <!-- Make status bar icons light (for dark status bar background) -->
+        <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

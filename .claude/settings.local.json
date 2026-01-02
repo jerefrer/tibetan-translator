@@ -74,7 +74,10 @@
       "WebFetch(domain:docs.rs)",
       "Bash(adb shell am:*)",
       "Bash(adb shell am start:*)",
-      "Bash(adb uninstall:*)"
+      "Bash(adb uninstall:*)",
+      "mcp__serena__get_current_config",
+      "Bash(head:*)",
+      "Bash(SHELL=/bin/bash /bin/bash -c \"cd /Users/jeremy/Documents/Programming/tibetan-translator/src-tauri && cargo check:*)"
     ]
   }
 }

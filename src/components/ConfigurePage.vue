@@ -4,6 +4,26 @@ import { useTheme } from 'vuetify';
 
 import Storage from '../services/storage';
 import DictionariesDetails from '../services/dictionaries-details';
+import {
+  getScannedDictionaries,
+  isScanDownloaded,
+  downloadScan,
+  deleteScan,
+  isAppMode
+} from '../services/scan-service';
+
+// Tauri event listener (lazy loaded)
+let listen = null;
+async function getTauriListen() {
+  if (listen) return listen;
+  try {
+    const { listen: l } = await import('@tauri-apps/api/event');
+    listen = l;
+    return listen;
+  } catch {
+    return null;
+  }
+}
 
 export default {
   components: {
@@ -20,6 +40,10 @@ export default {
         return a.position - b.position;
       }),
       themePreference: Storage.get('themePreference') || 'system',
+      scannedDictionaries: [],
+      scanDownloadStatus: {},
+      isAppMode: false,
+      progressUnlisten: null,
     };
   },
   watch: {
@@ -77,14 +101,99 @@ export default {
       const aboutHtml = details.about.split('|').join('<br>');
       this.snackbar.open(`<strong>${details.label || dictionary.name}</strong><br><br>${aboutHtml}`);
     },
+    async loadScannedDictionaries() {
+      this.scannedDictionaries = getScannedDictionaries();
+      // Check download status for each
+      for (const dict of this.scannedDictionaries) {
+        this.scanDownloadStatus[dict.scanId] = {
+          downloaded: await isScanDownloaded(dict.scanId),
+          downloading: false,
+          progress: 0,
+          error: null
+        };
+      }
+    },
+    async setupProgressListener() {
+      const listenFn = await getTauriListen();
+      if (!listenFn) return;
+
+      this.progressUnlisten = await listenFn('scan-download-progress', (event) => {
+        const { scan_id, percent } = event.payload;
+        if (this.scanDownloadStatus[scan_id]) {
+          this.scanDownloadStatus[scan_id] = {
+            ...this.scanDownloadStatus[scan_id],
+            progress: Math.round(percent)
+          };
+        }
+      });
+    },
+    async handleDownloadScan(scanId) {
+      this.scanDownloadStatus[scanId] = {
+        ...this.scanDownloadStatus[scanId],
+        downloading: true,
+        progress: 0,
+        error: null
+      };
+
+      try {
+        await downloadScan(scanId);
+        this.scanDownloadStatus[scanId] = {
+          downloaded: true,
+          downloading: false,
+          progress: 100,
+          error: null
+        };
+        this.snackbar.open('Download complete!');
+      } catch (e) {
+        this.scanDownloadStatus[scanId] = {
+          ...this.scanDownloadStatus[scanId],
+          downloading: false,
+          progress: 0,
+          error: e.message || 'Download failed'
+        };
+        this.snackbar.open(`Download failed: ${e.message || 'Unknown error'}`);
+      }
+    },
+    async handleDeleteScan(scanId) {
+      try {
+        await deleteScan(scanId);
+        this.scanDownloadStatus[scanId] = {
+          downloaded: false,
+          downloading: false,
+          progress: 0,
+          error: null
+        };
+        this.snackbar.open('Deleted successfully');
+      } catch (e) {
+        this.snackbar.open(`Delete failed: ${e.message || 'Unknown error'}`);
+      }
+    },
+    getEstimatedSize(pageCount) {
+      // Rough estimate: ~200KB per page on average
+      const sizeKB = pageCount * 200;
+      if (sizeKB > 1024) {
+        return `~${Math.round(sizeKB / 1024)} MB`;
+      }
+      return `~${sizeKB} KB`;
+    }
   },
-  created() {
+  async created() {
     // Listen for system theme changes
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (this.themePreference === 'system') {
         this.applyTheme('system');
       }
     });
+    // Check if running in app mode and load scanned dictionaries
+    this.isAppMode = await isAppMode();
+    await this.loadScannedDictionaries();
+    await this.setupProgressListener();
+  },
+  unmounted() {
+    // Clean up event listener
+    if (this.progressUnlisten) {
+      this.progressUnlisten();
+    }
   },
 };
 </script>
@@ -103,6 +212,90 @@ export default {
         <v-radio label="Light" value="light" />
         <v-radio label="Dark" value="dark" />
       </v-radio-group>
+    </v-card>
+
+    <!-- Scanned Dictionaries Section -->
+    <v-card v-if="scannedDictionaries.length > 0" class="scanned-dictionaries mb-4">
+      <v-toolbar>
+        <v-icon size="x-large" color="grey">mdi-book-open-page-variant</v-icon>
+        <v-toolbar-title>
+          Scanned Dictionaries
+          <div class="text-caption text-grey">
+            Download for offline access
+          </div>
+        </v-toolbar-title>
+      </v-toolbar>
+
+      <v-list>
+        <v-list-item
+          v-for="dict in scannedDictionaries"
+          :key="dict.scanId"
+          class="scanned-dict-item"
+        >
+          <template v-slot:prepend>
+            <v-icon color="grey">mdi-book-open-variant</v-icon>
+          </template>
+
+          <v-list-item-title>{{ dict.label }}</v-list-item-title>
+          <v-list-item-subtitle>
+            {{ dict.pageCount }} pages ({{ getEstimatedSize(dict.pageCount) }})
+          </v-list-item-subtitle>
+
+          <template v-slot:append>
+            <!-- Download in progress - circular progress like iOS App Store -->
+            <div
+              v-if="scanDownloadStatus[dict.scanId]?.downloading"
+              class="download-progress-container"
+            >
+              <v-progress-circular
+                :model-value="scanDownloadStatus[dict.scanId]?.progress || 0"
+                :size="36"
+                :width="3"
+                color="primary"
+                bg-color="grey-lighten-2"
+              />
+              <span class="download-progress-text">
+                {{ scanDownloadStatus[dict.scanId]?.progress || 0 }}%
+              </span>
+            </div>
+
+            <!-- Downloaded - show delete button -->
+            <v-btn
+              v-else-if="scanDownloadStatus[dict.scanId]?.downloaded"
+              icon
+              variant="text"
+              size="small"
+              color="error"
+              @click="handleDeleteScan(dict.scanId)"
+            >
+              <v-icon>mdi-delete</v-icon>
+              <v-tooltip activator="parent" location="top">Delete download</v-tooltip>
+            </v-btn>
+
+            <!-- Not downloaded - show download button (only in app mode) -->
+            <v-btn
+              v-else-if="isAppMode"
+              icon
+              variant="text"
+              size="small"
+              color="primary"
+              @click="handleDownloadScan(dict.scanId)"
+            >
+              <v-icon>mdi-download</v-icon>
+              <v-tooltip activator="parent" location="top">Download for offline</v-tooltip>
+            </v-btn>
+
+            <!-- Web mode - show info -->
+            <v-chip v-else size="small" color="grey" variant="outlined">
+              Online only
+            </v-chip>
+          </template>
+        </v-list-item>
+      </v-list>
+
+      <v-card-text v-if="!isAppMode" class="text-caption text-grey">
+        Download for offline is only available in the desktop/mobile app.
+      </v-card-text>
     </v-card>
 
     <v-card class="dictionaries-container">
@@ -233,6 +426,38 @@ export default {
 
       .switch .v-selection-control
         min-height: 32px
+
+  .scanned-dictionaries
+    width: 100%
+
+    .v-toolbar .v-icon
+      margin: 0 10px 0 10px
+
+    .v-toolbar__title, .v-toolbar__title .text-caption
+      line-height: 1em
+
+    .v-toolbar__title .text-caption
+      margin-top: 5px
+
+    .scanned-dict-item
+      border-bottom: thin solid rgba(0, 0, 0, 0.08)
+
+      &:last-child
+        border-bottom: none
+
+    .download-progress-container
+      position: relative
+      display: flex
+      align-items: center
+      justify-content: center
+      width: 44px
+      height: 44px
+
+    .download-progress-text
+      position: absolute
+      font-size: 9px
+      font-weight: 600
+      color: var(--v-theme-primary)
 
   .database-reinitialization .v-toolbar .v-icon
     margin: 0 9px 0 -6px

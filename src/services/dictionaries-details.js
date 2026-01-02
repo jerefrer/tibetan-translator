@@ -361,7 +361,6 @@ export default {
     "label": "Jäschke (scanned dictionary)",
     "about": "Heinrich August Jäschke|A Tibetan-English dictionary with special reference to the prevailing dialects; to which is added an English-Tibetan vocabulary (1881)||https://archive.org/details/tibetanenglishdi00jsuoft/||By opening a dictionary entry, the program will try to bring you to the scanned page which most likely will contain that term. The dictionary application does not have a complete list of all terms  in the scanned document so you have to check yourself if the term is present or not. Also, since the sort order in the printed dictionary is not always perfect, you sometimes have to jump a few pages back or ahead to find the desired term. Nevertheless this hopefully helps a lot with making the data of this dictionary available.||Huge thanks go to Octave Boczkowski who came up with this wonderful idea for integrating scanned dictionaries, provided the code for determining the most likely page number for a term, and went through the work of mediculously indexing the first and last head-words on each page in the dictionaries by Jäschke and Chandra Das.|Furthermore, sincere thanks go to mKhan po sKal bzang for indexing all the headwords in Jäschke, thereby further improving the accuracy of the integration",
     "public": "true",
-    "webOnly": "true",
     "scanId": "jaeschke",
     "exactPageNumbersAvailable": true,
     "scanInfo": {
@@ -384,7 +383,6 @@ export default {
     "label": "Chandra Das (scanned dictionary)",
     "about": "Sarat Chandra Das|A Tibetan English Dictionary (1902)||https://archive.org/details/tibetanenglishdi00dassuoft/||By opening an dictionary entry, the program will try to bring you to the scanned page which most likely will contain that term. ||Huge thanks go to Octave Boczkowski who came up with this wonderful idea for integrating scanned dictionaries, provided the code for determining the most likely page number for a term, and went through the work of mediculously indexing the first and last head-words in the dictionaries by Jäschke and Chandra Das.",
     "public": "true",
-    "webOnly": "true",
     "scanId": "das",
     "exactPageNumbersAvailable": true,
     "scanInfo": {
@@ -769,7 +767,6 @@ export default {
     "label": "Mahāvyutpatti Critical Edition (scanned dictionary)",
     "about": "Yumiko Ishihama & Yoichi Fukuda, 'A New Critical Edition of the Mahāvyutpatti:|Sanskrit-Tibetan-Mongolian Dictionary of Buddhist Terminology (新訂翻訳名義大集 Shintei hon'yaku myogi taishu)'.|Studia Tibetica No. 16. Materials for Tibetan-Mongolian Dictionaries Vol. 1.|Tokyo, Japan: The Toyo Bunko Foundation (東洋文庫), 1989. |Scan available at archive.org: https://archive.org/details/ishihama-yumiko-fukuda-yoichi-1989.-a-new-critical-edition-of-the-mahavyutpatti-/.",
     "public": "true",
-    "webOnly": "true",
     "scanId": "mvp1989",
     "exactPageNumbersAvailable": true,
     "scanInfo": {
@@ -793,7 +790,6 @@ export default {
     "label": "sGra sbyor bam po gnyis pa (Madhyavyutpatti, scanned dictionary)",
     "about": "Mie Ishikawa, A Critical Edition of the sGra sbyor bam po gnyis pa:|An old and basic commentary on the Mahāvyutpatti|Studia Tibetica no. 18, The Toyo Bunko, 1990.",
     "public": "true",
-    "webOnly": "true",
     "scanId": "mvp-comm-1990",
     "exactPageNumbersAvailable": true,
     "scanInfo": {

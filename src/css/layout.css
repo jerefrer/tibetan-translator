@@ -130,6 +130,15 @@ html.theme--dark {
   margin-top: calc(63px + env(safe-area-inset-top, 0px)) !important;
   padding: 0 !important;
 }
+
+/* Android specific - status bar doesn't report via env() */
+.is-android .main-navbar {
+  height: calc(63px + 24px) !important;
+  padding-top: 24px;
+}
+.is-android .app-content {
+  margin-top: calc(63px + 24px) !important;
+}
 .app-content > * {
   margin-top: 0 !important;
 }
@@ -265,6 +274,40 @@ abbr[data-title] {
 }
 abbr[data-title]:hover {
   text-decoration-style: solid;
+}
+
+/* Snackbar link colors - readable on dark snackbar background */
+.v-snackbar a,
+.v-snackbar a:link,
+.v-snackbar a:visited {
+  color: #4DD0E1; /* Cyan 300 - readable on dark background */
+  text-decoration: underline;
+}
+.v-snackbar a:hover,
+.v-snackbar a:active {
+  color: #80DEEA; /* Cyan 200 - brighter on hover */
+}
+
+/* Light theme snackbar - if background is lighter, use darker link color */
+.theme--light .v-snackbar a,
+.theme--light .v-snackbar a:link,
+.theme--light .v-snackbar a:visited {
+  color: #00ACC1; /* Cyan 600 - good contrast */
+}
+.theme--light .v-snackbar a:hover,
+.theme--light .v-snackbar a:active {
+  color: #00BCD4; /* Cyan 500 */
+}
+
+/* Dark theme snackbar */
+.theme--dark .v-snackbar a,
+.theme--dark .v-snackbar a:link,
+.theme--dark .v-snackbar a:visited {
+  color: #4DD0E1; /* Cyan 300 */
+}
+.theme--dark .v-snackbar a:hover,
+.theme--dark .v-snackbar a:active {
+  color: #80DEEA; /* Cyan 200 */
 }
 
 .definition a[href]:hover {

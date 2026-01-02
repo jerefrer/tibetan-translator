@@ -4,6 +4,11 @@ import router from "./router";
 
 import App from "./components/App.vue";
 
+// Add platform detection class to document for CSS targeting
+if (/android/i.test(navigator.userAgent)) {
+  document.documentElement.classList.add('is-android');
+}
+
 // Create reactive snackbar state for provide/inject pattern
 const snackbar = reactive({
   show: false,
