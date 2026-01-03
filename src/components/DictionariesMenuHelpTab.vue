@@ -5,10 +5,10 @@
         return [
           {
             keys: [
-              { key: 'D', ctrl: true },
-              { key: 'D', meta: true }
+              { key: 'B', ctrl: true },
+              { key: 'B', meta: true }
             ],
-            text: 'Opens the dictionary filter menu'
+            text: 'Opens the dictionary filter menu (B for Browse)'
           },
           { key: 'Esc',                              text: 'Closes the dictionary filter menu' },
           { key: 'mdi-arrow-up',                     text: 'Highlights the previous dictionary the list' },
@@ -24,24 +24,24 @@
           },
           {
             keys: [
-              { key: 'E', shift: true },
-              { key: 'E', ctrl: true }
+              { key: 'A', shift: true },
+              { key: 'A', ctrl: true }
             ],
-            text: 'Enables all dictionaries <u>currently listed</u>'
+            text: 'Enables <u>a</u>ll dictionaries currently listed'
           },
           {
             keys: [
-              { key: 'D', shift: true },
-              { key: 'D', ctrl: true }
+              { key: 'N', shift: true },
+              { key: 'N', ctrl: true }
             ],
-            text: 'Disables all dictionaries <u>currently listed</u>'
+            text: 'Enables <u>n</u>one (disables all dictionaries currently listed)'
           },
           {
             keys: [
               { key: 'R', shift: true },
               { key: 'R', ctrl: true }
             ],
-            text: 'Restores the dictionaries as defined on the Configure page'
+            text: '<u>R</u>estores the dictionaries as defined on the Configure page'
           },
         ].map((shortcut) => {
           if (shortcut.key)
@@ -128,7 +128,7 @@
         <div class="keyboard-square">Ctrl</div>
         <div class="text-caption text-grey-darken-1 mx-1">or</div>
         <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
-        <div class="keyboard-square ml-1 mr-2">D</div>
+        <div class="keyboard-square ml-1 mr-2">B</div>
         <div>
           to open the menu, then type <code>hop</code> and then
           press

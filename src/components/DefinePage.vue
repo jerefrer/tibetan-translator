@@ -201,12 +201,14 @@ export default {
     <div class="search-bar">
       <TibetanTextField
         density="compact"
+        variant="plain"
         autofocus
         clearable
         hide-details
         height="56"
         ref="input"
         v-model="searchTerm"
+        placeholder="Type in a Tibetan term"
         :menu-props="{ maxHeight: '80vh' }"
         @click:clear="clear"
         @keydown.up="selectPreviousTerm"
@@ -282,20 +284,25 @@ export default {
     flex-shrink 0
     height 63px
     padding 0 15px
-    background #f0f0f0
+    background #fffcf4
     display flex
     align-items center
+    border-bottom 2px solid rgba(0, 0, 0, 0.1)
 
   .define-content-area
     flex 1
     display flex
     overflow hidden
+    min-height 0  // Important for nested flex scroll
 
   .terms-drawer
     width 400px
     flex-shrink 0
-    background #f0f0f0
+    background var(--paper, #FAF3E0)
     overflow-y auto
+    border-right 2px solid rgba(0, 0, 0, 0.1)
+    display flex
+    flex-direction column
 
     .results-and-pagination-and-dictionaries
       position sticky
@@ -303,14 +310,17 @@ export default {
       z-index 1
       padding 7px 15px
       height 48px
-      background #f0f0f0
+      background var(--paper, #FAF3E0)
       border-bottom 2px solid rgba(0, 0, 0, 0.08)
+      flex-shrink 0
 
     .v-table,
     .v-table *
       border-radius 0 !important
 
     .v-table.terms-table
+      flex 1
+      overflow-y auto
       td:last-child
         border-bottom thin solid rgba(0, 0, 0, 0.08)
 
@@ -326,6 +336,8 @@ export default {
     overflow-y auto
     padding 0
     position relative
+    background white
+    min-height calc(100vh - 126px)
 
     .loading-state,
     .empty-state
@@ -336,35 +348,78 @@ export default {
       height 200px
       text-align center
 
-  .v-input
-    .v-input__control
-      height 63px
-    .v-field
-      padding 0
-      height 63px
-    .v-field__input
-      padding 0
-      height 63px !important
-      min-height 63px !important
-      font-size 26px !important
-      font-family "DDC_Uchen" !important
-    .v-field__append-inner
-      height 100%
-      align-items center
-      padding 0
-      .v-icon
-        font-size 28px
-    .v-field__outline
-      display none
-    .v-field__overlay
-      display none
+// Input field styles - using flat CSS for proper specificity
+.define-page .v-input
+  background transparent !important
+
+.define-page .v-input .v-input__control
+  height 63px
+
+.define-page .v-input .v-field
+  padding 0
+  height 63px
+  background transparent !important
+  --v-field-padding-start 0
+  --v-field-padding-end 0
+
+.define-page .v-input .v-field__field
+  height 63px
+
+.define-page .v-input .v-field__input
+  padding 0 12px
+  height 63px !important
+  min-height 63px !important
+  font-size 26px !important
+  font-family "DDC_Uchen" !important
+
+.define-page .v-input .v-field__input::placeholder
+  font-family "Segoe UI", "Roboto", sans-serif !important
+  font-size 18px !important
+  opacity 0.5
+  color #666
+
+.define-page .v-input .v-field__append-inner,
+.define-page .v-input .v-field__clearable
+  height 63px
+  display flex
+  align-items center
+  padding 0 8px
+
+.define-page .v-input .v-field__append-inner .v-icon,
+.define-page .v-input .v-field__clearable .v-icon
+  font-size 28px
+
+.define-page .v-input .v-field__outline
+  display none
+
+.define-page .v-input .v-field__overlay
+  display none
+
+// Remove any input borders to avoid conflict with container border
+.define-page .v-input,
+.define-page .v-input .v-field,
+.define-page .v-input .v-field__field,
+.define-page .v-input .v-field__input
+  border none !important
+  border-bottom none !important
+  box-shadow none !important
+
+// Dark theme input
+.v-theme--dark .define-page .v-input
+  background #1e1e1e !important
+
+// Dark theme placeholder
+.v-theme--dark .define-page .v-input .v-field__input::placeholder
+  color #aaa
 
 // Dark theme
 .v-theme--dark .define-page
   .search-bar
     background #1e1e1e
+    border-bottom-color rgba(255, 255, 255, 0.12)
   .terms-drawer
     background #1e1e1e
+    border-right-color rgba(255, 255, 255, 0.12)
     .results-and-pagination-and-dictionaries
       background #1e1e1e
       border-bottom-color rgba(255, 255, 255, 0.12)
@@ -372,6 +427,8 @@ export default {
       border-bottom-color rgba(255, 255, 255, 0.12)
     .v-table td.link:hover
       background #444
+  .definitions-container
+    background #252525
 
 // Light theme hover
 .v-theme--light .define-page

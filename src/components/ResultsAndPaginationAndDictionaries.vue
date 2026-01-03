@@ -106,7 +106,7 @@ export default {
       id: "dictionary-menu",
       type: "keydown",
       callback(event) {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() == "d" && !vm.menuIsOpened()) vm.openMenu();
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() == "b" && !vm.menuIsOpened()) vm.openMenu();
         else if (vm.menuIsOpened()) {
           var highlightedDictionary = $(
             ".dictionaries-menu .v-list-item--highlighted"
@@ -126,13 +126,13 @@ export default {
               highlightedDictionary.scrollIntoViewIfNeeded();
           } else if (event.ctrlKey || event.shiftKey) {
             if (event.key == "Enter") vm.enableOnlyMatchedDictionaries();
-            else if (event.key.toLowerCase() == "e")
+            else if (event.key.toLowerCase() == "a")
               vm.enableAllMatchedDictionaries();
-            else if (event.key.toLowerCase() == "d")
+            else if (event.key.toLowerCase() == "n")
               vm.disableAllMatchedDictionaries();
             else if (event.key.toLowerCase() == "r")
               vm.enableOnlyPreferedDictionaries();
-            if (["enter", "e", "d", "r"].includes(event.key.toLowerCase()))
+            if (["enter", "a", "n", "r"].includes(event.key.toLowerCase()))
               event.preventDefault();
           } else if (event.key == "Enter" && !highlightedDictionary)
             vm.enableOnlyMatchedDictionaries();
@@ -211,6 +211,7 @@ export default {
       >
         <template v-slot:activator="{ props }">
           <v-btn
+            v-if="totalNumberOfEntries > 0"
             rounded
             height="32"
             class="ml-2 dictionaries-menu-button"
@@ -220,99 +221,80 @@ export default {
             key="filter-menu"
             v-bind="props"
           >
-            <v-icon class="ma-0" style="font-size: 21px">
+            <v-icon class="ma-0" style="font-size: 18px">
               mdi-book-multiple
             </v-icon>
-            <span>{{ enabledDictionaries.length }}</span>
-            <span class="text-caption">/{{ dictionaries.length }}</span>
+            <span class="ml-1">{{ enabledDictionaries.length }}</span>
+            <span class="dict-total">/{{ dictionaries.length }}</span>
           </v-btn>
         </template>
 
-        <v-card class="dictionaries-menu">
-          <v-toolbar>
+        <v-card class="dictionaries-menu" elevation="8">
+          <div class="dictionaries-menu-header">
             <v-text-field
               autofocus
               clearable
               hide-details
+              variant="outlined"
+              density="compact"
               v-model="term"
-              append-inner-icon="mdi-magnify"
+              placeholder="Filter dictionaries..."
+              prepend-inner-icon="mdi-magnify"
+              class="search-field"
             />
 
-            <v-btn
-              class="ml-4"
-              color="primary"
-              @click="enableAllMatchedDictionaries"
-            >
-              <u>E</u>nable all
-              <span class="ml-1 text-caption text-secondary">
-                ({{ pluralize("dict", fuzzyMatchedDictionaries.length, true) }},
-                {{
-                  pluralize(
-                    "result",
-                    numberOfEntriesForAllMatchedDictionaries,
-                    true
-                  )
-                }})
-              </span>
-            </v-btn>
+            <div class="action-buttons">
+              <v-btn
+                variant="tonal"
+                color="success"
+                @click="enableAllMatchedDictionaries"
+              >
+                <v-icon start>mdi-check-all</v-icon>
+                Enable &nbsp;<u>a</u>ll
+              </v-btn>
 
-            <v-btn
-              class="ml-2"
-              color="primary-darken-2"
-              @click="disableAllMatchedDictionaries"
-            >
-              <u>D</u>isable all
-            </v-btn>
+              <v-btn
+                variant="tonal"
+                color="error"
+                @click="disableAllMatchedDictionaries"
+              >
+                <v-icon start>mdi-close-circle-multiple</v-icon>
+                Enable &nbsp;<u>n</u>one
+              </v-btn>
 
-            <v-btn
-              class="ml-2"
-              color="orange"
-              @click="enableOnlyPreferedDictionaries"
-            >
-              <u>R</u>estore preferences
-              <span class="ml-1 text-caption text-secondary">
-                ({{ pluralize("dict", preferedDictionaries.length, true) }},
-                {{
-                  pluralize(
-                    "result",
-                    numberOfEntriesForPreferedDictionaries,
-                    true
-                  )
-                }})
-              </span>
-            </v-btn>
-          </v-toolbar>
+              <v-btn
+                variant="tonal"
+                color="warning"
+                @click="enableOnlyPreferedDictionaries"
+              >
+                <v-icon start>mdi-restore</v-icon>
+                <u>R</u>estore preferences
+              </v-btn>
+            </div>
+          </div>
 
-          <v-card-text>
-            <v-list v-if="fuzzyMatchedDictionaries.length" density="compact">
+          <v-divider />
+
+          <v-card-text class="dictionaries-list-container">
+            <v-list v-if="fuzzyMatchedDictionaries.length" density="compact" class="dictionaries-list">
               <v-list-item
                 v-for="(dictionary, index) in fuzzyMatchedDictionaries"
                 :key="index"
                 :data-dictionary-index="index"
-                @click="selectSingleDictionary(dictionary)"
+                @click="dictionary.enabled = !dictionary.enabled"
               >
                 <v-list-item-title>
-                  <span class="text-grey-darken-1"
-                    >{{ index + 1 }}.
-                  </span>
                   <span
-                    :class="{
-                      'text-grey-darken-1':
-                        !dictionary.enabledInPreferences,
-                    }"
+                    :class="{ 'text-grey': !dictionary.enabled }"
                     v-html="fuzzyDisplayFor(dictionary)"
                   />
                 </v-list-item-title>
                 <template v-slot:append>
-                  <span class="nowrap text-grey-darken-1 text-caption flex-shrink-0 mr-2">
-                    ({{ dictionary.numberOfEntries }}
-                    {{ pluralize("result", dictionary.numberOfEntries) }})
-                  </span>
                   <v-switch
                     v-model="dictionary.enabled"
                     hide-details
                     density="compact"
-                    class="switch ml-2"
+                    class="switch"
                     color="primary"
                     @click.stop
                   />
@@ -320,8 +302,9 @@ export default {
               </v-list-item>
             </v-list>
 
-            <div v-else class="text-center text-grey-darken-2">
-              No matching dictionary.
+            <div v-else class="no-results">
+              <v-icon size="48" color="grey-lighten-1">mdi-book-search</v-icon>
+              <div class="mt-2 text-grey">No matching dictionary</div>
             </div>
           </v-card-text>
         </v-card>
@@ -370,21 +353,76 @@ export default {
   .v-btn__content
     align-items baseline
     .v-icon
-      top 2px
-      left -2px
+      top 1px
+  .dict-total
+    opacity 0.6
+    font-size 0.85em
 
 .dictionaries-menu
-  width 80vw
-  max-width 1200px
-  .v-card__text
-    max-height 60vh
+  width auto
+  min-width 400px
+  max-width 600px
+  border-radius 12px !important
+  overflow hidden
+
+  .dictionaries-menu-header
+    padding 16px
+    background linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%)
+
+    .search-field
+      margin-bottom 12px
+
+    .action-buttons
+      display flex
+      justify-content space-between
+      gap 8px
+
+  .dictionaries-list-container
+    max-height 400px
     overflow-y auto
-    .v-list
-      display grid
+    padding 8px 0 !important
+
+  .dictionaries-list
+    background transparent
+
+    .v-list-item
+      border-radius 8px
+      padding 6px 12px
+      min-height 40px
+      transition all 0.15s ease
+
+      &:hover
+        background rgba(0, 0, 0, 0.04)
+
+  .no-results
+    display flex
+    flex-direction column
+    align-items center
+    justify-content center
+    padding 48px 16px
+
+/* Dark theme */
+.v-theme--dark .dictionaries-menu
+  .dictionaries-menu-header
+    background linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%)
+
+  .dictionaries-list .v-list-item
+    &:hover
+      background rgba(255, 255, 255, 0.06)
 </style>
 
 <style>
-.dictionaries-menu .v-card__text .v-list {
-  grid-template-columns: repeat(auto-fill, minmax(min(360px, 100%), 1fr));
+@media (max-width: 600px) {
+  .dictionaries-menu {
+    width: 95vw !important;
+    min-width: unset !important;
+    max-width: unset !important;
+  }
+  .dictionaries-menu .dictionaries-menu-header .action-buttons {
+    flex-direction: column;
+  }
+  .dictionaries-menu .dictionaries-menu-header .action-buttons .v-btn {
+    width: 100%;
+  }
 }
 </style>

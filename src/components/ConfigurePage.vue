@@ -17,10 +17,16 @@ let listen = null;
 async function getTauriListen() {
   if (listen) return listen;
   try {
+    // Only attempt to load in Tauri environment
+    if (!window.__TAURI__) return null;
     const { listen: l } = await import('@tauri-apps/api/event');
-    listen = l;
-    return listen;
-  } catch {
+    if (typeof l === 'function') {
+      listen = l;
+      return listen;
+    }
+    return null;
+  } catch (e) {
+    console.warn('Failed to load Tauri event listener:', e);
     return null;
   }
 }
@@ -92,14 +98,21 @@ export default {
       return langs.map(l => langNames[l] || l).join(' ↔ ');
     },
     showDictionaryInfo(dictionary) {
+      const scrollTop = document.documentElement.scrollTop || window.scrollY;
       const details = this.getDetails(dictionary);
       if (!details.about) {
         this.snackbar.open(`<strong>${dictionary.name}</strong><br>No additional information available.`);
-        return;
+      } else {
+        // Format the about text - split by | for line breaks
+        const aboutHtml = details.about.split('|').join('<br>');
+        this.snackbar.open(`<strong>${details.label || dictionary.name}</strong><br><br>${aboutHtml}`);
       }
-      // Format the about text - split by | for line breaks
-      const aboutHtml = details.about.split('|').join('<br>');
-      this.snackbar.open(`<strong>${details.label || dictionary.name}</strong><br><br>${aboutHtml}`);
+      // Blur button to prevent focus-related scroll, restore scroll position
+      document.activeElement?.blur();
+      setTimeout(() => {
+        document.documentElement.scrollTop = scrollTop;
+        window.scrollTo(0, scrollTop);
+      }, 0);
     },
     async loadScannedDictionaries() {
       this.scannedDictionaries = getScannedDictionaries();
@@ -232,11 +245,7 @@ export default {
           :key="dict.scanId"
           class="scanned-dict-item"
         >
-          <template v-slot:prepend>
-            <v-icon color="grey">mdi-book-open-variant</v-icon>
-          </template>
-
-          <v-list-item-title>{{ dict.label }}</v-list-item-title>
+          <v-list-item-title>{{ dict.label.replace(' (scanned dictionary)', '') }}</v-list-item-title>
           <v-list-item-subtitle>
             {{ dict.pageCount }} pages ({{ getEstimatedSize(dict.pageCount) }})
           </v-list-item-subtitle>
@@ -323,7 +332,7 @@ export default {
 
             <div class="name">
               <span class="text-grey-darken-1">{{ index + 1 }}.</span>
-              {{ dictionary.name }}
+              {{ getDetails(dictionary).label || dictionary.name }}
               <span v-if="getLanguageLabel(dictionary)" class="language-label text-caption text-grey">
                 ({{ getLanguageLabel(dictionary) }})
               </span>
@@ -334,7 +343,7 @@ export default {
               variant="text"
               size="small"
               class="info-button"
-              @click.stop="showDictionaryInfo(dictionary)"
+              @click.stop.prevent="showDictionaryInfo(dictionary)"
             >
               <v-icon size="small" color="grey">mdi-information-outline</v-icon>
             </v-btn>
@@ -479,8 +488,9 @@ export default {
 // Mobile styles
 @media (max-width: 600px)
   .configure-page
-    margin-top: 15px
-    padding: 0 8px
+    margin-top: 20px !important
+    padding: 0 8px !important
+    padding-top: 20px !important
 
     .v-toolbar__content > .v-toolbar-title
       margin-inline-start: 0

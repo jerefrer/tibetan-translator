@@ -50,15 +50,21 @@
 </script>
 
 <template>
-  <fieldset
-    class="entry"
+  <div
+    class="entry-row"
     v-intersect.quiet="intersect"
   >
-
-    <legend
-      v-html="dictionaryLabelFor(entry.dictionary)"
-      @click="showDictionaryAbout"
-    />
+    <div class="entry-header">
+      <v-chip
+        variant="flat"
+        size="small"
+        class="dictionary-label"
+        color="grey-darken-2"
+        @click="showDictionaryAbout"
+      >
+        <span v-html="dictionaryLabelFor(entry.dictionary, { short: true })" />
+      </v-chip>
+    </div>
 
     <!-- Regular definition display -->
     <div
@@ -94,10 +100,40 @@
       :initial-page="scanPageNumber"
     />
 
-  </fieldset>
+  </div>
 </template>
 
 <style scoped>
+.entry-row {
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: white;
+}
+
+.v-theme--dark .entry-row {
+  background: #252525;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.entry-header {
+  margin-bottom: 8px;
+}
+
+.dictionary-label {
+  cursor: pointer;
+  height: auto;
+  white-space: break-spaces;
+}
+
+.dictionary-label:hover {
+  opacity: 0.85;
+}
+
+.definition {
+  line-height: 1.6;
+  text-align: justify;
+}
+
 .scanned-entry {
   display: flex;
   flex-direction: column;
@@ -113,5 +149,12 @@
   font-size: 0.85em;
   color: #888;
   margin-left: 4px;
+}
+
+/* Mobile */
+@media (max-width: 600px) {
+  .entry-row {
+    padding: 10px 12px;
+  }
 }
 </style>

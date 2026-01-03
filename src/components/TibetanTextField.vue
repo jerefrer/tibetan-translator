@@ -9,6 +9,10 @@ export default {
   inheritAttrs: false,
   props: {
     modelValue: String,
+    placeholder: {
+      type: String,
+      default: 'བོད་ཡིག་'
+    }
   },
   emits: ['update:modelValue', 'keydown', 'click:clear', 'paste:multiple'],
   data() {
@@ -19,6 +23,12 @@ export default {
   watch: {
     modelValue(value) {
       this.text = value;
+    },
+    text(value) {
+      // Android keyboard auto-spacing fix - remove spaces after Tibetan characters
+      if (value && value.match(/[་།༑༔] +$/)) {
+        this.text = value.trimEnd();
+      }
     },
   },
   methods: {
@@ -37,6 +47,8 @@ export default {
       return TibetanNormalizer.normalize(textWithConvertedWylie);
     },
     convertWylieAndEmit(event, isDropping) {
+      // Remove double spaces (Android keyboard auto-spacing fix)
+      if (this.text) this.text = this.text.replace(/  +/g, ' ');
       if (
         isDropping ||
         event.key.match(/[་ ]/) ||
@@ -69,12 +81,15 @@ export default {
     hide-details
     v-model="text"
     v-bind="$attrs"
-    placeholder="བོད་ཡིག་"
+    :placeholder="placeholder"
     class="tibetan"
     spellcheck="false"
     autocomplete="off"
     autocapitalize="off"
     autocorrect="off"
+    data-form-type="other"
+    data-lpignore="true"
+    enterkeyhint="search"
     @keydown="preventMoreThanOneTrailingTshek"
     @keyup="convertWylieAndEmit"
     @paste="handlePasteMultipleIfDefined"

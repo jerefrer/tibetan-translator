@@ -437,19 +437,11 @@ export default {
       <template v-if="entries == undefined">
         <div
           v-if="previousQueries.length > 0"
-          class="previous-queries text-grey"
+          class="previous-queries"
         >
           <div class="header">
-            <v-btn
-              icon
-              size="x-small"
-              class="mr-2 text-grey"
-              elevation="0"
-              @click="clearPreviousQueries"
-            >
-              <v-icon>mdi-delete-clock</v-icon>
-            </v-btn>
-            Last Queries:
+            <v-icon size="small" class="mr-2">mdi-history</v-icon>
+            Recent Searches
           </div>
 
           <v-fade-transition group tag="div" class="buttons">
@@ -463,6 +455,18 @@ export default {
               v-html="wrapAllTibetanWithSpansAndAddTshekIfMissing(query)"
             />
           </v-fade-transition>
+
+          <div class="clear-button-container">
+            <v-btn
+              variant="tonal"
+              size="small"
+              color="grey"
+              @click="clearPreviousQueries"
+            >
+              <v-icon start size="small">mdi-delete-clock</v-icon>
+              Clear History
+            </v-btn>
+          </div>
         </div>
       </template>
 
@@ -511,11 +515,13 @@ export default {
 }
 
 .search-page .v-input {
-  background: #f0f0f0;
+  background: var(--paper, #FAF3E0);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 }
 
 .v-theme--dark .search-page .v-input {
   background: #1e1e1e;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
 }
 
 .search-page > .v-system-bar {
@@ -576,6 +582,17 @@ export default {
   font-size: 26px !important;
   line-height: 46px !important;
   text-align: center;
+}
+
+.search-page .v-input .v-field__field input::placeholder {
+  font-family: "Segoe UI", "Roboto", sans-serif !important;
+  font-size: 18px !important;
+  opacity: 0.5;
+  color: #666;
+}
+
+.v-theme--dark .search-page .v-input .v-field__field input::placeholder {
+  color: #aaa;
 }
 
 .search-page .v-input .v-field__append-inner {
@@ -696,17 +713,30 @@ export default {
 
 .search-page .previous-queries {
   display: flex;
-  margin-top: 12px;
+  flex-direction: column;
+  padding: 16px;
+  padding-top: 40px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
 .search-page .previous-queries .header {
   display: flex;
-  align-items: baseline;
-  margin: 0 16px;
-  padding-top: 5px;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   font-family: 'Segoe UI', 'Roboto', sans-serif;
-  font-variant: small-caps;
-  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.v-theme--dark .search-page .previous-queries .header {
+  color: #999;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 .search-page .previous-queries .buttons {
@@ -714,15 +744,22 @@ export default {
   align-items: center;
   justify-content: flex-start;
   flex-wrap: wrap;
+  gap: 4px;
 }
 
 .search-page .previous-queries .buttons .previous-query {
-  padding: 24px 32px;
+  padding: 20px 28px;
   text-transform: none;
 }
 
 .search-page .previous-queries .buttons .previous-query span.tibetan {
   margin: 0 5px;
+}
+
+.search-page .previous-queries .clear-button-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
 }
 
 /* Mobile styles */
@@ -742,7 +779,7 @@ export default {
   .search-page .mobile-controls {
     display: flex;
     padding: 8px;
-    background: #f0f0f0;
+    background: var(--paper, #FAF3E0);
   }
 
   .v-theme--dark .search-page .mobile-controls {
@@ -768,15 +805,20 @@ export default {
   }
 
   .search-page .previous-queries {
-    flex-direction: column;
+    padding: 12px;
+    padding-top: 32px;
   }
 
   .search-page .previous-queries .header {
-    margin: 0 8px;
+    margin-bottom: 8px;
   }
 
   .search-page .previous-queries .buttons .previous-query {
-    padding: 16px;
+    padding: 12px 16px;
+  }
+
+  .search-page .previous-queries .clear-button-container {
+    margin-top: 16px;
   }
 }
 </style>

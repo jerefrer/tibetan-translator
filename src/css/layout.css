@@ -276,12 +276,19 @@ abbr[data-title]:hover {
   text-decoration-style: solid;
 }
 
+/* Snackbar text wrapping for long URLs */
+.v-snackbar .v-snackbar__content {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
 /* Snackbar link colors - readable on dark snackbar background */
 .v-snackbar a,
 .v-snackbar a:link,
 .v-snackbar a:visited {
   color: #4DD0E1; /* Cyan 300 - readable on dark background */
   text-decoration: underline;
+  word-break: break-all;
 }
 .v-snackbar a:hover,
 .v-snackbar a:active {

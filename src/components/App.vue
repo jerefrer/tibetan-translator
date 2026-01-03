@@ -112,15 +112,21 @@ export default {
         id: "tabs-shortcuts",
         type: "keydown",
         callback(event) {
-          if (event.altKey) {
-            if (event.key == "d")
-              vm.$router.push("/define") && event.preventDefault();
-            else if (event.key == "s")
-              vm.$router.push("/search") && event.preventDefault();
-            // else if (event.key == "t")
-            //   vm.$router.push("/translate") && event.preventDefault();
-            else if (event.key == "c")
-              vm.$router.push("/configure") && event.preventDefault();
+          // Support both Ctrl (Windows/Linux) and Cmd (Mac)
+          if (event.ctrlKey || event.metaKey) {
+            if (event.key.toLowerCase() == "d") {
+              event.preventDefault();
+              vm.$router.push("/define");
+            } else if (event.key.toLowerCase() == "s") {
+              event.preventDefault();
+              vm.$router.push("/search");
+            // } else if (event.key.toLowerCase() == "t") {
+            //   event.preventDefault();
+            //   vm.$router.push("/translate");
+            } else if (event.key.toLowerCase() == "c") {
+              event.preventDefault();
+              vm.$router.push("/configure");
+            }
           }
         },
       });
@@ -370,32 +376,16 @@ export default {
       </v-system-bar>
 
       <v-container fluid class="pa-0 app-content">
-        <router-view :key="currentTabId" />
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" :key="currentTabId" />
+          </keep-alive>
+        </router-view>
       </v-container>
     </v-main>
   </v-app>
 </template>
 
 <style lang="stylus">
-fieldset.entry
-  margin 1em
-  padding 0 15px 10px
-  text-align justify
-  border 1px dashed
-  font-size 0.9em
-  legend
-    padding 0 5px
-    margin-left -5px
-
-.theme--dark
-  fieldset.entry
-    border-color #444
-    legend
-      color #444
-
-.theme--light
-  fieldset.entry
-    border-color #999
-    legend
-      color #999
+/* Entry styling now handled by EntriesEntry.vue scoped styles */
 </style>

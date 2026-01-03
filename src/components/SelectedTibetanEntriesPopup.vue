@@ -172,10 +172,5 @@
 </template>
 
 <style lang="stylus">
-  .v-theme--dark
-    .selected-tibetan-entries-popup
-      fieldset.entry
-        border-color #5c5c5c
-        legend
-          color #5c5c5c
+  /* Entry styling now handled by EntriesEntry.vue scoped styles */
 </style>
