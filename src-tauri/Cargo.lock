@@ -7,6 +7,7 @@ name = "TibetanTranslator"
 version = "0.10.0"
 dependencies = [
  "base64 0.22.1",
+ "futures-util",
  "once_cell",
  "open",
  "reqwest 0.11.27",
@@ -2768,10 +2769,12 @@ dependencies = [
  "system-configuration",
  "tokio",
  "tokio-rustls",
+ "tokio-util",
  "tower-service",
  "url",
  "wasm-bindgen",
  "wasm-bindgen-futures",
+ "wasm-streams",
  "web-sys",
  "webpki-roots",
  "winreg 0.50.0",

@@ -1,0 +1,66 @@
+{
+  "version": "1.0.0",
+  "generated": "2026-01-03T22:52:29.283Z",
+  "packs": {
+    "core": {
+      "id": "core",
+      "name": "Core Dictionaries",
+      "description": "Essential Tibetan-English dictionaries for translation",
+      "required": true,
+      "dictionaryCount": 34,
+      "files": {
+        "sqlite": {
+          "filename": "core.sqlite",
+          "size": 153460736,
+          "sizeMB": "146.4"
+        },
+        "compressed": {
+          "filename": "core.7z",
+          "size": 37219889,
+          "sizeMB": "35.5"
+        }
+      },
+      "checksum": "d19cb1eb7520224c00d3e1dd3b1d6fe16bae9db9acf9db00a4646340b8dcb744"
+    },
+    "tibetan-monolingual": {
+      "id": "tibetan-monolingual",
+      "name": "Tibetan Monolingual",
+      "description": "Tibetan-to-Tibetan dictionaries for advanced users",
+      "required": false,
+      "dictionaryCount": 21,
+      "files": {
+        "sqlite": {
+          "filename": "tibetan-monolingual.sqlite",
+          "size": 299339776,
+          "sizeMB": "285.5"
+        },
+        "compressed": {
+          "filename": "tibetan-monolingual.7z",
+          "size": 68133093,
+          "sizeMB": "65.0"
+        }
+      },
+      "checksum": "cd1fcb42088137bc4b55521df22c1b4f7daa919323aa851f3ae53104e270086d"
+    },
+    "sanskrit-academic": {
+      "id": "sanskrit-academic",
+      "name": "Sanskrit & Academic",
+      "description": "Sanskrit dictionaries and academic reference works",
+      "required": false,
+      "dictionaryCount": 9,
+      "files": {
+        "sqlite": {
+          "filename": "sanskrit-academic.sqlite",
+          "size": 114425856,
+          "sizeMB": "109.1"
+        },
+        "compressed": {
+          "filename": "sanskrit-academic.7z",
+          "size": 27387228,
+          "sizeMB": "26.1"
+        }
+      },
+      "checksum": "addecbfa6377f3d2338dc1dee8ec8b9031e6f582863751f62717e99af0683a3f"
+    }
+  }
+}

@@ -28,6 +28,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:database": "babel-node ./build/build-database.js",
+    "build:packs": "babel-node ./build/build-packs.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

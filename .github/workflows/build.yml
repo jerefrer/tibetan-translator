@@ -55,8 +55,8 @@ jobs:
         with:
           workspaces: './src-tauri -> target'
 
-      - name: Extract the database
-        run: cd public && 7z x database.7z.001 && rm database.7z.*
+      - name: Extract core dictionary pack
+        run: cd public/packs && 7z x core.7z
         shell: bash
 
       - uses: tauri-apps/tauri-action@v0

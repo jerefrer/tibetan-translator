@@ -1,0 +1,34 @@
+name: Update Dictionary Packs
+
+on:
+  push:
+    paths:
+      - 'public/packs/*.7z'
+      - 'public/packs/pack-manifest.json'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  upload-packs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Upload to dictionary-packs release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: dictionary-packs
+          name: Dictionary Packs
+          body: |
+            Dictionary pack files for Tibetan Translator.
+            These are automatically downloaded by the app when needed.
+
+            Last updated: ${{ github.event.head_commit.timestamp || github.event.repository.updated_at }}
+          files: |
+            public/packs/pack-manifest.json
+            public/packs/core.7z
+            public/packs/tibetan-monolingual.7z
+            public/packs/sanskrit-academic.7z
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

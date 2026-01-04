@@ -11,6 +11,7 @@ import {
   deleteScan,
   isAppMode
 } from '../services/scan-service';
+import PackManagerCard from './PackManagerCard.vue';
 
 // Tauri event listener (lazy loaded)
 let listen = null;
@@ -34,6 +35,7 @@ async function getTauriListen() {
 export default {
   components: {
     draggable,
+    PackManagerCard,
   },
   inject: ['snackbar'],
   setup() {
@@ -185,9 +187,9 @@ export default {
       // Rough estimate: ~200KB per page on average
       const sizeKB = pageCount * 200;
       if (sizeKB > 1024) {
-        return `~${Math.round(sizeKB / 1024)} MB`;
+        return `${Math.round(sizeKB / 1024)} MB`;
       }
-      return `~${sizeKB} KB`;
+      return `${sizeKB} KB`;
     }
   },
   async created() {
@@ -217,15 +219,39 @@ export default {
       <v-toolbar>
         <v-icon size="x-large" color="grey">mdi-theme-light-dark</v-icon>
         <v-toolbar-title>
-          Theme
+          Appearance
         </v-toolbar-title>
       </v-toolbar>
-      <v-radio-group v-model="themePreference" inline hide-details class="pa-4">
-        <v-radio label="System" value="system" />
-        <v-radio label="Light" value="light" />
-        <v-radio label="Dark" value="dark" />
-      </v-radio-group>
+      <div class="theme-buttons pa-4">
+        <v-btn
+          :variant="themePreference === 'system' ? 'flat' : 'outlined'"
+          :color="themePreference === 'system' ? 'primary' : undefined"
+          @click="themePreference = 'system'"
+        >
+          <v-icon start>mdi-monitor</v-icon>
+          System
+        </v-btn>
+        <v-btn
+          :variant="themePreference === 'light' ? 'flat' : 'outlined'"
+          :color="themePreference === 'light' ? 'primary' : undefined"
+          @click="themePreference = 'light'"
+        >
+          <v-icon start>mdi-white-balance-sunny</v-icon>
+          Light
+        </v-btn>
+        <v-btn
+          :variant="themePreference === 'dark' ? 'flat' : 'outlined'"
+          :color="themePreference === 'dark' ? 'primary' : undefined"
+          @click="themePreference = 'dark'"
+        >
+          <v-icon start>mdi-weather-night</v-icon>
+          Dark
+        </v-btn>
+      </div>
     </v-card>
+
+    <!-- Dictionary Packs Section (Tauri only) -->
+    <pack-manager-card />
 
     <!-- Scanned Dictionaries Section -->
     <v-card v-if="scannedDictionaries.length > 0" class="scanned-dictionaries mb-4">
@@ -311,9 +337,9 @@ export default {
       <v-toolbar>
         <v-icon size="x-large" color="grey">mdi-book-multiple</v-icon>
         <v-toolbar-title>
-          Dictionaries
+          Dictionary Preferences
           <div class="text-caption text-grey">
-            Reorder or disable them to match your preferences
+            Reorder or disable to match your preferences
           </div>
         </v-toolbar-title>
       </v-toolbar>
@@ -371,8 +397,11 @@ export default {
     .v-toolbar .v-icon
       margin: 0 10px 0 10px
 
-    .v-radio-group
+    .theme-buttons
+      display: flex
       justify-content: center
+      gap: 8px
+      flex-wrap: wrap
 
   .dictionaries-container
     width: 100%
