@@ -6,9 +6,12 @@ import { useTheme } from "vuetify";
 import db from "../services/sql-database";
 import Storage from "../services/storage";
 import EventHandlers from "../services/event-handlers";
+import PackManager from "../services/pack-manager";
+import { supportsModularPacks } from "../config/platform";
 
 import { substituteLinksWithATags } from "../utils.js";
 import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup.vue";
+import OnboardingScreen from "./OnboardingScreen.vue";
 import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton.vue";
 import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton.vue";
 import TranslatePageHelpDialogWithButton from "./TranslatePageHelpDialogWithButton.vue";
@@ -31,6 +34,7 @@ if (Storage.get("keepLongestOnly") == undefined)
 export default {
   components: {
     SelectedTibetanEntriesPopup,
+    OnboardingScreen,
     DefinePageHelpDialogWithButton,
     SearchPageHelpDialogWithButton,
     TranslatePageHelpDialogWithButton,
@@ -48,6 +52,7 @@ export default {
   data() {
     return {
       loading: true,
+      showOnboarding: false,
     };
   },
   computed: {
@@ -70,6 +75,11 @@ export default {
     },
   },
   methods: {
+    async onOnboardingComplete() {
+      this.showOnboarding = false;
+      // Refresh terms list to include any newly downloaded packs
+      await db.setAllTermsVariable();
+    },
     initializeTheme() {
       const preference = Storage.get('themePreference') || 'system';
       let actualTheme;
@@ -278,6 +288,16 @@ export default {
     this.initializeTheme();
     this.updateHtmlThemeClass();
     window.SqlDatabase = db;
+
+    // For Tauri with modular packs, init pack manager and check if onboarding is needed
+    if (supportsModularPacks()) {
+      await PackManager.init();
+      if (PackManager.shouldShowOnboarding()) {
+        this.showOnboarding = true;
+      }
+    }
+
+    // Init database (core pack is bundled, so always available)
     await db.init();
     this.loading = false;
   },
@@ -318,6 +338,11 @@ export default {
     </v-overlay>
 
     <selected-tibetan-entries-popup />
+
+    <onboarding-screen
+      v-if="showOnboarding"
+      @complete="onOnboardingComplete"
+    />
 
     <v-snackbar v-model="snackbar.show">
       <div v-html="snackbar.content" />

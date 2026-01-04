@@ -34,7 +34,7 @@
       "icons/icon.ico"
     ],
     "resources": {
-      "../public/TibetanTranslator.sqlite": "TibetanTranslator.sqlite"
+      "../public/packs/core.sqlite": "core.sqlite"
     },
     "shortDescription": "The best Tibetan dictionaries in a pleasant interface for all devices",
     "longDescription": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",

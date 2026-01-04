@@ -77,7 +77,10 @@
       "Bash(adb uninstall:*)",
       "mcp__serena__get_current_config",
       "Bash(head:*)",
-      "Bash(SHELL=/bin/bash /bin/bash -c \"cd /Users/jeremy/Documents/Programming/tibetan-translator/src-tauri && cargo check:*)\""
+      "Bash(SHELL=/bin/bash /bin/bash -c \"cd /Users/jeremy/Documents/Programming/tibetan-translator/src-tauri && cargo check:*)\"",
+      "Bash(mkdir:*)",
+      "Bash(pnpm run build:packs:*)",
+      "Bash(SHELL=/bin/bash /bin/bash:*)"
     ]
   }
 }
