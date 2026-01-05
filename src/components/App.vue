@@ -64,7 +64,7 @@ export default {
         { id: "define", name: "<u>D</u>efine" },
         { id: "search", name: "<u>S</u>earch" },
         // { id: "translate", name: "<u>T</u>ranslate" }, // Hidden for now - to be improved for mobile
-        { id: "configure", name: "<u>C</u>onfigure" },
+        { id: "configure", name: "Confi<u>g</u>ure" },
       ];
     },
     currentTabId() {
@@ -133,7 +133,7 @@ export default {
             // } else if (event.key.toLowerCase() == "t") {
             //   event.preventDefault();
             //   vm.$router.push("/translate");
-            } else if (event.key.toLowerCase() == "c") {
+            } else if (event.key.toLowerCase() == "g") {
               event.preventDefault();
               vm.$router.push("/configure");
             }
