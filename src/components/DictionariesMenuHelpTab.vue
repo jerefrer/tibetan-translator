@@ -89,10 +89,38 @@
       type="info"
       class="text-caption mt-4"
     >
-      Clicking a dictionary will show results only for this one dictionary.
+      Clicking a dictionary toggles it on or off.
       <br />
-      Clicking the switch next to a dictionary will just switch it on and off
-      without altering other dictionaries.
+      The switch on the right side does the same.
+    </v-alert>
+
+    <!-- Desktop: Ctrl/Cmd+click hint -->
+    <v-alert
+      variant="tonal"
+      density="compact"
+      prominent
+      type="info"
+      class="text-caption mt-4 d-none d-sm-flex"
+      icon="mdi-gesture-tap"
+    >
+      <div class="d-flex align-center flex-wrap">
+        <div class="keyboard-square">Ctrl</div>
+        <div class="text-caption text-grey-darken-1 mx-1">or</div>
+        <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+        <span class="ml-1">+ click on a dictionary to select <strong>only</strong> that one and disable all others.</span>
+      </div>
+    </v-alert>
+
+    <!-- Mobile: Long press hint -->
+    <v-alert
+      variant="tonal"
+      density="compact"
+      prominent
+      type="info"
+      class="text-caption mt-4 d-sm-none"
+      icon="mdi-gesture-tap-hold"
+    >
+      Long press on a dictionary to select <strong>only</strong> that one and disable all others.
     </v-alert>
 
     <v-alert

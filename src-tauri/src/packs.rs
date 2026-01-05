@@ -458,7 +458,7 @@ pub struct PackEntry {
     #[serde(rename = "definitionPhoneticsWordsLoose")]
     pub definition_phonetics_words_loose: String,
     #[serde(rename = "dictionaryId")]
-    pub dictionary_id: i64,
+    pub dictionary_id: String,  // Compound ID: "pack_id:dictionary_id" (e.g., "core:1")
     pub dictionary: Option<String>,
     #[serde(rename = "dictionaryPosition")]
     pub dictionary_position: Option<i64>,
@@ -468,7 +468,7 @@ pub struct PackEntry {
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct PackDictionary {
-    pub id: i64,
+    pub id: String,  // Compound ID: "pack_id:dictionary_id" (e.g., "core:1")
     pub name: String,
     pub position: i64,
     #[serde(rename = "_sourcePackId")]
@@ -580,6 +580,7 @@ pub async fn pack_get_entries_for_term(app: AppHandle, term: String) -> Result<V
 
                 let entries: Vec<PackEntry> = stmt
                     .query_map(params![term], |row| {
+                        let raw_dict_id: i64 = row.get(7)?;
                         Ok(PackEntry {
                             id: row.get(0)?,
                             term: row.get(1)?,
@@ -588,7 +589,7 @@ pub async fn pack_get_entries_for_term(app: AppHandle, term: String) -> Result<V
                             definition: row.get(4)?,
                             definition_phonetics_words_strict: row.get(5)?,
                             definition_phonetics_words_loose: row.get(6)?,
-                            dictionary_id: row.get(7)?,
+                            dictionary_id: format!("{}:{}", pack_id, raw_dict_id),  // Compound ID
                             dictionary: row.get(8)?,
                             dictionary_position: row.get(9)?,
                             source_pack_id: Some(pack_id.clone()),
@@ -673,6 +674,7 @@ pub async fn pack_search_entries(
                 };
 
                 let entries: Vec<PackEntry> = match stmt.query_map([], |row| {
+                    let raw_dict_id: i64 = row.get(7)?;
                     Ok(PackEntry {
                         id: row.get(0)?,
                         term: row.get(1)?,
@@ -681,7 +683,7 @@ pub async fn pack_search_entries(
                         definition: row.get(4)?,
                         definition_phonetics_words_strict: row.get(5)?,
                         definition_phonetics_words_loose: row.get(6)?,
-                        dictionary_id: row.get(7)?,
+                        dictionary_id: format!("{}:{}", pack_id, raw_dict_id),  // Compound ID
                         dictionary: row.get(8)?,
                         dictionary_position: row.get(9)?,
                         source_pack_id: Some(pack_id.clone()),
@@ -751,14 +753,22 @@ pub async fn pack_execute_query(
                     for i in 0..column_count {
                         let value: rusqlite::Result<rusqlite::types::Value> = row.get(i);
                         if let Ok(v) = value {
+                            let col_name = &column_names[i];
                             let json_value = match v {
                                 rusqlite::types::Value::Null => serde_json::Value::Null,
-                                rusqlite::types::Value::Integer(i) => serde_json::json!(i),
+                                rusqlite::types::Value::Integer(int_val) => {
+                                    // Convert dictionaryId to compound ID
+                                    if col_name == "dictionaryId" {
+                                        serde_json::Value::String(format!("{}:{}", pack_id, int_val))
+                                    } else {
+                                        serde_json::json!(int_val)
+                                    }
+                                },
                                 rusqlite::types::Value::Real(f) => serde_json::json!(f),
                                 rusqlite::types::Value::Text(s) => serde_json::Value::String(s),
                                 rusqlite::types::Value::Blob(b) => serde_json::json!(b),
                             };
-                            obj.insert(column_names[i].clone(), json_value);
+                            obj.insert(col_name.clone(), json_value);
                         }
                     }
                     // Add source pack ID
@@ -801,8 +811,9 @@ pub async fn pack_get_dictionaries(app: AppHandle) -> Result<Vec<PackDictionary>
 
                 let dictionaries: Vec<PackDictionary> = stmt
                     .query_map([], |row| {
+                        let raw_id: i64 = row.get(0)?;
                         Ok(PackDictionary {
-                            id: row.get(0)?,
+                            id: format!("{}:{}", pack_id, raw_id),  // Compound ID
                             name: row.get(1)?,
                             position: row.get(2)?,
                             source_pack_id: Some(pack_id.clone()),

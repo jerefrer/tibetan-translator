@@ -24,6 +24,8 @@ export default {
     return {
       dictionariesMenu: false,
       term: "",
+      longPressTimer: null,
+      longPressTriggered: false,
     };
   },
   watch: {
@@ -87,6 +89,30 @@ export default {
       this.disableAllDictionaries();
       dictionary.enabled = true;
       this.delayedCloseMenu();
+    },
+    handleDictionaryClick(event, dictionary) {
+      // Ctrl/Cmd+click selects only this dictionary
+      if (event.ctrlKey || event.metaKey) {
+        event.preventDefault();
+        this.selectSingleDictionary(dictionary);
+      } else if (!this.longPressTriggered) {
+        // Normal click toggles
+        dictionary.enabled = !dictionary.enabled;
+      }
+      this.longPressTriggered = false;
+    },
+    startLongPress(dictionary) {
+      this.longPressTriggered = false;
+      this.longPressTimer = setTimeout(() => {
+        this.longPressTriggered = true;
+        this.selectSingleDictionary(dictionary);
+      }, 500);
+    },
+    cancelLongPress() {
+      if (this.longPressTimer) {
+        clearTimeout(this.longPressTimer);
+        this.longPressTimer = null;
+      }
     },
     openMenu() {
       this.dictionariesMenu = true;
@@ -282,9 +308,13 @@ export default {
             <v-list v-if="fuzzyMatchedDictionaries.length" density="compact" class="dictionaries-list">
               <v-list-item
                 v-for="(dictionary, index) in fuzzyMatchedDictionaries"
-                :key="index"
+                :key="dictionary.id"
                 :data-dictionary-index="index"
-                @click="dictionary.enabled = !dictionary.enabled"
+                @click="handleDictionaryClick($event, dictionary)"
+                @touchstart="startLongPress(dictionary)"
+                @touchend="cancelLongPress"
+                @touchcancel="cancelLongPress"
+                @touchmove="cancelLongPress"
               >
                 <v-list-item-title>
                   <span

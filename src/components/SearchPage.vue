@@ -20,11 +20,14 @@ import DictionariesDetailsMixin from './DictionariesDetailsMixin';
 import DictionariesMenuMixin from './DictionariesMenuMixin';
 
 import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries.vue';
+import ScanViewer from './ScanViewer.vue';
+import { getScanInfo } from '../services/scan-service';
 
 export default {
   mixins: [DictionariesDetailsMixin, DictionariesMenuMixin],
   components: {
     ResultsAndPaginationAndDictionaries,
+    ScanViewer,
   },
   inject: ['snackbar'],
   setup() {
@@ -39,6 +42,7 @@ export default {
       batchSize: 50, // Load 50 more each time
       searchQuery: this.$route.params.query,
       previousQueries: Storage.get('previousQueries') || [],
+      scanViewerEntry: null, // Entry for which scan viewer is open
     };
   },
   watch: {
@@ -124,16 +128,12 @@ export default {
       return this.searchTerms.filter((term) => !term.match(/^[\[\{].*[\]\}]$/));
     },
     phoneticsStrictSearchTerms() {
-      var terms = this.phoneticsTerms(/^\[.*\]$/, phoneticsStrictFor);
-      return terms.map((term) =>
-        PhoneticSearch.prepareTermForStrictMatching(term)
-      );
+      // Return raw terms - spaceless processing happens in performSearch
+      return this.phoneticsTerms(/^\[.*\]$/, phoneticsStrictFor);
     },
     phoneticsLooseSearchTerms() {
-      var terms = this.phoneticsTerms(/^\{.*\}$/, phoneticsLooseFor);
-      return terms.map((term) =>
-        PhoneticSearch.prepareTermForLooseMatching(term)
-      );
+      // Return raw terms - spaceless processing happens in performSearch
+      return this.phoneticsTerms(/^\{.*\}$/, phoneticsLooseFor);
     },
   },
   methods: {
@@ -301,42 +301,39 @@ export default {
             )} OR definition:${this.prepareTerm(term)}')`
           );
         });
-        this.phoneticsStrictSearchTerms.forEach((phoneticsStrictTerm) => {
-          // Generate syllable split variants for spaceless searches
-          // e.g., "sangye" -> try "sanggye" -> split to "sang gye"
-          const searchVariants = phoneticsStrictTerm.includes(' ')
-            ? [phoneticsStrictTerm]
-            : PhoneticSearch.processSpacelessPhoneticSearch(
-                phoneticsStrictTerm
-              );
+        this.phoneticsStrictSearchTerms.forEach((rawTerm) => {
+          // First generate spaceless variants if input has no spaces
+          const variants = rawTerm.includes(' ')
+            ? [rawTerm]
+            : PhoneticSearch.processSpacelessPhoneticSearch(rawTerm);
 
-          // Build OR conditions for all variants
-          const termConditions = searchVariants
-            .map(
-              (variant) => `termPhoneticsStrict:${this.prepareTerm(variant)}`
-            )
+          // Then apply prepareTermForStrictMatching to each variant and build OR conditions
+          const termConditions = variants
+            .map((variant) => PhoneticSearch.prepareTermForStrictMatching(variant))
+            .map((prepared) => `termPhoneticsStrict:${this.prepareTerm(prepared)}`)
             .join(' OR ');
 
           conditions.push(
             `(entries_fts MATCH '(${termConditions}) OR definitionPhoneticsWordsStrict:${this.prepareTerm(
-              phoneticsStrictTerm
+              PhoneticSearch.prepareTermForStrictMatching(rawTerm)
             )}')`
           );
         });
-        this.phoneticsLooseSearchTerms.forEach((phoneticsLooseTerm) => {
-          // Generate syllable split variants for spaceless searches
-          const searchVariants = phoneticsLooseTerm.includes(' ')
-            ? [phoneticsLooseTerm]
-            : PhoneticSearch.processSpacelessPhoneticSearch(phoneticsLooseTerm);
+        this.phoneticsLooseSearchTerms.forEach((rawTerm) => {
+          // First generate spaceless variants if input has no spaces
+          const variants = rawTerm.includes(' ')
+            ? [rawTerm]
+            : PhoneticSearch.processSpacelessPhoneticSearch(rawTerm);
 
-          // Build OR conditions for all variants
-          const termConditions = searchVariants
-            .map((variant) => `termPhoneticsLoose:${this.prepareTerm(variant)}`)
+          // Then apply prepareTermForLooseMatching to each variant and build OR conditions
+          const termConditions = variants
+            .map((variant) => PhoneticSearch.prepareTermForLooseMatching(variant))
+            .map((prepared) => `termPhoneticsLoose:${this.prepareTerm(prepared)}`)
             .join(' OR ');
 
           conditions.push(
             `(entries_fts MATCH '(${termConditions}) OR definitionPhoneticsWordsLoose:${this.prepareTerm(
-              phoneticsLooseTerm
+              PhoneticSearch.prepareTermForLooseMatching(rawTerm)
             )}')`
           );
         });
@@ -409,6 +406,25 @@ export default {
     },
     openDictionaryAbout(entry) {
       this.snackbar.open(this.dictionaryAboutFor(entry.dictionary));
+    },
+    // Scanned dictionary methods
+    isScannedDictionary(entry) {
+      return !!getScanInfo(entry.dictionary);
+    },
+    getScanPageNumber(entry) {
+      if (!this.isScannedDictionary(entry)) return null;
+      const pageStr = entry.definition?.replace('?', '').trim();
+      const page = parseInt(pageStr, 10);
+      return isNaN(page) ? null : page;
+    },
+    isApproximatePage(entry) {
+      return entry.definition?.includes('?');
+    },
+    openScanViewer(entry) {
+      this.scanViewerEntry = entry;
+    },
+    closeScanViewer() {
+      this.scanViewerEntry = null;
     },
   },
   mounted() {
@@ -541,10 +557,28 @@ export default {
               />
             </v-col>
             <v-col cols="12" sm="8" class="d-flex">
+              <!-- Regular dictionary: show definition -->
               <div
+                v-if="!isScannedDictionary(entry)"
                 class="definition"
                 v-html="highlightSearchTerms(decorateEntry(entry).definition)"
               />
+              <!-- Scanned dictionary: show page number and view button -->
+              <div v-else class="scanned-entry d-flex align-center ga-3">
+                <span class="page-info">
+                  Page {{ getScanPageNumber(entry) }}
+                  <span v-if="isApproximatePage(entry)" class="text-grey">(approximate)</span>
+                </span>
+                <v-btn
+                  color="primary"
+                  variant="outlined"
+                  size="small"
+                  @click="openScanViewer(entry)"
+                >
+                  <v-icon start size="small">mdi-book-open-page-variant</v-icon>
+                  View Scan
+                </v-btn>
+              </div>
             </v-col>
           </v-row>
         </div>
@@ -565,6 +599,15 @@ export default {
 
       <v-alert v-else class="text-center" key="no-entries">No entries</v-alert>
     </template>
+
+    <!-- Scan Viewer Modal -->
+    <ScanViewer
+      v-if="scanViewerEntry"
+      :model-value="!!scanViewerEntry"
+      @update:model-value="closeScanViewer"
+      :dictionary-id="scanViewerEntry?.dictionary"
+      :initial-page="getScanPageNumber(scanViewerEntry)"
+    />
   </div>
 </template>
 
