@@ -18,8 +18,8 @@ let listen = null;
 async function getTauriListen() {
   if (listen) return listen;
   try {
-    // Only attempt to load in Tauri environment
-    if (!window.__TAURI__) return null;
+    // Only attempt to load in Tauri environment (check both Tauri 1.x and 2.x)
+    if (!window.__TAURI__ && !window.__TAURI_INTERNALS__) return null;
     const { listen: l } = await import('@tauri-apps/api/event');
     if (typeof l === 'function') {
       listen = l;

@@ -80,7 +80,8 @@
       "Bash(SHELL=/bin/bash /bin/bash -c \"cd /Users/jeremy/Documents/Programming/tibetan-translator/src-tauri && cargo check:*)\"",
       "Bash(mkdir:*)",
       "Bash(pnpm run build:packs:*)",
-      "Bash(SHELL=/bin/bash /bin/bash:*)"
+      "Bash(SHELL=/bin/bash /bin/bash:*)",
+      "Bash(JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" pnpm tauri android build:*)"
     ]
   }
 }

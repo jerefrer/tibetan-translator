@@ -20,8 +20,18 @@ export function isWeb() {
 }
 
 /**
+ * Check if running on a mobile platform (iOS or Android)
+ */
+export function isMobile() {
+  if (!isTauri()) return false;
+  const ua = navigator.userAgent.toLowerCase();
+  return ua.includes('android') || ua.includes('iphone') || ua.includes('ipad');
+}
+
+/**
  * Check if platform supports modular dictionary packs
- * Only Tauri apps support modular packs; web version uses full bundled database
+ * All Tauri apps (desktop and mobile) support modular packs
+ * Web uses full bundled database
  */
 export function supportsModularPacks() {
   return isTauri();
@@ -45,6 +55,7 @@ export function getPlatformType() {
 export default {
   isTauri,
   isWeb,
+  isMobile,
   supportsModularPacks,
   getPlatformType,
 };

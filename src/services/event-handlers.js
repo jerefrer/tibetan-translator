@@ -7,6 +7,10 @@ const EventHandlers = {
   handlers: [],
 
   add(options) {
+    // If an id is provided and a handler with that id already exists, don't add duplicate
+    if (options.id && this.handlers.some(h => h.id === options.id)) {
+      return this.handlers.find(h => h.id === options.id);
+    }
     var handler = _(options).defaults({
       id: uuid(),
       active: true,

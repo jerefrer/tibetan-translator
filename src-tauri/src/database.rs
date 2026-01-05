@@ -51,7 +51,13 @@ fn get_db_path(app: &AppHandle) -> Result<PathBuf, String> {
     fs::create_dir_all(&app_data_dir)
         .map_err(|e| format!("Failed to create app data dir: {}", e))?;
 
-    let db_path = app_data_dir.join("TibetanTranslator.sqlite");
+    // On mobile, use core.sqlite (smaller, modular); on desktop use full database
+    #[cfg(mobile)]
+    let db_filename = "core.sqlite";
+    #[cfg(desktop)]
+    let db_filename = "TibetanTranslator.sqlite";
+
+    let db_path = app_data_dir.join(db_filename);
 
     // If database already exists in app data, use it
     if db_path.exists() {
@@ -61,7 +67,7 @@ fn get_db_path(app: &AppHandle) -> Result<PathBuf, String> {
     // Resolve the resource path
     let resource_path = app
         .path()
-        .resolve("TibetanTranslator.sqlite", tauri::path::BaseDirectory::Resource)
+        .resolve(db_filename, tauri::path::BaseDirectory::Resource)
         .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
 
     // On desktop, the resource path is a real file

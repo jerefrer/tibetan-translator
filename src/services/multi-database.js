@@ -22,21 +22,31 @@ const loadedPacks = new Set();
  * - Tauri: Load installed pack databases
  */
 export async function initDatabases() {
+  console.log('[initDatabases] Starting...');
+  console.log('[initDatabases] supportsModularPacks:', supportsModularPacks());
+
   if (!supportsModularPacks()) {
     // Web version: load full database as before
+    console.log('[initDatabases] Using full database (web mode)');
     return initFullDatabase();
   }
 
   // Tauri: initialize pack manager first
+  console.log('[initDatabases] Initializing PackManager...');
   await PackManager.init();
+  console.log('[initDatabases] Installed packs:', PackManager.installedPacks);
 
-  // Load all installed packs
-  for (const packId of PackManager.installedPacks) {
-    await loadPackDatabase(packId);
-  }
+  // Load all installed packs in parallel for faster startup
+  console.log('[initDatabases] Loading all packs in parallel...');
+  await Promise.all(
+    PackManager.installedPacks.map((packId) => loadPackDatabase(packId))
+  );
+  console.log('[initDatabases] All packs loaded. Workers count:', workers.size);
 
   // Load dictionaries into localStorage
+  console.log('[initDatabases] Loading dictionaries into localStorage...');
   await loadAllDictionariesIntoLocalStorage();
+  console.log('[initDatabases] Complete!');
 }
 
 /**
@@ -55,24 +65,55 @@ async function initFullDatabase() {
 }
 
 /**
- * Load a pack database into a worker
+ * Load a pack database into a worker with timeout protection
+ * IMPORTANT: Worker is only added to the map AFTER database is fully loaded
+ * to prevent queries hitting uninitialized workers (race condition fix)
  */
 async function loadPackDatabase(packId) {
+  console.log(`[loadPackDatabase] Starting for pack: ${packId}`);
+
   if (loadedPacks.has(packId)) {
+    console.log(`[loadPackDatabase] Pack ${packId} already loaded, skipping`);
     return; // Already loaded
   }
 
+  const LOAD_TIMEOUT_MS = 300000; // 5 minutes timeout (mobile chunked loading is slow)
+
+  console.log(`[loadPackDatabase] Creating worker for pack: ${packId}`);
   const worker = new Worker('/worker.sql-wasm.js');
-  workers.set(packId, worker);
 
-  // Get database bytes from Tauri
-  const bytes = await PackManager.getPackDatabase(packId);
-  const buffer = new Uint8Array(bytes).buffer;
+  try {
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error(`Timeout loading pack ${packId}`)), LOAD_TIMEOUT_MS)
+    );
 
-  await postMessageToWorker(packId, { action: 'open', buffer });
-  loadedPacks.add(packId);
+    console.log(`[loadPackDatabase] Fetching database bytes for pack: ${packId}`);
+    // Get database bytes with timeout protection
+    const bytes = await Promise.race([
+      PackManager.getPackDatabase(packId),
+      timeoutPromise,
+    ]);
 
-  console.log(`Loaded pack database: ${packId}`);
+    const buffer = new Uint8Array(bytes).buffer;
+    console.log(`[loadPackDatabase] Got ${(buffer.byteLength / 1024 / 1024).toFixed(1)}MB for pack: ${packId}`);
+
+    // Load database into worker using direct message (worker not in map yet)
+    console.log(`[loadPackDatabase] Opening database in worker for pack: ${packId}`);
+    await sendMessageDirect(worker, { action: 'open', buffer });
+    console.log(`[loadPackDatabase] Database opened successfully for pack: ${packId}`);
+
+    // Only NOW add worker to map - database is loaded and ready for queries
+    workers.set(packId, worker);
+    loadedPacks.add(packId);
+
+    console.log(`[loadPackDatabase] Pack ${packId} fully loaded and added to workers map`);
+    console.log(`[loadPackDatabase] Current workers count: ${workers.size}`);
+  } catch (error) {
+    console.error(`[loadPackDatabase] Failed to load pack ${packId}:`, error);
+    // Clean up worker
+    worker.terminate();
+    // Don't rethrow - allow other packs to continue loading
+  }
 }
 
 /**
@@ -107,13 +148,19 @@ export function unloadPack(packId) {
 export async function execAll(query, params) {
   const results = [];
 
+  console.log('[execAll] Workers count:', workers.size);
+  console.log('[execAll] Query (first 200 chars):', query.substring(0, 200));
+
   for (const [packId, worker] of workers) {
     try {
+      console.log(`[execAll] Querying pack: ${packId}`);
       const packResults = await postMessageToWorker(packId, {
         action: 'exec',
         sql: query,
         params,
       });
+
+      console.log(`[execAll] Pack ${packId} returned ${packResults.length} results`);
 
       // Tag results with source pack for debugging/filtering
       results.push(
@@ -127,6 +174,7 @@ export async function execAll(query, params) {
     }
   }
 
+  console.log('[execAll] Total results:', results.length);
   return results;
 }
 
@@ -227,6 +275,35 @@ async function loadDictionariesFromPack(packId) {
 // ============================================
 // Worker Communication
 // ============================================
+
+/**
+ * Send message directly to a worker (not in the workers map)
+ * Used during initialization before worker is ready for queries
+ */
+function sendMessageDirect(worker, message) {
+  return new Promise((resolve, reject) => {
+    const messageId = uuid();
+    message.id = messageId;
+
+    const handler = (event) => {
+      if (event.data.id === messageId) {
+        worker.removeEventListener('message', handler);
+        worker.removeEventListener('error', errorHandler);
+        resolve(event.data.results);
+      }
+    };
+
+    const errorHandler = (error) => {
+      worker.removeEventListener('message', handler);
+      worker.removeEventListener('error', errorHandler);
+      reject(error);
+    };
+
+    worker.addEventListener('message', handler);
+    worker.addEventListener('error', errorHandler);
+    worker.postMessage(message);
+  });
+}
 
 /**
  * Send message to worker and wait for response

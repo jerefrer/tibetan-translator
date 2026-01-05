@@ -3,7 +3,7 @@ import { v4 as uuid } from "uuid";
 
 import Storage from "./storage";
 import MultiDatabase from "./multi-database";
-import { isTauri, supportsModularPacks } from "../config/platform";
+import { isTauri, isMobile, supportsModularPacks } from "../config/platform";
 
 // Web Worker for sql.js (only initialized if not using modular packs)
 let worker = null;
@@ -12,7 +12,11 @@ let worker = null;
 let invoke = null;
 
 // Track initialization mode
-let _initMode = null; // 'tauri-native' | 'tauri-packs' | 'web'
+// 'tauri-packs-native' = mobile with native SQLite (fast)
+// 'tauri-packs' = desktop with sql.js workers (modular but slower on mobile)
+// 'tauri-native' = legacy single database
+// 'web' = web browser with sql.js
+let _initMode = null;
 
 async function determineInitMode() {
   if (_initMode !== null) return _initMode;
@@ -20,8 +24,22 @@ async function determineInitMode() {
   if (isTauri()) {
     // Check if we should use modular packs
     if (supportsModularPacks()) {
-      _initMode = "tauri-packs";
-      console.log("[Database] Tauri detected with modular packs, using sql.js workers");
+      // On mobile, use native SQLite for performance
+      // On desktop, use sql.js workers (allows hot-swapping packs)
+      if (isMobile()) {
+        try {
+          const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
+          invoke = tauriInvoke;
+          _initMode = "tauri-packs-native";
+          console.log("[Database] Mobile detected, using native SQLite for packs");
+        } catch (e) {
+          console.log("[Database] Mobile Tauri import failed, falling back to sql.js workers:", e);
+          _initMode = "tauri-packs";
+        }
+      } else {
+        _initMode = "tauri-packs";
+        console.log("[Database] Desktop detected with modular packs, using sql.js workers");
+      }
     } else {
       // Fallback to native SQLite (unlikely path)
       try {
@@ -65,11 +83,26 @@ const database = {
     if (this._initialized) return;
 
     const mode = await determineInitMode();
+    console.log('[SqlDatabase.init] Mode:', mode);
 
-    if (mode === "tauri-packs") {
-      // Use multi-database system with sql.js workers per pack
+    if (mode === "tauri-packs-native") {
+      // Mobile: Use native SQLite for packs (fast, no memory loading)
+      console.log('[SqlDatabase.init] Using native SQLite for packs...');
+      const inv = await getInvoke();
+      // Load dictionaries into localStorage
+      const dictionaries = await inv("pack_get_dictionaries");
+      this.loadDictionariesFromNative(dictionaries);
+      // Load all terms for autocomplete
+      console.log('[SqlDatabase.init] Loading all terms via native SQLite...');
+      this.allTerms = await inv("pack_get_all_terms");
+      console.log('[SqlDatabase.init] allTerms.length:', this.allTerms.length);
+    } else if (mode === "tauri-packs") {
+      // Desktop: Use multi-database system with sql.js workers per pack
+      console.log('[SqlDatabase.init] Calling MultiDatabase.initDatabases()...');
       await MultiDatabase.initDatabases();
+      console.log('[SqlDatabase.init] Calling setAllTermsVariable()...');
       await this.setAllTermsVariable();
+      console.log('[SqlDatabase.init] allTerms.length:', this.allTerms.length);
     } else if (mode === "tauri-native") {
       // Use Tauri native SQLite (fallback)
       const inv = await getInvoke();
@@ -132,10 +165,35 @@ const database = {
     );
   },
 
+  /**
+   * Load dictionaries from native pack query results into localStorage
+   */
+  loadDictionariesFromNative(dictionaries) {
+    const existingDictionaries = Storage.get("dictionaries") || [];
+    Storage.set(
+      "dictionaries",
+      dictionaries.map((dict, index) => {
+        const existing = existingDictionaries.find((d) => d.name === dict.name);
+        return {
+          ...dict,
+          enabled: existing ? existing.enabled !== false : true,
+          position: existing ? existing.position : index + 1,
+        };
+      })
+    );
+    // Emit event to notify UI components
+    window.dispatchEvent(new CustomEvent('dictionaries-updated'));
+  },
+
   async exec(query, params) {
     const mode = await determineInitMode();
 
-    if (mode === "tauri-packs") {
+    if (mode === "tauri-packs-native") {
+      // Mobile: Use native SQLite pack query command
+      const inv = await getInvoke();
+      const paramsJson = JSON.stringify(params || []);
+      return await inv("pack_execute_query", { sql: query, paramsJson });
+    } else if (mode === "tauri-packs") {
       // Query all pack databases and merge results
       return MultiDatabase.execAll(query, params);
     } else if (mode === "tauri-native") {
@@ -155,12 +213,18 @@ const database = {
     try {
       const mode = await determineInitMode();
 
-      if (mode === "tauri-packs") {
+      if (mode === "tauri-packs-native") {
+        // Mobile: Use native SQLite
+        const inv = await getInvoke();
+        this.allTerms = await inv("pack_get_all_terms");
+        console.log('[Database] Loaded', this.allTerms.length, 'terms via native SQLite');
+      } else if (mode === "tauri-packs") {
         const terms = await MultiDatabase.execAll(
           "SELECT DISTINCT term FROM entries ORDER BY term"
         );
         // Deduplicate terms from multiple packs
         this.allTerms = [...new Set(terms.map((row) => row.term))].sort();
+        console.log('[Database] Loaded', this.allTerms.length, 'terms');
       } else if (mode === "tauri-native") {
         const inv = await getInvoke();
         this.allTerms = await inv("get_all_terms");
@@ -169,27 +233,37 @@ const database = {
         this.allTerms = terms.map((row) => row.term);
       }
     } catch (error) {
-      // Do nothing, this will happen before DB is initialized
+      console.error('[Database] Failed to load terms:', error);
     }
   },
 
   async getEntriesFor(term) {
     const mode = await determineInitMode();
 
-    if (mode === "tauri-packs") {
-      // Query all packs for this term
-      const results = await MultiDatabase.execAll(
-        `
-        SELECT entries.*, dictionaries.name AS dictionary
+    if (mode === "tauri-packs-native") {
+      // Mobile: Use native SQLite for fast queries
+      const inv = await getInvoke();
+      return await inv("pack_get_entries_for_term", { term });
+    } else if (mode === "tauri-packs") {
+      // Use exact same escaping as SearchPage.prepareTerm()
+      // Order matters: single quotes first, then double quotes
+      const preparedTerm = `"${term.replace(/'/g, "''").replace(/"/g, '""')}"`;
+
+      // FTS query using exact phrase match - mirrors SearchPage pattern
+      const query = `
+        SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition
         FROM entries
-        INNER JOIN dictionaries ON dictionaries.id = dictionaryId
-        WHERE term = ?
+        INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
+        INNER JOIN entries_fts ON entries.id = entries_fts.rowid
+        WHERE entries_fts MATCH 'term:${preparedTerm}'
         ORDER BY dictionaries.position
-        `,
-        [term]
-      );
-      // Sort by dictionary position across all packs
-      return results.sort((a, b) => (a.position || 0) - (b.position || 0));
+      `;
+
+      const results = await MultiDatabase.execAll(query, []);
+
+      // Return all results - FTS phrase match returns exact matches only
+      // No JavaScript filtering that could fail due to Unicode encoding differences
+      return results.sort((a, b) => (a.dictionaryPosition || 0) - (b.dictionaryPosition || 0));
     } else if (mode === "tauri-native") {
       const inv = await getInvoke();
       return await inv("get_entries_for_term", { term });
@@ -210,17 +284,24 @@ const database = {
   async searchEntries(query, searchType = "regular") {
     const mode = await determineInitMode();
 
-    if (mode === "tauri-packs") {
+    if (mode === "tauri-packs-native") {
+      // Mobile: Use native SQLite for fast FTS queries
+      const inv = await getInvoke();
+      return await inv("pack_search_entries", { query, searchType });
+    } else if (mode === "tauri-packs") {
       // Search across all packs
+      // Note: We interpolate the query directly instead of using parameterized queries
+      // because iOS WebWorkers have issues with postMessage serialization of params
+      const escapedQuery = query.replace(/'/g, "''").replace(/%/g, "\\%").replace(/_/g, "\\_");
       const results = await MultiDatabase.execAll(
         `
         SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition
         FROM entries
         INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
-        WHERE entries.term LIKE ?
+        WHERE entries.term LIKE '%${escapedQuery}%' ESCAPE '\\'
         LIMIT 5000
         `,
-        [`%${query}%`]
+        [] // Empty params array - required for iOS WebWorker compatibility
       );
       return results;
     } else if (mode === "tauri-native") {
@@ -245,16 +326,26 @@ const database = {
    * Check if database is ready for queries
    */
   isReady() {
-    return this._initialized && (
-      _initMode === "tauri-packs" ? MultiDatabase.hasLoadedDatabases() : true
-    );
+    if (!this._initialized) return false;
+    // For tauri-packs mode, also check if workers are loaded
+    // For tauri-packs-native, native SQLite is always ready after init
+    if (_initMode === "tauri-packs") {
+      return MultiDatabase.hasLoadedDatabases();
+    }
+    return true;
   },
 
   /**
    * Reload databases after pack installation/removal
    */
   async reloadPack(packId) {
-    if (_initMode === "tauri-packs") {
+    if (_initMode === "tauri-packs-native") {
+      // Mobile: Reload dictionaries and terms from native SQLite
+      const inv = await getInvoke();
+      const dictionaries = await inv("pack_get_dictionaries");
+      this.loadDictionariesFromNative(dictionaries);
+      await this.setAllTermsVariable();
+    } else if (_initMode === "tauri-packs") {
       await MultiDatabase.reloadPack(packId);
       await this.setAllTermsVariable();
     }
@@ -263,8 +354,14 @@ const database = {
   /**
    * Unload a pack after removal
    */
-  unloadPack(packId) {
-    if (_initMode === "tauri-packs") {
+  async unloadPack(packId) {
+    if (_initMode === "tauri-packs-native") {
+      // Mobile: Reload dictionaries and terms after pack removal
+      const inv = await getInvoke();
+      const dictionaries = await inv("pack_get_dictionaries");
+      this.loadDictionariesFromNative(dictionaries);
+      await this.setAllTermsVariable();
+    } else if (_initMode === "tauri-packs") {
       MultiDatabase.unloadPack(packId);
     }
   },

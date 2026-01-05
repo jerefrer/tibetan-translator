@@ -11,7 +11,8 @@ let _isTauri = null;
 async function checkIsTauri() {
   if (_isTauri !== null) return _isTauri;
 
-  if (window.__TAURI_INTERNALS__ || window.__TAURI__) {
+  // Check both Tauri 1.x (__TAURI__) and 2.x (__TAURI_INTERNALS__)
+  if (window.__TAURI__ || window.__TAURI_INTERNALS__) {
     try {
       const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
       invoke = tauriInvoke;

@@ -7,8 +7,10 @@ use database::{
     search_entries,
 };
 use packs::{
-    download_pack, fetch_pack_manifest, get_installed_packs, get_pack_path, read_pack_database,
-    remove_pack, supports_modular_packs, update_pack,
+    download_pack, ensure_pack_available, fetch_pack_manifest, get_installed_packs,
+    get_pack_database_size, get_pack_path, pack_execute_query, pack_get_all_terms,
+    pack_get_dictionaries, pack_get_entries_for_term, pack_search_entries, read_pack_database,
+    read_pack_database_chunk, remove_pack, supports_modular_packs, update_pack,
 };
 use scans::{check_scan_downloaded, delete_scan, download_scan_images, get_scan_image_data};
 
@@ -37,7 +39,16 @@ pub fn run() {
             remove_pack,
             get_pack_path,
             read_pack_database,
+            read_pack_database_chunk,
+            get_pack_database_size,
+            ensure_pack_available,
             supports_modular_packs,
+            // Native SQLite pack queries (for mobile performance)
+            pack_get_all_terms,
+            pack_get_entries_for_term,
+            pack_search_entries,
+            pack_get_dictionaries,
+            pack_execute_query,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

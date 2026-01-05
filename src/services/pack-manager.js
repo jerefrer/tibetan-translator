@@ -8,8 +8,9 @@
 import { reactive } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
+import { convertFileSrc } from '@tauri-apps/api/core';
 import Storage from './storage';
-import { supportsModularPacks } from '../config/platform';
+import { supportsModularPacks, isMobile } from '../config/platform';
 import { PACK_DEFINITIONS, getRequiredPackIds, SUPPORTED_SCHEMA_VERSION } from '../config/pack-definitions';
 
 // Reactive state for pack management
@@ -244,10 +245,81 @@ export const PackManager = {
 
   /**
    * Read pack database as bytes (for sql.js)
+   * On mobile, uses chunked loading to avoid memory issues with large IPC transfers
    */
   async getPackDatabase(packId) {
     if (!supportsModularPacks()) return null;
+
+    // On mobile, use chunked loading to avoid 153MB IPC transfer crash
+    if (isMobile()) {
+      return this.getPackDatabaseChunked(packId);
+    }
+
     return invoke('read_pack_database', { packId });
+  },
+
+  /**
+   * Read pack database in chunks (for memory-constrained mobile devices)
+   * Loads database in 5MB chunks to avoid IPC memory issues
+   */
+  async getPackDatabaseChunked(packId) {
+    const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
+
+    try {
+      // Get total size first
+      const totalSize = await invoke('get_pack_database_size', { packId });
+      console.log(`[PackManager] Loading ${packId} in chunks: ${(totalSize / 1024 / 1024).toFixed(1)}MB`);
+
+      // Allocate buffer for full database
+      const buffer = new Uint8Array(totalSize);
+      let offset = 0;
+      let chunkNum = 0;
+
+      // Load chunks
+      while (offset < totalSize) {
+        const length = Math.min(CHUNK_SIZE, totalSize - offset);
+        const chunk = await invoke('read_pack_database_chunk', {
+          packId,
+          offset,
+          length,
+        });
+
+        // Copy chunk to buffer
+        buffer.set(new Uint8Array(chunk), offset);
+        offset += chunk.length;
+        chunkNum++;
+
+        console.log(`[PackManager] Loaded chunk ${chunkNum}: ${offset}/${totalSize} (${Math.round(offset / totalSize * 100)}%)`);
+      }
+
+      console.log(`[PackManager] Chunked loading complete for ${packId}`);
+      return buffer;
+    } catch (error) {
+      console.error(`[PackManager] Chunked loading failed for ${packId}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get a fetchable URL for a pack database
+   * On mobile, this avoids large IPC transfers by using asset protocol
+   * Returns: { url: string, isFetchable: boolean }
+   */
+  async getPackDatabaseUrl(packId) {
+    if (!supportsModularPacks()) return null;
+
+    try {
+      // Ensure pack is available in app data dir and get its path
+      const filePath = await invoke('ensure_pack_available', { packId });
+
+      // Convert file path to asset URL that can be fetched
+      const url = convertFileSrc(filePath);
+
+      return { url, isFetchable: true };
+    } catch (error) {
+      console.error(`Failed to get pack URL for ${packId}:`, error);
+      return null;
+    }
   },
 
   // ============================================
