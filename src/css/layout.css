@@ -1,5 +1,5 @@
 html {
-  overflow-y: scroll;
+  overflow: hidden; /* No page-level scrollbar */
   background: #fef5e7;
   --black-background: #001211;
   --deep-red: #A30000;
@@ -50,7 +50,11 @@ html.theme--dark {
 
 /* App layout - replaces v-main to avoid Vuetify's dynamic --v-layout-top calculations */
 .app-layout {
-  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport for mobile */
+  overflow: hidden;
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
@@ -124,6 +128,9 @@ html.theme--dark {
 .app-content {
   margin-top: var(--navbar-total-height) !important;
   padding: 0 !important;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0; /* Important for flex children to shrink */
 }
 
 /* Android specific - status bar doesn't report via env() */

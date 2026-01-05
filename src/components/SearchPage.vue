@@ -1,5 +1,4 @@
 <script>
-import $ from 'jquery';
 import _ from 'underscore';
 import { useTheme } from 'vuetify';
 
@@ -35,9 +34,9 @@ export default {
   data() {
     return {
       loading: false,
-      paginationLoading: false,
       entries: undefined,
-      resultsPage: 1,
+      displayedCount: 50, // Start with 50 entries
+      batchSize: 50, // Load 50 more each time
       searchQuery: this.$route.params.query,
       previousQueries: Storage.get('previousQueries') || [],
     };
@@ -50,9 +49,6 @@ export default {
     },
     previousQueries(value) {
       Storage.set('previousQueries', value);
-    },
-    resultsPage(value) {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -81,7 +77,11 @@ export default {
       return _.chain(this.entriesForEnabledDictionaries)
         .sortBy((entry) => {
           // Factor 1: Does term START WITH the search query? (0 = yes, 1 = no)
-          const startsWithBonus = entry.term.toLowerCase().startsWith(searchTermLower) ? 0 : 1;
+          const startsWithBonus = entry.term
+            .toLowerCase()
+            .startsWith(searchTermLower)
+            ? 0
+            : 1;
 
           // Factor 2: BM25 rank (negative values, closer to 0 = better match)
           // Add offset to make all values positive for string comparison
@@ -99,15 +99,14 @@ export default {
         })
         .value();
     },
-    limitedEntries() {
-      return this.sortedEntries
-        .slice((this.resultsPage - 1) * this.numberOfEntriesPerPage)
-        .slice(0, this.numberOfEntriesPerPage);
+    visibleEntries() {
+      // Only return the entries we want to display - NO upfront decoration
+      return this.sortedEntries.slice(0, this.displayedCount);
     },
-    limitedAndDecoratedEntries() {
-      var entries = this.decorateEntries(this.limitedEntries);
-      this.paginationLoading = false;
-      return entries;
+    hasMoreEntries() {
+      return (
+        this.displayedCount < this.totalNumberOfEntriesForEnabledDictionaries
+      );
     },
     totalNumberOfEntriesForEnabledDictionaries() {
       return this.entriesForEnabledDictionaries?.length || 0;
@@ -154,13 +153,14 @@ export default {
           replaceTibetanGroups(term, (tibetan) => convert(tibetan) + ' ')
         );
     },
+    decorateEntry(entry) {
+      var term = this.highlightSearchTerms(entry.term);
+      var definition = Decorator.decorate(entry);
+      definition = this.highlightSearchTerms(definition);
+      return { ...entry, term: term, definition: definition };
+    },
     decorateEntries(entries) {
-      return entries.map((entry) => {
-        var term = this.highlightSearchTerms(entry.term);
-        var definition = Decorator.decorate(entry);
-        definition = this.highlightSearchTerms(definition);
-        return { ...entry, term: term, definition: definition };
-      });
+      return entries.map((entry) => this.decorateEntry(entry));
     },
     wrapAllTibetanWithSpansAndAddTshekIfMissing(definition) {
       return Decorator.wrapAllTibetanWithSpansAndAddTshekIfMissing(definition);
@@ -356,10 +356,48 @@ export default {
         SqlDatabase.exec(query, params)
           .then((rows) => {
             this.entries = rows;
+            this.displayedCount = this.batchSize; // Reset to initial batch
             this.resetDictionariesToDefaultAndSetNumberOfEntries();
           })
-          .finally(() => this.$nextTick(() => (this.loading = false)));
+          .finally(() => {
+            this.$nextTick(() => {
+              this.loading = false;
+              this.setupInfiniteScroll();
+            });
+          });
       } else this.clear();
+    },
+    loadMore() {
+      if (this.hasMoreEntries) {
+        this.displayedCount += this.batchSize;
+      }
+    },
+    setupInfiniteScroll() {
+      this.$nextTick(() => {
+        const sentinel = this.$refs.loadMoreSentinel;
+        if (!sentinel) return;
+
+        this.observer = new IntersectionObserver(
+          (entries) => {
+            if (
+              entries[0].isIntersecting &&
+              this.hasMoreEntries &&
+              !this.loading
+            ) {
+              this.loadMore();
+            }
+          },
+          { rootMargin: '200px' }
+        ); // Load more 200px before reaching bottom
+
+        this.observer.observe(sentinel);
+      });
+    },
+    teardownInfiniteScroll() {
+      if (this.observer) {
+        this.observer.disconnect();
+        this.observer = null;
+      }
     },
     shortDictionaryLabelFor(entry) {
       return this.dictionaryLabelFor(entry.dictionary, { short: true });
@@ -377,8 +415,8 @@ export default {
     this.setPageTitle();
     if (this.searchQuery) this.performSearch();
   },
-  updated() {
-    $('td.active').get(0)?.scrollIntoViewIfNeeded();
+  unmounted() {
+    this.teardownInfiniteScroll();
   },
 };
 </script>
@@ -402,20 +440,6 @@ export default {
         @keyup.enter="performSearch()"
         @click:clear="clear"
       >
-        <template v-slot:prepend-inner>
-          &nbsp;
-          <ResultsAndPaginationAndDictionaries
-            ref="resultsAndPaginationAndDictionaries"
-            v-if="entries != undefined"
-            :loading="paginationLoading"
-            :page="resultsPage"
-            :dictionaries="dictionariesForCurrentResults"
-            :numberOfEntriesPerPage="numberOfEntriesPerPage"
-            :totalNumberOfEntries="totalNumberOfEntriesForEnabledDictionaries"
-            @change:page="changePage($event)"
-            @close:dictionariesMenu="focusInput"
-          />
-        </template>
         <template v-slot:append-inner>
           <v-progress-circular
             size="24"
@@ -439,25 +463,26 @@ export default {
       </v-text-field>
     </v-system-bar>
 
-    <!-- Mobile controls (shown below search bar on mobile) -->
-    <div class="mobile-controls d-sm-none" v-if="entries != undefined">
+    <!-- Results count and dictionaries filter -->
+    <div
+      class="results-header"
+      v-if="entries != undefined && visibleEntries.length"
+    >
+      <div class="results-count">
+        Showing {{ visibleEntries.length }} of
+        {{ totalNumberOfEntriesForEnabledDictionaries }} results
+      </div>
       <ResultsAndPaginationAndDictionaries
-        :loading="paginationLoading"
-        :page="resultsPage"
         :dictionaries="dictionariesForCurrentResults"
-        :numberOfEntriesPerPage="numberOfEntriesPerPage"
         :totalNumberOfEntries="totalNumberOfEntriesForEnabledDictionaries"
-        @change:page="changePage($event)"
+        :hidePagination="true"
         @close:dictionariesMenu="focusInput"
       />
     </div>
 
     <template v-if="!loading">
       <template v-if="entries == undefined">
-        <div
-          v-if="previousQueries.length > 0"
-          class="previous-queries"
-        >
+        <div v-if="previousQueries.length > 0" class="previous-queries">
           <div class="header">
             <v-icon size="small" class="mr-2">mdi-history</v-icon>
             Recent Searches
@@ -489,35 +514,54 @@ export default {
         </div>
       </template>
 
-      <v-table v-else-if="limitedAndDecoratedEntries.length" key="entries">
-        <tbody>
-          <tr v-for="entry in limitedAndDecoratedEntries" class="entry">
-            <td>
-              <v-row>
-                <v-col cols="12" sm="2">
-                  <div class="term tibetan" v-html="entry.term" />
-                </v-col>
-                <v-col cols="12" sm="2" class="dictionary-label-col">
-                  <v-chip
-                    variant="flat"
-                    size="small"
-                    class="ml-2 px-2 dictionary-label"
-                    color="grey-darken-2"
-                    v-html="shortDictionaryLabelFor(entry)"
-                    :class="{
-                      'has-tibetan': shortDictionaryLabelForHasTibetan(entry),
-                    }"
-                    @click="openDictionaryAbout(entry)"
-                  />
-                </v-col>
-                <v-col cols="12" sm="8" class="d-flex">
-                  <div class="definition" v-html="entry.definition" />
-                </v-col>
-              </v-row>
-            </td>
-          </tr>
-        </tbody>
-      </v-table>
+      <div v-else-if="visibleEntries.length" class="entries-list">
+        <div
+          v-for="(entry, index) in visibleEntries"
+          :key="`${entry.term}-${entry.dictionaryId}-${index}`"
+          class="entry"
+        >
+          <v-row>
+            <v-col cols="12" sm="2">
+              <div
+                class="term tibetan"
+                v-html="highlightSearchTerms(entry.term)"
+              />
+            </v-col>
+            <v-col cols="12" sm="2" class="dictionary-label-col">
+              <v-chip
+                variant="flat"
+                size="small"
+                class="ml-2 px-2 dictionary-label"
+                color="grey-darken-2"
+                v-html="shortDictionaryLabelFor(entry)"
+                :class="{
+                  'has-tibetan': shortDictionaryLabelForHasTibetan(entry),
+                }"
+                @click="openDictionaryAbout(entry)"
+              />
+            </v-col>
+            <v-col cols="12" sm="8" class="d-flex">
+              <div
+                class="definition"
+                v-html="highlightSearchTerms(decorateEntry(entry).definition)"
+              />
+            </v-col>
+          </v-row>
+        </div>
+
+        <!-- Sentinel for infinite scroll -->
+        <div ref="loadMoreSentinel" class="load-more-sentinel">
+          <v-progress-circular
+            v-if="hasMoreEntries"
+            indeterminate
+            size="24"
+            color="grey"
+          />
+          <span v-else class="text-grey text-caption">
+            All {{ totalNumberOfEntriesForEnabledDictionaries }} results loaded
+          </span>
+        </div>
+      </div>
 
       <v-alert v-else class="text-center" key="no-entries">No entries</v-alert>
     </template>
@@ -529,12 +573,14 @@ export default {
   display: flex;
   flex-direction: column;
   width: 100%;
+  height: 100%; /* Fill parent container */
   margin: 0;
   padding: 0;
+  overflow: hidden;
 }
 
 .search-page .v-input {
-  background: var(--paper, #FAF3E0);
+  background: var(--paper, #faf3e0);
   border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 }
 
@@ -545,7 +591,10 @@ export default {
 
 .search-page > .v-system-bar {
   position: relative !important;
-  z-index: 1 !important;
+  flex: 0 0 63px !important; /* Don't grow, don't shrink, fixed 63px */
+  max-height: 63px !important;
+  min-height: 63px !important;
+  z-index: 10 !important;
   width: 100%;
   padding: 0 15px !important;
   margin: 0 !important;
@@ -621,7 +670,7 @@ export default {
 }
 
 .search-page .v-input .v-field__field input::placeholder {
-  font-family: "Segoe UI", "Roboto", sans-serif !important;
+  font-family: 'Segoe UI', 'Roboto', sans-serif !important;
   font-size: 18px !important;
   opacity: 0.5;
   color: #666;
@@ -669,6 +718,56 @@ export default {
   font-size: 28px;
 }
 
+/* Entries list with infinite scroll */
+.search-page .entries-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 16px;
+  min-height: 0; /* Important for flex scroll */
+}
+
+.search-page .load-more-sentinel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px;
+  min-height: 60px;
+}
+
+.search-page .results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--paper, #faf3e0);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.v-theme--dark .search-page .results-header {
+  background: #1e1e1e;
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.search-page .results-header .results-count {
+  font-size: 14px;
+  font-weight: 500;
+  color: #666;
+}
+
+.v-theme--dark .search-page .results-header .results-count {
+  color: #aaa;
+}
+
+.search-page .entry {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.v-theme--dark .search-page .entry {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
 .search-page .v-table {
   flex: 1;
   overflow: visible;
@@ -711,9 +810,12 @@ export default {
 }
 
 .search-page .entry .dictionary-label {
+  display: inline-block;
   height: auto;
   margin-top: 14.5px;
-  white-space: break-spaces;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .search-page .entry .v-col:nth-child(2) {
@@ -750,10 +852,13 @@ export default {
 .search-page .previous-queries {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
   padding: 16px;
   padding-top: 40px;
   max-width: 800px;
   margin: 0 auto;
+  min-height: 0;
 }
 
 .search-page .previous-queries .header {
@@ -815,7 +920,7 @@ export default {
   .search-page .mobile-controls {
     display: flex;
     padding: 8px;
-    background: var(--paper, #FAF3E0);
+    background: var(--paper, #faf3e0);
   }
 
   .v-theme--dark .search-page .mobile-controls {
@@ -855,6 +960,22 @@ export default {
 
   .search-page .previous-queries .clear-button-container {
     margin-top: 16px;
+  }
+
+  .search-page .entries-list {
+    padding: 0 8px;
+  }
+
+  .search-page .results-header {
+    padding: 8px 12px;
+  }
+
+  .search-page .results-header .results-count {
+    font-size: 13px;
+  }
+
+  .search-page .load-more-sentinel {
+    padding: 16px;
   }
 }
 </style>

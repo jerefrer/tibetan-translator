@@ -17,6 +17,7 @@ export default {
     dictionaries: Array,
     numberOfEntriesPerPage: Number,
     totalNumberOfEntries: Number,
+    hidePagination: Boolean,
   },
   emits: ['change:page', 'close:dictionariesMenu'],
   data() {
@@ -152,48 +153,50 @@ export default {
     tag="div"
     class="results-and-pagination-and-dictionaries d-flex align-center text-caption text-grey"
   >
-    <span
-      class="list-item"
-      v-if="totalNumberOfEntries > numberOfEntriesPerPage"
-      key="entries"
-    >
-      Entries
-    </span>
+    <template v-if="!hidePagination">
+      <span
+        class="list-item"
+        v-if="totalNumberOfEntries > numberOfEntriesPerPage"
+        key="entries"
+      >
+        Entries
+      </span>
 
-    <span
-      class="list-item"
-      v-if="totalNumberOfEntries > numberOfEntriesPerPage"
-      :key="totalNumberOfEntries + '-' + page"
-    >
-      {{ (page - 1) * numberOfEntriesPerPage }}-{{
-        Math.min(page * numberOfEntriesPerPage, totalNumberOfEntries)
-      }}
-    </span>
+      <span
+        class="list-item"
+        v-if="totalNumberOfEntries > numberOfEntriesPerPage"
+        :key="totalNumberOfEntries + '-' + page"
+      >
+        {{ (page - 1) * numberOfEntriesPerPage }}-{{
+          Math.min(page * numberOfEntriesPerPage, totalNumberOfEntries)
+        }}
+      </span>
 
-    <span
-      class="list-item"
-      v-if="totalNumberOfEntries > numberOfEntriesPerPage"
-      key="out-of"
-    >
-      out of
-    </span>
+      <span
+        class="list-item"
+        v-if="totalNumberOfEntries > numberOfEntriesPerPage"
+        key="out-of"
+      >
+        out of
+      </span>
 
-    <span class="list-item" :key="totalNumberOfEntries">
-      {{ totalNumberOfEntries }}
-    </span>
+      <span class="list-item" :key="totalNumberOfEntries">
+        {{ totalNumberOfEntries }}
+      </span>
 
-    <span
-      class="list-item"
-      v-if="totalNumberOfEntries <= numberOfEntriesPerPage"
-      key="results"
-    >
-      {{ pluralize("result", totalNumberOfEntries) }}
-    </span>
+      <span
+        class="list-item"
+        v-if="totalNumberOfEntries <= numberOfEntriesPerPage"
+        key="results"
+      >
+        {{ pluralize("result", totalNumberOfEntries) }}
+      </span>
+    </template>
 
     <div key="pagination-and-dictionaries" class="pagination-and-dictionaries">
       <v-pagination
         rounded
-        v-if="totalNumberOfEntries > numberOfEntriesPerPage"
+        v-if="!hidePagination && totalNumberOfEntries > numberOfEntriesPerPage"
         class="list-item"
         :model-value="page"
         :length="Math.ceil(totalNumberOfEntries / numberOfEntriesPerPage)"

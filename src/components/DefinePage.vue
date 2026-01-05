@@ -26,7 +26,8 @@ export default {
     return {
       searchTerm: undefined,
       entries: [],
-      termsPage: 1,
+      displayedTermsCount: 100, // Start with 100 terms
+      termsBatchSize: 100, // Load 100 more each time
       loading: false,
       mobileShowDefinition: false,
       isMobile: window.innerWidth <= 600,
@@ -34,9 +35,15 @@ export default {
   },
   watch: {
     searchTerm() {
-      // Reset pagination when search term changes
-      this.termsPage = 1;
+      // Reset displayed count when search term changes
+      this.displayedTermsCount = this.termsBatchSize;
       this.debouncedSelectFirstTermOrClearEntries();
+      // Reconnect observer after terms change
+      this.$nextTick(() => this.setupTermsInfiniteScroll());
+    },
+    visibleTerms() {
+      // Reconnect observer when visible terms change (e.g., after loading more)
+      this.$nextTick(() => this.setupTermsInfiniteScroll());
     },
     selectedTerm(newTerm, oldTerm) {
       this.setSearchTerm();
@@ -46,8 +53,10 @@ export default {
         this.loading = true;
       }
       this.debouncedSetEntriesForSelectedTerm();
-      this.termsPage =
-        Math.floor(this.selectedTermIndex / this.numberOfTermsPerPage) + 1;
+      // Ensure selected term is visible by expanding displayed count if needed
+      if (this.selectedTermIndex >= this.displayedTermsCount) {
+        this.displayedTermsCount = this.selectedTermIndex + this.termsBatchSize;
+      }
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -64,19 +73,18 @@ export default {
     isDark() {
       return this.theme.global.current.value.dark;
     },
-    numberOfTermsPerPage() {
-      return 100;
-    },
     selectedTerm() {
       return this.$route.params.term;
     },
     selectedTermIndex() {
       return this.termsStartingWithSearchTerm.indexOf(this.selectedTerm);
     },
-    limitedTermsStartingWithSearchTerm() {
-      return this.termsStartingWithSearchTerm
-        .slice((this.termsPage - 1) * this.numberOfTermsPerPage)
-        .slice(0, this.numberOfTermsPerPage);
+    visibleTerms() {
+      // Only return terms up to displayedTermsCount - no upfront processing
+      return this.termsStartingWithSearchTerm.slice(0, this.displayedTermsCount);
+    },
+    hasMoreTerms() {
+      return this.displayedTermsCount < this.numberOfTermsStartingWithSearchTerm;
     },
     termsStartingWithSearchTerm() {
       if (!this.searchTerm) return [];
@@ -124,8 +132,8 @@ export default {
     },
     selectFirstTermOrClearEntries() {
       var firstTerm =
-        this.limitedTermsStartingWithSearchTerm &&
-        this.limitedTermsStartingWithSearchTerm[0];
+        this.visibleTerms &&
+        this.visibleTerms[0];
       if (firstTerm) {
         if (
           firstTerm == this.searchTerm &&
@@ -172,6 +180,38 @@ export default {
         this.mobileShowDefinition = false;
       }
     },
+    loadMoreTerms() {
+      if (this.hasMoreTerms) {
+        this.displayedTermsCount += this.termsBatchSize;
+      }
+    },
+    setupTermsInfiniteScroll() {
+      // Teardown existing observer first
+      this.teardownTermsInfiniteScroll();
+
+      this.$nextTick(() => {
+        const sentinel = this.$refs.termsLoadMoreSentinel;
+        const scrollContainer = this.$refs.termsList;
+        if (!sentinel || !scrollContainer) return;
+
+        this.termsObserver = new IntersectionObserver((entries) => {
+          if (entries[0].isIntersecting && this.hasMoreTerms) {
+            this.loadMoreTerms();
+          }
+        }, {
+          root: scrollContainer, // Use the scroll container as root
+          rootMargin: '100px'
+        });
+
+        this.termsObserver.observe(sentinel);
+      });
+    },
+    teardownTermsInfiniteScroll() {
+      if (this.termsObserver) {
+        this.termsObserver.disconnect();
+        this.termsObserver = null;
+      }
+    },
   },
   mounted() {
     this.setSearchTerm();
@@ -186,9 +226,11 @@ export default {
       500
     );
     window.addEventListener('resize', this.handleResize);
+    this.setupTermsInfiniteScroll();
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize);
+    this.teardownTermsInfiniteScroll();
   },
   updated() {
     $("td.active").get(0)?.scrollIntoViewIfNeeded();
@@ -220,31 +262,42 @@ export default {
 
     <div class="define-content-area">
       <div class="terms-drawer">
-        <ResultsAndPaginationAndDictionaries
-          :page="termsPage"
-          :dictionaries="dictionariesForCurrentResults"
-          :numberOfEntriesPerPage="numberOfTermsPerPage"
-          :totalNumberOfEntries="numberOfTermsStartingWithSearchTerm"
-          @change:page="termsPage = $event"
-          @close:dictionariesMenu="focusInput"
-        />
-        <v-table v-if="termsStartingWithSearchTerm.length" class="terms-table">
-          <tbody>
-            <tr v-for="term in limitedTermsStartingWithSearchTerm" class="term">
-              <td
-                class="link tibetan"
-                :class="{
-                  'active bg-primary': selectedTerm == term,
-                  'text-white': selectedTerm == term && !isDark,
-                  'bg-primary-darken-2': selectedTerm == term && isDark,
-                }"
-                @click="selectTermMobile(term)"
-              >
-                <span v-html="term" />
-              </td>
-            </tr>
-          </tbody>
-        </v-table>
+        <div class="terms-header">
+          <span class="terms-count text-caption text-grey" v-if="numberOfTermsStartingWithSearchTerm">
+            Showing {{ visibleTerms.length }} of {{ numberOfTermsStartingWithSearchTerm }} terms
+          </span>
+          <ResultsAndPaginationAndDictionaries
+            :dictionaries="dictionariesForCurrentResults"
+            :totalNumberOfEntries="numberOfTermsStartingWithSearchTerm"
+            :hidePagination="true"
+            @close:dictionariesMenu="focusInput"
+          />
+        </div>
+        <div v-if="termsStartingWithSearchTerm.length" ref="termsList" class="terms-list">
+          <div
+            v-for="term in visibleTerms"
+            :key="term"
+            class="term-item tibetan"
+            :class="{
+              'active bg-primary': selectedTerm == term,
+              'text-white': selectedTerm == term && !isDark,
+              'bg-primary-darken-2': selectedTerm == term && isDark,
+            }"
+            @click="selectTermMobile(term)"
+          >
+            <span v-html="term" />
+          </div>
+
+          <!-- Sentinel for infinite scroll -->
+          <div ref="termsLoadMoreSentinel" class="terms-load-more-sentinel">
+            <v-progress-circular
+              v-if="hasMoreTerms"
+              indeterminate
+              size="20"
+              color="grey"
+            />
+          </div>
+        </div>
         <div
           v-else-if="searchTerm"
           class="d-flex align-center mx-4 text-caption text-grey"
@@ -278,7 +331,8 @@ export default {
 .define-page
   display flex
   flex-direction column
-  height 100%
+  height 100%  // Fill parent container
+  overflow hidden
 
   .search-bar
     flex-shrink 0
@@ -288,48 +342,59 @@ export default {
     display flex
     align-items center
     border-bottom 2px solid rgba(0, 0, 0, 0.1)
+    z-index 10
 
   .define-content-area
     flex 1
     display flex
     overflow hidden
-    min-height 0  // Important for nested flex scroll
+    min-height 0
 
   .terms-drawer
     width 400px
     flex-shrink 0
     background var(--paper, #FAF3E0)
-    overflow-y auto
     border-right 2px solid rgba(0, 0, 0, 0.1)
     display flex
     flex-direction column
+    overflow hidden
 
-    .results-and-pagination-and-dictionaries
-      position sticky
-      top 0
-      z-index 1
+    .terms-header
+      display flex
+      align-items center
+      justify-content space-between
       padding 7px 15px
-      height 48px
+      min-height 48px
       background var(--paper, #FAF3E0)
       border-bottom 2px solid rgba(0, 0, 0, 0.08)
       flex-shrink 0
 
-    .v-table,
-    .v-table *
-      border-radius 0 !important
+      .terms-count
+        white-space nowrap
 
-    .v-table.terms-table
+    .terms-list
       flex 1
       overflow-y auto
-      td:last-child
-        border-bottom thin solid rgba(0, 0, 0, 0.08)
+      min-height 0
 
-    .v-table td.link
-      height 42px !important
-      line-height 42px !important
-      font-size 21px !important
-      transition all 0.28s cubic-bezier(0.4, 0, 0.2, 1)
+    .term-item
+      min-height 48px
+      line-height 48px
+      font-size 21px
+      padding 0 16px
+      border-bottom thin solid rgba(0, 0, 0, 0.08)
+      transition background 0.2s ease
       cursor pointer
+
+      &:hover
+        background rgba(0, 0, 0, 0.04)
+
+    .terms-load-more-sentinel
+      display flex
+      justify-content center
+      align-items center
+      padding 12px
+      min-height 44px
 
   .definitions-container
     flex 1
@@ -337,7 +402,6 @@ export default {
     padding 0
     position relative
     background white
-    min-height calc(100vh - 126px)
 
     .loading-state,
     .empty-state
@@ -420,41 +484,54 @@ export default {
   .terms-drawer
     background #1e1e1e
     border-right-color rgba(255, 255, 255, 0.12)
-    .results-and-pagination-and-dictionaries
+    .terms-header
       background #1e1e1e
       border-bottom-color rgba(255, 255, 255, 0.12)
-    .v-table.terms-table td:last-child
+    .term-item
       border-bottom-color rgba(255, 255, 255, 0.12)
-    .v-table td.link:hover
-      background #444
+      &:hover
+        background rgba(255, 255, 255, 0.08)
   .definitions-container
     background #252525
 
 // Light theme hover
 .v-theme--light .define-page
   .terms-drawer
-    .v-table td.link:hover
+    .term-item:hover
       background #ddd
 
 // Mobile styles
 @media (max-width: 600px)
   .define-page
+    height 100%
+
     .search-bar
       padding 0 10px
 
     .define-content-area
       flex-direction column
+      flex 1
+      min-height 0
 
     .terms-drawer
       width 100%
-      flex none
-      overflow-y visible
+      flex 1
+      display flex
+      flex-direction column
+      overflow hidden
+      min-height 0
 
-      .results-and-pagination-and-dictionaries
-        position relative
+      .terms-header
         padding 7px 10px
+        flex-shrink 0
 
-      .v-table td.link
+      .terms-list
+        flex 1
+        overflow-y auto
+        min-height 0
+        -webkit-overflow-scrolling touch
+
+      .term-item
         padding-left 10px
 
     .definitions-container
@@ -467,6 +544,9 @@ export default {
         display none
 
       .definitions-container
-        display block
+        display flex
+        flex-direction column
         flex 1
+        overflow-y auto
+        min-height 0
 </style>
