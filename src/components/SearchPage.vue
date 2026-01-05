@@ -74,13 +74,27 @@ export default {
       return 100;
     },
     sortedEntries() {
-      // FTS5 already returns correct matches - no need to re-filter with indexOf()
-      // The previous implementation rejected valid FTS5 results because indexOf()
-      // uses substring matching while FTS5 uses word tokenization
+      // Multi-factor sorting with BM25 relevance ranking
+      // Priority: 1) starts with search term, 2) BM25 rank, 3) term length, 4) dictionary position
+      const searchTermLower = this.regularSearchTerms[0]?.toLowerCase() || '';
+
       return _.chain(this.entriesForEnabledDictionaries)
         .sortBy((entry) => {
-          return [entry.term.length, entry.term, entry.dictionaryPosition].map(
-            (x) => x.toString().padStart(10, '0')
+          // Factor 1: Does term START WITH the search query? (0 = yes, 1 = no)
+          const startsWithBonus = entry.term.toLowerCase().startsWith(searchTermLower) ? 0 : 1;
+
+          // Factor 2: BM25 rank (negative values, closer to 0 = better match)
+          // Add offset to make all values positive for string comparison
+          const rankScore = (entry.rank || 0) + 1000;
+
+          // Factor 3: Term length (shorter = more specific match)
+          const termLength = entry.term.length;
+
+          // Factor 4: Dictionary position (user's preferred order)
+          const dictPos = entry.dictionaryPosition || 999;
+
+          return [startsWithBonus, rankScore, termLength, dictPos].map((x) =>
+            x.toString().padStart(10, '0')
           );
         })
         .value();
@@ -326,12 +340,17 @@ export default {
             )}')`
           );
         });
+        // BM25 column weights: term(10), termPhoneticsStrict(8), termPhoneticsLoose(8),
+        // definition(1), definitionPhoneticsWordsStrict(1), definitionPhoneticsWordsLoose(1)
+        // Higher weights = more important for ranking. Term matches weighted 10x over definition.
         var query = `
-            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition
+            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,
+                   bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank
             FROM entries
             INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
             INNER JOIN entries_fts ON entries.id = entries_fts.rowid
             WHERE ${conditions.join(' AND ')}
+            ORDER BY rank
             LIMIT ${this.maxNumberOfEntriesPerRequest}
           `;
         SqlDatabase.exec(query, params)
