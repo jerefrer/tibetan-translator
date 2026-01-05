@@ -547,12 +547,17 @@ export default {
   position: relative !important;
   z-index: 1 !important;
   width: 100%;
-  padding: 0 !important;
+  padding: 0 15px !important;
   margin: 0 !important;
   top: 0 !important;
-  background: transparent !important;
+  background: #fffcf4 !important;
   box-shadow: none !important;
-  --v-layout-top: 0px !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
+}
+
+.v-theme--dark .search-page > .v-system-bar {
+  background: #1e1e1e !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
 }
 
 .search-page .v-input {
@@ -570,6 +575,9 @@ export default {
   padding: 0;
   border-radius: 0;
   height: 63px;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
   --v-field-padding-start: 0;
   --v-field-padding-end: 0;
   --v-field-padding-top: 0;
@@ -579,7 +587,16 @@ export default {
   display: none;
 }
 .search-page .v-input .v-field__overlay {
-  display: none;
+  display: none !important;
+  background: transparent !important;
+}
+.search-page .v-input,
+.search-page .v-input .v-input__control,
+.search-page .v-input .v-field__field,
+.search-page .v-input .v-field__field input {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .search-page .v-input .v-field__prepend-inner {

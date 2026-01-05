@@ -351,8 +351,9 @@ export default {
       </template>
     </v-snackbar>
 
-    <v-main v-if="!loading">
-      <v-system-bar height="63" class="main-navbar">
+    <!-- Using div instead of v-main to avoid Vuetify's --v-layout-top magic that causes iOS layout shifts -->
+    <div v-if="!loading" class="app-layout">
+      <div class="main-navbar">
         <v-tabs grow :model-value="tabIndex" height="63">
           <v-tab
             v-for="tab in tabs"
@@ -398,16 +399,16 @@ export default {
             </div>
           </v-tab>
         </v-tabs>
-      </v-system-bar>
+      </div>
 
-      <v-container fluid class="pa-0 app-content">
+      <div class="app-content">
         <router-view v-slot="{ Component }">
           <keep-alive>
             <component :is="Component" :key="currentTabId" />
           </keep-alive>
         </router-view>
-      </v-container>
-    </v-main>
+      </div>
+    </div>
   </v-app>
 </template>
 

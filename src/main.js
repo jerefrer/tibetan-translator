@@ -9,6 +9,11 @@ if (/android/i.test(navigator.userAgent)) {
   document.documentElement.classList.add('is-android');
 }
 
+// iOS detection
+if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
+  document.documentElement.classList.add('is-ios');
+}
+
 // Create reactive snackbar state for provide/inject pattern
 const snackbar = reactive({
   show: false,

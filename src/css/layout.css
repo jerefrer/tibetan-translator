@@ -7,12 +7,22 @@ html {
   --orange: #FF9800;
   --paper: #FAF3E0;
   --contentBackground: var(--paper);
+  --navbar-height: 63px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --navbar-total-height: calc(var(--navbar-height) + var(--safe-area-top));
   background: var(--contentBackground) !important;
 }
 
 /* iOS safe area - handled per-element, not on body */
 body {
   background: var(--contentBackground);
+}
+
+/* iOS gap fix: Force GPU layer to prevent layout shift on first interaction */
+.is-ios .main-navbar,
+.is-ios .app-content {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 /* Disable iOS text input behaviors globally */
@@ -38,17 +48,10 @@ html.theme--dark {
   background: none !important;
 }
 
-.v-main {
-  transition: none;
-  --v-layout-top: 0px !important;
-  padding-top: 0 !important;
+/* App layout - replaces v-main to avoid Vuetify's dynamic --v-layout-top calculations */
+.app-layout {
+  min-height: 100vh;
   padding-bottom: env(safe-area-inset-bottom, 0px);
-}
-
-/* Reset Vuetify's layout top calculation - we handle it with app-content margin */
-.v-main > .v-main__wrap {
-  --v-layout-top: 0px !important;
-  padding-top: 0 !important;
 }
 
 /* Tab content wrapper for text + help button */
@@ -78,11 +81,6 @@ html.theme--dark {
     padding: 0 8px;
   }
 
-  /* Reset navigation drawer layout offset on mobile */
-  .v-main {
-    --v-layout-left: 0px !important;
-  }
-
   /* Reset overlay layout offset on mobile */
   .v-overlay-container .v-overlay {
     --v-layout-left: 0px !important;
@@ -98,10 +96,7 @@ html.theme--dark {
   color: var(--yellow) !important;
 }
 
-.v-system-bar {
-  padding: 0;
-}
-.theme--light .v-system-bar .v-input {
+.theme--light .main-navbar .v-input {
   background: #fffcf4;
 }
 
@@ -121,13 +116,13 @@ html.theme--dark {
   left: 0 !important;
   right: 0 !important;
   z-index: 1000 !important;
-  height: calc(63px + env(safe-area-inset-top, 0px)) !important;
-  padding-top: env(safe-area-inset-top, 0px);
+  height: var(--navbar-total-height) !important;
+  padding-top: var(--safe-area-top);
   background: var(--deep-red) !important;
 }
 /* Add margin to content to account for fixed navbar */
 .app-content {
-  margin-top: calc(63px + env(safe-area-inset-top, 0px)) !important;
+  margin-top: var(--navbar-total-height) !important;
   padding: 0 !important;
 }
 
@@ -142,28 +137,25 @@ html.theme--dark {
 .app-content > * {
   margin-top: 0 !important;
 }
-.main-navbar.v-system-bar {
-  background: var(--deep-red) !important;
-}
-.v-system-bar .v-tabs {
+.main-navbar .v-tabs {
   background: transparent !important;
 }
-.v-system-bar .v-tab {
+.main-navbar .v-tab {
   font-weight: bold;
   color: #f8f8f8 !important;
 }
-.v-system-bar .v-tab--selected {
+.main-navbar .v-tab--selected {
   color: var(--yellow) !important;
 }
-.v-system-bar .v-slide-group__next,
-.v-system-bar .v-slide-group__prev {
+.main-navbar .v-slide-group__next,
+.main-navbar .v-slide-group__prev {
   display: none !important;
 }
-.theme--light .v-system-bar .v-tab.configure:not(.v-tab--selected) {
+.theme--light .main-navbar .v-tab.configure:not(.v-tab--selected) {
   color: #cccccc !important;
 }
 /* Vuetify 3: tab indicator is .v-tab__slider */
-.v-system-bar .v-tab__slider {
+.main-navbar .v-tab__slider {
   height: 4px !important;
   bottom: 12px;
   width: 21px;
@@ -186,8 +178,9 @@ html.theme--dark {
   color: #616161 !important;
 }
 
-.v-main .v-main__wrap .container,
-.v-main .v-main__wrap .container .v-tabs-items {
+/* Container height for app content */
+.app-content .container,
+.app-content .v-tabs-items {
   height: 100%;
 }
 

@@ -81,7 +81,8 @@
       "Bash(mkdir:*)",
       "Bash(pnpm run build:packs:*)",
       "Bash(SHELL=/bin/bash /bin/bash:*)",
-      "Bash(JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" pnpm tauri android build:*)"
+      "Bash(JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" pnpm tauri android build:*)",
+      "WebFetch(domain:bugs.webkit.org)"
     ]
   }
 }
