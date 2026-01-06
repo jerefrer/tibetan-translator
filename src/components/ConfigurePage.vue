@@ -399,6 +399,9 @@ export default {
 <style lang="sass">
 .configure-page
   margin-top: 30px
+  padding-bottom: 20px
+  overflow-y: auto
+  max-height: 100%
 
   .theme-selector
     width: 100%
@@ -408,7 +411,7 @@ export default {
 
     .theme-buttons
       display: flex
-      justify-content: center
+      justify-content: flex-start
       gap: 8px
       flex-wrap: wrap
 
