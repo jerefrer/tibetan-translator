@@ -245,24 +245,19 @@ const database = {
       const inv = await getInvoke();
       return await inv("pack_get_entries_for_term", { term });
     } else if (mode === "tauri-packs") {
-      // Use exact same escaping as SearchPage.prepareTerm()
-      // Order matters: single quotes first, then double quotes
-      const preparedTerm = `"${term.replace(/'/g, "''").replace(/"/g, '""')}"`;
+      // Use exact term matching (not FTS) for Define page
+      // Escape single quotes for SQL safety
+      const escapedTerm = term.replace(/'/g, "''");
 
-      // FTS query using exact phrase match - mirrors SearchPage pattern
       const query = `
         SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition
         FROM entries
         INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
-        INNER JOIN entries_fts ON entries.id = entries_fts.rowid
-        WHERE entries_fts MATCH 'term:${preparedTerm}'
+        WHERE entries.term = '${escapedTerm}'
         ORDER BY dictionaries.position
       `;
 
       const results = await MultiDatabase.execAll(query, []);
-
-      // Return all results - FTS phrase match returns exact matches only
-      // No JavaScript filtering that could fail due to Unicode encoding differences
       return results.sort((a, b) => (a.dictionaryPosition || 0) - (b.dictionaryPosition || 0));
     } else if (mode === "tauri-native") {
       const inv = await getInvoke();
