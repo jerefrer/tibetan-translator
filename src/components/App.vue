@@ -14,7 +14,6 @@ import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup.vue";
 import OnboardingScreen from "./OnboardingScreen.vue";
 import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton.vue";
 import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton.vue";
-import TranslatePageHelpDialogWithButton from "./TranslatePageHelpDialogWithButton.vue";
 
 import "@mdi/font/css/materialdesignicons.css";
 
@@ -37,7 +36,6 @@ export default {
     OnboardingScreen,
     DefinePageHelpDialogWithButton,
     SearchPageHelpDialogWithButton,
-    TranslatePageHelpDialogWithButton,
   },
   inject: ["snackbar"],
   setup() {
@@ -63,7 +61,6 @@ export default {
       return [
         { id: "define", name: "<u>D</u>efine" },
         { id: "search", name: "<u>S</u>earch" },
-        // { id: "translate", name: "<u>T</u>ranslate" }, // Hidden for now - to be improved for mobile
         { id: "configure", name: "Confi<u>g</u>ure" },
       ];
     },
@@ -130,9 +127,6 @@ export default {
             } else if (event.key.toLowerCase() == "s") {
               event.preventDefault();
               vm.$router.push("/search");
-            // } else if (event.key.toLowerCase() == "t") {
-            //   event.preventDefault();
-            //   vm.$router.push("/translate");
             } else if (event.key.toLowerCase() == "g") {
               event.preventDefault();
               vm.$router.push("/configure");
@@ -366,37 +360,8 @@ export default {
               <span v-html="tab.name"></span>
               <DefinePageHelpDialogWithButton v-if="tab.id == 'define'" />
               <SearchPageHelpDialogWithButton v-if="tab.id == 'search'" />
-              <TranslatePageHelpDialogWithButton v-if="tab.id == 'translate'" />
             </div>
 
-            <div>
-              <v-slide-y-transition appear>
-                <div
-                  v-if="tab.id == 'translate' && currentTabId == 'translate'"
-                  style="
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    display: flex;
-                    justify-content: center;
-                  "
-                >
-                  <v-chip
-                    variant="flat"
-                    size="x-small"
-                    style="
-                      text-transform: lowercase;
-                      background: var(--yellow) !important;
-                      color: var(--deep-red) !important;
-                      border-radius: 0 0 2px 2px !important;
-                    "
-                  >
-                    experimental
-                  </v-chip>
-                </div>
-              </v-slide-y-transition>
-            </div>
           </v-tab>
         </v-tabs>
       </div>
