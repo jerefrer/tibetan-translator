@@ -84,7 +84,14 @@
       "Bash(JAVA_HOME=\"/Applications/Android Studio.app/Contents/jbr/Contents/Home\" pnpm tauri android build:*)",
       "WebFetch(domain:bugs.webkit.org)",
       "Bash(pnpm remove:*)",
-      "Bash(timeout 8 pnpm dev:*)"
+      "Bash(timeout 8 pnpm dev:*)",
+      "Bash(devicectl list:*)",
+      "Bash(xcrun devicectl:*)",
+      "Bash(xcrun:*)",
+      "Bash(system_profiler:*)",
+      "Bash(ideviceinfo:*)",
+      "Bash(plutil:*)",
+      "Bash(open /Applications/Xcode.app)"
     ]
   }
 }
