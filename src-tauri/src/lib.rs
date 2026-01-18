@@ -16,8 +16,23 @@ use scans::{check_scan_downloaded, delete_scan, download_scan_images, get_scan_i
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_clipboard_manager::init());
+
+    // Add global shortcut plugin (desktop only)
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_global_shortcut::Builder::new().build());
+    }
+
+    // Add macOS permissions plugin (only on macOS)
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder.plugin(tauri_plugin_macos_permissions::init());
+    }
+
+    builder
         .invoke_handler(tauri::generate_handler![
             // Database commands
             init_database,

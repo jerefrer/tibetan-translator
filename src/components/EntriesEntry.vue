@@ -123,6 +123,7 @@
   cursor: pointer;
   height: auto;
   white-space: break-spaces;
+  padding-bottom: 1px;
 }
 
 .dictionary-label:hover {

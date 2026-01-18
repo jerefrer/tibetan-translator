@@ -4,6 +4,7 @@ import { useTheme } from 'vuetify';
 
 import Storage from '../services/storage';
 import DictionariesDetails from '../services/dictionaries-details';
+import GlobalLookup from '../services/global-lookup';
 import {
   getScannedDictionaries,
   isScanDownloaded,
@@ -52,6 +53,14 @@ export default {
       scanDownloadStatus: {},
       isAppMode: false,
       progressUnlisten: null,
+      // Global lookup settings
+      globalLookupSupported: false,
+      globalLookupEnabled: true,
+      globalLookupHotkey: '',
+      globalLookupHotkeyDisplay: '',
+      isRecordingHotkey: false,
+      needsAccessibilityPermission: false,
+      isMacOS: false,
     };
   },
   watch: {
@@ -69,6 +78,14 @@ export default {
     themePreference(value) {
       Storage.set('themePreference', value);
       this.applyTheme(value);
+    },
+    async globalLookupEnabled(value) {
+      const result = await GlobalLookup.toggle(value);
+      if (!result.success && result.needsPermission) {
+        this.needsAccessibilityPermission = true;
+      } else {
+        this.needsAccessibilityPermission = false;
+      }
     },
   },
   methods: {
@@ -190,6 +207,53 @@ export default {
         return `${Math.round(sizeKB / 1024)} MB`;
       }
       return `${sizeKB} KB`;
+    },
+    // Global lookup methods
+    startRecordingHotkey() {
+      this.isRecordingHotkey = true;
+      this.$nextTick(() => {
+        this.$refs.hotkeyInput?.focus();
+      });
+    },
+    stopRecordingHotkey() {
+      this.isRecordingHotkey = false;
+    },
+    async handleHotkeyKeydown(event) {
+      if (!this.isRecordingHotkey) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      const hotkeyString = GlobalLookup.keyEventToHotkeyString(event);
+
+      if (hotkeyString) {
+        this.globalLookupHotkey = hotkeyString;
+        this.globalLookupHotkeyDisplay = GlobalLookup.formatHotkeyForDisplay(hotkeyString);
+        this.isRecordingHotkey = false;
+
+        // Update the global shortcut
+        const result = await GlobalLookup.updateHotkey(hotkeyString);
+        console.log('updateHotkey result:', result);
+        if (result.success) {
+          this.needsAccessibilityPermission = false;
+          this.snackbar.open('Hotkey updated successfully');
+        } else if (result.needsPermission) {
+          this.needsAccessibilityPermission = true;
+          this.snackbar.open('Accessibility permission required. Click "Grant Permission" below.');
+        } else {
+          this.snackbar.open(`Failed to register hotkey: ${result.error || 'Unknown error'}`);
+        }
+      }
+    },
+    async openAccessibilitySettings() {
+      await GlobalLookup.requestAccessibilityPermission();
+      this.snackbar.open('Please enable Tibetan Translator in Accessibility settings, then toggle Global Lookup off and on again.');
+    },
+    resetHotkeyToDefault() {
+      const defaultHotkey = 'CommandOrControl+Shift+D';
+      this.globalLookupHotkey = defaultHotkey;
+      this.globalLookupHotkeyDisplay = GlobalLookup.formatHotkeyForDisplay(defaultHotkey);
+      GlobalLookup.updateHotkey(defaultHotkey);
     }
   },
   async created() {
@@ -209,6 +273,21 @@ export default {
     this.isAppMode = await isAppMode();
     await this.loadScannedDictionaries();
     await this.setupProgressListener();
+
+    // Initialize global lookup settings
+    this.globalLookupSupported = GlobalLookup.isSupported();
+    if (this.globalLookupSupported) {
+      this.isMacOS = GlobalLookup.isMacOS();
+      this.globalLookupEnabled = GlobalLookup.isEnabled();
+      this.globalLookupHotkey = GlobalLookup.getHotkey();
+      this.globalLookupHotkeyDisplay = GlobalLookup.formatHotkeyForDisplay(this.globalLookupHotkey);
+
+      // Check if we need accessibility permission on macOS
+      if (this.isMacOS && this.globalLookupEnabled) {
+        const hasPermission = await GlobalLookup.checkAccessibilityPermission();
+        this.needsAccessibilityPermission = !hasPermission;
+      }
+    }
   },
   unmounted() {
     // Clean up event listeners
@@ -257,6 +336,99 @@ export default {
           Dark
         </v-btn>
       </div>
+    </v-card>
+
+    <!-- Global Lookup Settings (Desktop only) -->
+    <v-card v-if="globalLookupSupported" class="global-lookup-settings mb-4">
+      <v-toolbar>
+        <v-icon size="x-large" color="grey">mdi-keyboard</v-icon>
+        <v-toolbar-title>
+          Global Lookup
+          <div class="text-caption text-grey">
+            Look up Tibetan text from anywhere on your system
+          </div>
+        </v-toolbar-title>
+        <template v-slot:append>
+          <v-switch
+            v-model="globalLookupEnabled"
+            hide-details
+            color="primary"
+            class="mr-2"
+          />
+        </template>
+      </v-toolbar>
+
+      <v-card-text>
+        <!-- Permission warning for macOS -->
+        <v-alert
+          v-if="needsAccessibilityPermission && isMacOS && globalLookupEnabled"
+          type="warning"
+          variant="tonal"
+          class="mb-4"
+        >
+          <div class="d-flex align-center justify-space-between flex-wrap">
+            <div>
+              <div class="font-weight-medium">Accessibility Permission Required</div>
+              <div class="text-body-2">
+                Global hotkeys need accessibility access to work system-wide.
+              </div>
+            </div>
+            <v-btn
+              color="warning"
+              variant="flat"
+              size="small"
+              class="mt-2 mt-sm-0"
+              @click="openAccessibilitySettings"
+            >
+              Grant Permission
+            </v-btn>
+          </div>
+        </v-alert>
+
+        <div class="hotkey-section" :class="{ 'content-disabled': !globalLookupEnabled }">
+          <div class="text-body-1 mb-2">Hotkey</div>
+          <div class="d-flex align-center gap-2">
+            <v-text-field
+              ref="hotkeyInput"
+              :model-value="isRecordingHotkey ? 'Press any key combination...' : globalLookupHotkeyDisplay"
+              readonly
+              variant="outlined"
+              density="compact"
+              hide-details
+              :class="{ 'recording': isRecordingHotkey }"
+              class="hotkey-input"
+              @keydown="handleHotkeyKeydown"
+              @blur="stopRecordingHotkey"
+            />
+            <v-btn
+              v-if="!isRecordingHotkey"
+              variant="outlined"
+              density="compact"
+              @click="startRecordingHotkey"
+            >
+              Change
+            </v-btn>
+            <v-btn
+              v-else
+              variant="text"
+              density="compact"
+              @click="stopRecordingHotkey"
+            >
+              Cancel
+            </v-btn>
+            <v-btn
+              variant="text"
+              density="compact"
+              @click="resetHotkeyToDefault"
+            >
+              Reset
+            </v-btn>
+          </div>
+          <div class="text-caption text-grey mt-2">
+            Copy Tibetan text anywhere, then press the hotkey to look it up
+          </div>
+        </div>
+      </v-card-text>
     </v-card>
 
     <!-- Dictionary Packs Section (Tauri only) -->
@@ -508,6 +680,39 @@ export default {
       font-size: 9px
       font-weight: 600
       color: var(--v-theme-primary)
+
+  .global-lookup-settings
+    width: 100%
+
+    .v-toolbar .v-icon
+      margin: 0 10px 0 10px
+
+    .v-toolbar__title, .v-toolbar__title .text-caption
+      line-height: 1em
+
+    .v-toolbar__title .text-caption
+      margin-top: 5px
+
+    .hotkey-section.content-disabled
+      opacity: 0.5
+      pointer-events: none
+
+    .hotkey-input
+      max-width: 200px
+
+      &.recording
+        .v-field
+          border-color: rgb(var(--v-theme-primary))
+          animation: pulse 1s infinite
+
+    .hotkey-section .v-btn
+      height: 40px
+
+    @keyframes pulse
+      0%, 100%
+        opacity: 1
+      50%
+        opacity: 0.7
 
   .database-reinitialization .v-toolbar .v-icon
     margin: 0 9px 0 -6px

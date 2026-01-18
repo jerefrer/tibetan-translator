@@ -7,6 +7,7 @@ import db from "../services/sql-database";
 import Storage from "../services/storage";
 import EventHandlers from "../services/event-handlers";
 import PackManager from "../services/pack-manager";
+import GlobalLookup from "../services/global-lookup";
 import { supportsModularPacks } from "../config/platform";
 
 import { substituteLinksWithATags } from "../utils.js";
@@ -294,6 +295,12 @@ export default {
     // Init database (core pack is bundled, so always available)
     await db.init();
     this.loading = false;
+
+    // Initialize global lookup (desktop only)
+    // The popup window is handled by the global-lookup service itself
+    if (GlobalLookup.isSupported()) {
+      await GlobalLookup.initialize();
+    }
   },
   mounted() {
     this.addListenerToOpenSnackbarOnAbbreviationClick();
@@ -301,8 +308,11 @@ export default {
     this.addListenersForKeyboardTabNavigation();
     this.addListenerForAudioPlayback();
   },
-  unmounted() {
+  async unmounted() {
     EventHandlers.remove("tabs-shortcuts");
+    if (GlobalLookup.isSupported()) {
+      await GlobalLookup.cleanup();
+    }
   },
 };
 </script>

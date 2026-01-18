@@ -1,0 +1,10 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "macos",
+  "description": "enables macOS-specific permissions",
+  "windows": ["main", "global-lookup-popup"],
+  "platforms": ["macOS"],
+  "permissions": [
+    "macos-permissions:default"
+  ]
+}

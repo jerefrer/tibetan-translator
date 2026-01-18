@@ -15,7 +15,13 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist'
+    outDir: 'dist',
+    rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        popup: path.resolve(__dirname, 'popup.html')
+      }
+    }
   },
   server: {
     port: 8080
