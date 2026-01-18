@@ -11,12 +11,31 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Tibetan Translator",
         "width": 1280,
         "height": 1024,
         "resizable": true,
         "fullscreen": false,
         "dragDropEnabled": false
+      },
+      {
+        "label": "global-lookup-popup",
+        "title": "Tibetan Lookup",
+        "url": "popup.html",
+        "width": 650,
+        "height": 500,
+        "minWidth": 450,
+        "minHeight": 300,
+        "resizable": true,
+        "minimizable": false,
+        "maximizable": false,
+        "alwaysOnTop": true,
+        "decorations": false,
+        "skipTaskbar": true,
+        "shadow": true,
+        "visible": false,
+        "visibleOnAllWorkspaces": true
       }
     ],
     "security": {

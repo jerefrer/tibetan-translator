@@ -520,13 +520,22 @@ fn get_all_pack_db_paths(app: &AppHandle) -> Result<Vec<(String, PathBuf)>, Stri
 /// Get all unique terms from all installed packs (for Define page autocomplete)
 #[tauri::command]
 pub async fn pack_get_all_terms(app: AppHandle) -> Result<Vec<String>, String> {
+    println!("[pack_get_all_terms] Starting...");
+
     // First ensure core pack is available in app data
-    ensure_pack_available(app.clone(), "core".to_string()).await?;
+    let core_path = ensure_pack_available(app.clone(), "core".to_string()).await?;
+    println!("[pack_get_all_terms] Core pack ensured at: {}", core_path);
 
     let pack_paths = get_all_pack_db_paths(&app)?;
+    println!("[pack_get_all_terms] Found {} pack paths", pack_paths.len());
+    for (pack_id, path) in &pack_paths {
+        println!("[pack_get_all_terms]   - {}: {:?}", pack_id, path);
+    }
+
     let mut all_terms = std::collections::HashSet::new();
 
     for (pack_id, db_path) in pack_paths {
+        println!("[pack_get_all_terms] Opening pack: {} at {:?}", pack_id, db_path);
         match Connection::open(&db_path) {
             Ok(conn) => {
                 let mut stmt = conn
@@ -539,10 +548,11 @@ pub async fn pack_get_all_terms(app: AppHandle) -> Result<Vec<String>, String> {
                     .filter_map(|r| r.ok())
                     .collect();
 
+                println!("[pack_get_all_terms] Pack {} returned {} terms", pack_id, terms.len());
                 all_terms.extend(terms);
             }
             Err(e) => {
-                eprintln!("Warning: Failed to open pack {} at {:?}: {}", pack_id, db_path, e);
+                eprintln!("[pack_get_all_terms] Warning: Failed to open pack {} at {:?}: {}", pack_id, db_path, e);
                 // Continue with other packs
             }
         }
@@ -550,6 +560,7 @@ pub async fn pack_get_all_terms(app: AppHandle) -> Result<Vec<String>, String> {
 
     let mut terms_vec: Vec<String> = all_terms.into_iter().collect();
     terms_vec.sort();
+    println!("[pack_get_all_terms] Total unique terms: {}", terms_vec.len());
     Ok(terms_vec)
 }
 

@@ -91,7 +91,18 @@
       "Bash(system_profiler:*)",
       "Bash(ideviceinfo:*)",
       "Bash(plutil:*)",
-      "Bash(open /Applications/Xcode.app)"
+      "Bash(open /Applications/Xcode.app)",
+      "Bash(pnpm run tauri:*)",
+      "Bash(/Users/jeremy/.cargo/bin/cargo check)",
+      "Bash(SHELL=/bin/bash /Users/jeremy/.cargo/bin/cargo check:*)",
+      "Bash(npm show:*)",
+      "Bash(npm pack:*)",
+      "Bash(npm run build:*)",
+      "Bash(SHELL=/bin/bash /usr/bin/bash -c \"cd /Users/jeremy/Documents/Programming/tibetan-translator/src-tauri && cargo check 2>&1 | tail -30\":*)",
+      "Bash(/bin/sh:*)",
+      "Bash(cargo build:*)",
+      "Bash(cargo clean:*)",
+      "mcp__serena__write_memory"
     ]
   }
 }
