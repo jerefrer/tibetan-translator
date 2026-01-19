@@ -38,7 +38,7 @@
     <template v-slot:activator="{ props }">
       <v-fab-transition appear>
         <v-btn
-          v-if="$route.path.includes('/define')"
+          v-if="$route.path.includes('/segment')"
           icon
           variant="text"
           size="large"
@@ -60,7 +60,7 @@
 
         <v-toolbar-title>
           <v-icon>mdi-help-circle</v-icon>
-          How to use the define page
+          How to use the split page
         </v-toolbar-title>
 
         <template v-slot:extension>
@@ -95,13 +95,22 @@
                   <td class="pl-0">
                     <v-icon class="keyboard-square">mdi-arrow-up</v-icon>
                   </td>
-                  <td class="pl-4">Select previous entry in results</td>
+                  <td class="pl-4">Select previous word in results</td>
                 </tr>
                 <tr>
                   <td class="pl-0">
                     <v-icon class="keyboard-square">mdi-arrow-down</v-icon>
                   </td>
-                  <td class="pl-4">Select next entry in results</td>
+                  <td class="pl-4">Select next word in results</td>
+                </tr>
+                <tr>
+                  <td class="pl-0">
+                    <div class="keyboard-square">Ctrl</div>
+                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
+                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon class="keyboard-square ml-1">mdi-keyboard-return</v-icon>
+                  </td>
+                  <td class="pl-4">Split the text into words</td>
                 </tr>
                 <tr>
                   <td class="pl-0">

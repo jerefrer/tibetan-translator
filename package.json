@@ -60,6 +60,7 @@
     "tibetan-normalizer": "^0.1.0",
     "tibetan-regexps": "^1.0.3",
     "tibetan-to-phonetics": "^0.8.5",
+    "tibetan-word-tokenizer": "^1.0.0",
     "timeago": "^1.6.7",
     "underscore": "^1.13.6",
     "uuid": "^9.0.1",

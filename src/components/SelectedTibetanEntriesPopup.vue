@@ -71,6 +71,11 @@
         if (selectingInsideAnInputField)
           return false;
 
+        // Don't open the popup on the Segment page (it has its own term lookup)
+        var selectingInsideSegmentPage = !!$(selection.anchorNode).parents('.segment-page').length;
+        if (selectingInsideSegmentPage)
+          return false;
+
         // Don't open the popup if the selection has a lot of non-Tibetan text
         var numberOfNonTibetanCharacters =
           selectionString.match(TibetanRegExps.anythingNonTibetan)?.length || 0;

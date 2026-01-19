@@ -15,6 +15,7 @@ import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup.vue";
 import OnboardingScreen from "./OnboardingScreen.vue";
 import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton.vue";
 import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton.vue";
+import SplitPageHelpDialogWithButton from "./SplitPageHelpDialogWithButton.vue";
 
 import "@mdi/font/css/materialdesignicons.css";
 
@@ -37,6 +38,7 @@ export default {
     OnboardingScreen,
     DefinePageHelpDialogWithButton,
     SearchPageHelpDialogWithButton,
+    SplitPageHelpDialogWithButton,
   },
   inject: ["snackbar"],
   setup() {
@@ -52,6 +54,7 @@ export default {
     return {
       loading: true,
       showOnboarding: false,
+      isMobile: window.innerWidth <= 600,
     };
   },
   computed: {
@@ -60,9 +63,10 @@ export default {
     },
     tabs() {
       return [
-        { id: "define", name: "<u>D</u>efine" },
-        { id: "search", name: "<u>S</u>earch" },
-        { id: "configure", name: "Confi<u>g</u>ure" },
+        { id: "define", name: "<u>D</u>efine", mobileName: "Define" },
+        { id: "search", name: "<u>S</u>earch", mobileName: "Search" },
+        { id: "segment", name: "Spli<u>t</u>", mobileName: "Split" },
+        { id: "settings", name: "Settin<u>g</u>s", mobileName: "", icon: "mdi-cog" },
       ];
     },
     currentTabId() {
@@ -128,9 +132,12 @@ export default {
             } else if (event.key.toLowerCase() == "s") {
               event.preventDefault();
               vm.$router.push("/search");
+            } else if (event.key.toLowerCase() == "t") {
+              event.preventDefault();
+              vm.$router.push("/segment");
             } else if (event.key.toLowerCase() == "g") {
               event.preventDefault();
-              vm.$router.push("/configure");
+              vm.$router.push("/settings");
             }
           }
         },
@@ -277,6 +284,9 @@ export default {
         $(document).on("touchmove", onTouchMove);
         $(document).on("touchend", onTouchEnd);
       });
+    },
+    handleResize() {
+      this.isMobile = window.innerWidth <= 600;
     }
   },
   async created() {
@@ -307,9 +317,11 @@ export default {
     this.addListenerForDefinitionLinks();
     this.addListenersForKeyboardTabNavigation();
     this.addListenerForAudioPlayback();
+    window.addEventListener("resize", this.handleResize);
   },
   async unmounted() {
     EventHandlers.remove("tabs-shortcuts");
+    window.removeEventListener("resize", this.handleResize);
     if (GlobalLookup.isSupported()) {
       await GlobalLookup.cleanup();
     }
@@ -364,12 +376,19 @@ export default {
             :key="tab.id"
             :to="'/' + tab.id"
             :value="tabs.indexOf(tab)"
-            :class="{ configure: tab.id == 'configure' }"
+            :class="{ settings: tab.id == 'settings' }"
           >
             <div class="tab-content">
-              <span v-html="tab.name"></span>
+              <!-- Mobile: show icon for settings, plain text for others -->
+              <template v-if="isMobile">
+                <v-icon v-if="tab.icon">{{ tab.icon }}</v-icon>
+                <span v-else>{{ tab.mobileName }}</span>
+              </template>
+              <!-- Desktop: show name with underlined shortcut key -->
+              <span v-else v-html="tab.name"></span>
               <DefinePageHelpDialogWithButton v-if="tab.id == 'define'" />
               <SearchPageHelpDialogWithButton v-if="tab.id == 'search'" />
+              <SplitPageHelpDialogWithButton v-if="tab.id == 'segment'" />
             </div>
 
           </v-tab>

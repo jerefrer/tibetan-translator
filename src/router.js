@@ -4,6 +4,7 @@ import Storage from './services/storage'
 
 import DefinePage from './components/DefinePage.vue'
 import SearchPage from './components/SearchPage.vue'
+import SegmentPage from './components/SegmentPage.vue'
 import ConfigurePage from './components/ConfigurePage.vue'
 import TestsPage from './components/TestsPage.vue'
 
@@ -13,7 +14,8 @@ const routes = [
   { path: '/define/:term', component: DefinePage },
   { path: '/search', component: SearchPage },
   { path: '/search/:query', component: SearchPage },
-  { path: '/configure', component: ConfigurePage },
+  { path: '/segment', component: SegmentPage },
+  { path: '/settings', component: ConfigurePage },
   { path: '/tests', component: TestsPage },
 ]
 

@@ -44,6 +44,9 @@ importers:
       tibetan-to-phonetics:
         specifier: ^0.8.5
         version: 0.8.5
+      tibetan-word-tokenizer:
+        specifier: ^1.0.0
+        version: 1.0.0
       timeago:
         specifier: ^1.6.7
         version: 1.6.7
@@ -2326,6 +2329,10 @@ packages:
 
   tibetan-to-phonetics@0.8.5:
     resolution: {integrity: sha512-BeVzFwa7EL4/Wxj9IQ0mDe9NOjB+3qYsj3gvRKz9XGUdOJGM5a2u3IrSImYy3ObDjsS5Z7BxLGBLcoeHZyG06w==}
+
+  tibetan-word-tokenizer@1.0.0:
+    resolution: {integrity: sha512-wTu2lK+tMbYnqy14v693CVZNbpSHrJdAC/TQUc8Vax1NCtfbOqAmBfzIL9PjwttrZHUCwlZcZDy3XrQJuDzvRg==}
+    engines: {node: '>=18.0.0'}
 
   timeago@1.6.7:
     resolution: {integrity: sha512-FikcjN98+ij0siKH4VO4dZ358PR3oDDq4Vdl1+sN9gWz1/+JXGr3uZbUShYH/hL7bMhcTpPbplJU5Tej4b4jbQ==}
@@ -4930,6 +4937,8 @@ snapshots:
       tibetan-normalizer: 0.1.0
       tibetan-syllable-parser: 1.0.5
       underscore: 1.13.6
+
+  tibetan-word-tokenizer@1.0.0: {}
 
   timeago@1.6.7:
     dependencies:

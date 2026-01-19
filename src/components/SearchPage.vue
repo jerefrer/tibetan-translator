@@ -43,6 +43,10 @@ export default {
       searchQuery: this.$route.params.query,
       previousQueries: Storage.get('previousQueries') || [],
       scanViewerEntry: null, // Entry for which scan viewer is open
+      // Cached highlight terms - only updated on search, not on input change
+      cachedRegularTerms: [],
+      cachedPhoneticsStrictTerms: [],
+      cachedPhoneticsLooseTerms: [],
     };
   },
   watch: {
@@ -76,7 +80,8 @@ export default {
     sortedEntries() {
       // Multi-factor sorting with BM25 relevance ranking
       // Priority: 1) starts with search term, 2) BM25 rank, 3) term length, 4) dictionary position
-      const searchTermLower = this.regularSearchTerms[0]?.toLowerCase() || '';
+      // Use cached terms to avoid re-sorting on input change (only on search)
+      const searchTermLower = this.cachedRegularTerms[0]?.toLowerCase() || '';
 
       return _.chain(this.entriesForEnabledDictionaries)
         .sortBy((entry) => {
@@ -176,20 +181,21 @@ export default {
             return part;
           }
           // Apply highlighting to text nodes only
+          // Use cached terms (frozen at search time) to avoid re-rendering on input change
           let highlighted = part;
-          this.regularSearchTerms.forEach((term) => {
+          this.cachedRegularTerms.forEach((term) => {
             var escapedTerm = this.escapeForRegExp(term);
             var regexp = new RegExp('(' + escapedTerm + ')', 'ig');
             highlighted = highlighted.replace(regexp, '<em>$1</em>');
           });
-          this.phoneticsStrictSearchTerms.forEach((term) => {
+          this.cachedPhoneticsStrictTerms.forEach((term) => {
             highlighted = this.highlightTibetanMatchingPhonetics(
               highlighted,
               term,
               phoneticsStrictFor
             );
           });
-          this.phoneticsLooseSearchTerms.forEach((term) => {
+          this.cachedPhoneticsLooseTerms.forEach((term) => {
             highlighted = this.highlightTibetanMatchingPhonetics(
               highlighted,
               term,
@@ -244,6 +250,9 @@ export default {
       Storage.delete('searchQuery');
       this.pushRoute();
       this.entries = undefined;
+      this.cachedRegularTerms = [];
+      this.cachedPhoneticsStrictTerms = [];
+      this.cachedPhoneticsLooseTerms = [];
     },
     clearPreviousQueries() {
       this.previousQueries = [];
@@ -291,6 +300,11 @@ export default {
           this.storeQuery();
           this.pushRoute();
         }
+        // Cache highlight terms at search time to avoid re-rendering on input changes
+        this.cachedRegularTerms = [...this.regularSearchTerms];
+        this.cachedPhoneticsStrictTerms = [...this.phoneticsStrictSearchTerms];
+        this.cachedPhoneticsLooseTerms = [...this.phoneticsLooseSearchTerms];
+
         this.resultsPage = 1;
         var conditions = [];
         var params = [];
@@ -446,8 +460,8 @@ export default {
         hide-details
         height="63"
         ref="input"
-        class="flex-grow-1 text-center tibetan"
-        placeholder="Type in your query"
+        class="flex-grow-1 tibetan"
+        placeholder="Type your query"
         spellcheck="false"
         autocomplete="off"
         autocapitalize="off"
@@ -709,7 +723,7 @@ export default {
   height: 64px !important;
   font-size: 26px !important;
   line-height: 46px !important;
-  text-align: center;
+  text-align: left;
 }
 
 .search-page .v-input .v-field__field input::placeholder {
@@ -724,13 +738,10 @@ export default {
 }
 
 .search-page .v-input .v-field__append-inner {
-  width: 280px;
-  flex: 0 0 280px;
   height: 100%;
   margin: 0;
   padding: 0;
   align-items: center;
-  justify-content: flex-end;
 }
 
 /* Vuetify 3: Clear button styling */
@@ -907,6 +918,7 @@ export default {
 .search-page .previous-queries .header {
   display: flex;
   align-items: center;
+  justify-content: center;
   margin-bottom: 12px;
   padding-bottom: 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
@@ -950,10 +962,6 @@ export default {
 @media (max-width: 600px) {
   .search-page .v-input .v-field__prepend-inner {
     display: none;
-  }
-
-  .search-page .v-input .v-field__append-inner {
-    width: auto;
   }
 
   .search-page .v-input .v-field__field input {
