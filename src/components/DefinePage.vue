@@ -250,7 +250,7 @@ export default {
         height="56"
         ref="input"
         v-model="searchTerm"
-        placeholder="Type in a Tibetan term"
+        placeholder="Type a Tibetan term"
         :menu-props="{ maxHeight: '80vh' }"
         @click:clear="clear"
         @keydown.up="selectPreviousTerm"

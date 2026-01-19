@@ -8,8 +8,20 @@
     data () {
       return {
         dialog: false,
-        tab: 0
+        tab: 0,
+        isMobile: window.innerWidth <= 600
       }
+    },
+    methods: {
+      handleResize() {
+        this.isMobile = window.innerWidth <= 600;
+      }
+    },
+    mounted() {
+      window.addEventListener('resize', this.handleResize);
+    },
+    beforeUnmount() {
+      window.removeEventListener('resize', this.handleResize);
     }
   }
 </script>
@@ -68,7 +80,7 @@
             <v-tab :value="3">
               Dictionaries filter
             </v-tab>
-            <v-tab :value="4">
+            <v-tab v-if="!isMobile" :value="4">
               Navigation
             </v-tab>
           </v-tabs>
@@ -298,9 +310,9 @@
 
           <DictionariesMenuHelpTab />
 
-          <v-tabs-window-item>
+          <v-tabs-window-item v-if="!isMobile">
             <div class="text-h6 mb-3">Keyboard shortcuts</div>
-            <v-table class="d-none d-sm-table">
+            <v-table>
               <tbody>
                 <tr>
                   <td class="pl-0">
@@ -325,21 +337,21 @@
                     <div class="keyboard-square">Ctrl</div>
                     <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
                     <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div class="keyboard-square ml-1">T</div>
+                  </td>
+                  <td class="pl-4">Go to Spli<u>t</u> page</td>
+                </tr>
+                <tr>
+                  <td class="pl-0">
+                    <div class="keyboard-square">Ctrl</div>
+                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
+                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
                     <div class="keyboard-square ml-1">G</div>
                   </td>
                   <td class="pl-4">Go to Confi<u>g</u>ure page</td>
                 </tr>
               </tbody>
             </v-table>
-            <v-alert
-              variant="tonal"
-              density="compact"
-              type="info"
-              class="text-caption mt-4 d-sm-none"
-              icon="mdi-keyboard"
-            >
-              Navigation shortcuts are available on desktop: Ctrl/Cmd+D (Define), Ctrl/Cmd+S (Search), Ctrl/Cmd+G (Configure)
-            </v-alert>
           </v-tabs-window-item>
 
         </v-tabs-window>

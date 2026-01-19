@@ -30,7 +30,14 @@ export default {
   },
   watch: {
     dictionariesMenu(value) {
-      if (value == false) this.$emit("close:dictionariesMenu");
+      if (value) {
+        // Focus the search field when menu opens (needs delay for v-menu to render)
+        setTimeout(() => {
+          this.$refs.menuSearchField?.focus();
+        }, 50);
+      } else {
+        this.$emit("close:dictionariesMenu");
+      }
     },
   },
   computed: {
@@ -126,46 +133,62 @@ export default {
     menuIsOpened() {
       return this.dictionariesMenu;
     },
+    registerKeyboardHandler() {
+      var vm = this;
+      // Remove any existing handler first to ensure fresh registration
+      EventHandlers.remove("dictionary-menu");
+      EventHandlers.add({
+        id: "dictionary-menu",
+        type: "keydown",
+        callback(event) {
+          // Only handle Ctrl/Cmd+B when dictionaries button is visible (has entries)
+          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() == "b" && !vm.menuIsOpened() && vm.totalNumberOfEntries > 0) {
+            event.preventDefault();
+            vm.openMenu();
+          } else if (vm.menuIsOpened()) {
+            var highlightedDictionary = $(
+              ".dictionaries-menu .v-list-item--highlighted"
+            ).get(0);
+            if (event.key == "Escape") vm.closeMenu();
+            else if (event.key == " ") {
+              var dictionaryIndex = $(
+                ".dictionaries-menu .v-list-item--highlighted"
+              ).data("dictionary-index");
+              if (dictionaryIndex != undefined) {
+                var dictionary = vm.fuzzyMatchedDictionaries[dictionaryIndex];
+                dictionary.enabled = !dictionary.enabled;
+                event.preventDefault();
+              }
+            } else if (event.key == "ArrowUp" || event.key == "ArrowDown") {
+              if (highlightedDictionary)
+                highlightedDictionary.scrollIntoViewIfNeeded();
+            } else if (event.ctrlKey || event.shiftKey) {
+              if (event.key == "Enter") vm.enableOnlyMatchedDictionaries();
+              else if (event.key.toLowerCase() == "a")
+                vm.enableAllMatchedDictionaries();
+              else if (event.key.toLowerCase() == "n")
+                vm.disableAllMatchedDictionaries();
+              else if (event.key.toLowerCase() == "r")
+                vm.enableOnlyPreferedDictionaries();
+              if (["enter", "a", "n", "r"].includes(event.key.toLowerCase()))
+                event.preventDefault();
+            } else if (event.key == "Enter" && !highlightedDictionary)
+              vm.enableOnlyMatchedDictionaries();
+          }
+        },
+      });
+    },
   },
   mounted() {
-    var vm = this;
-    EventHandlers.add({
-      id: "dictionary-menu",
-      type: "keydown",
-      callback(event) {
-        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() == "b" && !vm.menuIsOpened()) vm.openMenu();
-        else if (vm.menuIsOpened()) {
-          var highlightedDictionary = $(
-            ".dictionaries-menu .v-list-item--highlighted"
-          ).get(0);
-          if (event.key == "Esc") vm.closeMenu();
-          else if (event.key == " ") {
-            var dictionaryIndex = $(
-              ".dictionaries-menu .v-list-item--highlighted"
-            ).data("dictionary-index");
-            if (dictionaryIndex != undefined) {
-              var dictionary = vm.fuzzyMatchedDictionaries[dictionaryIndex];
-              dictionary.enabled = !dictionary.enabled;
-              event.preventDefault();
-            }
-          } else if (event.key == "ArrowUp" || event.key == "ArrowDown") {
-            if (highlightedDictionary)
-              highlightedDictionary.scrollIntoViewIfNeeded();
-          } else if (event.ctrlKey || event.shiftKey) {
-            if (event.key == "Enter") vm.enableOnlyMatchedDictionaries();
-            else if (event.key.toLowerCase() == "a")
-              vm.enableAllMatchedDictionaries();
-            else if (event.key.toLowerCase() == "n")
-              vm.disableAllMatchedDictionaries();
-            else if (event.key.toLowerCase() == "r")
-              vm.enableOnlyPreferedDictionaries();
-            if (["enter", "a", "n", "r"].includes(event.key.toLowerCase()))
-              event.preventDefault();
-          } else if (event.key == "Enter" && !highlightedDictionary)
-            vm.enableOnlyMatchedDictionaries();
-        }
-      },
-    });
+    this.registerKeyboardHandler();
+  },
+  activated() {
+    // Re-register when component is activated from keep-alive cache
+    this.registerKeyboardHandler();
+  },
+  deactivated() {
+    // Remove handler when component is deactivated (cached by keep-alive)
+    EventHandlers.remove("dictionary-menu");
   },
   unmounted() {
     EventHandlers.remove("dictionary-menu");
@@ -261,7 +284,7 @@ export default {
         <v-card class="dictionaries-menu" elevation="8">
           <div class="dictionaries-menu-header">
             <v-text-field
-              autofocus
+              ref="menuSearchField"
               clearable
               hide-details
               variant="outlined"
