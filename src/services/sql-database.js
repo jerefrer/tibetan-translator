@@ -24,21 +24,15 @@ async function determineInitMode() {
   if (isTauri()) {
     // Check if we should use modular packs
     if (supportsModularPacks()) {
-      // On mobile, use native SQLite for performance
-      // On desktop, use sql.js workers (allows hot-swapping packs)
-      if (isMobile()) {
-        try {
-          const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
-          invoke = tauriInvoke;
-          _initMode = "tauri-packs-native";
-          console.log("[Database] Mobile detected, using native SQLite for packs");
-        } catch (e) {
-          console.log("[Database] Mobile Tauri import failed, falling back to sql.js workers:", e);
-          _initMode = "tauri-packs";
-        }
-      } else {
+      // Use native SQLite for all Tauri platforms (fast, supports hot-swapping)
+      try {
+        const { invoke: tauriInvoke } = await import("@tauri-apps/api/core");
+        invoke = tauriInvoke;
+        _initMode = "tauri-packs-native";
+        console.log("[Database] Using native SQLite for packs");
+      } catch (e) {
+        console.log("[Database] Tauri import failed, falling back to sql.js workers:", e);
         _initMode = "tauri-packs";
-        console.log("[Database] Desktop detected with modular packs, using sql.js workers");
       }
     } else {
       // Fallback to native SQLite (unlikely path)
