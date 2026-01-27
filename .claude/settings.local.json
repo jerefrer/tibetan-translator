@@ -109,7 +109,10 @@
       "Bash(npm install:*)",
       "mcp__sequential-thinking__sequentialthinking",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:brainstorming:*)",
+      "Bash(pnpm build:*)"
     ]
   }
 }
