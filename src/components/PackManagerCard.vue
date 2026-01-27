@@ -233,8 +233,8 @@ export default {
       <template v-for="pack in allPacks" :key="pack.id">
         <v-list-item class="pack-item">
           <template v-slot:prepend>
-            <span v-if="isTibetanKaIcon(pack)" class="tibetan-ka-icon" :class="{ active: pack.installed }">ཀ</span>
-            <v-icon v-else :icon="getPackIcon(pack)" :color="pack.installed ? 'primary' : 'grey'" />
+            <span v-if="isTibetanKaIcon(pack)" class="tibetan-ka-icon">ཀ</span>
+            <v-icon v-else :icon="getPackIcon(pack)" color="primary" />
           </template>
 
           <v-list-item-title>
@@ -458,10 +458,7 @@ export default {
     align-items: center
     justify-content: center
     text-align: center
-    color: rgba(var(--v-theme-on-surface), 0.38)
-
-    &.active
-      color: rgb(var(--v-theme-primary))
+    color: rgb(var(--v-theme-primary))
 
   .download-progress-container
     position: relative
