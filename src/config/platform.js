@@ -38,6 +38,13 @@ export function supportsModularPacks() {
 }
 
 /**
+ * Check if running on macOS
+ */
+export function isMacOS() {
+  return navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+}
+
+/**
  * Get the platform type
  */
 export function getPlatformType() {
@@ -56,6 +63,7 @@ export default {
   isTauri,
   isWeb,
   isMobile,
+  isMacOS,
   supportsModularPacks,
   getPlatformType,
 };

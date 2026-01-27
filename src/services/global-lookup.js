@@ -5,7 +5,7 @@
  * Only available on desktop Tauri apps (macOS, Windows, Linux).
  */
 
-import { isTauri, isMobile } from '../config/platform';
+import { isTauri, isMobile, isMacOS } from '../config/platform';
 import Storage from './storage';
 
 // Default hotkey: Cmd+Shift+C on Mac, Ctrl+Shift+C on Windows/Linux
@@ -27,12 +27,8 @@ export function isSupported() {
   return isTauri() && !isMobile();
 }
 
-/**
- * Check if we're on macOS
- */
-export function isMacOS() {
-  return navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-}
+// Re-export isMacOS from platform for backward compatibility
+export { isMacOS } from '../config/platform';
 
 /**
  * Get the currently configured hotkey
