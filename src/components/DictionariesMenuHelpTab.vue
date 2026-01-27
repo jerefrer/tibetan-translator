@@ -49,7 +49,7 @@
               { key: 'R', shift: true },
               { key: 'R', ctrl: true }
             ],
-            text: '<u>R</u>estores the dictionaries as defined on the Configure page'
+            text: '<u>R</u>estores the dictionaries as defined on the Settings page'
           },
         ].map((shortcut) => {
           if (shortcut.key)
@@ -86,7 +86,7 @@
       </v-btn>
       <div>
         The dictionaries filter button allows you to choose which dictionaries
-        to display results from, even those disabled in the Configure page.
+        to display results from, even those disabled in the Settings page.
       </div>
     </div>
 

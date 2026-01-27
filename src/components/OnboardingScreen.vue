@@ -250,7 +250,7 @@ export default {
             <template v-slot:prepend>
               <v-icon size="small">mdi-information</v-icon>
             </template>
-            You can add or remove packs later from the Configure page.
+            You can add or remove packs later from the Settings page.
           </v-alert>
         </div>
 
@@ -345,7 +345,7 @@ export default {
                 <template v-slot:prepend>
                   <v-icon size="small">mdi-information</v-icon>
                 </template>
-                You can change this hotkey later in the Configure page.
+                You can change this hotkey later in the Settings page.
               </v-alert>
             </div>
           </div>

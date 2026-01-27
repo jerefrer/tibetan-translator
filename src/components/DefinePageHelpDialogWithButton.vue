@@ -144,7 +144,7 @@
                   <template v-slot:prepend>
                     <v-icon size="small">mdi-information</v-icon>
                   </template>
-                  You can change this hotkey in the Configure page under Global Lookup Settings.
+                  You can change this hotkey in the Settings page under Global Lookup Settings.
                 </v-alert>
               </div>
             </div>
@@ -196,7 +196,7 @@
                     <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">G</div>
                   </td>
-                  <td class="pl-4">Go to Confi<u>g</u>ure page</td>
+                  <td class="pl-4">Go to Settin<u>g</u>s page</td>
                 </tr>
               </tbody>
             </v-table>
