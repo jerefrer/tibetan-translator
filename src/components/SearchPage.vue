@@ -445,6 +445,9 @@ export default {
     this.setPageTitle();
     if (this.searchQuery) this.performSearch();
   },
+  activated() {
+    this.$nextTick(() => this.focusInput());
+  },
   unmounted() {
     this.teardownInfiniteScroll();
   },

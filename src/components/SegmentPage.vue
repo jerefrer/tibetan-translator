@@ -678,6 +678,9 @@ export default {
     window.addEventListener("resize", this.handleResize);
     window.addEventListener("keydown", this.handleKeydown);
   },
+  activated() {
+    this.$nextTick(() => this.focusTextarea());
+  },
   beforeUnmount() {
     window.removeEventListener("resize", this.handleResize);
     window.removeEventListener("keydown", this.handleKeydown);

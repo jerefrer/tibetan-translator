@@ -228,6 +228,9 @@ export default {
     window.addEventListener('resize', this.handleResize);
     this.setupTermsInfiniteScroll();
   },
+  activated() {
+    this.$nextTick(() => this.focusInput());
+  },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize);
     this.teardownTermsInfiniteScroll();
