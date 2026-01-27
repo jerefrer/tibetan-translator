@@ -106,7 +106,10 @@
       "Bash(NODE_PATH=/usr/local/lib/node_modules /usr/local/bin/node --test:*)",
       "Bash(/Users/jeremy/.asdf/shims/node:*)",
       "mcp__serena__read_memory",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "mcp__sequential-thinking__sequentialthinking",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nFixes Define page showing definitions without a highlighted term\n\nClears stale entries immediately when searchTerm changes and the\nselected term is no longer in the filtered list. Also always updates\nthe route before loading entries in selectFirstTermOrClearEntries.\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
     ]
   }
 }
