@@ -57,6 +57,7 @@ vendor/                # Third-party dictionary source files
 ### Routing & Page Lifecycle
 
 Routes are defined in `src/router.js`:
+
 - `/define/:term?` - DefinePage (term lookup)
 - `/search/:query?` - SearchPage (full-text search)
 - `/segment` - SegmentPage (sentence splitting)
@@ -68,18 +69,19 @@ App.vue uses `<keep-alive>` for all route components. This means pages are **not
 
 `SqlDatabase` (`src/services/sql-database.js`) abstracts four database modes:
 
-| Mode | Platform | How it works |
-|------|----------|-------------|
-| `tauri-packs-native` | All Tauri (desktop + mobile) | Native SQLite per pack via Rust commands |
-| `tauri-packs` | Fallback desktop | sql.js WebWorkers per pack (`multi-database.js`) |
-| `tauri-native` | Legacy fallback | Single native SQLite database |
-| `web` | Browser | Full bundled DB via sql.js WebAssembly |
+| Mode                 | Platform                     | How it works                                     |
+| -------------------- | ---------------------------- | ------------------------------------------------ |
+| `tauri-packs-native` | All Tauri (desktop + mobile) | Native SQLite per pack via Rust commands         |
+| `tauri-packs`        | Fallback desktop             | sql.js WebWorkers per pack (`multi-database.js`) |
+| `tauri-native`       | Legacy fallback              | Single native SQLite database                    |
+| `web`                | Browser                      | Full bundled DB via sql.js WebAssembly           |
 
 Key property: `SqlDatabase.allTerms` is a **plain JS array** (not Vue-reactive). It's loaded once at init and refreshed via `setAllTermsVariable()` when packs change. An `all-terms-updated` CustomEvent is dispatched after refresh so Vue components can react.
 
 ### Dictionary Pack System
 
 Three packs defined in `src/config/pack-definitions.js`:
+
 - **core** (required, bundled) - 34 dictionaries
 - **tibetan-monolingual** (optional, downloadable) - 20 dictionaries
 - **sanskrit-academic** (optional, downloadable) - 9 dictionaries
@@ -94,6 +96,7 @@ Pack lifecycle is managed by `PackManager` (`src/services/pack-manager.js`). Aft
 ### Component Patterns
 
 All components use **Options API** with **mixins** for shared logic:
+
 - `DictionariesDetailsMixin` - Dictionary metadata and abbreviation lookups
 - `DictionariesMenuMixin` - Dictionary filtering/toggle UI
 - `DictionariesFuzzySearchMixin` - Fuzzy search across dictionaries
@@ -101,6 +104,7 @@ All components use **Options API** with **mixins** for shared logic:
 ### State Management
 
 No Vuex/Pinia. State is managed through:
+
 - **LocalStorage** (via `src/services/storage.js`) - Persistent settings, dictionary order, theme
 - **Vue `reactive()`** - Global snackbar state, PackManager state
 - **Component data/computed** - Local state with mixins for sharing
@@ -119,18 +123,18 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 
 ## Key Files
 
-| File | Purpose |
-|------|---------|
-| `src/services/sql-database.js` | Unified database interface (all platform modes) |
-| `src/services/multi-database.js` | Worker pool for multi-pack SQL queries |
-| `src/services/pack-manager.js` | Pack download/install/remove lifecycle |
-| `src/services/global-lookup.js` | Desktop hotkey + clipboard integration |
-| `src/services/phonetic-search.js` | Phonetic search implementation |
-| `src/services/decorator.js` | Entry highlighting and link decoration |
-| `src/config/platform.js` | Platform detection (Tauri/web/mobile) |
-| `src/config/pack-definitions.js` | Pack metadata and dictionary lists |
-| `src/components/TibetanTextField.vue` | Shared Tibetan input with Wylie conversion |
-| `src/utils.js` | Tibetan utilities (phonetics, tokenizer, trailing tshek) |
+| File                                  | Purpose                                                  |
+| ------------------------------------- | -------------------------------------------------------- |
+| `src/services/sql-database.js`        | Unified database interface (all platform modes)          |
+| `src/services/multi-database.js`      | Worker pool for multi-pack SQL queries                   |
+| `src/services/pack-manager.js`        | Pack download/install/remove lifecycle                   |
+| `src/services/global-lookup.js`       | Desktop hotkey + clipboard integration                   |
+| `src/services/phonetic-search.js`     | Phonetic search implementation                           |
+| `src/services/decorator.js`           | Entry highlighting and link decoration                   |
+| `src/config/platform.js`              | Platform detection (Tauri/web/mobile)                    |
+| `src/config/pack-definitions.js`      | Pack metadata and dictionary lists                       |
+| `src/components/TibetanTextField.vue` | Shared Tibetan input with Wylie conversion               |
+| `src/utils.js`                        | Tibetan utilities (phonetics, tokenizer, trailing tshek) |
 
 ## Conventions
 
