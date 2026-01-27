@@ -1,8 +1,8 @@
 <script>
-import _ from "underscore";
-import TibetanRegExps from "tibetan-regexps";
-import TibetanNormalizer from "tibetan-normalizer";
-import WylieToUnicode from "../services/wylie-to-unicode";
+import TibetanNormalizer from 'tibetan-normalizer';
+import TibetanRegExps from 'tibetan-regexps';
+import _ from 'underscore';
+import WylieToUnicode from '../services/wylie-to-unicode';
 const wylieToUnicode = new WylieToUnicode();
 
 export default {
@@ -11,8 +11,8 @@ export default {
     modelValue: String,
     placeholder: {
       type: String,
-      default: 'བོད་ཡིག་'
-    }
+      default: 'བོད་ཡིག་',
+    },
   },
   emits: ['update:modelValue', 'keydown', 'click:clear', 'paste:multiple'],
   data() {
@@ -33,17 +33,19 @@ export default {
   },
   methods: {
     preventMoreThanOneTrailingTshek(event) {
-      if (event.key == "་" && _.last(this.text) == "་") event.preventDefault();
-      else this.$emit("keydown", event);
+      if (event.key == '་' && _.last(this.text) == '་') event.preventDefault();
+      else this.$emit('keydown', event);
     },
     convertWylie(text) {
-      var textWithConvertedWylie = (text || "").replace(
-        new RegExp(`[^${TibetanRegExps.expressions.allTibetanCharacters}\r\n]+`, 'iug'),
-        (wylie) => wylieToUnicode.convert(wylie)
+      var textWithConvertedWylie = (text || '').replace(
+        new RegExp(
+          `[^${TibetanRegExps.expressions.allTibetanCharacters}\r\n]+`,
+          'iug',
+        ),
+        (wylie) => wylieToUnicode.convert(wylie),
       );
-      textWithConvertedWylie = textWithConvertedWylie.replace(/་+/g, "་");
-      if (!textWithConvertedWylie.match(/[་།༑༔]$/))
-        textWithConvertedWylie += "་";
+      // Replace any trailing punctuation with a single tsheg
+      textWithConvertedWylie = textWithConvertedWylie.replace(/[་།༑༔ ]*$/, '་');
       return TibetanNormalizer.normalize(textWithConvertedWylie);
     },
     convertWylieAndEmit(event, isDropping) {
@@ -52,17 +54,36 @@ export default {
       if (
         isDropping ||
         event.key.match(/[་ ]/) ||
-        (event.ctrlKey && event.key == "v")
+        (event.ctrlKey && event.key == 'v')
       )
         this.text = this.convertWylie(this.text);
-      this.$emit("update:modelValue", this.text);
+      this.$emit('update:modelValue', this.text);
     },
-    handlePasteMultipleIfDefined(event) {
-      // Check if paste:multiple listener exists by checking emits
-      var pastedText = event.clipboardData.getData("text/plain");
+    handlePaste(event) {
+      var pastedText = event.clipboardData.getData('text/plain');
+      // For multi-line paste, emit paste:multiple if listener exists
       if (pastedText.split(/[\r\n]+/).length > 1) {
         event.preventDefault();
-        this.$emit("paste:multiple", this.convertWylie(pastedText));
+        this.$emit('paste:multiple', this.convertWylie(pastedText));
+      } else {
+        // For single-line paste, convert and insert at cursor position
+        event.preventDefault();
+        var input = this.$refs.input.$el.querySelector('input');
+        var start = input.selectionStart;
+        var end = input.selectionEnd;
+        var currentText = this.text || '';
+        var newText =
+          currentText.substring(0, start) +
+          pastedText +
+          currentText.substring(end);
+        this.text = this.convertWylie(newText);
+        this.$emit('update:modelValue', this.text);
+        // Restore cursor position after the pasted text
+        this.$nextTick(() => {
+          var newPos =
+            start + this.text.length - currentText.length + (end - start);
+          input.setSelectionRange(newPos, newPos);
+        });
       }
     },
     handleDrop() {
@@ -92,7 +113,7 @@ export default {
     enterkeyhint="search"
     @keydown="preventMoreThanOneTrailingTshek"
     @keyup="convertWylieAndEmit"
-    @paste="handlePasteMultipleIfDefined"
+    @paste="handlePaste"
     @drop="handleDrop"
     @click:clear="$emit('click:clear')"
   >

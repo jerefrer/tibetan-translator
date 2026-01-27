@@ -76,9 +76,12 @@ export default {
     },
     cleanTibetanText(text) {
       if (!text) return '';
-      return text
+      let cleaned = text
         .replace(TibetanRegExps.anythingNonTibetan, '')
         .replace(TibetanRegExps.beginningPunctuation, '');
+      // Replace any trailing punctuation with a single tsheg
+      cleaned = cleaned.replace(/[་།༑༔]*$/, '་');
+      return cleaned;
     },
     async selectTermByIndex(index, immediate = false) {
       const terms = this.termsStartingWithSearchTerm;
