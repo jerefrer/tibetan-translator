@@ -31,6 +31,7 @@ export default {
       loading: false,
       mobileShowDefinition: false,
       isMobile: window.innerWidth <= 600,
+      allTermsVersion: 0,
     };
   },
   watch: {
@@ -91,6 +92,7 @@ export default {
       return this.displayedTermsCount < this.numberOfTermsStartingWithSearchTerm;
     },
     termsStartingWithSearchTerm() {
+      this.allTermsVersion; // reactive dependency — forces re-evaluation when allTerms changes
       if (!this.searchTerm) return [];
       return SqlDatabase.allTerms
         .filter((key) => key.indexOf(this.searchTerm) == 0)
@@ -228,6 +230,8 @@ export default {
       500
     );
     window.addEventListener('resize', this.handleResize);
+    this._onAllTermsUpdated = () => { this.allTermsVersion++; };
+    window.addEventListener('all-terms-updated', this._onAllTermsUpdated);
     this.setupTermsInfiniteScroll();
   },
   activated() {
@@ -235,6 +239,7 @@ export default {
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize);
+    window.removeEventListener('all-terms-updated', this._onAllTermsUpdated);
     this.teardownTermsInfiniteScroll();
   },
   updated() {

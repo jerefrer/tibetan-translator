@@ -226,6 +226,7 @@ const database = {
         const terms = await this.exec("SELECT DISTINCT term FROM entries ORDER BY term");
         this.allTerms = terms.map((row) => row.term);
       }
+      window.dispatchEvent(new CustomEvent('all-terms-updated'));
     } catch (error) {
       console.error('[Database] Failed to load terms:', error);
     }
