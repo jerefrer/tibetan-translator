@@ -145,3 +145,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 - Keyboard shortcuts: `Cmd/Ctrl+D` (Define), `Cmd/Ctrl+S` (Search), `Cmd/Ctrl+T` (Split), `Cmd/Ctrl+G` (Settings)
 - Mobile breakpoint: `600px` (`window.innerWidth <= 600`)
 - Theme: light/dark with system preference detection, stored as `themePreference` in localStorage
+
+## Git style
+
+- Use conjugated action verbs. For instance "Adds a new feature", "Fixes a bug with something".
