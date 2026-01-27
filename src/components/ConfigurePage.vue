@@ -387,7 +387,7 @@ export default {
 
         <div class="hotkey-section" :class="{ 'content-disabled': !globalLookupEnabled }">
           <div class="text-body-1 mb-2">Hotkey</div>
-          <div class="d-flex align-center gap-2">
+          <div class="d-flex align-center ga-2">
             <v-text-field
               ref="hotkeyInput"
               :model-value="isRecordingHotkey ? 'Press any key combination...' : globalLookupHotkeyDisplay"
