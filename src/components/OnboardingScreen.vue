@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue';
 import PackManager from '../services/pack-manager';
 import { PACK_DEFINITIONS, getRequiredPackIds, getOptionalPackIds } from '../config/pack-definitions';
+import { isTauri, isMobile, isMacOS } from '../config/platform';
 
 export default {
   name: 'OnboardingScreen',
@@ -11,6 +12,14 @@ export default {
     const selectedOptionalPacks = ref([]);
     const error = ref(null);
     const downloadComplete = ref(false);
+
+    // Platform detection
+    const isDesktop = isTauri() && !isMobile();
+    const isMac = isMacOS();
+    const modifierKey = isMac ? '⌘' : 'Ctrl';
+
+    // The download step number depends on whether the global lookup tip is shown
+    const downloadStep = isDesktop ? 3 : 2;
 
     // Track which packs are being downloaded
     const downloadingPacks = computed(() => PackManager.downloadingPacks);
@@ -52,7 +61,7 @@ export default {
 
     // Watch for download completion
     watch([installedPacks, isDownloading], () => {
-      if (step.value === 2 && !isDownloading.value) {
+      if (step.value === downloadStep && !isDownloading.value) {
         // Check if all selected packs are now installed
         const allInstalled = selectedOptionalPacks.value.every(
           packId => installedPacks.value.includes(packId)
@@ -73,6 +82,25 @@ export default {
       }
     };
 
+    const proceedFromPacks = () => {
+      if (isDesktop) {
+        // Show global lookup tip step
+        step.value = 2;
+      } else if (selectedOptionalPacks.value.length > 0) {
+        startDownload();
+      } else {
+        complete();
+      }
+    };
+
+    const proceedFromGlobalLookupTip = () => {
+      if (selectedOptionalPacks.value.length > 0) {
+        startDownload();
+      } else {
+        complete();
+      }
+    };
+
     const startDownload = async () => {
       // If no optional packs selected, just complete
       if (selectedOptionalPacks.value.length === 0) {
@@ -80,7 +108,7 @@ export default {
         return;
       }
 
-      step.value = 2;
+      step.value = downloadStep;
       error.value = null;
 
       try {
@@ -133,7 +161,13 @@ export default {
       currentDownload,
       totalSelectedSize,
       hasSelectedPacks,
+      isDesktop,
+      isMac,
+      modifierKey,
+      downloadStep,
       toggleOptionalPack,
+      proceedFromPacks,
+      proceedFromGlobalLookupTip,
       startDownload,
       complete,
       getPackIcon,
@@ -147,7 +181,7 @@ export default {
 
 <template>
   <div class="onboarding-screen">
-    <div class="onboarding-content">
+    <div class="onboarding-content" :class="{ 'wide': step === 2 && isDesktop }">
       <!-- Step 1: Welcome and Pack Selection -->
       <template v-if="step === 1">
         <div class="header">
@@ -222,7 +256,7 @@ export default {
 
         <div class="actions">
           <v-btn
-            v-if="hasSelectedPacks"
+            v-if="hasSelectedPacks && !isDesktop"
             color="primary"
             variant="elevated"
             size="large"
@@ -238,16 +272,101 @@ export default {
             variant="elevated"
             size="large"
             class="px-8"
-            @click="complete"
+            @click="proceedFromPacks"
           >
-            Get Started
+            {{ isDesktop ? 'Next' : 'Get Started' }}
             <v-icon end>mdi-arrow-right</v-icon>
           </v-btn>
         </div>
       </template>
 
-      <!-- Step 2: Downloading -->
-      <template v-if="step === 2">
+      <!-- Step 2: Global Lookup Tip (Desktop only) -->
+      <template v-if="step === 2 && isDesktop">
+        <div class="header">
+          <v-icon size="48" color="primary" class="mb-2">mdi-keyboard</v-icon>
+          <h1 class="text-h5">Quick Lookup</h1>
+          <p class="text-body-1 mt-2">
+            Look up Tibetan text from anywhere on your system using a keyboard shortcut.
+          </p>
+        </div>
+
+        <div class="body">
+          <div class="lookup-layout">
+            <div class="lookup-left">
+              <div class="demo-video">
+                <video
+                  src="/img/global-lookup-demo.mp4"
+                  autoplay
+                  loop
+                  muted
+                  playsinline
+                />
+              </div>
+            </div>
+
+            <div class="lookup-right">
+              <v-card variant="outlined" class="lookup-steps-card">
+                <div class="lookup-steps">
+                  <div class="lookup-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                      <div class="step-title">Copy Tibetan text</div>
+                      <div class="step-description">
+                        Select text in any app and press
+                        <span class="keyboard-key">{{ modifierKey }}</span>
+                        <span class="keyboard-key">C</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="lookup-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                      <div class="step-title">Press the lookup hotkey</div>
+                      <div class="step-description">
+                        <span class="keyboard-key">{{ modifierKey }}</span>
+                        <v-icon class="keyboard-key keyboard-key-icon">mdi-apple-keyboard-shift</v-icon>
+                        <span class="keyboard-key">C</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="lookup-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                      <div class="step-title">See the definition</div>
+                      <div class="step-description">
+                        A popup will appear with dictionary results
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </v-card>
+
+              <v-alert type="info" variant="tonal" density="compact" class="mt-3 info-alert">
+                <template v-slot:prepend>
+                  <v-icon size="small">mdi-information</v-icon>
+                </template>
+                You can change this hotkey later in the Configure page.
+              </v-alert>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions">
+          <v-btn
+            color="primary"
+            variant="elevated"
+            size="large"
+            class="px-8"
+            @click="proceedFromGlobalLookupTip"
+          >
+            {{ hasSelectedPacks ? 'Download ' + totalSelectedSize + ' MB' : 'Get Started' }}
+            <v-icon end>{{ hasSelectedPacks ? 'mdi-download' : 'mdi-arrow-right' }}</v-icon>
+          </v-btn>
+        </div>
+      </template>
+
+      <!-- Download Step -->
+      <template v-if="step === downloadStep && (step !== 2 || !isDesktop)">
         <div class="header">
           <template v-if="downloadComplete">
             <v-icon color="success" size="48" class="mb-2">mdi-check-circle</v-icon>
@@ -358,6 +477,10 @@ export default {
   flex-direction: column
   max-height: 100vh
   overflow-y: auto
+  transition: max-width 0.3s ease
+
+  &.wide
+    max-width: 760px
 
   .header
     text-align: center
@@ -452,4 +575,89 @@ export default {
   .download-progress
     max-width: 300px
     margin: 0 auto
+
+  // Global Lookup Tip step styles
+  .lookup-layout
+    display: flex
+    gap: 24px
+    align-items: flex-start
+
+  .lookup-left
+    flex: 1
+    min-width: 0
+
+  .lookup-right
+    flex: 0 0 300px
+
+  .lookup-steps-card
+    border-color: rgba(var(--v-theme-primary), 0.3)
+
+  .lookup-steps
+    padding: 16px 20px
+
+  .lookup-step
+    display: flex
+    align-items: flex-start
+    gap: 14px
+
+    &:not(:last-child)
+      margin-bottom: 16px
+      padding-bottom: 16px
+      border-bottom: 1px solid rgba(var(--v-theme-on-surface), 0.08)
+
+  .step-number
+    display: flex
+    align-items: center
+    justify-content: center
+    width: 28px
+    min-width: 28px
+    height: 28px
+    border-radius: 50%
+    background: rgb(var(--v-theme-primary))
+    color: white
+    font-weight: 600
+    font-size: 0.85rem
+
+  .step-content
+    flex: 1
+
+  .step-title
+    font-weight: 500
+    margin-bottom: 4px
+
+  .step-description
+    font-size: 0.85rem
+    color: rgba(var(--v-theme-on-surface), 0.7)
+    display: flex
+    align-items: center
+    flex-wrap: wrap
+    gap: 3px
+
+  .keyboard-key
+    display: inline-flex
+    justify-content: center
+    align-items: center
+    min-width: 28px
+    height: 28px
+    padding: 0 6px
+    font-weight: 600
+    font-size: 0.8rem
+    background: rgba(var(--v-theme-on-surface), 0.08)
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.2)
+    border-radius: 4px
+    color: rgb(var(--v-theme-on-surface))
+
+  .keyboard-key-icon
+    font-size: 18px !important
+    color: rgb(var(--v-theme-on-surface)) !important
+
+  .demo-video
+    border-radius: 8px
+    overflow: hidden
+    border: 1px solid rgba(var(--v-theme-on-surface), 0.12)
+
+    video
+      display: block
+      width: 100%
+      border-radius: 8px
 </style>
