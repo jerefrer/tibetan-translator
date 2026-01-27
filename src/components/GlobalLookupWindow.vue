@@ -54,6 +54,11 @@ export default {
       console.log('[GlobalLookupWindow] searchTerm changed to:', newVal);
       this.displayedTermsCount = this.termsBatchSize;
       this.selectedTermIndex = 0;
+      // Clear stale entries if selected term is no longer in the filtered list
+      if (this.selectedTerm && this.termsStartingWithSearchTerm.indexOf(this.selectedTerm) === -1) {
+        this.entries = [];
+        this.selectedTerm = null;
+      }
       // Auto-select first term immediately when search changes
       this.$nextTick(() => {
         this.selectTermByIndex(0, true);

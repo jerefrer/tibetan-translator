@@ -37,6 +37,10 @@ export default {
     searchTerm() {
       // Reset displayed count when search term changes
       this.displayedTermsCount = this.termsBatchSize;
+      // Clear stale entries if selected term is no longer in filtered list
+      if (this.selectedTerm && this.termsStartingWithSearchTerm.indexOf(this.selectedTerm) === -1) {
+        this.entries = [];
+      }
       this.debouncedSelectFirstTermOrClearEntries();
       // Reconnect observer after terms change
       this.$nextTick(() => this.setupTermsInfiniteScroll());
@@ -135,12 +139,10 @@ export default {
         this.visibleTerms &&
         this.visibleTerms[0];
       if (firstTerm) {
-        if (
-          firstTerm == this.searchTerm &&
-          !this.entriesForEnabledDictionaries.length
-        )
+        this.pushRoute(firstTerm);
+        // If route already matches (pushRoute was a no-op), ensure entries are loaded
+        if (this.selectedTerm === firstTerm && !this.entriesForEnabledDictionaries.length)
           this.setEntriesForSelectedTerm();
-        else this.pushRoute(firstTerm);
       } else this.entries = [];
     },
     selectPreviousTerm() {
