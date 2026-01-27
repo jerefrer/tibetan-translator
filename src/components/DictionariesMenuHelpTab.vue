@@ -1,13 +1,21 @@
 <script>
+  import { isMacOS } from '../config/platform'
+
   export default {
+    data () {
+      return {
+        isMac: isMacOS()
+      }
+    },
     computed: {
       shorcuts () {
+        const cmdOrCtrl = this.isMac
+          ? { meta: true }
+          : { ctrl: true };
+
         return [
           {
-            keys: [
-              { key: 'B', ctrl: true },
-              { key: 'B', meta: true }
-            ],
+            keys: [{ key: 'B', ...cmdOrCtrl }],
             text: 'Opens the dictionary filter menu (B for Browse)'
           },
           { key: 'Esc',                              text: 'Closes the dictionary filter menu' },
@@ -104,9 +112,8 @@
       icon="mdi-gesture-tap"
     >
       <div class="d-flex align-center flex-wrap">
-        <div class="keyboard-square">Ctrl</div>
-        <div class="text-caption text-grey-darken-1 mx-1">or</div>
-        <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+        <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+        <div v-else class="keyboard-square">Ctrl</div>
         <span class="ml-1">+ click on a dictionary to select <strong>only</strong> that one and disable all others.</span>
       </div>
     </v-alert>
@@ -153,9 +160,8 @@
         dictionaries and hide results from all the others, you could do:
       </div>
       <div class="d-flex align-center flex-wrap mt-2">
-        <div class="keyboard-square">Ctrl</div>
-        <div class="text-caption text-grey-darken-1 mx-1">or</div>
-        <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+        <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+        <div v-else class="keyboard-square">Ctrl</div>
         <div class="keyboard-square ml-1 mr-2">B</div>
         <div>
           to open the menu, then type <code>hop</code> and then

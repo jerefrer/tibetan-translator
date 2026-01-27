@@ -1,5 +1,6 @@
 <script>
   import DictionariesMenuHelpTab from './DictionariesMenuHelpTab.vue'
+  import { isMacOS } from '../config/platform'
 
   export default {
     components: {
@@ -9,7 +10,8 @@
       return {
         dialog: false,
         tab: 0,
-        isMobile: window.innerWidth <= 600
+        isMobile: window.innerWidth <= 600,
+        isMac: isMacOS()
       }
     },
     methods: {
@@ -316,36 +318,32 @@
               <tbody>
                 <tr>
                   <td class="pl-0">
-                    <div class="keyboard-square">Ctrl</div>
-                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
-                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">D</div>
                   </td>
                   <td class="pl-4">Go to <u>D</u>efine page</td>
                 </tr>
                 <tr>
                   <td class="pl-0">
-                    <div class="keyboard-square">Ctrl</div>
-                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
-                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">S</div>
                   </td>
                   <td class="pl-4">Go to <u>S</u>earch page</td>
                 </tr>
                 <tr>
                   <td class="pl-0">
-                    <div class="keyboard-square">Ctrl</div>
-                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
-                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">T</div>
                   </td>
                   <td class="pl-4">Go to Spli<u>t</u> page</td>
                 </tr>
                 <tr>
                   <td class="pl-0">
-                    <div class="keyboard-square">Ctrl</div>
-                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
-                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">G</div>
                   </td>
                   <td class="pl-4">Go to Confi<u>g</u>ure page</td>
