@@ -1,5 +1,6 @@
 <script>
   import DictionariesMenuHelpTab from './DictionariesMenuHelpTab.vue'
+  import { isMacOS, isTauri, isMobile } from '../config/platform'
 
   export default {
     components: {
@@ -9,7 +10,14 @@
       return {
         dialog: false,
         tab: 0,
-        isMobile: window.innerWidth <= 600
+        isMobile: window.innerWidth <= 600,
+        isMac: isMacOS(),
+        isDesktop: isTauri() && !isMobile()
+      }
+    },
+    computed: {
+      modifierKey() {
+        return this.isMac ? '⌘' : 'Ctrl'
       }
     },
     methods: {
@@ -71,7 +79,10 @@
             <v-tab :value="0">
               Dictionaries filter
             </v-tab>
-            <v-tab v-if="!isMobile" :value="1">
+            <v-tab v-if="isDesktop" :value="1">
+              Quick Lookup
+            </v-tab>
+            <v-tab v-if="!isMobile" :value="2">
               Navigation
             </v-tab>
           </v-tabs>
@@ -79,13 +90,65 @@
 
       </v-toolbar>
 
-      <v-card-text class="pt-4">
+      <v-card-text class="pt-4" :class="{ 'quick-lookup-active': tab === 1 }">
 
         <v-tabs-window
           v-model="tab"
         >
 
           <DictionariesMenuHelpTab />
+
+          <v-tabs-window-item v-if="isDesktop">
+            <div class="quick-lookup-layout">
+              <div class="quick-lookup-video">
+                <div class="demo-video">
+                  <video
+                    src="/img/global-lookup-demo.mp4"
+                    autoplay
+                    loop
+                    muted
+                    playsinline
+                  />
+                </div>
+              </div>
+              <div class="quick-lookup-content">
+                <p class="text-body-1 mb-4">
+                  You can look up Tibetan text from anywhere on your system using a keyboard shortcut.
+                </p>
+
+                <v-table class="lookup-steps-table mb-4">
+                  <tbody>
+                    <tr>
+                      <td class="pl-0 pr-4" style="white-space: nowrap">
+                        <span class="keyboard-square">{{ modifierKey }}</span>
+                        <span class="keyboard-square">C</span>
+                      </td>
+                      <td>
+                        <strong>Copy</strong> Tibetan text from any app
+                      </td>
+                    </tr>
+                    <tr>
+                      <td class="pl-0 pr-4" style="white-space: nowrap">
+                        <span class="keyboard-square">{{ modifierKey }}</span>
+                        <v-icon class="keyboard-square">mdi-apple-keyboard-shift</v-icon>
+                        <span class="keyboard-square">C</span>
+                      </td>
+                      <td>
+                        <strong>Open</strong> the lookup popup with dictionary results
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
+
+                <v-alert type="info" variant="tonal" density="compact" class="text-caption">
+                  <template v-slot:prepend>
+                    <v-icon size="small">mdi-information</v-icon>
+                  </template>
+                  You can change this hotkey in the Configure page under Global Lookup Settings.
+                </v-alert>
+              </div>
+            </div>
+          </v-tabs-window-item>
 
           <v-tabs-window-item v-if="!isMobile">
             <div class="text-h6 mb-3">Keyboard shortcuts</div>
@@ -105,36 +168,32 @@
                 </tr>
                 <tr>
                   <td class="pl-0">
-                    <div class="keyboard-square">Ctrl</div>
-                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
-                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">D</div>
                   </td>
                   <td class="pl-4">Go to <u>D</u>efine page</td>
                 </tr>
                 <tr>
                   <td class="pl-0">
-                    <div class="keyboard-square">Ctrl</div>
-                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
-                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">S</div>
                   </td>
                   <td class="pl-4">Go to <u>S</u>earch page</td>
                 </tr>
                 <tr>
                   <td class="pl-0">
-                    <div class="keyboard-square">Ctrl</div>
-                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
-                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">T</div>
                   </td>
                   <td class="pl-4">Go to Spli<u>t</u> page</td>
                 </tr>
                 <tr>
                   <td class="pl-0">
-                    <div class="keyboard-square">Ctrl</div>
-                    <div class="text-caption text-grey-darken-1 d-inline-flex align-center mx-2" style="height: 36px">or</div>
-                    <v-icon class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <v-icon v-if="isMac" class="keyboard-square">mdi-apple-keyboard-command</v-icon>
+                    <div v-else class="keyboard-square">Ctrl</div>
                     <div class="keyboard-square ml-1">G</div>
                   </td>
                   <td class="pl-4">Go to Confi<u>g</u>ure page</td>
