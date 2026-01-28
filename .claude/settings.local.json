@@ -112,7 +112,10 @@
       "Bash(git commit:*)",
       "Skill(superpowers:brainstorming)",
       "Skill(superpowers:brainstorming:*)",
-      "Bash(pnpm build:*)"
+      "Bash(pnpm build:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git checkout:*)",
+      "Bash(git stash push:*)"
     ]
   }
 }
