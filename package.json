@@ -23,6 +23,7 @@
   },
   "scripts": {
     "bump": "node ./scripts/bump-version.js $1",
+    "release": "node ./scripts/bump-version.js $1 && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
     "dev": "vite",
     "serve": "vite",
     "build": "vite build",
