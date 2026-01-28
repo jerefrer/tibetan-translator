@@ -36,7 +36,8 @@
           <div class="download-buttons">
             <a
               class="download-button"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v0.9.11/TibetanTranslator_0.9.11_x64-setup.exe"
+              data-asset-pattern="x64-setup.exe"
+              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_x64-setup.exe"
               target="_blank"
             >
               <svg
@@ -57,7 +58,8 @@
             </a>
             <a
               class="download-button macos"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v0.9.11/TibetanTranslator_0.9.11_aarch64.dmg"
+              data-asset-pattern="aarch64.dmg"
+              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_aarch64.dmg"
               target="_blank"
             >
               <svg
@@ -78,7 +80,8 @@
             </a>
             <a
               class="download-button"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v0.9.11/TibetanTranslator_0.9.11_amd64.deb"
+              data-asset-pattern="amd64.deb"
+              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_amd64.deb"
               target="_blank"
             >
               <svg
@@ -99,7 +102,8 @@
             </a>
             <a
               class="download-button"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v0.9.11/TibetanTranslator_0.9.11_x64_en-US.msi"
+              data-asset-pattern="x64_en-US.msi"
+              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_x64_en-US.msi"
               target="_blank"
             >
               <svg
@@ -120,7 +124,8 @@
             </a>
             <a
               class="download-button macos"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v0.9.11/TibetanTranslator_0.9.11_x64.dmg"
+              data-asset-pattern="x64.dmg"
+              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_x64.dmg"
               target="_blank"
             >
               <svg
@@ -141,7 +146,8 @@
             </a>
             <a
               class="download-button"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v0.9.11/TibetanTranslator_0.9.11_amd64.AppImage"
+              data-asset-pattern="amd64.AppImage"
+              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_amd64.AppImage"
               target="_blank"
             >
               <svg
@@ -279,5 +285,31 @@
     <script src="assets/js/breakpoints.min.js"></script>
     <script src="assets/js/util.js"></script>
     <script src="assets/js/main.js"></script>
+    <script>
+      // Fetch latest release and update download links
+      (function() {
+        const GITHUB_API = 'https://api.github.com/repos/jerefrer/tibetan-translator/releases/latest';
+
+        fetch(GITHUB_API)
+          .then(response => response.json())
+          .then(release => {
+            if (!release.assets) return;
+
+            const buttons = document.querySelectorAll('.download-button[data-asset-pattern]');
+
+            buttons.forEach(button => {
+              const pattern = button.getAttribute('data-asset-pattern');
+              const asset = release.assets.find(a => a.name.endsWith(pattern));
+
+              if (asset) {
+                button.href = asset.browser_download_url;
+              }
+            });
+          })
+          .catch(error => {
+            console.log('Using fallback download links:', error);
+          });
+      })();
+    </script>
   </body>
 </html>
