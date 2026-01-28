@@ -1,3 +1,200 @@
+/* ==========================================================================
+   Tibetan Translator - Light Theme Override
+   Matches the app's light theme: #A30000 (red), #FAF3E0 (paper background)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   CSS Variables for easy theming
+   -------------------------------------------------------------------------- */
+:root {
+  --color-primary: #A30000;
+  --color-primary-dark: #7a0000;
+  --color-primary-light: #c33;
+  --color-secondary: #FFC107;
+  --color-accent: #FF9800;
+  --color-bg: #FAF3E0;
+  --color-bg-alt: #f5ece0;
+  --color-bg-dark: #e8dcc8;
+  --color-text: #333;
+  --color-text-light: #555;
+  --color-text-muted: #777;
+  --color-border: rgba(163, 0, 0, 0.15);
+  --color-border-light: rgba(0, 0, 0, 0.08);
+}
+
+/* --------------------------------------------------------------------------
+   Animations
+   -------------------------------------------------------------------------- */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* --------------------------------------------------------------------------
+   Base & Body
+   -------------------------------------------------------------------------- */
+body {
+  background-color: var(--color-bg) !important;
+  background-image: none !important;
+  color: var(--color-text) !important;
+}
+
+body, input, select, textarea {
+  color: var(--color-text) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Typography
+   -------------------------------------------------------------------------- */
+h1, h2, h3, h4, h5, h6 {
+  color: var(--color-text) !important;
+}
+
+a {
+  color: var(--color-primary) !important;
+  border-bottom-color: rgba(163, 0, 0, 0.3) !important;
+}
+
+a:hover {
+  color: var(--color-primary-dark) !important;
+  border-bottom-color: transparent !important;
+}
+
+p {
+  color: var(--color-text-light) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+#header {
+  background: var(--color-bg) !important;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+#header h1 a {
+  color: var(--color-text) !important;
+}
+
+#header h1 a:hover {
+  color: var(--color-primary) !important;
+}
+
+#header.alt {
+  background: transparent !important;
+}
+
+/* --------------------------------------------------------------------------
+   Banner (Hero Section)
+   -------------------------------------------------------------------------- */
+#banner {
+  background: linear-gradient(135deg, var(--color-bg) 0%, var(--color-bg-alt) 100%) !important;
+  position: relative;
+}
+
+#banner::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background:
+    radial-gradient(circle at 10% 20%, rgba(163, 0, 0, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 90% 80%, rgba(255, 193, 7, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(163, 0, 0, 0.02) 0%, transparent 60%);
+  pointer-events: none;
+  animation: float 8s ease-in-out infinite reverse;
+}
+
+#banner::after {
+  content: '';
+  position: absolute;
+  top: 20%;
+  right: 5%;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(255, 152, 0, 0.05) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: float 6s ease-in-out infinite;
+}
+
+#banner .inner {
+  position: relative;
+  z-index: 1;
+  padding-top: 2em;
+  padding-bottom: 2em;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#banner .inner .logo {
+  margin-bottom: 1.5em;
+}
+
+#banner .inner .logo img {
+  width: 128px;
+  height: auto;
+  transition: transform 0.3s ease;
+}
+
+#banner .inner .logo:hover img {
+  transform: scale(1.05) rotate(2deg);
+}
+
+#banner h2 {
+  color: var(--color-text) !important;
+  border-bottom-color: var(--color-border) !important;
+  animation: fadeInUp 0.6s ease-out 0.2s both;
+}
+
+#banner p {
+  color: var(--color-text-light) !important;
+  animation: fadeInUp 0.6s ease-out 0.4s both;
+}
+
+#banner .download-buttons {
+  animation: fadeInUp 0.6s ease-out 0.6s both;
+}
+
+#banner .logo .icon {
+  border-color: var(--color-border) !important;
+  color: var(--color-primary) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Download Buttons
+   -------------------------------------------------------------------------- */
 .download-buttons {
   display: grid;
   grid-template-columns: repeat(3, 205px);
@@ -5,6 +202,7 @@
     'button1 button2 button3'
     'button4 button5 button6';
   gap: 15px;
+  justify-content: center;
 }
 
 @media (max-width: 767px) {
@@ -14,70 +212,266 @@
       'button1 button4'
       'button2 button5'
       'button3 button6';
+    gap: 10px;
   }
 }
 
-.download-button:nth-child(1) {
-  grid-area: button1;
+@media (max-width: 480px) {
+  .download-buttons {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'button1'
+      'button4'
+      'button2'
+      'button5'
+      'button3'
+      'button6';
+  }
 }
-.download-button:nth-child(2) {
-  grid-area: button2;
-}
-.download-button:nth-child(3) {
-  grid-area: button3;
-}
-.download-button:nth-child(4) {
-  grid-area: button4;
-}
-.download-button:nth-child(5) {
-  grid-area: button5;
-}
-.download-button:nth-child(6) {
-  grid-area: button6;
-}
+
+.download-button:nth-child(1) { grid-area: button1; }
+.download-button:nth-child(2) { grid-area: button2; }
+.download-button:nth-child(3) { grid-area: button3; }
+.download-button:nth-child(4) { grid-area: button4; }
+.download-button:nth-child(5) { grid-area: button5; }
+.download-button:nth-child(6) { grid-area: button6; }
 
 .download-button {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 10px 25px 10px 20px;
-  font-weight: bold;
-  background: rgba(0, 0, 0, 0.5);
-  border-radius: 17px;
+  gap: 8px;
+  padding: 12px 24px 12px 18px;
+  font-weight: 600;
+  font-size: 0.95em;
+  background: var(--color-primary);
+  border-radius: 12px;
   border: none;
-  color: #fffd;
-  transition: 0.3s ease all;
+  color: #fff !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 15px rgba(163, 0, 0, 0.25);
+  transition: all 0.25s ease;
 }
 
 .download-button span {
-  margin-left: 5px;
+  margin-left: 4px;
   font-size: 0.8em;
-  opacity: 0.5;
+  opacity: 0.85;
   font-weight: normal;
 }
 
-.download-button,
 .download-button svg {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-.download-button svg {
-  margin-right: 5px;
-  opacity: 0.5;
+  margin-right: 4px;
+  opacity: 0.9;
+  transition: transform 0.25s ease;
 }
 
 .download-button:hover {
-  background: rgba(0, 0, 0, 0.7);
-  transform: scale(1.1);
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(163, 0, 0, 0.3);
+  color: #fff !important;
 }
 
 .download-button:hover svg {
   opacity: 1;
-  transform: translateX(-3px) scale(1.1);
+  transform: scale(1.1);
+}
+
+.download-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(163, 0, 0, 0.25);
 }
 
 .download-button.macos svg {
   position: relative;
   top: -1px;
+}
+
+/* --------------------------------------------------------------------------
+   Wrapper Sections (Feature spotlights)
+   -------------------------------------------------------------------------- */
+.wrapper {
+  background-color: var(--color-bg-alt) !important;
+}
+
+.wrapper::before,
+.wrapper::after {
+  display: none !important;
+}
+
+.wrapper.spotlight {
+  background: var(--color-bg-alt) !important;
+  margin: 0 !important;
+  padding: 4em 0;
+  border-top: 1px solid var(--color-border-light);
+  position: relative;
+  overflow: hidden;
+}
+
+.wrapper.spotlight .inner {
+  position: relative;
+  z-index: 1;
+}
+
+.wrapper.spotlight.style1 {
+  background: linear-gradient(to right, var(--color-bg-alt), var(--color-bg)) !important;
+}
+
+.wrapper.spotlight.style2 {
+  background: var(--color-bg) !important;
+}
+
+.wrapper.spotlight.style3 {
+  background: linear-gradient(to left, var(--color-bg-alt), var(--color-bg)) !important;
+}
+
+.wrapper.spotlight.style4 {
+  background: var(--color-bg-alt) !important;
+}
+
+.wrapper.spotlight .content h2.major {
+  color: var(--color-primary) !important;
+  border-bottom-color: var(--color-border) !important;
+  position: relative;
+  display: inline-block;
+}
+
+.wrapper.spotlight .content h2.major::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  transition: width 0.4s ease;
+  border-radius: 2px;
+}
+
+.wrapper.spotlight:hover .content h2.major::after {
+  width: 100%;
+}
+
+.wrapper.spotlight .content p {
+  color: var(--color-text-light) !important;
+  text-wrap: balance;
+}
+
+/* Feature images */
+.wrapper.spotlight .image {
+  border-radius: 16px !important;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+  border: 1px solid var(--color-border-light);
+}
+
+.wrapper.spotlight .image img {
+  border-radius: 16px !important;
+}
+
+/* Video in feature sections */
+.wrapper.spotlight .image video {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 16px;
+}
+
+/* Alt wrapper for alternating colors */
+.wrapper.alt.spotlight {
+  background: var(--color-bg) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+#footer {
+  background: var(--color-bg-dark) !important;
+  border-top: 1px solid var(--color-border-light);
+  padding: 3em 0 !important;
+}
+
+#footer .inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#footer .contact {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+  text-align: center;
+}
+
+#footer .contact li {
+  padding-left: 0 !important;
+}
+
+#footer .contact li.icon::before {
+  position: relative !important;
+  display: inline-block;
+  margin-right: 0.5em;
+  top: 0;
+  left: 0;
+}
+
+#footer .contact li.with-image {
+  display: flex;
+  align-items: center;
+  gap: 0.75em;
+  padding-left: 0;
+  padding-top: 0;
+}
+
+#footer .contact li.with-image img {
+  position: relative !important;
+  left: auto;
+  transform: none;
+}
+
+.contact li {
+  color: var(--color-text-light) !important;
+}
+
+.contact li a {
+  color: var(--color-primary) !important;
+  transition: all 0.3s ease;
+  position: relative;
+  display: inline-block;
+  padding-bottom: 2px;
+}
+
+.contact li a::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  transition: width 0.3s ease;
+}
+
+.contact li a:hover {
+  color: var(--color-primary-dark) !important;
+}
+
+.contact li a:hover::after {
+  width: 100%;
+}
+
+.contact li.icon::before {
+  color: var(--color-primary) !important;
+  border-color: var(--color-border) !important;
+}
+
+.contact li.with-image {
+  position: relative;
+  padding-left: 3.5em;
 }
 
 .contact li.with-image img {
@@ -89,7 +483,130 @@
   height: 2.5em;
   line-height: 2.35em;
   border-radius: 100%;
-  border: solid 2px rgba(255, 255, 255, 0.125);
+  border: solid 2px var(--color-border);
   font-size: 0.8em;
   text-align: center;
+}
+
+/* --------------------------------------------------------------------------
+   Major heading style
+   -------------------------------------------------------------------------- */
+h2.major {
+  border-bottom-color: var(--color-border) !important;
+}
+
+h2.major::after {
+  background-color: var(--color-primary) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons (general)
+   -------------------------------------------------------------------------- */
+.button {
+  background-color: transparent !important;
+  border-color: var(--color-border) !important;
+  color: var(--color-text) !important;
+}
+
+.button:hover {
+  background-color: rgba(163, 0, 0, 0.05) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+.button.primary {
+  background-color: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #fff !important;
+}
+
+.button.primary:hover {
+  background-color: var(--color-primary-dark) !important;
+  border-color: var(--color-primary-dark) !important;
+}
+
+/* --------------------------------------------------------------------------
+   Scrollbar styling
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-bg-alt);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(163, 0, 0, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Responsive adjustments
+   -------------------------------------------------------------------------- */
+@media screen and (max-width: 980px) {
+  .wrapper.spotlight {
+    padding: 3em 0;
+  }
+}
+
+@media screen and (max-width: 736px) {
+  .wrapper.spotlight {
+    padding: 2em 0;
+  }
+
+  .wrapper.spotlight .image {
+    margin-bottom: 1.5em !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Preload animation adjustments
+   -------------------------------------------------------------------------- */
+body.is-preload #banner .logo,
+body.is-preload #banner h2,
+body.is-preload #banner p {
+  opacity: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Selection color
+   -------------------------------------------------------------------------- */
+::selection {
+  background: rgba(163, 0, 0, 0.2);
+  color: var(--color-text);
+}
+
+::-moz-selection {
+  background: rgba(163, 0, 0, 0.2);
+  color: var(--color-text);
+}
+
+/* --------------------------------------------------------------------------
+   Focus states for accessibility
+   -------------------------------------------------------------------------- */
+a:focus,
+button:focus,
+.download-button:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Print styles
+   -------------------------------------------------------------------------- */
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .download-buttons,
+  #footer {
+    display: none;
+  }
 }

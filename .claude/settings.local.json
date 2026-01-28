@@ -8,7 +8,8 @@
       "mcp__playwright__browser_resize",
       "mcp__playwright__browser_evaluate",
       "mcp__playwright__browser_close",
-      "Bash(pkill:*)"
+      "Bash(pkill:*)",
+      "mcp__playwright__browser_hover"
     ]
   }
 }
