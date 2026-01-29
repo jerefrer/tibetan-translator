@@ -714,6 +714,18 @@ export default {
       50%
         opacity: 0.7
 
+  .search-builder-settings
+    width: 100%
+
+    .v-toolbar .v-icon
+      margin: 0 10px 0 10px
+
+    .v-toolbar__title, .v-toolbar__title .text-caption
+      line-height: 1em
+
+    .v-toolbar__title .text-caption
+      margin-top: 5px
+
   .database-reinitialization .v-toolbar .v-icon
     margin: 0 9px 0 -6px
 

@@ -21,6 +21,7 @@ import DictionariesMenuMixin from './DictionariesMenuMixin';
 
 import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries.vue';
 import ScanViewer from './ScanViewer.vue';
+import SearchBuilder from './SearchBuilder.vue';
 import { getScanInfo } from '../services/scan-service';
 
 export default {
@@ -28,6 +29,7 @@ export default {
   components: {
     ResultsAndPaginationAndDictionaries,
     ScanViewer,
+    SearchBuilder,
   },
   inject: ['snackbar'],
   setup() {
@@ -47,6 +49,8 @@ export default {
       cachedRegularTerms: [],
       cachedPhoneticsStrictTerms: [],
       cachedPhoneticsLooseTerms: [],
+      // Search builder state
+      builderVisible: Storage.get('searchBuilderVisible') !== false,
     };
   },
   watch: {
@@ -440,6 +444,16 @@ export default {
     closeScanViewer() {
       this.scanViewerEntry = null;
     },
+    // Search builder methods
+    toggleBuilder() {
+      this.builderVisible = !this.builderVisible;
+    },
+    showBuilder() {
+      this.builderVisible = true;
+    },
+    hideBuilder() {
+      this.builderVisible = false;
+    },
   },
   mounted() {
     this.setPageTitle();
@@ -495,6 +509,26 @@ export default {
         </template>
       </v-text-field>
     </v-system-bar>
+
+    <!-- Search Builder -->
+    <SearchBuilder
+      v-model="searchQuery"
+      v-model:visible="builderVisible"
+      @submit="performSearch()"
+    />
+
+    <!-- Builder toggle button when hidden -->
+    <div v-if="!builderVisible" class="builder-toggle-container">
+      <v-btn
+        variant="text"
+        size="small"
+        color="grey"
+        @click="showBuilder"
+      >
+        <v-icon start size="small">mdi-tune</v-icon>
+        Show Query Builder
+      </v-btn>
+    </div>
 
     <!-- Results count and dictionaries filter -->
     <div
@@ -667,6 +701,20 @@ export default {
 .v-theme--dark .search-page > .v-system-bar {
   background: #1e1e1e !important;
   border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.search-page .builder-toggle-container {
+  display: flex;
+  justify-content: center;
+  padding: 6px;
+  flex-shrink: 0;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+}
+
+.v-theme--dark .search-page .builder-toggle-container {
+  background: #2a2a2a;
+  border-bottom-color: #444;
 }
 
 .search-page .v-input {

@@ -71,18 +71,21 @@
             grow
           >
             <v-tab :value="0">
-              Examples
+              Query Builder
             </v-tab>
             <v-tab :value="1">
-              Phonetic search
+              Syntax Examples
             </v-tab>
             <v-tab :value="2">
-              Wylie support
+              Phonetic search
             </v-tab>
             <v-tab :value="3">
+              Wylie support
+            </v-tab>
+            <v-tab :value="4">
               Dictionaries filter
             </v-tab>
-            <v-tab v-if="!isMobile" :value="4">
+            <v-tab v-if="!isMobile" :value="5">
               Navigation
             </v-tab>
           </v-tabs>
@@ -95,6 +98,73 @@
         <v-tabs-window
           v-model="tab"
         >
+
+          <v-tabs-window-item>
+            <div class="text-h6 mb-3">Visual Query Builder</div>
+            <p>
+              The Query Builder provides a visual way to build search queries
+              without memorizing syntax.
+            </p>
+
+            <div class="text-subtitle-1 mt-4 mb-2">How it works</div>
+            <p>
+              Each row in the builder represents a search condition. Use the
+              dropdown to select how to search:
+            </p>
+
+            <v-table density="compact" class="my-3">
+              <thead>
+                <tr>
+                  <th>Option</th>
+                  <th>What it does</th>
+                  <th>Equivalent syntax</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><code>contains</code></td>
+                  <td>Regular text search</td>
+                  <td><code>term</code></td>
+                </tr>
+                <tr>
+                  <td><code>contains (Wylie)</code></td>
+                  <td>Type in Wylie romanization</td>
+                  <td><code>(term)</code></td>
+                </tr>
+                <tr>
+                  <td><code>sounds precisely like</code></td>
+                  <td>Strict phonetic match</td>
+                  <td><code>[term]</code></td>
+                </tr>
+                <tr>
+                  <td><code>sounds more or less like</code></td>
+                  <td>Fuzzy phonetic match</td>
+                  <td><code>{term}</code></td>
+                </tr>
+              </tbody>
+            </v-table>
+
+            <p>
+              Click <strong>+ Add condition</strong> to combine multiple search
+              terms (they are combined with AND logic).
+            </p>
+
+            <v-alert
+              variant="tonal"
+              density="compact"
+              type="info"
+              class="text-caption mt-4"
+              icon="mdi-lightbulb-on-outline"
+            >
+              The builder syncs with the text box above — you can use either
+              interface! Changes in one are reflected in the other.
+            </v-alert>
+
+            <p class="text-caption text-grey mt-4">
+              Prefer typing? Hide the builder using the "Hide" button.
+              Your preference is remembered.
+            </p>
+          </v-tabs-window-item>
 
           <v-tabs-window-item>
             <table>
@@ -145,7 +215,7 @@
                     <span class="mr-2">"trenpa".</span>
                     <span class="text-caption text-grey nowrap">
                       (See
-                        <a @click="tab=1">Phonetic search</a>)
+                        <a @click="tab=2">Phonetic search</a>)
                     </span>
                   </td>
                 </tr>
@@ -159,7 +229,7 @@
                     <span class="mr-2">"trenpa".</span>
                     <span class="text-caption text-grey nowrap">
                       (See
-                        <a @click="tab=1">Phonetic search</a>)
+                        <a @click="tab=2">Phonetic search</a>)
                     </span>
                   </td>
                 </tr>
@@ -174,7 +244,7 @@
                     <span class="mr-2">way.</span>
                     <span class="text-caption text-grey nowrap">
                       (See
-                        <a @click="tab=1">Phonetic search</a>)
+                        <a @click="tab=2">Phonetic search</a>)
                     </span>
                   </td>
                 </tr>
@@ -188,7 +258,7 @@
                     <span class="tibetan mr-2">དྲན་པ་</span>
                     <span class="text-caption text-grey nowrap">
                       (See
-                        <a @click="tab=1">Phonetic search</a>)
+                        <a @click="tab=2">Phonetic search</a>)
                     </span>
                   </td>
                 </tr>
@@ -201,7 +271,7 @@
                     <span class="tibetan mr-2">དགའ་བ་</span>
                     <span class="text-caption text-grey nowrap">
                       (See
-                        <a @click="tab=2">Wylie support</a>)
+                        <a @click="tab=3">Wylie support</a>)
                     </span>
                   </td>
                 </tr>
