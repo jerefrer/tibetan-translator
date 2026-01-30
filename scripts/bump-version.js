@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const { execSync } = require("child_process");
 
 const getNextVersion = (currentVersion, bumpType) => {
   const [major, minor, patch] = currentVersion.split(".").map(Number);
@@ -61,3 +62,12 @@ updateJsonFile(
 
 // Update Cargo.toml
 updateTomlFile(path.join(__dirname, "..", "src-tauri", "Cargo.toml"), newVersion);
+
+// Update Cargo.lock by running cargo check
+console.log("Updating Cargo.lock...");
+execSync("cargo check --manifest-path src-tauri/Cargo.toml", {
+  cwd: path.join(__dirname, ".."),
+  stdio: "inherit",
+});
+
+console.log(`\nVersion bumped to ${newVersion}`);

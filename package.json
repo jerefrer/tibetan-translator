@@ -1,6 +1,6 @@
 {
   "name": "tibetan-translator",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",
   "author": "Lekshe (Jeremy FRERE)",
   "keywords": [
@@ -22,8 +22,12 @@
     "url": "https://github.com/jerefrer/tibetan-translator/issues"
   },
   "scripts": {
-    "bump": "node ./scripts/bump-version.js $1",
-    "release": "node ./scripts/bump-version.js $1 && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
+    "bump:patch": "node ./scripts/bump-version.js patch",
+    "bump:minor": "node ./scripts/bump-version.js minor",
+    "bump:major": "node ./scripts/bump-version.js major",
+    "release:patch": "node ./scripts/bump-version.js patch && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
+    "release:minor": "node ./scripts/bump-version.js minor && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
+    "release:major": "node ./scripts/bump-version.js major && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
     "dev": "vite",
     "serve": "vite",
     "build": "vite build",
