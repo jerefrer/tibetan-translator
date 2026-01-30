@@ -989,7 +989,7 @@ export default {
 .search-page .previous-queries .buttons {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 4px;
 }
@@ -997,6 +997,7 @@ export default {
 .search-page .previous-queries .buttons .previous-query {
   padding: 20px 28px;
   text-transform: none;
+  height: auto;
 }
 
 .search-page .previous-queries .buttons .previous-query span.tibetan {
