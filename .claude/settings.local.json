@@ -120,7 +120,8 @@
       "mcp__playwright__browser_select_option",
       "mcp__playwright__browser_install",
       "mcp__playwright__browser_press_key",
-      "mcp__playwright__browser_resize"
+      "mcp__playwright__browser_resize",
+      "Bash(git remote:*)"
     ]
   }
 }
