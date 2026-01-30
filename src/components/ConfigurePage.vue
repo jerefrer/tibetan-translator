@@ -5,6 +5,8 @@ import { useTheme } from 'vuetify';
 import Storage from '../services/storage';
 import DictionariesDetails from '../services/dictionaries-details';
 import GlobalLookup from '../services/global-lookup';
+import UpdateService from '../services/update-service';
+import { isTauri } from '../config/platform';
 import {
   getScannedDictionaries,
   isScanDownloaded,
@@ -62,6 +64,10 @@ export default {
       isRecordingHotkey: false,
       needsAccessibilityPermission: false,
       isMacOS: false,
+      // App version and update settings
+      appVersion: null,
+      checkingForUpdates: false,
+      updateAvailable: null,
     };
   },
   watch: {
@@ -263,6 +269,31 @@ export default {
       this.globalLookupHotkey = defaultHotkey;
       this.globalLookupHotkeyDisplay = GlobalLookup.formatHotkeyForDisplay(defaultHotkey);
       GlobalLookup.updateHotkey(defaultHotkey);
+    },
+    async checkForUpdates() {
+      this.checkingForUpdates = true;
+      try {
+        const update = await UpdateService.checkOnly();
+        if (update) {
+          this.updateAvailable = update;
+          this.snackbar.open(
+            `Update to v${update.version} available! Downloading...`
+          );
+          // Start the download
+          await UpdateService.checkAndDownload((newVersion) => {
+            this.snackbar.open(
+              `Update to v${newVersion} ready! Will install on restart.`
+            );
+          });
+        } else {
+          this.snackbar.open('You\'re running the latest version!');
+        }
+      } catch (e) {
+        this.snackbar.open('Failed to check for updates');
+        console.error('Update check failed:', e);
+      } finally {
+        this.checkingForUpdates = false;
+      }
     }
   },
   async created() {
@@ -300,6 +331,11 @@ export default {
         this.needsAccessibilityPermission = !hasPermission;
       }
     }
+
+    // Get app version (Tauri only)
+    if (isTauri()) {
+      this.appVersion = await UpdateService.getVersion();
+    }
   },
   unmounted() {
     // Clean up event listeners
@@ -315,6 +351,30 @@ export default {
 
 <template>
   <v-container class="configure-page">
+    <!-- About / Version card (Tauri only) -->
+    <v-card v-if="appVersion" class="app-info mb-4">
+      <v-toolbar density="compact">
+        <v-icon class="ml-2 mr-3">mdi-information-outline</v-icon>
+        <v-toolbar-title>About</v-toolbar-title>
+      </v-toolbar>
+      <v-card-text>
+        <div class="d-flex justify-space-between align-center">
+          <div>
+            <div class="font-weight-medium">Tibetan Translator</div>
+            <div class="text-caption text-grey">Version {{ appVersion }}</div>
+          </div>
+          <v-btn
+            variant="tonal"
+            size="small"
+            :loading="checkingForUpdates"
+            @click="checkForUpdates"
+          >
+            Check for Updates
+          </v-btn>
+        </div>
+      </v-card-text>
+    </v-card>
+
     <v-card class="theme-selector mb-4">
       <v-toolbar>
         <v-icon size="x-large" color="grey">mdi-theme-light-dark</v-icon>

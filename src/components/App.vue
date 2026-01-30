@@ -8,6 +8,7 @@ import Storage from "../services/storage";
 import EventHandlers from "../services/event-handlers";
 import PackManager from "../services/pack-manager";
 import GlobalLookup from "../services/global-lookup";
+import UpdateService from "../services/update-service";
 import { supportsModularPacks } from "../config/platform";
 
 import { substituteLinksWithATags } from "../utils.js";
@@ -317,6 +318,14 @@ export default {
     if (GlobalLookup.isSupported()) {
       await GlobalLookup.initialize();
     }
+
+    // Check for app updates silently (desktop only)
+    // UpdateService handles platform checks internally
+    UpdateService.checkAndDownload((newVersion) => {
+      this.snackbar.open(
+        `Update to v${newVersion} ready! Will install on restart.`
+      );
+    });
   },
   mounted() {
     this.addListenerToOpenSnackbarOnAbbreviationClick();
