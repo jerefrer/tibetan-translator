@@ -1,21 +1,29 @@
+import { COOKIE_EXPIRY_HOURS } from '../config/constants';
+
 export default {
   appName: 'tibetan-translator',
   localStorageSupported: function() {
     try { return !!window.localStorage; }
-    catch(error) { return false };
-    return true;
+    catch(error) { return false }
   },
   scopedKey: function(keyName) {
     return this.appName + '.' + keyName;
   },
-  get: function(keyName) {
+  get: function(keyName, defaultValue = null) {
     var jsonValue;
     var key = this.scopedKey(keyName);
-    if (this.localStorageSupported())
-      jsonValue = localStorage[key];
-    else
-      jsonValue = Cookie.read(key);
-    return jsonValue && JSON.parse(jsonValue);
+    try {
+      if (this.localStorageSupported())
+        jsonValue = localStorage[key];
+      else
+        jsonValue = Cookie.read(key);
+
+      if (!jsonValue) return defaultValue;
+      return JSON.parse(jsonValue);
+    } catch (error) {
+      console.warn(`[Storage] Failed to parse value for key "${keyName}":`, error);
+      return defaultValue;
+    }
   },
   set: function(keyName, value) {
     var key = this.scopedKey(keyName);
@@ -27,8 +35,7 @@ export default {
     if (this.localStorageSupported())
       localStorage[key] = jsonValue;
     else {
-      var tenYears = 87600;
-      Cookie.write(key, jsonValue, tenYears);
+      Cookie.write(key, jsonValue, COOKIE_EXPIRY_HOURS);
     }
     return true;
   },

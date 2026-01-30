@@ -3,21 +3,26 @@ import _ from 'underscore';
 import { useTheme } from 'vuetify';
 
 import TibetanRegExps from 'tibetan-regexps';
-import WylieToUnicode from '../services/wylie-to-unicode';
-const wylieToUnicode = new WylieToUnicode();
 
+import {
+  MAX_ENTRIES_PER_REQUEST,
+  ENTRIES_BATCH_SIZE,
+  MAX_PREVIOUS_QUERIES,
+  INFINITE_SCROLL_ROOT_MARGIN_LARGE,
+} from '../config/constants';
 import Decorator from '../services/decorator';
 import PhoneticSearch from '../services/phonetic-search';
 import SqlDatabase from '../services/sql-database';
 import Storage from '../services/storage';
 import {
+  convertWylieInParentheses,
   phoneticsLooseFor,
   phoneticsStrictFor,
   replaceTibetanGroups,
   syllablesFor,
 } from '../utils.js';
-import DictionariesDetailsMixin from './DictionariesDetailsMixin';
 import DictionariesMenuMixin from './DictionariesMenuMixin';
+import InfiniteScrollMixin from './mixins/InfiniteScrollMixin';
 
 import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries.vue';
 import ScanViewer from './ScanViewer.vue';
@@ -25,25 +30,25 @@ import SearchBuilder from './SearchBuilder.vue';
 import { getScanInfo } from '../services/scan-service';
 
 export default {
-  mixins: [DictionariesDetailsMixin, DictionariesMenuMixin],
+  mixins: [DictionariesMenuMixin, InfiniteScrollMixin],
+  setup() {
+    const theme = useTheme();
+    return { theme };
+  },
   components: {
     ResultsAndPaginationAndDictionaries,
     ScanViewer,
     SearchBuilder,
   },
   inject: ['snackbar'],
-  setup() {
-    const theme = useTheme();
-    return { theme };
-  },
   data() {
     return {
       loading: false,
       entries: undefined,
-      displayedCount: 50, // Start with 50 entries
-      batchSize: 50, // Load 50 more each time
+      displayedCount: ENTRIES_BATCH_SIZE,
+      batchSize: ENTRIES_BATCH_SIZE,
       searchQuery: this.$route.params.query,
-      previousQueries: Storage.get('previousQueries') || [],
+      previousQueries: Storage.get('previousQueries', []),
       scanViewerEntry: null, // Entry for which scan viewer is open
       // Cached highlight terms - only updated on search, not on input change
       cachedRegularTerms: [],
@@ -55,6 +60,10 @@ export default {
   },
   watch: {
     '$route.params.query'(value) {
+      // Only update searchQuery if we're still on the search route
+      // (prevents clearing when navigating to other pages like /define)
+      if (!this.$route.path.startsWith('/search')) return;
+
       this.searchQuery = value;
       Storage.set('searchQuery', value);
       if (value) this.performSearch({ query: value, fromNavigation: true });
@@ -68,18 +77,28 @@ export default {
     if (!to.params.query && query) next('/search/' + query);
     else next();
   },
+  beforeRouteUpdate(to, from, next) {
+    // When navigating back to search page without a query param (e.g., via tabs),
+    // restore the stored query if available
+    if (to.path.startsWith('/search') && !to.params.query) {
+      var query = Storage.get('searchQuery');
+      if (query) {
+        next('/search/' + encodeURIComponent(query));
+        return;
+      }
+    }
+    next();
+  },
   computed: {
     isDark() {
       return this.theme.global.current.value.dark;
     },
-    numberOfEntriesPerPage() {
-      return 25;
+    // InfiniteScrollMixin configuration
+    infiniteScrollRootMargin() {
+      return INFINITE_SCROLL_ROOT_MARGIN_LARGE;
     },
-    maxNumberOfEntriesPerRequest() {
-      return 5000;
-    },
-    maxNumberOfPreviousQueries() {
-      return 100;
+    hasMore() {
+      return this.displayedCount < this.totalNumberOfEntriesForEnabledDictionaries;
     },
     sortedEntries() {
       // Multi-factor sorting with BM25 relevance ranking
@@ -116,11 +135,6 @@ export default {
       // Only return the entries we want to display - NO upfront decoration
       return this.sortedEntries.slice(0, this.displayedCount);
     },
-    hasMoreEntries() {
-      return (
-        this.displayedCount < this.totalNumberOfEntriesForEnabledDictionaries
-      );
-    },
     totalNumberOfEntriesForEnabledDictionaries() {
       return this.entriesForEnabledDictionaries?.length || 0;
     },
@@ -147,10 +161,7 @@ export default {
   },
   methods: {
     substituteWylieTerms(text) {
-      return text.replace(/\(([^)]*)\)/g, (wylieWithParenthesis) => {
-        let wylieWithoutParenthesis = wylieWithParenthesis.slice(1, -1);
-        return wylieToUnicode.convert(wylieWithoutParenthesis);
-      });
+      return convertWylieInParentheses(text);
     },
     phoneticsTerms(regexp, convert) {
       return _.chain(this.searchTerms.map((term) => term.match(regexp)))
@@ -265,11 +276,6 @@ export default {
     focusInput() {
       this.$refs.input.focus();
     },
-    setPageTitle() {
-      return;
-      document.title = 'Translator / Search';
-      if (this.searchQuery) document.title += ' / ' + this.searchQuery;
-    },
     prepareTerm(term) {
       return `"${term.replace(/'/g, "''").replace(/"/g, '""')}"`;
     },
@@ -278,16 +284,12 @@ export default {
         (query) => query != this.searchQuery
       );
       this.previousQueries.unshift(this.searchQuery);
-      if (this.previousQueries.length > this.maxNumberOfPreviousQueries)
-        this.previousQueries = this.previousQueries.slice(
-          0,
-          this.maxNumberOfPreviousQueries
-        );
+      if (this.previousQueries.length > MAX_PREVIOUS_QUERIES)
+        this.previousQueries = this.previousQueries.slice(0, MAX_PREVIOUS_QUERIES);
     },
     pushRoute() {
       var path = '/search/' + encodeURIComponent(this.searchQuery);
       if (path != this.$route.path) {
-        this.setPageTitle();
         this.$router.push({ path: path });
       }
     },
@@ -366,7 +368,7 @@ export default {
             INNER JOIN entries_fts ON entries.id = entries_fts.rowid
             WHERE ${conditions.join(' AND ')}
             ORDER BY rank
-            LIMIT ${this.maxNumberOfEntriesPerRequest}
+            LIMIT ${MAX_ENTRIES_PER_REQUEST}
           `;
         SqlDatabase.exec(query, params)
           .then((rows) => {
@@ -383,35 +385,8 @@ export default {
       } else this.clear();
     },
     loadMore() {
-      if (this.hasMoreEntries) {
+      if (this.hasMore) {
         this.displayedCount += this.batchSize;
-      }
-    },
-    setupInfiniteScroll() {
-      this.$nextTick(() => {
-        const sentinel = this.$refs.loadMoreSentinel;
-        if (!sentinel) return;
-
-        this.observer = new IntersectionObserver(
-          (entries) => {
-            if (
-              entries[0].isIntersecting &&
-              this.hasMoreEntries &&
-              !this.loading
-            ) {
-              this.loadMore();
-            }
-          },
-          { rootMargin: '200px' }
-        ); // Load more 200px before reaching bottom
-
-        this.observer.observe(sentinel);
-      });
-    },
-    teardownInfiniteScroll() {
-      if (this.observer) {
-        this.observer.disconnect();
-        this.observer = null;
       }
     },
     shortDictionaryLabelFor(entry) {
@@ -456,14 +431,10 @@ export default {
     },
   },
   mounted() {
-    this.setPageTitle();
     if (this.searchQuery) this.performSearch();
   },
   activated() {
     this.$nextTick(() => this.focusInput());
-  },
-  unmounted() {
-    this.teardownInfiniteScroll();
   },
 };
 </script>
@@ -637,7 +608,7 @@ export default {
         <!-- Sentinel for infinite scroll -->
         <div ref="loadMoreSentinel" class="load-more-sentinel">
           <v-progress-circular
-            v-if="hasMoreEntries"
+            v-if="hasMore"
             indeterminate
             size="24"
             color="grey"

@@ -13,7 +13,6 @@ export default {
     var dictionaryDetails = DICTIONARIES_DETAILS[entry.dictionary] || {};
     if (entry.dictionary == 'Illuminator_x') {
       definition = this.substituteWylieVerbs(definition);
-      definition = this.substituteWylieExamples(definition);
     }
     definition = this.prettify(definition, entry.dictionary);
     definition = this.breakIntoSections(definition);
@@ -40,15 +39,6 @@ export default {
         '<br />'
       )
     })
-  },
-
-  substituteWylieExamples (definition) {
-    // e.g., rig pa ched du ma bsgrub pa
-    // e.g., [TC] sgrub dang sun 'byin/ "proof and refutation"
-    // E.g., [TC] sangs rgyas pa'i chos sgrub pa/ "to practice / accomplish the buddha's dharma"
-    // As Padma Karpo explains: gang zag cig car ba dang /_thod brgal ba dang /_rim skyes pa dang gsum du nges pas/ "Persons are ascertained to be three types: sudden, leap over, and gradually produced, thus..."
-    // This goes with what Thrulzhig Namkha’i Naljor said, go rim nges pa med par gang thod thod du brgal pas thod brgal zhes bya ba yin no/ “Given that there is no pre-determined sequence but that the person just leaps over at higher and higher levels, it is called “leap over"."
-    return definition;
   },
 
   wrapTibetanWithSpansAndLinksIfDefined (text) {

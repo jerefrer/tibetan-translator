@@ -108,7 +108,6 @@ const database = {
       console.log("[Database] Using sql.js WebAssembly");
       if (!worker) {
         worker = new Worker("/worker.sql-wasm.js");
-        window.worker = worker;
       }
 
       let response = await fetch("/TibetanTranslator.sqlite");

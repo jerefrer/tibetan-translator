@@ -9,6 +9,8 @@ import EventHandlers from "../services/event-handlers";
 import PackManager from "../services/pack-manager";
 import GlobalLookup from "../services/global-lookup";
 import UpdateService from "../services/update-service";
+import AudioPlayerService from "../services/audio-player-service";
+import ResizeService from "../services/resize-service";
 import { supportsModularPacks } from "../config/platform";
 
 import { substituteLinksWithATags } from "../utils.js";
@@ -55,7 +57,7 @@ export default {
     return {
       loading: true,
       showOnboarding: false,
-      isMobile: window.innerWidth <= 600,
+      isMobile: ResizeService.isMobile(),
     };
   },
   computed: {
@@ -149,150 +151,8 @@ export default {
         },
       });
     },
-    addListenerForAudioPlayback() {
-      let currentAudio = null;
-      let currentPlayer = null;
-
-      const formatTime = (seconds) => {
-        if (isNaN(seconds) || !isFinite(seconds)) return "0:00";
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, "0")}`;
-      };
-
-      const updateProgress = (player, audio) => {
-        const fill = player.find(".audio-progress-fill");
-        const handle = player.find(".audio-progress-handle");
-        const timeDisplay = player.find(".audio-time");
-        const percent = (audio.currentTime / audio.duration) * 100 || 0;
-        fill.css("width", percent + "%");
-        handle.css("left", percent + "%");
-        timeDisplay.text(`${formatTime(audio.currentTime)} / ${formatTime(audio.duration)}`);
-      };
-
-      const showPlayIcon = (btn) => {
-        btn.find(".play-icon").show();
-        btn.find(".pause-icon").hide();
-      };
-
-      const showPauseIcon = (btn) => {
-        btn.find(".play-icon").hide();
-        btn.find(".pause-icon").show();
-      };
-
-      const stopCurrentAudio = () => {
-        if (currentAudio) {
-          currentAudio.pause();
-          currentAudio.currentTime = 0;
-          if (currentPlayer) {
-            showPlayIcon(currentPlayer.find(".audio-play-btn"));
-            currentPlayer.find(".audio-progress-fill").css("width", "0%");
-            currentPlayer.find(".audio-progress-handle").css("left", "0%");
-          }
-          currentAudio = null;
-          currentPlayer = null;
-        }
-      };
-
-      // Play/pause button click
-      $(document).on("click", ".audio-play-btn", function(event) {
-        const btn = $(this);
-        const player = btn.closest(".audio-player");
-        const audioPath = player.attr("data-audio");
-
-        // If clicking on a different player, stop the current one
-        if (currentPlayer && currentPlayer[0] !== player[0]) {
-          stopCurrentAudio();
-        }
-
-        // If no audio or different audio, create new one
-        if (!currentAudio || currentPlayer[0] !== player[0]) {
-          currentAudio = new Audio(audioPath);
-          currentPlayer = player;
-
-          currentAudio.addEventListener("timeupdate", () => {
-            updateProgress(player, currentAudio);
-          });
-
-          currentAudio.addEventListener("loadedmetadata", () => {
-            updateProgress(player, currentAudio);
-          });
-
-          currentAudio.addEventListener("ended", () => {
-            showPlayIcon(btn);
-            currentAudio.currentTime = 0;
-            updateProgress(player, currentAudio);
-          });
-
-          currentAudio.play().catch(err => {
-            console.error("Audio playback failed:", err);
-          });
-          showPauseIcon(btn);
-        } else {
-          // Toggle play/pause on same audio
-          if (currentAudio.paused) {
-            currentAudio.play();
-            showPauseIcon(btn);
-          } else {
-            currentAudio.pause();
-            showPlayIcon(btn);
-          }
-        }
-      });
-
-      // Progress bar click/drag for seeking
-      $(document).on("mousedown", ".audio-progress-bar", function(event) {
-        const player = $(this).closest(".audio-player");
-        if (!currentAudio || currentPlayer[0] !== player[0]) return;
-
-        const progressBar = $(this);
-        const seek = (e) => {
-          const rect = progressBar[0].getBoundingClientRect();
-          const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-          currentAudio.currentTime = percent * currentAudio.duration;
-          updateProgress(player, currentAudio);
-        };
-
-        seek(event);
-
-        const onMouseMove = (e) => seek(e);
-        const onMouseUp = () => {
-          $(document).off("mousemove", onMouseMove);
-          $(document).off("mouseup", onMouseUp);
-        };
-
-        $(document).on("mousemove", onMouseMove);
-        $(document).on("mouseup", onMouseUp);
-      });
-
-      // Touch support for mobile
-      $(document).on("touchstart", ".audio-progress-bar", function(event) {
-        const player = $(this).closest(".audio-player");
-        if (!currentAudio || currentPlayer[0] !== player[0]) return;
-
-        const progressBar = $(this);
-        const seek = (e) => {
-          const touch = e.touches ? e.touches[0] : e;
-          const rect = progressBar[0].getBoundingClientRect();
-          const percent = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-          currentAudio.currentTime = percent * currentAudio.duration;
-          updateProgress(player, currentAudio);
-        };
-
-        seek(event.originalEvent);
-
-        const onTouchMove = (e) => seek(e.originalEvent);
-        const onTouchEnd = () => {
-          $(document).off("touchmove", onTouchMove);
-          $(document).off("touchend", onTouchEnd);
-        };
-
-        $(document).on("touchmove", onTouchMove);
-        $(document).on("touchend", onTouchEnd);
-      });
-    },
     handleResize() {
-      this.isMobile = window.innerWidth <= 600;
+      this.isMobile = ResizeService.isMobile();
     }
   },
   async created() {
@@ -331,12 +191,12 @@ export default {
     this.addListenerToOpenSnackbarOnAbbreviationClick();
     this.addListenerForDefinitionLinks();
     this.addListenersForKeyboardTabNavigation();
-    this.addListenerForAudioPlayback();
-    window.addEventListener("resize", this.handleResize);
+    AudioPlayerService.initialize();
+    ResizeService.subscribe('app', () => this.handleResize());
   },
   async unmounted() {
     EventHandlers.remove("tabs-shortcuts");
-    window.removeEventListener("resize", this.handleResize);
+    ResizeService.unsubscribe('app');
     if (GlobalLookup.isSupported()) {
       await GlobalLookup.cleanup();
     }
@@ -401,9 +261,9 @@ export default {
               </template>
               <!-- Desktop: show name with underlined shortcut key -->
               <span v-else v-html="tab.name"></span>
-              <DefinePageHelpDialogWithButton v-if="tab.id == 'define'" />
-              <SearchPageHelpDialogWithButton v-if="tab.id == 'search'" />
-              <SplitPageHelpDialogWithButton v-if="tab.id == 'segment'" />
+              <DefinePageHelpDialogWithButton v-if="tab.id == 'define' && currentTabId == 'define'" />
+              <SearchPageHelpDialogWithButton v-if="tab.id == 'search' && currentTabId == 'search'" />
+              <SplitPageHelpDialogWithButton v-if="tab.id == 'segment' && currentTabId == 'segment'" />
             </div>
 
           </v-tab>

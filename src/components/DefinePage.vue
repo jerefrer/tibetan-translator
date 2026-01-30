@@ -3,34 +3,33 @@ import $ from "jquery";
 import _ from "underscore";
 import { useTheme } from "vuetify";
 
+import { TERMS_BATCH_SIZE, DEBOUNCE_SEARCH_MS } from "../config/constants";
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
 import Entries from "./Entries.vue";
 import TibetanTextField from "./TibetanTextField.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
-import DictionariesDetailsMixin from "./DictionariesDetailsMixin";
+import MobileResponsiveMixin from "./mixins/MobileResponsiveMixin";
 import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries.vue";
 
 export default {
-  mixins: [DictionariesDetailsMixin, DictionariesMenuMixin],
+  mixins: [DictionariesMenuMixin, MobileResponsiveMixin],
+  setup() {
+    const theme = useTheme();
+    return { theme };
+  },
   components: {
     Entries,
     TibetanTextField,
     ResultsAndPaginationAndDictionaries,
   },
-  setup() {
-    const theme = useTheme();
-    return { theme };
-  },
   data() {
     return {
       searchTerm: undefined,
       entries: [],
-      displayedTermsCount: 100, // Start with 100 terms
-      termsBatchSize: 100, // Load 100 more each time
+      displayedTermsCount: TERMS_BATCH_SIZE,
+      termsBatchSize: TERMS_BATCH_SIZE,
       loading: false,
-      mobileShowDefinition: false,
-      isMobile: window.innerWidth <= 600,
       allTermsVersion: 0,
     };
   },
@@ -107,7 +106,6 @@ export default {
       var path = "/define";
       if (term) path = path + "/" + encodeURIComponent(term);
       if (path != this.$route.path) {
-        this.setPageTitle(term);
         this.$router.push({ path: path });
       }
     },
@@ -119,11 +117,6 @@ export default {
     setSearchTerm() {
       if (!this.searchTerm || !this.selectedTerm?.includes(this.searchTerm))
         this.searchTerm = this.selectedTerm;
-    },
-    setPageTitle(term) {
-      return;
-      document.title = "Translator / Define";
-      if (term) document.title += " / " + term;
     },
     setEntriesForSelectedTerm() {
       if (this.selectedTerm) {
@@ -167,22 +160,9 @@ export default {
     focusInput() {
       this.$refs.input.focus();
     },
-    handleResize() {
-      this.isMobile = window.innerWidth <= 600;
-      if (!this.isMobile) {
-        this.mobileShowDefinition = false;
-      }
-    },
     selectTermMobile(term) {
       this.pushRoute(term);
-      if (this.isMobile) {
-        this.mobileShowDefinition = true;
-      }
-    },
-    showTermsList() {
-      if (this.isMobile) {
-        this.mobileShowDefinition = false;
-      }
+      this.setMobileShowDefinition(true);
     },
     loadMoreTerms() {
       if (this.hasMoreTerms) {
@@ -219,17 +199,15 @@ export default {
   },
   mounted() {
     this.setSearchTerm();
-    this.setPageTitle(this.selectedTerm);
     this.setEntriesForSelectedTerm();
     this.debouncedSetEntriesForSelectedTerm = _.debounce(
       this.setEntriesForSelectedTerm,
-      500
+      DEBOUNCE_SEARCH_MS
     );
     this.debouncedSelectFirstTermOrClearEntries = _.debounce(
       this.selectFirstTermOrClearEntries,
-      500
+      DEBOUNCE_SEARCH_MS
     );
-    window.addEventListener('resize', this.handleResize);
     this._onAllTermsUpdated = () => { this.allTermsVersion++; };
     window.addEventListener('all-terms-updated', this._onAllTermsUpdated);
     this.setupTermsInfiniteScroll();
@@ -238,7 +216,6 @@ export default {
     this.$nextTick(() => this.focusInput());
   },
   beforeUnmount() {
-    window.removeEventListener('resize', this.handleResize);
     window.removeEventListener('all-terms-updated', this._onAllTermsUpdated);
     this.teardownTermsInfiniteScroll();
   },

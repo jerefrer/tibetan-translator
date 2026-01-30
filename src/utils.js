@@ -1,8 +1,12 @@
 import _ from 'underscore'
 import TibetanRegExps from 'tibetan-regexps'
+import TibetanNormalizer from 'tibetan-normalizer'
 import { TibetanToPhonetics, Settings } from 'tibetan-to-phonetics'
 
 import { Tokenizer } from './services/tokenizer'
+import WylieToUnicode from './services/wylie-to-unicode'
+
+const wylieToUnicode = new WylieToUnicode();
 
 export const phoneticsForGroups = function (setting, groups) {
   return groups.map((group) => {
@@ -114,4 +118,56 @@ export const substituteLinksWithATags = function(text) {
       return `<a target="_blank" href="${httpAndWWW}${domain}">${domain}</a>`;
     }
   )
+}
+
+/**
+ * Convert Wylie romanization to Tibetan Unicode within text.
+ * Converts Latin alphabet sequences (Wylie) embedded in text.
+ *
+ * @param {string} text - Input text possibly containing Wylie
+ * @param {Object} options - Conversion options
+ * @param {boolean} options.normalizeTrailingPunctuation - Replace trailing punctuation with single tsheg (default: true)
+ * @param {boolean} options.normalizeMultipleTshegs - Replace consecutive tshegs with single tsheg (default: true)
+ * @param {boolean} options.preserveWhitespace - Preserve whitespace characters in multiline text (default: false)
+ * @returns {string} Text with Wylie converted to Tibetan Unicode
+ */
+export const convertWylieInText = function(text, options = {}) {
+  const {
+    normalizeTrailingPunctuation = true,
+    normalizeMultipleTshegs = true,
+    preserveWhitespace = false
+  } = options;
+
+  // Build regex: match non-Tibetan characters (excluding newlines, optionally whitespace)
+  const regexPattern = preserveWhitespace
+    ? `[^${TibetanRegExps.expressions.allTibetanCharacters}\\r\\n\\s]+`
+    : `[^${TibetanRegExps.expressions.allTibetanCharacters}\\r\\n]+`;
+
+  let result = (text || '').replace(
+    new RegExp(regexPattern, 'iug'),
+    (wylie) => wylieToUnicode.convert(wylie)
+  );
+
+  if (normalizeMultipleTshegs) {
+    result = result.replace(/་+/g, '་');
+  }
+
+  if (normalizeTrailingPunctuation) {
+    result = result.replace(/[་།༑༔ ]*$/, '་');
+  }
+
+  return TibetanNormalizer.normalize(result);
+}
+
+/**
+ * Convert Wylie within parentheses in search queries.
+ * Used for search syntax like "(sangs rgyas)" -> "སངས་རྒྱས"
+ *
+ * @param {string} text - Search query text
+ * @returns {string} Text with parenthesized Wylie converted
+ */
+export const convertWylieInParentheses = function(text) {
+  return text.replace(/\(([^)]*)\)/g, (match, wylie) => {
+    return wylieToUnicode.convert(wylie);
+  });
 }

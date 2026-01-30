@@ -1,30 +1,32 @@
 <script>
 import _ from "underscore";
-import { useTheme } from "vuetify";
 import TibetanRegExps from "tibetan-regexps";
-import TibetanNormalizer from "tibetan-normalizer";
-import WylieToUnicode from "../services/wylie-to-unicode";
+import { useTheme } from "vuetify";
 
+import {
+  MAX_MERGE_TERM_COUNT,
+  DEBOUNCE_ENTRIES_MS,
+  DEBOUNCE_TEXTAREA_MS,
+} from "../config/constants";
+import { convertWylieInText } from "../utils";
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
-
-const wylieToUnicode = new WylieToUnicode();
 import Entries from "./Entries.vue";
 import ResizableDivider from "./ResizableDivider.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
-import DictionariesDetailsMixin from "./DictionariesDetailsMixin";
+import MobileResponsiveMixin from "./mixins/MobileResponsiveMixin";
 import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries.vue";
 
 export default {
-  mixins: [DictionariesDetailsMixin, DictionariesMenuMixin],
+  mixins: [DictionariesMenuMixin, MobileResponsiveMixin],
+  setup() {
+    const theme = useTheme();
+    return { theme };
+  },
   components: {
     Entries,
     ResizableDivider,
     ResultsAndPaginationAndDictionaries,
-  },
-  setup() {
-    const theme = useTheme();
-    return { theme };
   },
   data() {
     return {
@@ -49,11 +51,8 @@ export default {
       // Refs for term elements (for calculating merge button positions)
       termRefs: {},
       // Divider positions (percentages)
-      topHeight: Storage.get("segment.topHeight") || 33,
-      leftWidth: Storage.get("segment.leftWidth") || 35,
-      // Mobile
-      isMobile: window.innerWidth <= 600,
-      mobileShowDefinition: false,
+      topHeight: Storage.get("segment.topHeight", 33),
+      leftWidth: Storage.get("segment.leftWidth", 35),
     };
   },
   computed: {
@@ -352,7 +351,7 @@ export default {
       // Check if merging 2, 3, 4, 5 terms starting at index i produces a known word
       const merges = [];
 
-      for (let count = 2; count <= Math.min(5, this.termsList.length - i); count++) {
+      for (let count = 2; count <= Math.min(MAX_MERGE_TERM_COUNT, this.termsList.length - i); count++) {
         const termsToMerge = this.termsList.slice(i, i + count);
         const merged = termsToMerge
           .map(t => t.replace(/[་།]+$/, ""))
@@ -520,8 +519,8 @@ export default {
       this.selectedTermIndex = index;
       this.lastSelectedTerm = newTerm;
 
-      if (this.isMobile && showMobileDefinition) {
-        this.mobileShowDefinition = true;
+      if (showMobileDefinition) {
+        this.setMobileShowDefinition(true);
       }
 
       // Load definitions directly (don't rely on watcher)
@@ -546,12 +545,11 @@ export default {
     },
 
     convertWylie(text) {
-      var textWithConvertedWylie = (text || "").replace(
-        new RegExp(`[^${TibetanRegExps.expressions.allTibetanCharacters}\\r\\n\\s]+`, 'iug'),
-        (wylie) => wylieToUnicode.convert(wylie)
-      );
-      textWithConvertedWylie = textWithConvertedWylie.replace(/་+/g, "་");
-      return TibetanNormalizer.normalize(textWithConvertedWylie);
+      return convertWylieInText(text, {
+        normalizeTrailingPunctuation: false,
+        normalizeMultipleTshegs: true,
+        preserveWhitespace: true
+      });
     },
 
     onKeydown(event) {
@@ -608,19 +606,6 @@ export default {
       Storage.set("segment.leftWidth", newWidth);
     },
 
-    handleResize() {
-      this.isMobile = window.innerWidth <= 600;
-      if (!this.isMobile) {
-        this.mobileShowDefinition = false;
-      }
-    },
-
-    showTermsList() {
-      if (this.isMobile) {
-        this.mobileShowDefinition = false;
-      }
-    },
-
     selectPreviousTerm() {
       if (this.selectedTermIndex !== null && this.selectedTermIndex > 0) {
         this.selectTermByIndex(this.selectedTermIndex - 1);
@@ -669,20 +654,18 @@ export default {
   mounted() {
     this.debouncedSetEntriesForSelectedTerm = _.debounce(
       this.setEntriesForSelectedTerm,
-      300
+      DEBOUNCE_ENTRIES_MS
     );
     this.debouncedUpdateFromTextarea = _.debounce(
       this.updateFromTextarea,
-      500
+      DEBOUNCE_TEXTAREA_MS
     );
-    window.addEventListener("resize", this.handleResize);
     window.addEventListener("keydown", this.handleKeydown);
   },
   activated() {
     this.$nextTick(() => this.focusTextarea());
   },
   beforeUnmount() {
-    window.removeEventListener("resize", this.handleResize);
     window.removeEventListener("keydown", this.handleKeydown);
   },
 };

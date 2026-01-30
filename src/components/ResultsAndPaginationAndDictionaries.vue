@@ -49,7 +49,7 @@ export default {
     enabledDictionaries() {
       return this.dictionaries.filter((dictionary) => dictionary.enabled);
     },
-    preferedDictionaries() {
+    preferredDictionaries() {
       return this.dictionaries.filter(
         (dictionary) => dictionary.enabledInPreferences
       );
@@ -57,8 +57,8 @@ export default {
     numberOfEntriesForAllMatchedDictionaries() {
       return this.sumNumberOfEntriesFor(this.fuzzyMatchedDictionaries);
     },
-    numberOfEntriesForPreferedDictionaries() {
-      return this.sumNumberOfEntriesFor(this.preferedDictionaries);
+    numberOfEntriesForPreferredDictionaries() {
+      return this.sumNumberOfEntriesFor(this.preferredDictionaries);
     },
   },
   methods: {

@@ -1,9 +1,6 @@
 <script>
-import TibetanNormalizer from 'tibetan-normalizer';
-import TibetanRegExps from 'tibetan-regexps';
 import _ from 'underscore';
-import WylieToUnicode from '../services/wylie-to-unicode';
-const wylieToUnicode = new WylieToUnicode();
+import { convertWylieInText } from '../utils';
 
 export default {
   inheritAttrs: false,
@@ -37,16 +34,11 @@ export default {
       else this.$emit('keydown', event);
     },
     convertWylie(text) {
-      var textWithConvertedWylie = (text || '').replace(
-        new RegExp(
-          `[^${TibetanRegExps.expressions.allTibetanCharacters}\r\n]+`,
-          'iug',
-        ),
-        (wylie) => wylieToUnicode.convert(wylie),
-      );
-      // Replace any trailing punctuation with a single tsheg
-      textWithConvertedWylie = textWithConvertedWylie.replace(/[་།༑༔ ]*$/, '་');
-      return TibetanNormalizer.normalize(textWithConvertedWylie);
+      return convertWylieInText(text, {
+        normalizeTrailingPunctuation: true,
+        normalizeMultipleTshegs: true,
+        preserveWhitespace: false
+      });
     },
     convertWylieAndEmit(event, isDropping) {
       // Remove double spaces (Android keyboard auto-spacing fix)
