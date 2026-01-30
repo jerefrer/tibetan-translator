@@ -121,7 +121,8 @@
       "mcp__playwright__browser_install",
       "mcp__playwright__browser_press_key",
       "mcp__playwright__browser_resize",
-      "Bash(git remote:*)"
+      "Bash(git remote:*)",
+      "Bash(gh release view:*)"
     ]
   }
 }
