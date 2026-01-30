@@ -115,7 +115,12 @@
       "Bash(pnpm build:*)",
       "Bash(git ls-tree:*)",
       "Bash(git checkout:*)",
-      "Bash(git stash push:*)"
+      "Bash(git stash push:*)",
+      "Bash(timeout 15 pnpm dev:*)",
+      "mcp__playwright__browser_select_option",
+      "mcp__playwright__browser_install",
+      "mcp__playwright__browser_press_key",
+      "mcp__playwright__browser_resize"
     ]
   }
 }
