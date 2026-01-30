@@ -172,7 +172,7 @@ export default {
 
 .popup-header
   padding: 12px 16px
-  font-size: 16px
+  font-size: 1rem
 
 .popup-title
   font-family: 'Jomolhari', 'Noto Sans Tibetan', serif

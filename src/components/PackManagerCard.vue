@@ -470,7 +470,7 @@ export default {
 
   .download-progress-text
     position: absolute
-    font-size: 9px
+    font-size: 0.5625rem
     font-weight: 600
     color: rgb(var(--v-theme-primary))
 

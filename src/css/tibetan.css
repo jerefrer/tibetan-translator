@@ -7,15 +7,15 @@
 .v-input.tibetan textarea,
 .v-input.tibetan input[type=text] {
   font-family: DDC_Uchen;
-  font-size: 19px;
-  line-height: 21.6px;
+  font-size: 1.1875rem;
+  line-height: 1.35rem;
   vertical-align: middle;
 }
 .v-input.tibetan textarea,
 .v-input.tibetan input[type=text] {
   padding: 0;
-  height: 36px;
-  line-height: 36px;
+  height: 2.25rem;
+  line-height: 2.25rem;
   max-height: none !important;
 }
 
@@ -30,6 +30,6 @@ a.tibetan,
 
 .v-autocomplete__content .v-list-item .v-list-item__title {
   font-family: DDC_Uchen;
-  font-size: 13px;
-  line-height: 18px;
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
 }

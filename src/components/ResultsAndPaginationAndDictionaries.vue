@@ -273,7 +273,7 @@ export default {
             key="filter-menu"
             v-bind="props"
           >
-            <v-icon class="ma-0" style="font-size: 18px">
+            <v-icon class="ma-0" style="font-size: 1.125rem">
               mdi-book-multiple
             </v-icon>
             <span class="ml-1">{{ enabledDictionaries.length }}</span>
@@ -397,7 +397,7 @@ export default {
           box-shadow none !important
           .v-icon
             margin 0
-            font-size 20px
+            font-size 1.25rem
             color white
 
 .v-theme--light

@@ -77,7 +77,7 @@
       >
         <v-icon
           class="ma-0"
-          style="font-size: 21px"
+          style="font-size: 1.3125rem"
         >
           mdi-book-multiple
         </v-icon>

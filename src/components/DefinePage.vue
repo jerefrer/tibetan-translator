@@ -390,7 +390,7 @@ export default {
     .term-item
       min-height 48px
       line-height 48px
-      font-size 21px
+      font-size 1.3125rem
       padding 0 16px
       border-bottom thin solid rgba(0, 0, 0, 0.08)
       transition background 0.2s ease
@@ -443,12 +443,12 @@ export default {
   padding 0 12px
   height 63px !important
   min-height 63px !important
-  font-size 26px !important
+  font-size 1.625rem !important
   font-family "DDC_Uchen" !important
 
 .define-page .v-input .v-field__input::placeholder
   font-family "Segoe UI", "Roboto", sans-serif !important
-  font-size 18px !important
+  font-size 1.125rem !important
   opacity 0.5
   color #666
 
@@ -461,7 +461,7 @@ export default {
 
 .define-page .v-input .v-field__append-inner .v-icon,
 .define-page .v-input .v-field__clearable .v-icon
-  font-size 28px
+  font-size 1.75rem
 
 .define-page .v-input .v-field__outline
   display none

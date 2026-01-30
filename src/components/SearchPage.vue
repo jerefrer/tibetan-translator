@@ -772,14 +772,14 @@ export default {
 .search-page .v-input .v-field__field input {
   padding: 0 12px;
   height: 64px !important;
-  font-size: 26px !important;
+  font-size: 1.625rem !important;
   line-height: 46px !important;
   text-align: left;
 }
 
 .search-page .v-input .v-field__field input::placeholder {
   font-family: 'Segoe UI', 'Roboto', sans-serif !important;
-  font-size: 18px !important;
+  font-size: 1.125rem !important;
   opacity: 0.5;
   color: #666;
 }
@@ -802,7 +802,7 @@ export default {
   align-items: center;
 }
 .search-page .v-input .v-field__clearable .v-icon {
-  font-size: 24px;
+  font-size: 1.5rem;
   opacity: 1;
 }
 
@@ -820,7 +820,7 @@ export default {
 }
 
 .search-page .v-input .v-field__append-inner .v-icon {
-  font-size: 28px;
+  font-size: 1.75rem;
 }
 
 /* Entries list with infinite scroll */
@@ -855,7 +855,7 @@ export default {
 }
 
 .search-page .results-header .results-count {
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #666;
 }
@@ -970,11 +970,11 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
   font-family: 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #666;
   text-transform: uppercase;
@@ -1017,7 +1017,7 @@ export default {
   }
 
   .search-page .v-input .v-field__field input {
-    font-size: 20px !important;
+    font-size: 1.25rem !important;
   }
 
   .search-page .mobile-controls {
@@ -1074,7 +1074,7 @@ export default {
   }
 
   .search-page .results-header .results-count {
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
 
   .search-page .load-more-sentinel {

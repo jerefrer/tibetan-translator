@@ -49,6 +49,7 @@ export default {
         return a.position - b.position;
       }),
       themePreference: Storage.get('themePreference') || 'system',
+      fontSize: Storage.get('fontSize') || 100,
       scannedDictionaries: [],
       scanDownloadStatus: {},
       isAppMode: false,
@@ -79,6 +80,10 @@ export default {
       Storage.set('themePreference', value);
       this.applyTheme(value);
     },
+    fontSize(value) {
+      Storage.set('fontSize', value);
+      this.applyFontSize(value);
+    },
     async globalLookupEnabled(value) {
       const result = await GlobalLookup.toggle(value);
       if (!result.success && result.needsPermission) {
@@ -99,6 +104,10 @@ export default {
       }
       this.theme.global.name.value = actualTheme;
       Storage.set('darkTheme', actualTheme === 'dark');
+    },
+    applyFontSize(size) {
+      document.documentElement.style.setProperty('--app-font-size', `${size}%`);
+      document.documentElement.style.fontSize = `${size}%`;
     },
     getDetails(dictionary) {
       return DictionariesDetails[dictionary.name] || {};
@@ -257,6 +266,9 @@ export default {
     }
   },
   async created() {
+    // Apply font size setting
+    this.applyFontSize(this.fontSize);
+
     // Listen for system theme changes
     window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
       if (this.themePreference === 'system') {
@@ -335,6 +347,42 @@ export default {
           <v-icon start>mdi-weather-night</v-icon>
           Dark
         </v-btn>
+      </div>
+
+      <v-divider />
+
+      <div class="font-size-control pa-4">
+        <div class="d-flex align-center mb-2">
+          <v-icon size="small" class="mr-2">mdi-format-size</v-icon>
+          <span class="text-body-2">Text Size</span>
+          <v-spacer />
+          <span class="text-body-2 text-grey">{{ fontSize }}%</span>
+        </div>
+        <div class="d-flex align-center gap-2">
+          <v-icon size="small" color="grey">mdi-format-font-size-decrease</v-icon>
+          <v-slider
+            v-model="fontSize"
+            :min="80"
+            :max="130"
+            :step="5"
+            hide-details
+            color="primary"
+            track-color="grey-lighten-2"
+            class="flex-grow-1"
+          />
+          <v-icon size="small" color="grey">mdi-format-font-size-increase</v-icon>
+        </div>
+        <div class="text-center mt-1">
+          <v-btn
+            v-if="fontSize !== 100"
+            variant="text"
+            size="x-small"
+            color="grey"
+            @click="fontSize = 100"
+          >
+            Reset to default
+          </v-btn>
+        </div>
       </div>
     </v-card>
 
@@ -677,7 +725,7 @@ export default {
 
     .download-progress-text
       position: absolute
-      font-size: 9px
+      font-size: 0.5625rem
       font-weight: 600
       color: var(--v-theme-primary)
 
@@ -758,7 +806,7 @@ export default {
         width: 32px
 
       > .name
-        font-size: 14px
+        font-size: 0.875rem
 
         .language-label
           display: none

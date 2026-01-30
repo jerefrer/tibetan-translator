@@ -93,6 +93,11 @@ export default {
       }
       this.theme.global.name.value = actualTheme;
     },
+    initializeFontSize() {
+      const fontSize = Storage.get('fontSize') || 100;
+      document.documentElement.style.setProperty('--app-font-size', `${fontSize}%`);
+      document.documentElement.style.fontSize = `${fontSize}%`;
+    },
     updateHtmlThemeClass() {
       $("html")
         .removeClass("theme--dark")
@@ -291,6 +296,7 @@ export default {
   },
   async created() {
     this.initializeTheme();
+    this.initializeFontSize();
     this.updateHtmlThemeClass();
     window.SqlDatabase = db;
 

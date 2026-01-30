@@ -571,7 +571,7 @@ html, body
 
   .drag-dots
     color: rgba(128, 128, 128, 0.5)
-    font-size: 10px
+    font-size: 0.625rem
     letter-spacing: 2px
     line-height: 1
     user-select: none
@@ -592,13 +592,13 @@ html, body
     background: transparent !important
 
   .v-field__input
-    font-size: 20px !important
+    font-size: 1.25rem !important
     font-family: "DDC_Uchen" !important
     padding: 0 8px !important
 
   .v-field__input::placeholder
     font-family: "Segoe UI", "Roboto", sans-serif !important
-    font-size: 14px !important
+    font-size: 0.875rem !important
     opacity: 0.5
 
   .close-btn
@@ -650,7 +650,7 @@ html, body
 
 .term-item
   padding: 8px 12px
-  font-size: 16px
+  font-size: 1rem
   cursor: pointer
   border-bottom: 1px solid rgba(128, 128, 128, 0.1)
   transition: background 0.15s ease
@@ -694,5 +694,5 @@ html, body
     border-radius: 3px
     padding: 1px 5px
     font-family: monospace
-    font-size: 11px
+    font-size: 0.6875rem
 </style>

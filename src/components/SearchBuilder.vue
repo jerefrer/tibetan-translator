@@ -207,7 +207,7 @@ export default {
 }
 
 .search-builder-title {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;

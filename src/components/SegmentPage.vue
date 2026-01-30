@@ -903,7 +903,7 @@ export default {
       min-height 80px
       padding 12px 15px
       font-family "DDC_Uchen", serif
-      font-size 26px
+      font-size 1.625rem
       line-height 1.6
       border none
       border-radius 0
@@ -917,7 +917,7 @@ export default {
 
       &::placeholder
         font-family "Segoe UI", "Roboto", sans-serif
-        font-size 18px
+        font-size 1.125rem
         opacity 0.5
         color #666
 
@@ -963,7 +963,7 @@ export default {
     .term-item
       min-height 44px
       line-height 44px
-      font-size 20px
+      font-size 1.25rem
       padding 0 16px
       border-bottom thin solid rgba(0, 0, 0, 0.08)
       transition background 0.2s ease
@@ -1004,7 +1004,7 @@ export default {
           color white
 
       .v-icon
-        font-size 18px
+        font-size 1.125rem
         color rgba(211, 47, 47, 0.85)
 
   .definitions-container
@@ -1101,7 +1101,7 @@ export default {
       .tibetan-textarea
         min-height 60px
         padding 10px
-        font-size 22px
+        font-size 1.375rem
 
     .bottom-area
       flex-direction column

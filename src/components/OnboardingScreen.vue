@@ -648,7 +648,7 @@ export default {
     color: rgb(var(--v-theme-on-surface))
 
   .keyboard-key-icon
-    font-size: 18px !important
+    font-size: 1.125rem !important
     color: rgb(var(--v-theme-on-surface)) !important
 
   .demo-video

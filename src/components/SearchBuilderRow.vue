@@ -124,10 +124,10 @@ export default {
 
 .search-builder-row .mode-select {
   flex: 0 0 auto;
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
   border: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 0.875rem;
   cursor: pointer;
   outline: none;
   color: inherit;
@@ -147,10 +147,10 @@ export default {
 .search-builder-row .term-input {
   flex: 1;
   min-width: 100px;
-  padding: 8px 12px;
+  padding: 0.5rem 0.75rem;
   border: none;
   background: transparent;
-  font-size: 14px;
+  font-size: 0.875rem;
   outline: none;
   color: inherit;
 }
