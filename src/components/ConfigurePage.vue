@@ -50,8 +50,8 @@ export default {
       dictionaries: Storage.get('dictionaries').sort((a, b) => {
         return a.position - b.position;
       }),
-      themePreference: Storage.get('themePreference') || 'system',
-      fontSize: Storage.get('fontSize') || 100,
+      themePreference: Storage.get('themePreference'),
+      fontSize: Storage.get('fontSize'),
       scannedDictionaries: [],
       scanDownloadStatus: {},
       isAppMode: false,

@@ -86,7 +86,7 @@ export default {
       await db.setAllTermsVariable();
     },
     initializeTheme() {
-      const preference = Storage.get('themePreference') || 'system';
+      const preference = Storage.get('themePreference');
       let actualTheme;
       if (preference === 'system') {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

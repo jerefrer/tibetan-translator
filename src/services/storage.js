@@ -1,5 +1,10 @@
 import { COOKIE_EXPIRY_HOURS } from '../config/constants';
 
+const defaults = {
+  themePreference: 'light',
+  fontSize: 100,
+};
+
 export default {
   appName: 'tibetan-translator',
   localStorageSupported: function() {
@@ -9,7 +14,7 @@ export default {
   scopedKey: function(keyName) {
     return this.appName + '.' + keyName;
   },
-  get: function(keyName, defaultValue = null) {
+  get: function(keyName, defaultValue = defaults[keyName] ?? null) {
     var jsonValue;
     var key = this.scopedKey(keyName);
     try {

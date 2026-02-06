@@ -27,7 +27,7 @@ async function initPopup() {
   await import("./css/scrollbar.css");
 
   // Initialize theme from storage
-  const preference = Storage.get('themePreference') || 'system';
+  const preference = Storage.get('themePreference');
   let actualTheme;
   if (preference === 'system') {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
