@@ -1,6 +1,6 @@
 {
   "productName": "TibetanTranslator",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "identifier": "com.jerefrer.TibetanTranslator",
   "build": {
     "frontendDist": "../dist",
