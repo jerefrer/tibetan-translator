@@ -286,23 +286,28 @@
     <script src="assets/js/util.js"></script>
     <script src="assets/js/main.js"></script>
     <script>
-      // Fetch latest release and update download links
+      // Fetch releases and update download links to latest available for each platform
       (function() {
-        const GITHUB_API = 'https://api.github.com/repos/jerefrer/tibetan-translator/releases/latest';
+        const GITHUB_API = 'https://api.github.com/repos/jerefrer/tibetan-translator/releases';
 
         fetch(GITHUB_API)
           .then(response => response.json())
-          .then(release => {
-            if (!release.assets) return;
+          .then(releases => {
+            if (!Array.isArray(releases)) return;
 
             const buttons = document.querySelectorAll('.download-button[data-asset-pattern]');
 
             buttons.forEach(button => {
               const pattern = button.getAttribute('data-asset-pattern');
-              const asset = release.assets.find(a => a.name.endsWith(pattern));
 
-              if (asset) {
-                button.href = asset.browser_download_url;
+              // Find the first (most recent) release that has this asset
+              for (const release of releases) {
+                if (!release.assets) continue;
+                const asset = release.assets.find(a => a.name.endsWith(pattern));
+                if (asset) {
+                  button.href = asset.browser_download_url;
+                  break;
+                }
               }
             });
           })
