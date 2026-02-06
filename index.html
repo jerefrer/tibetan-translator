@@ -184,7 +184,7 @@
             <div class="content">
               <h2 class="major">Phonetic search</h2>
               <p>
-                Don't know exactly how to spell a Tibetan word? No problem, just
+                Don't know exactly how to spell a Tibetan word? No problem, just
                 type
                 <em>how it sounds</em>
                 and immediately see all possible words, no matter their
@@ -207,8 +207,8 @@
               <h2 class="major">Refine your queries</h2>
               <p>
                 Don't want to scroll through hundreds of results? Just narrow
-                down your search by combining terms with the ampersand (&amp;)
-                operator.
+                down your search by combining terms with the ampersand (&amp;)
+                operator, or just use the Query Builder to do this visually.
               </p>
             </div>
           </div>
@@ -216,6 +216,26 @@
 
         <!-- Three -->
         <section id="three" class="wrapper spotlight style3">
+          <div class="inner">
+            <div class="image">
+              <img
+                src="images/offline-access.png"
+                alt="Screenshot showing dictionary packs and scanned dictionaries available for offline download"
+              />
+            </div>
+            <div class="content">
+              <h2 class="major">Works fully offline</h2>
+              <p>
+                Once downloaded, everything works without an internet connection.
+                Dictionary packs, scanned dictionaries, and audio pronunciations
+                are all stored locally on your device.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Four -->
+        <section id="four" class="wrapper alt spotlight style4">
           <div class="inner">
             <div class="image">
               <img
@@ -233,8 +253,8 @@
           </div>
         </section>
 
-        <!-- Four -->
-        <section id="four" class="wrapper alt spotlight style4">
+        <!-- Five -->
+        <section id="five" class="wrapper spotlight style1">
           <div class="inner">
             <div class="image">
               <video
@@ -249,8 +269,8 @@
             <div class="content">
               <h2 class="major">Quick lookup popup</h2>
               <p>
-                Copy any Tibetan text from anywhere on your system, then press a
-                hotkey to instantly see dictionary results in a floating popup
+                Copy any Tibetan text from anywhere on your computer, then press
+                a hotkey to instantly see dictionary results in a floating popup
                 window.
               </p>
             </div>
@@ -287,23 +307,28 @@
     <script src="assets/js/main.js"></script>
     <script>
       // Fetch releases and update download links to latest available for each platform
-      (function() {
-        const GITHUB_API = 'https://api.github.com/repos/jerefrer/tibetan-translator/releases';
+      (function () {
+        const GITHUB_API =
+          'https://api.github.com/repos/jerefrer/tibetan-translator/releases';
 
         fetch(GITHUB_API)
-          .then(response => response.json())
-          .then(releases => {
+          .then((response) => response.json())
+          .then((releases) => {
             if (!Array.isArray(releases)) return;
 
-            const buttons = document.querySelectorAll('.download-button[data-asset-pattern]');
+            const buttons = document.querySelectorAll(
+              '.download-button[data-asset-pattern]',
+            );
 
-            buttons.forEach(button => {
+            buttons.forEach((button) => {
               const pattern = button.getAttribute('data-asset-pattern');
 
               // Find the first (most recent) release that has this asset
               for (const release of releases) {
                 if (!release.assets) continue;
-                const asset = release.assets.find(a => a.name.endsWith(pattern));
+                const asset = release.assets.find((a) =>
+                  a.name.endsWith(pattern),
+                );
                 if (asset) {
                   button.href = asset.browser_download_url;
                   break;
@@ -311,7 +336,7 @@
               }
             });
           })
-          .catch(error => {
+          .catch((error) => {
             console.log('Using fallback download links:', error);
           });
       })();
