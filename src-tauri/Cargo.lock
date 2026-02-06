@@ -4,7 +4,7 @@ version = 3
 
 [[package]]
 name = "TibetanTranslator"
-version = "1.4.0"
+version = "1.4.1"
 dependencies = [
  "base64 0.22.1",
  "futures-util",
