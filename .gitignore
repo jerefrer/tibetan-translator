@@ -15,3 +15,5 @@ dist/
 src-tauri/
 
 .playwright-mcp/
+
+public/packs/
