@@ -350,7 +350,8 @@ export default {
 </script>
 
 <template>
-  <v-container class="configure-page">
+  <div class="configure-page-wrapper">
+    <v-container class="configure-page">
     <!-- About / Version card (Tauri only) -->
     <v-card v-if="appVersion" class="app-info mb-4">
       <v-toolbar density="compact">
@@ -674,14 +675,17 @@ export default {
       </draggable>
     </v-card>
   </v-container>
+  </div>
 </template>
 
 <style lang="sass">
+.configure-page-wrapper
+  height: 100%
+  overflow-y: auto
+
 .configure-page
   margin-top: 30px
   padding-bottom: 20px
-  overflow-y: auto
-  max-height: 100%
 
   .theme-selector
     width: 100%
@@ -855,8 +859,7 @@ export default {
 @media (max-width: 600px)
   .configure-page
     margin-top: 20px !important
-    padding: 0 8px !important
-    padding-top: 20px !important
+    padding: 20px 8px 0 8px !important
 
     .v-toolbar__content > .v-toolbar-title
       margin-inline-start: 0
