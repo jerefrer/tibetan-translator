@@ -1,6 +1,6 @@
 {
-  "schemaVersion": 1,
-  "generated": "2026-01-03T22:52:29.283Z",
+  "schemaVersion": 3,
+  "generated": "2026-02-06T18:31:10.042Z",
   "packs": {
     "core": {
       "id": "core",
@@ -11,16 +11,16 @@
       "files": {
         "sqlite": {
           "filename": "core.sqlite",
-          "size": 153460736,
-          "sizeMB": "146.4"
+          "size": 187387904,
+          "sizeMB": "178.7"
         },
         "compressed": {
           "filename": "core.7z",
-          "size": 37219889,
-          "sizeMB": "35.5"
+          "size": 42910423,
+          "sizeMB": "40.9"
         }
       },
-      "checksum": "d19cb1eb7520224c00d3e1dd3b1d6fe16bae9db9acf9db00a4646340b8dcb744"
+      "checksum": "0b4afcaea925e235446ffae5430b2e4cccd6e471059058bdb822cfc4e26f4b2b"
     },
     "tibetan-monolingual": {
       "id": "tibetan-monolingual",
@@ -31,16 +31,16 @@
       "files": {
         "sqlite": {
           "filename": "tibetan-monolingual.sqlite",
-          "size": 299339776,
-          "sizeMB": "285.5"
+          "size": 313442304,
+          "sizeMB": "298.9"
         },
         "compressed": {
           "filename": "tibetan-monolingual.7z",
-          "size": 68133093,
-          "sizeMB": "65.0"
+          "size": 70819679,
+          "sizeMB": "67.5"
         }
       },
-      "checksum": "cd1fcb42088137bc4b55521df22c1b4f7daa919323aa851f3ae53104e270086d"
+      "checksum": "e10050d68dc10be5a48babc289838445bc8d155a7764f9db4ff5248121d25304"
     },
     "sanskrit-academic": {
       "id": "sanskrit-academic",
@@ -51,16 +51,16 @@
       "files": {
         "sqlite": {
           "filename": "sanskrit-academic.sqlite",
-          "size": 114425856,
-          "sizeMB": "109.1"
+          "size": 125022208,
+          "sizeMB": "119.2"
         },
         "compressed": {
           "filename": "sanskrit-academic.7z",
-          "size": 27387228,
-          "sizeMB": "26.1"
+          "size": 29180166,
+          "sizeMB": "27.8"
         }
       },
-      "checksum": "addecbfa6377f3d2338dc1dee8ec8b9031e6f582863751f62717e99af0683a3f"
+      "checksum": "2aa4dba42826c7d529a1e82174dc66694eb299d7cdbe806f61133b24088e5483"
     }
   }
 }

@@ -188,7 +188,8 @@ var DatabaseBuilder = {
         definitionPhoneticsWordsStrict,
         definitionPhoneticsWordsLoose,
         content = 'entries',
-        content_rowid = 'id'
+        content_rowid = 'id',
+        tokenize = 'unicode61'
       );
     `);
     this.database.run(`
@@ -271,6 +272,8 @@ var DatabaseBuilder = {
         );
       END;
     `);
+    // Index for fast LIKE queries on Tibetan terms (hybrid search approach)
+    this.database.run(`CREATE INDEX idx_entries_term ON entries(term);`);
   },
   insertDictionaries() {
     this.dictionaries.forEach((dictionary) => {

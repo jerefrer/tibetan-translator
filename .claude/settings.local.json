@@ -122,7 +122,9 @@
       "mcp__playwright__browser_press_key",
       "mcp__playwright__browser_resize",
       "Bash(git remote:*)",
-      "Bash(gh release view:*)"
+      "Bash(gh release view:*)",
+      "Bash(python3:*)",
+      "WebFetch(domain:medium.com)"
     ]
   }
 }

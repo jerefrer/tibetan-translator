@@ -185,7 +185,8 @@ var PackDatabaseBuilder = {
         definitionPhoneticsWordsStrict,
         definitionPhoneticsWordsLoose,
         content = 'entries',
-        content_rowid = 'id'
+        content_rowid = 'id',
+        tokenize = 'unicode61'
       );
     `);
     database.run(`
@@ -268,6 +269,8 @@ var PackDatabaseBuilder = {
         );
       END;
     `);
+    // Index for fast LIKE queries on Tibetan terms (hybrid search approach)
+    database.run(`CREATE INDEX idx_entries_term ON entries(term);`);
   },
 
   async insertEntriesForDictionary(database, dictionary, progressBar) {
@@ -367,7 +370,9 @@ var PackDatabaseBuilder = {
 
     // Schema version - bump this when database structure changes incompatibly
     // Apps will only download packs with matching schema version
-    const SCHEMA_VERSION = 1;
+    // v2: Added schema version tracking
+    // v3: Hybrid search - unicode61 FTS for phonetics/English, LIKE with term index for Tibetan
+    const SCHEMA_VERSION = 3;
 
     const manifest = {
       schemaVersion: SCHEMA_VERSION,

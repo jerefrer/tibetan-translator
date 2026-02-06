@@ -160,6 +160,10 @@ export default {
     },
   },
   methods: {
+    containsTibetan(text) {
+      // Check if text contains any Tibetan Unicode characters
+      return TibetanRegExps.tibetanGroups.test(text);
+    },
     substituteWylieTerms(text) {
       return convertWylieInParentheses(text);
     },
@@ -279,6 +283,10 @@ export default {
     prepareTerm(term) {
       return `"${term.replace(/'/g, "''").replace(/"/g, '""')}"`;
     },
+    prepareTermForLike(term) {
+      // Escape special SQL LIKE characters and single quotes
+      return term.replace(/'/g, "''").replace(/%/g, '\\%').replace(/_/g, '\\_');
+    },
     storeQuery() {
       this.previousQueries = this.previousQueries.filter(
         (query) => query != this.searchQuery
@@ -312,15 +320,31 @@ export default {
         this.cachedPhoneticsLooseTerms = [...this.phoneticsLooseSearchTerms];
 
         this.resultsPage = 1;
-        var conditions = [];
         var params = [];
-        this.regularSearchTerms.forEach((term) => {
-          conditions.push(
+
+        // Hybrid search: FTS for English/phonetics, LIKE for Tibetan
+        // FTS unicode61 tokenizer strips Tibetan combining characters, causing incorrect matches
+        // LIKE preserves exact Tibetan text for accurate results
+
+        // Split regular terms into Tibetan and non-Tibetan
+        const tibetanRegularTerms = this.regularSearchTerms.filter((t) =>
+          this.containsTibetan(t)
+        );
+        const nonTibetanRegularTerms = this.regularSearchTerms.filter(
+          (t) => !this.containsTibetan(t)
+        );
+
+        // Build FTS conditions for non-Tibetan regular terms
+        var ftsConditions = [];
+        nonTibetanRegularTerms.forEach((term) => {
+          ftsConditions.push(
             `(entries_fts MATCH 'term:${this.prepareTerm(
               term
             )} OR definition:${this.prepareTerm(term)}')`
           );
         });
+
+        // Add phonetic search conditions to FTS
         this.phoneticsStrictSearchTerms.forEach((rawTerm) => {
           // First generate spaceless variants if input has no spaces
           const variants = rawTerm.includes(' ')
@@ -333,7 +357,7 @@ export default {
             .map((prepared) => `termPhoneticsStrict:${this.prepareTerm(prepared)}`)
             .join(' OR ');
 
-          conditions.push(
+          ftsConditions.push(
             `(entries_fts MATCH '(${termConditions}) OR definitionPhoneticsWordsStrict:${this.prepareTerm(
               PhoneticSearch.prepareTermForStrictMatching(rawTerm)
             )}')`
@@ -351,25 +375,59 @@ export default {
             .map((prepared) => `termPhoneticsLoose:${this.prepareTerm(prepared)}`)
             .join(' OR ');
 
-          conditions.push(
+          ftsConditions.push(
             `(entries_fts MATCH '(${termConditions}) OR definitionPhoneticsWordsLoose:${this.prepareTerm(
               PhoneticSearch.prepareTermForLooseMatching(rawTerm)
             )}')`
           );
         });
-        // BM25 column weights: term(10), termPhoneticsStrict(8), termPhoneticsLoose(8),
-        // definition(1), definitionPhoneticsWordsStrict(1), definitionPhoneticsWordsLoose(1)
-        // Higher weights = more important for ranking. Term matches weighted 10x over definition.
-        var query = `
+
+        // Build LIKE conditions for Tibetan terms (searches both term and definition)
+        var likeConditions = [];
+        tibetanRegularTerms.forEach((term) => {
+          const escaped = this.prepareTermForLike(term);
+          likeConditions.push(
+            `(entries.term LIKE '%${escaped}%' ESCAPE '\\' OR entries.definition LIKE '%${escaped}%' ESCAPE '\\')`
+          );
+        });
+
+        // Build the appropriate query based on what types of conditions we have
+        const hasFtsConditions = ftsConditions.length > 0;
+        var query;
+
+        if (!hasFtsConditions && likeConditions.length > 0) {
+          // Pure Tibetan search - use LIKE only (no FTS join needed)
+          // Sort by term length (shorter = more specific match) and dictionary position
+          query = `
+            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition, 0 AS rank
+            FROM entries
+            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
+            WHERE ${likeConditions.join(' AND ')}
+            ORDER BY length(entries.term), dictionaryPosition
+            LIMIT ${MAX_ENTRIES_PER_REQUEST}
+          `;
+        } else if (hasFtsConditions) {
+          // Has FTS conditions - use FTS with optional LIKE additions for mixed searches
+          // BM25 column weights: term(10), termPhoneticsStrict(8), termPhoneticsLoose(8),
+          // definition(1), definitionPhoneticsWordsStrict(1), definitionPhoneticsWordsLoose(1)
+          // Higher weights = more important for ranking. Term matches weighted 10x over definition.
+          const allConditions = [...ftsConditions, ...likeConditions];
+          query = `
             SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,
                    bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank
             FROM entries
             INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
             INNER JOIN entries_fts ON entries.id = entries_fts.rowid
-            WHERE ${conditions.join(' AND ')}
+            WHERE ${allConditions.join(' AND ')}
             ORDER BY rank
             LIMIT ${MAX_ENTRIES_PER_REQUEST}
           `;
+        } else {
+          // No valid search terms
+          this.entries = [];
+          this.loading = false;
+          return;
+        }
         SqlDatabase.exec(query, params)
           .then((rows) => {
             this.entries = rows;

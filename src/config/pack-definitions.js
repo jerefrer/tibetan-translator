@@ -8,8 +8,10 @@
  * Schema version this app supports
  * Must match the schemaVersion in pack-manifest.json
  * Bump this when database structure changes require app updates
+ * v2: Added schema version tracking
+ * v3: Hybrid search - unicode61 FTS for phonetics/English, LIKE with term index for Tibetan
  */
-export const SUPPORTED_SCHEMA_VERSION = 1;
+export const SUPPORTED_SCHEMA_VERSION = 3;
 
 export const PACK_DEFINITIONS = {
   core: {

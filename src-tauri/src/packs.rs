@@ -54,6 +54,73 @@ pub struct DownloadProgress {
     pub status: String,
 }
 
+/// Metadata stored alongside cached packs to track schema version
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PackCacheMeta {
+    schema_version: u32,
+}
+
+/// Read the bundled pack manifest to get the schema version
+fn get_bundled_schema_version(app: &AppHandle) -> Result<u32, String> {
+    let manifest_path = app
+        .path()
+        .resolve("pack-manifest.json", tauri::path::BaseDirectory::Resource)
+        .map_err(|e| format!("Failed to resolve manifest path: {}", e))?;
+
+    let contents = fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("Failed to read bundled manifest: {}", e))?;
+
+    let manifest: PackManifest = serde_json::from_str(&contents)
+        .map_err(|e| format!("Failed to parse bundled manifest: {}", e))?;
+
+    Ok(manifest.schema_version)
+}
+
+/// Read cached pack's schema version from meta file
+fn get_cached_schema_version(packs_dir: &PathBuf, pack_id: &str) -> Option<u32> {
+    let meta_path = packs_dir.join(format!("{}.meta.json", pack_id));
+    if let Ok(contents) = fs::read_to_string(&meta_path) {
+        if let Ok(meta) = serde_json::from_str::<PackCacheMeta>(&contents) {
+            return Some(meta.schema_version);
+        }
+    }
+    None
+}
+
+/// Save schema version to cache meta file
+fn save_cache_meta(packs_dir: &PathBuf, pack_id: &str, schema_version: u32) -> Result<(), String> {
+    let meta_path = packs_dir.join(format!("{}.meta.json", pack_id));
+    let meta = PackCacheMeta { schema_version };
+    let contents = serde_json::to_string(&meta)
+        .map_err(|e| format!("Failed to serialize cache meta: {}", e))?;
+    fs::write(&meta_path, contents)
+        .map_err(|e| format!("Failed to write cache meta: {}", e))?;
+    Ok(())
+}
+
+/// Check if cached pack is stale (bundled version is newer)
+fn is_cache_stale(app: &AppHandle, packs_dir: &PathBuf, pack_id: &str) -> bool {
+    let bundled_version = match get_bundled_schema_version(app) {
+        Ok(v) => v,
+        Err(_) => return false, // Can't determine, assume not stale
+    };
+
+    match get_cached_schema_version(packs_dir, pack_id) {
+        Some(cached_version) => bundled_version > cached_version,
+        None => true, // No meta file means old cache from before versioning - treat as stale
+    }
+}
+
+/// Delete stale cached pack files
+fn delete_cached_pack(packs_dir: &PathBuf, pack_id: &str) {
+    let sqlite_path = packs_dir.join(format!("{}.sqlite", pack_id));
+    let meta_path = packs_dir.join(format!("{}.meta.json", pack_id));
+
+    let _ = fs::remove_file(&sqlite_path);
+    let _ = fs::remove_file(&meta_path);
+}
+
 /// Get the packs directory in app data
 fn get_packs_dir(app: &AppHandle) -> Result<PathBuf, String> {
     let app_data = app
@@ -125,6 +192,7 @@ pub async fn download_pack(
     app: AppHandle,
     window: Window,
     pack_id: String,
+    schema_version: u32,
 ) -> Result<(), String> {
     let packs_dir = get_packs_dir(&app)?;
     let compressed_path = packs_dir.join(format!("{}.7z", pack_id));
@@ -214,6 +282,9 @@ pub async fn download_pack(
         return Err("Extraction failed: sqlite file not found".to_string());
     }
 
+    // Save cache meta with schema version
+    let _ = save_cache_meta(&packs_dir, &pack_id, schema_version);
+
     // Emit complete status
     let _ = window.emit(
         "pack-download-progress",
@@ -269,7 +340,13 @@ pub async fn ensure_pack_available(
     let packs_dir = get_packs_dir(&app)?;
     let sqlite_path = packs_dir.join(format!("{}.sqlite", pack_id));
 
-    // If already in app data, return path
+    // Check if cached pack is stale (bundled version has newer schema)
+    if sqlite_path.exists() && is_cache_stale(&app, &packs_dir, &pack_id) {
+        // Delete stale cache so we copy fresh from bundled resources
+        delete_cached_pack(&packs_dir, &pack_id);
+    }
+
+    // If already in app data (and not stale), return path
     if sqlite_path.exists() {
         return Ok(sqlite_path.to_string_lossy().to_string());
     }
@@ -299,6 +376,11 @@ pub async fn ensure_pack_available(
                 .map_err(|e| format!("Failed to create core pack file: {}", e))?;
             file.write_all(&contents)
                 .map_err(|e| format!("Failed to write core pack: {}", e))?;
+        }
+
+        // Save cache meta with bundled schema version
+        if let Ok(schema_version) = get_bundled_schema_version(&app) {
+            let _ = save_cache_meta(&packs_dir, &pack_id, schema_version);
         }
 
         return Ok(sqlite_path.to_string_lossy().to_string());
@@ -855,6 +937,7 @@ pub async fn update_pack(
     app: AppHandle,
     window: Window,
     pack_id: String,
+    schema_version: u32,
 ) -> Result<(), String> {
     let packs_dir = get_packs_dir(&app)?;
     let compressed_path = packs_dir.join(format!("{}.7z", pack_id));
@@ -948,6 +1031,9 @@ pub async fn update_pack(
     if !sqlite_path.exists() {
         return Err("Extraction failed: sqlite file not found".to_string());
     }
+
+    // Save cache meta with schema version
+    let _ = save_cache_meta(&packs_dir, &pack_id, schema_version);
 
     // Emit complete status
     let _ = window.emit(

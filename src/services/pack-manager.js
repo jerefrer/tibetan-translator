@@ -185,8 +185,11 @@ export const PackManager = {
       status: 'starting',
     };
 
+    // Get schema version from manifest or use supported version
+    const schemaVersion = state.manifest?.schemaVersion || SUPPORTED_SCHEMA_VERSION;
+
     try {
-      await invoke('download_pack', { packId });
+      await invoke('download_pack', { packId, schemaVersion });
     } catch (error) {
       delete state.downloadingPacks[packId];
       throw error;
@@ -489,9 +492,12 @@ export const PackManager = {
       status: 'starting',
     };
 
+    // Get schema version from manifest or use supported version
+    const schemaVersion = state.manifest?.schemaVersion || SUPPORTED_SCHEMA_VERSION;
+
     try {
       // Use the update command which handles core pack specially
-      await invoke('update_pack', { packId });
+      await invoke('update_pack', { packId, schemaVersion });
 
       // Save the new checksum
       this.savePackChecksum(packId, updateInfo.checksum);
