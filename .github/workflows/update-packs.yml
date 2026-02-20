@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Upload to dictionary-packs release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: dictionary-packs
           name: Dictionary Packs
