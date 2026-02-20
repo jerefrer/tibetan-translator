@@ -329,6 +329,40 @@ abbr[data-title]:hover {
   text-decoration: underline solid 1.7px !important;
 }
 
+/* Multilingual dictionary entry sections (e.g. Padmakara Glossary) */
+.dict-lang-section {
+  display: block;
+  padding: 3px 0;
+  line-height: 1.5;
+}
+.dict-lang-section + .dict-lang-section {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+}
+.dict-lang-label {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: white;
+  background: var(--deep-red);
+  border-radius: 3px;
+  padding: 0 5px;
+  margin-right: 6px;
+  vertical-align: baseline;
+  position: relative;
+  top: -1px;
+  line-height: 1.6;
+}
+
+/* Dark theme */
+.theme--dark .dict-lang-section + .dict-lang-section {
+  border-top-color: rgba(255, 255, 255, 0.12);
+}
+.theme--dark .dict-lang-label {
+  background: #555;
+}
+
 /* Audio player in definitions */
 .audio-player {
   display: flex;

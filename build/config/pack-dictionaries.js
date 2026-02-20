@@ -63,6 +63,9 @@ export const PACK_DEFINITIONS = {
       // Scanned dictionaries (Tibetan-English)
       'Jaeschke_Scan',
       'ChandraDas_Scan',
+
+      // Multilingual glossary
+      'PadmakaraGlossary',
     ]
   },
 

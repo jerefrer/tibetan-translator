@@ -57,6 +57,7 @@ export const PACK_DEFINITIONS = {
       'sgra_bye_brag_tu_rtogs_byed_chen_mo',
       'Jaeschke_Scan',
       'ChandraDas_Scan',
+      'PadmakaraGlossary',
     ],
   },
 

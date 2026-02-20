@@ -15,6 +15,7 @@ export default {
       definition = this.substituteWylieVerbs(definition);
     }
     definition = this.prettify(definition, entry.dictionary);
+    definition = this.formatMultilingualSections(definition);
     definition = this.breakIntoSections(definition);
     definition = this.highlightDictionarySpecificTerms(dictionaryDetails, definition);
     definition = this.addTagsForAbbreviations(dictionaryDetails, definition);
@@ -125,6 +126,26 @@ export default {
     );
 
     return definition;
+  },
+
+  formatMultilingualSections (definition) {
+    // Detects definitions with language labels (e.g. "EN some text<br />FR du texte")
+    // Only applies when the definition starts with a known language code.
+    var langCodes = ['Skt', 'EN', 'FR', 'PT', 'ES', 'IT', 'DE', 'PL', 'ZH', 'JA'];
+    var startsWithLang = langCodes.some(code => definition.startsWith(code + ' '));
+    if (!startsWithLang) return definition;
+    var langPattern = langCodes.join('|');
+    var regex = new RegExp(`(?:^|<br \\/>)((?:${langPattern}) )`, 'g');
+    // Split on <br /> boundaries where a lang code follows, then wrap each section
+    var sections = definition.split(/<br \/>/);
+    var langRegex = new RegExp(`^(${langPattern}) (.*)`);
+    return sections.map(section => {
+      var match = section.match(langRegex);
+      if (match) {
+        return `<span class="dict-lang-section"><span class="dict-lang-label">${match[1]}</span>${match[2]}</span>`;
+      }
+      return section;
+    }).join('');
   },
 
   breakIntoSections (definition) {

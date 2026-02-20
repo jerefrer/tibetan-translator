@@ -1,5 +1,13 @@
 # CLAUDE.md
 
+## For Claude
+
+Don't run this command yourself, ask me to do it:
+
+```
+pnpm build:packs
+```
+
 ## Project Overview
 
 Tibetan Translator is a multi-platform dictionary app that provides access to 60+ Tibetan dictionaries through a unified interface. It runs as a **Tauri 2** desktop/mobile app and can also run in a web browser.

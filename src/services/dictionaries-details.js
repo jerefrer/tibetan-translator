@@ -853,5 +853,32 @@ export default {
       "<->",
       "skt"
     ]
+  },
+  "PadmakaraGlossary": {
+    "label": "Padmakara Translation Group Glossary",
+    "about": "Padmakara Translation Group Multilingual Glossary|A comprehensive multilingual glossary of Buddhist terminology compiled by the Padmakara Translation Group over many years of translating Tibetan Buddhist texts.|Contains translations in English, French, Portuguese, Spanish and Italian, with Sanskrit equivalents where available.",
+    "public": "true",
+    "listCredits": "true",
+    "language": [
+      "tib",
+      "<->",
+      "skt",
+      "<->",
+      "zh",
+      "<->",
+      "en",
+      "<->",
+      "fr",
+      "<->",
+      "pt",
+      "<->",
+      "es",
+      "<->",
+      "it",
+      "<->",
+      "de",
+      "<->",
+      "pl"
+    ]
   }
 }

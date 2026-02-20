@@ -1,26 +1,26 @@
 {
   "schemaVersion": 3,
-  "generated": "2026-02-06T18:31:10.042Z",
+  "generated": "2026-02-20T19:45:30.048Z",
   "packs": {
     "core": {
       "id": "core",
       "name": "Core Dictionaries",
       "description": "Essential Tibetan-English dictionaries for translation",
       "required": true,
-      "dictionaryCount": 34,
+      "dictionaryCount": 35,
       "files": {
         "sqlite": {
           "filename": "core.sqlite",
-          "size": 187387904,
-          "sizeMB": "178.7"
+          "size": 193818624,
+          "sizeMB": "184.8"
         },
         "compressed": {
           "filename": "core.7z",
-          "size": 42910423,
-          "sizeMB": "40.9"
+          "size": 44398131,
+          "sizeMB": "42.3"
         }
       },
-      "checksum": "0b4afcaea925e235446ffae5430b2e4cccd6e471059058bdb822cfc4e26f4b2b"
+      "checksum": "3190ba9166ed429a8b4a4ff8ff490eda1f7effd0224a2d9a509b33bf0b0ec2db"
     },
     "tibetan-monolingual": {
       "id": "tibetan-monolingual",
@@ -40,7 +40,7 @@
           "sizeMB": "67.5"
         }
       },
-      "checksum": "e10050d68dc10be5a48babc289838445bc8d155a7764f9db4ff5248121d25304"
+      "checksum": "9aec91ebc64e28bc8c7630cd03aadc159adf8a7ffd682fa504ad42de0a12988a"
     },
     "sanskrit-academic": {
       "id": "sanskrit-academic",
@@ -60,7 +60,7 @@
           "sizeMB": "27.8"
         }
       },
-      "checksum": "2aa4dba42826c7d529a1e82174dc66694eb299d7cdbe806f61133b24088e5483"
+      "checksum": "b8f6e673df8053939db9bfeb396872f3285d918f9b7ba00463aa55ac624f9cc9"
     }
   }
 }
