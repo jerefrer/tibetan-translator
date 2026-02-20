@@ -35,6 +35,13 @@ export default {
         );
     },
   },
+  activated() {
+    // Refresh dictionaries from storage when page becomes visible again
+    // (e.g. after changing order/enabled state in Settings)
+    this.dictionaries = Storage.get("dictionaries").map((dictionary) => {
+      return { ...dictionary, enabledInPreferences: dictionary.enabled };
+    });
+  },
   methods: {
     resetDictionariesToDefaultAndSetNumberOfEntries() {
       this.dictionaries.forEach((dictionary) => {

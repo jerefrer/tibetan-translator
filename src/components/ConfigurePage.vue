@@ -128,6 +128,12 @@ export default {
         en: 'En',
         skt: 'Skt',
         zh: 'Zh',
+        fr: 'Fr',
+        pt: 'Pt',
+        es: 'Es',
+        it: 'It',
+        de: 'De',
+        pl: 'Pl',
       };
       return langs.map(l => langNames[l] || l).join(' ↔ ');
     },
