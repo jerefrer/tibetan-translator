@@ -25,9 +25,14 @@ export default {
     },
     entriesForEnabledDictionaries() {
       if (this.entries == undefined) return [];
-      return this.entries.filter((entry) =>
-        this.enabledDictionariesIds.includes(entry.dictionaryId)
-      );
+      var enabledIds = this.enabledDictionariesIds;
+      var dictionaryPositions = {};
+      this.dictionaries.forEach((d) => { dictionaryPositions[d.id] = d.position; });
+      return this.entries
+        .filter((entry) => enabledIds.includes(entry.dictionaryId))
+        .sort((a, b) =>
+          (dictionaryPositions[a.dictionaryId] || 0) - (dictionaryPositions[b.dictionaryId] || 0)
+        );
     },
   },
   methods: {
