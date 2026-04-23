@@ -8,6 +8,16 @@ Don't run this command yourself, ask me to do it:
 pnpm build:packs
 ```
 
+## Tauri package version alignment
+
+Every `@tauri-apps/*` npm package MUST match its Rust crate counterpart on the same major/minor. `tauri build` (run by the GitHub release action) enforces this; `tauri dev`, `cargo check`, and `pnpm build` do NOT, so a mismatch is invisible locally until release time.
+
+Gotcha: bumping one crate can transitively pull others up — e.g. `tauri-plugin-dialog 2.7` requires `tauri ^2.10`, which then forces `@tauri-apps/api` to 2.10. Audit **both** sides together when touching any `@tauri-apps/*` package.
+
+Run `pnpm check:tauri-versions` to verify alignment in ~300ms without a full build. It reads `src-tauri/Cargo.lock` and `node_modules/@tauri-apps/*/package.json` and reports every pair. It is chained into `release:patch/minor/major` automatically, so a misaligned pair blocks the release before the bump/commit/tag/push.
+
+When adding a new Tauri plugin, add its pair to the `PAIRS` array in `scripts/check-tauri-versions.js`.
+
 ## Project Overview
 
 Tibetan Translator is a multi-platform dictionary app that provides access to 60+ Tibetan dictionaries through a unified interface. It runs as a **Tauri 2** desktop/mobile app and can also run in a web browser.
