@@ -22,12 +22,13 @@
     "url": "https://github.com/jerefrer/tibetan-translator/issues"
   },
   "scripts": {
+    "check:tauri-versions": "node ./scripts/check-tauri-versions.js",
     "bump:patch": "node ./scripts/bump-version.js patch",
     "bump:minor": "node ./scripts/bump-version.js minor",
     "bump:major": "node ./scripts/bump-version.js major",
-    "release:patch": "node ./scripts/bump-version.js patch && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
-    "release:minor": "node ./scripts/bump-version.js minor && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
-    "release:major": "node ./scripts/bump-version.js major && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
+    "release:patch": "node ./scripts/check-tauri-versions.js && node ./scripts/bump-version.js patch && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
+    "release:minor": "node ./scripts/check-tauri-versions.js && node ./scripts/bump-version.js minor && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
+    "release:major": "node ./scripts/check-tauri-versions.js && node ./scripts/bump-version.js major && VERSION=$(node -p \"require('./package.json').version\") && git add -A && git commit -m \"Bumps to $VERSION\" && git tag \"v$VERSION\" && git push && git push --tags",
     "dev": "vite",
     "serve": "vite",
     "build": "vite build",
