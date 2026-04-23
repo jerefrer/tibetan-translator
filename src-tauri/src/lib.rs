@@ -1,7 +1,9 @@
+mod custom_packs;
 mod database;
 mod packs;
 mod scans;
 
+use custom_packs::{install_custom_pack, list_custom_packs, remove_custom_pack};
 use database::{
     execute_query, get_all_terms, get_dictionaries, get_entries_for_term, init_database,
     search_entries,
@@ -18,6 +20,7 @@ use scans::{check_scan_downloaded, delete_scan, download_scan_images, get_scan_i
 pub fn run() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init());
 
     // Add desktop-only plugins
@@ -67,6 +70,10 @@ pub fn run() {
             pack_search_entries,
             pack_get_dictionaries,
             pack_execute_query,
+            // Custom pack commands
+            install_custom_pack,
+            list_custom_packs,
+            remove_custom_pack,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -401,6 +401,13 @@ export default {
       // This is more reliable than onFocusChanged for NSPanel windows
       this._unlistenPanelShown = await listen('panel-shown', async () => {
         console.log('[GlobalLookupWindow] Panel shown event received, re-reading clipboard');
+        // Re-fetch allTerms so any dictionary pack (including custom ones)
+        // installed or removed in the main window since the last lookup is picked up.
+        try {
+          this.allTerms = await invoke('pack_get_all_terms');
+        } catch (err) {
+          console.warn('[GlobalLookupWindow] Could not refresh allTerms on panel-shown:', err);
+        }
         await this.readClipboardAndSetSearch();
       });
 

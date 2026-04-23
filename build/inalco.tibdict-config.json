@@ -1,0 +1,17 @@
+{
+  "id": "inalco-fr-tib",
+  "name": "INALCO Français-Tibétain",
+  "description": "Vocabulaire L1 et L2 du cursus INALCO, tiré de decks Anki personnels.",
+  "author": "Jérémy Frère",
+  "version": "1.0.0",
+  "icon": "mdi-school-outline",
+  "dictionary": {
+    "name": "INALCO Français-Tibétain",
+    "sources": [
+      { "file": "INALCO_L1_voca.apkg",         "reversed": false },
+      { "file": "INALCO_L1_expression.apkg",   "reversed": false },
+      { "file": "INALCO_L2.apkg",              "reversed": false },
+      { "file": "INALCO - L2 - Leçon 3.apkg",  "reversed": true  }
+    ]
+  }
+}

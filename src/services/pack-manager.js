@@ -13,10 +13,40 @@ import Storage from './storage';
 import { supportsModularPacks, isMobile } from '../config/platform';
 import { PACK_DEFINITIONS, getRequiredPackIds, SUPPORTED_SCHEMA_VERSION } from '../config/pack-definitions';
 
+/**
+ * Refresh the full dictionary registry and allTerms list to reflect a pack change.
+ * Called after custom pack install/remove. Imported lazily to avoid a circular
+ * dependency at module load time.
+ *
+ * - Re-queries `pack_get_dictionaries` so the settings list and search registry
+ *   match what's actually installed on disk (the settings list is driven by
+ *   localStorage entries that loadDictionariesFromNative rewrites).
+ * - Re-queries `pack_get_all_terms` so the Define-page autocomplete picks up
+ *   the new terms.
+ * - Dispatches `dictionaries-updated` (fired inside loadDictionariesFromNative)
+ *   and `all-terms-updated` so components that listen react immediately.
+ */
+async function refreshDictionariesAndTerms() {
+  try {
+    const { default: SqlDatabase } = await import('./sql-database');
+    const dictionaries = await invoke('pack_get_dictionaries');
+    if (typeof SqlDatabase.loadDictionariesFromNative === 'function') {
+      SqlDatabase.loadDictionariesFromNative(dictionaries);
+    }
+    if (typeof SqlDatabase.setAllTermsVariable === 'function') {
+      await SqlDatabase.setAllTermsVariable();
+    }
+    window.dispatchEvent(new CustomEvent('all-terms-updated'));
+  } catch (e) {
+    console.warn('[PackManager] refreshDictionariesAndTerms failed:', e);
+  }
+}
+
 // Reactive state for pack management
 const state = reactive({
   manifest: null,
   installedPacks: [],
+  customPacks: [], // [{ id, manifest }]
   downloadingPacks: {}, // packId -> progress object
   updatingPacks: {}, // packId -> progress object for updates
   availableUpdates: {}, // packId -> { checksum, sizeMB }
@@ -36,6 +66,10 @@ export const PackManager = {
 
   get installedPacks() {
     return state.installedPacks;
+  },
+
+  get customPacks() {
+    return state.customPacks;
   },
 
   get downloadingPacks() {
@@ -146,17 +180,22 @@ export const PackManager = {
         }
       });
 
-      // Fetch manifest and installed packs in parallel
-      const [manifest, installed] = await Promise.all([
+      // Fetch manifest, installed packs, and custom packs in parallel
+      const [manifest, installed, customPacks] = await Promise.all([
         invoke('fetch_pack_manifest').catch((e) => {
           console.warn('Could not fetch pack manifest:', e);
           return null;
         }),
         invoke('get_installed_packs'),
+        invoke('list_custom_packs').catch((e) => {
+          console.warn('Could not list custom packs:', e);
+          return [];
+        }),
       ]);
 
       state.manifest = manifest;
       state.installedPacks = installed;
+      state.customPacks = customPacks || [];
       state.initialized = true;
     } catch (error) {
       console.error('Pack manager init failed:', error);
@@ -533,6 +572,41 @@ export const PackManager = {
       await this.updatePack(packId);
       await this.waitForUpdate(packId);
     }
+  },
+
+  // ============================================
+  // Custom Packs
+  // ============================================
+
+  /**
+   * Install a .tibdict file. See CustomPackImporter for return shape.
+   * On success, updates the in-memory custom pack list and refreshes allTerms.
+   */
+  async installCustomPack(filePath, options = {}) {
+    const { CustomPackImporter } = await import('./custom-pack-importer');
+    const result = await CustomPackImporter.install(filePath, options);
+    if (result.status === 'installed') {
+      state.customPacks = await invoke('list_custom_packs');
+      await refreshDictionariesAndTerms();
+    }
+    return result;
+  },
+
+  /**
+   * Remove a custom pack by id (must start with 'custom-').
+   */
+  async removeCustomPack(packId) {
+    if (!supportsModularPacks()) return;
+    await invoke('remove_custom_pack', { packId });
+    state.customPacks = state.customPacks.filter((p) => p.id !== packId);
+    await refreshDictionariesAndTerms();
+  },
+
+  /**
+   * Refresh the custom pack list (useful after external changes).
+   */
+  async refreshCustomPacks() {
+    state.customPacks = await invoke('list_custom_packs').catch(() => []);
   },
 };
 

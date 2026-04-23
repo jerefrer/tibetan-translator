@@ -80,6 +80,69 @@ export default {
     },
   },
   methods: {
+    async setupTibdictDragDrop() {
+      if (!supportsModularPacks()) return;
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        const webview = getCurrentWebview();
+        this._tibdictUnlisten = await webview.onDragDropEvent((event) => {
+          if (event.payload.type !== 'drop') return;
+          const files = event.payload.paths || [];
+          const tibdicts = files.filter((f) => f.toLowerCase().endsWith('.tibdict'));
+          if (tibdicts.length > 0) {
+            this.installTibdictQueue(tibdicts);
+          }
+        });
+      } catch (e) {
+        console.warn('[App] Could not set up drag-drop:', e);
+      }
+    },
+    async installTibdictQueue(filePaths) {
+      let installed = 0;
+      let cancelled = 0;
+
+      for (const filePath of filePaths) {
+        const result = await PackManager.installCustomPack(filePath);
+
+        if (result.status === 'installed') {
+          installed++;
+          if (filePaths.length === 1) {
+            this.snackbar.open(`${result.pack.manifest.name} installed`);
+          }
+          continue;
+        }
+
+        if (result.status === 'conflict') {
+          if (filePaths.length === 1) {
+            this.snackbar.open(
+              'This dictionary is already installed. Use Import… to replace it.'
+            );
+          }
+          cancelled++;
+          continue;
+        }
+
+        cancelled++;
+        if (filePaths.length === 1) {
+          if (result.errorKind === 'incompatible') {
+            this.snackbar.open(
+              "This file isn't compatible with your app version. Please get an up-to-date file."
+            );
+          } else if (result.errorKind === 'corrupt') {
+            this.snackbar.open('Invalid or corrupted file.');
+          } else {
+            this.snackbar.open("This file isn't a valid dictionary.");
+          }
+        }
+      }
+
+      if (filePaths.length > 1) {
+        const parts = [];
+        if (installed > 0) parts.push(`${installed} installed`);
+        if (cancelled > 0) parts.push(`${cancelled} skipped`);
+        if (parts.length) this.snackbar.open(parts.join(', '));
+      }
+    },
     async onOnboardingComplete() {
       this.showOnboarding = false;
       // Refresh terms list to include any newly downloaded packs
@@ -193,12 +256,17 @@ export default {
     this.addListenersForKeyboardTabNavigation();
     AudioPlayerService.initialize();
     ResizeService.subscribe('app', () => this.handleResize());
+    this.setupTibdictDragDrop();
   },
   async unmounted() {
     EventHandlers.remove("tabs-shortcuts");
     ResizeService.unsubscribe('app');
     if (GlobalLookup.isSupported()) {
       await GlobalLookup.cleanup();
+    }
+    if (typeof this._tibdictUnlisten === 'function') {
+      this._tibdictUnlisten();
+      this._tibdictUnlisten = null;
     }
   },
 };

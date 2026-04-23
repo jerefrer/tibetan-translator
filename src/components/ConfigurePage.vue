@@ -15,6 +15,7 @@ import {
   isAppMode
 } from '../services/scan-service';
 import PackManagerCard from './PackManagerCard.vue';
+import CustomPackSection from './CustomPackSection.vue';
 
 // Tauri event listener (lazy loaded)
 let listen = null;
@@ -39,6 +40,7 @@ export default {
   components: {
     draggable,
     PackManagerCard,
+    CustomPackSection,
   },
   inject: ['snackbar'],
   setup() {
@@ -548,6 +550,9 @@ export default {
 
     <!-- Dictionary Packs Section (Tauri only) -->
     <pack-manager-card />
+
+    <!-- Custom Dictionary Packs Section (Tauri only) -->
+    <custom-pack-section />
 
     <!-- Scanned Dictionaries Section -->
     <v-card v-if="scannedDictionaries.length > 0" class="scanned-dictionaries mb-4">

@@ -1,3 +1,4 @@
+use crate::custom_packs::get_custom_pack_paths;
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -320,8 +321,17 @@ pub async fn get_pack_path(
     pack_id: String,
 ) -> Result<String, String> {
     let packs_dir = get_packs_dir(&app)?;
-    let sqlite_path = packs_dir.join(format!("{}.sqlite", pack_id));
 
+    // Custom packs live under packs/custom/<id>/data.sqlite
+    if pack_id.starts_with("custom-") {
+        let custom_path = packs_dir.join("custom").join(&pack_id).join("data.sqlite");
+        if custom_path.exists() {
+            return Ok(custom_path.to_string_lossy().to_string());
+        }
+        return Err(format!("Pack {} not installed", pack_id));
+    }
+
+    let sqlite_path = packs_dir.join(format!("{}.sqlite", pack_id));
     if sqlite_path.exists() {
         Ok(sqlite_path.to_string_lossy().to_string())
     } else {
@@ -594,6 +604,11 @@ fn get_all_pack_db_paths(app: &AppHandle) -> Result<Vec<(String, PathBuf)>, Stri
                 }
             }
         }
+    }
+
+    // Also include custom packs from packs/custom/<id>/data.sqlite
+    for (id, path) in get_custom_pack_paths(app) {
+        pack_paths.push((id, path));
     }
 
     Ok(pack_paths)

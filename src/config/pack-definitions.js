@@ -13,6 +13,13 @@
  */
 export const SUPPORTED_SCHEMA_VERSION = 3;
 
+/**
+ * Maximum .tibdict envelope format version this app can read.
+ * Bump only when we make a non-backwards-compatible change to the .tibdict ZIP layout
+ * (NOT the inner SQLite schema — that's schemaVersion).
+ */
+export const MAX_SUPPORTED_FORMAT_VERSION = 1;
+
 export const PACK_DEFINITIONS = {
   core: {
     id: 'core',

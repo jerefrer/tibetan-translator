@@ -11,6 +11,7 @@
     "core:webview:default",
     "core:app:default",
     "core:resources:default",
-    "core:image:default"
+    "core:image:default",
+    "dialog:allow-open"
   ]
 }

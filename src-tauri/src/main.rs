@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod custom_packs;
 mod database;
 mod packs;
 mod scans;
@@ -8,6 +9,7 @@ use database::{
     execute_query, get_all_terms, get_dictionaries, get_entries_for_term, init_database,
     search_entries,
 };
+use custom_packs::{install_custom_pack, list_custom_packs, remove_custom_pack};
 use packs::{
     download_pack, ensure_pack_available, fetch_pack_manifest, get_installed_packs,
     get_pack_database_size, get_pack_path, pack_execute_query, pack_get_all_terms,
@@ -278,6 +280,7 @@ fn handle_menu_event(_app_handle: &tauri::AppHandle, event: tauri::menu::MenuEve
 fn main() {
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -320,6 +323,10 @@ fn main() {
             pack_search_entries,
             pack_get_dictionaries,
             pack_execute_query,
+            // Custom pack commands
+            install_custom_pack,
+            list_custom_packs,
+            remove_custom_pack,
             // macOS fullscreen support
             configure_window_for_fullscreen,
             show_lookup_panel,
