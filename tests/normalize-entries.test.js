@@ -85,17 +85,17 @@ describe('normalizeEntries', () => {
   });
 
   describe('grammar patterns', () => {
-    it('skips compositional patterns with multiple "+" signs', () => {
+    it('concatenates whitespace-separated Tibetan chunks in compositional templates', () => {
       const out = normalizeEntries([['aller', 'V + ཀར་ + འགྲོ་བ་']], { reversed: false });
-      expect(out).toEqual([]);
+      expect(out).toEqual([{ term: 'ཀར་འགྲོ་བ་', definition: 'aller' }]);
     });
 
-    it('skips four-part compositional patterns too', () => {
+    it('handles four-part compositional patterns by joining the Tibetan pieces', () => {
       const out = normalizeEntries(
         [["d'après", 'X + erg. + ལབ་ཡག་ལ་ + V parole']],
         { reversed: false }
       );
-      expect(out).toEqual([]);
+      expect(out).toEqual([{ term: 'ལབ་ཡག་ལ་', definition: "d'après" }]);
     });
 
     it('strips the grammar hint from a single-"+" pattern and keeps the Tibetan', () => {

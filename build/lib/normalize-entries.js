@@ -32,41 +32,51 @@ export function normalizeEntries(notes, { reversed }) {
     }
 
     if (!tib || !hasTibetanLetter(tib)) continue;
-    if (isCompositionalGrammarPattern(tib)) continue;
 
     const { strippedTerm, annotations } = extractAnnotations(tib);
     const definition = annotations.length
       ? `${fr}${fr ? ' ' : ''}${annotations.join(' ')}`.trim()
       : fr;
 
-    // Strip single-"+" grammar hints like "adj + ..." or "V présent + ...":
-    // the Latin tokens ("adj", "V", "présent", …) carry no dictionary content
-    // and "+" is the attachment marker. Whatever Tibetan remains is usable.
+    // A "+" in the term marks a grammar composition template (e.g. "V + ཀར་ + འགྲོ་བ་"
+    // or "adj + ཞེ་དྲགས། / ཞེ་པོ།"). In that mode, whitespace-separated Tibetan
+    // chunks are pieces to concatenate (not alternatives) — "/" remains the only
+    // alternative separator. Without "+", whitespace-separated chunks are alternatives.
+    const compositional = /\+/.test(strippedTerm);
+
+    // Strip non-Tibetan noise: Latin grammar hints ("adj", "V", "présent", …)
+    // and the "+" attachment marker itself. Whatever Tibetan remains is usable.
     const withoutHints = strippedTerm
       .replace(/[A-Za-zÀ-ſ][A-Za-zÀ-ſ.]*/g, '')
       .replace(/\+/g, '')
       .replace(/\s+/g, ' ')
       .trim();
 
-    // Split on whitespace first (outer alternatives), then further split each
-    // chunk on "/" ONLY if it has no optional parens — because "/" inside
-    // ༼...༽ is already handled by expandOptionalParens.
-    const chunks = [];
-    for (const chunk of withoutHints.split(/\s+/).filter(Boolean)) {
-      if (chunk.includes('༼')) {
-        chunks.push(chunk);
+    // First split on "/" (always alternatives, except inside ༼...༽ which expandOptionalParens handles).
+    const altPieces = splitPreservingOptionalParens(withoutHints, '/');
+
+    const alternatives = [];
+    for (const piece of altPieces) {
+      const trimmed = piece.trim();
+      if (!trimmed) continue;
+      const wsChunks = trimmed.split(/\s+/).filter(Boolean);
+      if (compositional) {
+        // Join chunks into one term; preserve the user's example where
+        // "V + ཀར་ + འགྲོ་བ་" becomes "ཀར་འགྲོ་བ་".
+        alternatives.push(joinCompositionalChunks(wsChunks));
       } else {
-        for (const sub of chunk.split('/').filter(Boolean)) chunks.push(sub);
+        for (const c of wsChunks) alternatives.push(c);
       }
     }
-    const alternatives = chunks.filter(
+
+    const tibetanAlternatives = alternatives.filter(
       (c) => hasTibetanLetter(c) || c.startsWith('༼')
     );
 
-    if (alternatives.length === 0) continue;
+    if (tibetanAlternatives.length === 0) continue;
 
     const finalTerms = [];
-    for (const alt of alternatives) {
+    for (const alt of tibetanAlternatives) {
       for (const variant of expandOptionalParens(alt)) {
         const cleaned = cleanupTerm(variant);
         if (cleaned && hasTibetanLetter(cleaned)) {
@@ -108,12 +118,29 @@ function hasTibetanLetter(s) {
   return TIBETAN_LETTER_RE.test(s);
 }
 
-function isCompositionalGrammarPattern(term) {
-  // Two or more "+" signs means the term is a composition template like
-  // "V + ཀར་ + འགྲོ་བ་" or "X + erg. + ལབ་ཡག་ལ་ + V parole" where the Tibetan
-  // tokens are sub-elements of a structure, not standalone alternatives.
-  const plusCount = (term.match(/ \+ /g) || []).length;
-  return plusCount >= 2;
+/** Split `s` on `sep` but keep ༼...༽ blocks untouched (their "/" belongs to expandOptionalParens). */
+function splitPreservingOptionalParens(s, sep) {
+  const out = [];
+  let buf = '';
+  let depth = 0;
+  for (const ch of s) {
+    if (ch === '༼') { depth++; buf += ch; continue; }
+    if (ch === '༽') { depth = Math.max(0, depth - 1); buf += ch; continue; }
+    if (ch === sep && depth === 0) { out.push(buf); buf = ''; continue; }
+    buf += ch;
+  }
+  out.push(buf);
+  return out;
+}
+
+/** Join whitespace-split Tibetan pieces of a compositional template into one term.
+ *  Strips any shad-at-end of an intermediate piece (since shads are word-enders and
+ *  don't belong mid-term), preserves tshegs, and lets cleanupTerm handle the final. */
+function joinCompositionalChunks(chunks) {
+  return chunks
+    .map((c) => c.replace(/[།༑༔]+[་]*$/g, ''))
+    .map((c, i, arr) => (i < arr.length - 1 && !/་$/.test(c) ? c + '་' : c))
+    .join('');
 }
 
 function extractAnnotations(term) {
