@@ -8,6 +8,7 @@ build/wylieLines*
 public/*.sqlite
 *.sqlite
 *.tibdict
+*.apkg
 demo.mp4
 
 dist/
