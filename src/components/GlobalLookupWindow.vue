@@ -513,16 +513,19 @@ export default {
 
       // Listen for panel-shown event from Rust to refresh clipboard
       // This is more reliable than onFocusChanged for NSPanel windows
-      this._unlistenPanelShown = await listen('panel-shown', async () => {
+      this._unlistenPanelShown = await listen('panel-shown', () => {
         console.log('[GlobalLookupWindow] Panel shown event received, re-reading clipboard');
-        // Re-fetch allTerms so any dictionary pack (including custom ones)
-        // installed or removed in the main window since the last lookup is picked up.
-        try {
-          this.allTerms = await invoke('pack_get_all_terms');
-        } catch (err) {
-          console.warn('[GlobalLookupWindow] Could not refresh allTerms on panel-shown:', err);
-        }
-        await this.readClipboardAndSetSearch();
+        // Read clipboard immediately so the copied word appears in the input
+        // without waiting for the allTerms refresh (which can take hundreds of
+        // ms when many packs are loaded). The autocomplete list is filtered
+        // against the previously-loaded allTerms in the meantime and re-filters
+        // as soon as the refresh resolves.
+        this.readClipboardAndSetSearch();
+        invoke('pack_get_all_terms')
+          .then((terms) => { this.allTerms = terms; })
+          .catch((err) => {
+            console.warn('[GlobalLookupWindow] Could not refresh allTerms on panel-shown:', err);
+          });
       });
 
       // Also listen for focus changes as a fallback
