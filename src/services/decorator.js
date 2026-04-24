@@ -94,7 +94,11 @@ export default {
   },
 
   prettify (definition, dictKey) {
+    // Literal "\n" escape sequences (some legacy dictionaries use these).
     definition = definition.replace(/\\+n/g,'<br />');
+    // Actual newline characters (produced by breakIntoSections and by custom
+    // packs that store multi-paragraph definitions).
+    definition = definition.replace(/\n/g,'<br />');
     definition = definition.replace(/\\/g,'');
     definition = definition.replace(/([a-zA-Z0-9\.]){/g,'$1 {');
     definition = definition.replace(/}([a-zA-Z0-9])/g,'} $1');
