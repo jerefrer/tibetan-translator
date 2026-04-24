@@ -699,18 +699,22 @@ export default {
   padding-bottom: 20px
 
   // Align the card-header icon + title with the v-list-item prepend icon +
-  // content below (Vuetify gives both a 16px prepend-padding around the icon).
-  // The .v-toolbar .v-icon rule below sets `margin: 0 16px` on the icon; here
-  // we kill the default title left padding so the title sits right after the
-  // icon's right margin, matching the list-item layout exactly.
+  // content below. v-toolbar__content gets 16px start padding (matching
+  // v-list-item); the icon has 16px right margin (matching prepend-padding);
+  // and v-toolbar-title's default left padding/margin are cleared so the
+  // title sits right after the icon.
   .v-toolbar-title
     padding-inline-start: 0
+    margin-inline-start: 0
 
   .theme-selector
     width: 100%
 
-    .v-toolbar .v-icon
-      margin: 0 16px
+    .v-toolbar__content
+      padding-inline-start: 16px
+
+    .v-toolbar__content > .v-icon
+      margin-inline: 0 16px
 
     .theme-buttons
       display: flex
@@ -721,8 +725,11 @@ export default {
   .dictionaries-container
     width: 100%
 
-    .v-toolbar .v-icon
-      margin: 0 16px
+    .v-toolbar__content
+      padding-inline-start: 16px
+
+    .v-toolbar__content > .v-icon
+      margin-inline: 0 16px
 
     .v-toolbar__title, .v-toolbar__title .text-caption
       line-height: 1em
@@ -783,8 +790,11 @@ export default {
   .scanned-dictionaries
     width: 100%
 
-    .v-toolbar .v-icon
-      margin: 0 16px
+    .v-toolbar__content
+      padding-inline-start: 16px
+
+    .v-toolbar__content > .v-icon
+      margin-inline: 0 16px
 
     .v-toolbar__title, .v-toolbar__title .text-caption
       line-height: 1em
@@ -815,8 +825,11 @@ export default {
   .global-lookup-settings
     width: 100%
 
-    .v-toolbar .v-icon
-      margin: 0 16px
+    .v-toolbar__content
+      padding-inline-start: 16px
+
+    .v-toolbar__content > .v-icon
+      margin-inline: 0 16px
 
     .v-toolbar__title, .v-toolbar__title .text-caption
       line-height: 1em
@@ -848,8 +861,11 @@ export default {
   .search-builder-settings
     width: 100%
 
-    .v-toolbar .v-icon
-      margin: 0 16px
+    .v-toolbar__content
+      padding-inline-start: 16px
+
+    .v-toolbar__content > .v-icon
+      margin-inline: 0 16px
 
     .v-toolbar__title, .v-toolbar__title .text-caption
       line-height: 1em

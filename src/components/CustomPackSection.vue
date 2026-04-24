@@ -123,12 +123,17 @@ export default {
   width: 100%
 
   // Same icon + title spacing as PackManagerCard, aligned with the v-list-item
-  // prepend below.
-  .v-toolbar .v-icon
-    margin: 0 16px
+  // prepend below. :deep is required because Vuetify renders its own DOM
+  // that scoped selectors can't target.
+  :deep(.v-toolbar__content)
+    padding-inline-start: 16px
+
+  :deep(.v-toolbar__content > .v-icon)
+    margin-inline: 0 16px
 
   :deep(.v-toolbar-title)
     padding-inline-start: 0
+    margin-inline-start: 0
 
   .v-toolbar__title, .v-toolbar__title .text-caption
     line-height: 1em
