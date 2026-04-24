@@ -64,39 +64,18 @@
         Import a dictionary…
       </v-btn>
     </v-card-text>
-
-    <CustomPackConflictModal
-      v-model="conflictOpen"
-      :existing-name="conflictContext.existingName"
-      :existing-version="conflictContext.existingVersion"
-      :new-version="conflictContext.newVersion"
-      @confirm="onConfirmReplace"
-      @cancel="onCancelReplace"
-    />
   </v-card>
 </template>
 
 <script>
 import { open } from '@tauri-apps/plugin-dialog';
 import PackManager from '../services/pack-manager';
-import CustomPackConflictModal from './CustomPackConflictModal.vue';
+import TibdictInstaller from '../services/tibdict-installer';
 import { supportsModularPacks } from '../config/platform';
 
 export default {
   name: 'CustomPackSection',
-  components: { CustomPackConflictModal },
   inject: ['snackbar'],
-  data() {
-    return {
-      conflictOpen: false,
-      conflictContext: {
-        existingName: 'This dictionary',
-        existingVersion: '',
-        newVersion: '',
-        filePath: '',
-      },
-    };
-  },
   computed: {
     isSupported() {
       return supportsModularPacks();
@@ -126,53 +105,11 @@ export default {
         });
         if (!selected) return;
         const filePath = typeof selected === 'string' ? selected : selected.path;
-        await this.installFile(filePath);
+        await TibdictInstaller.install(filePath);
       } catch (e) {
         console.error('[CustomPackSection] import failed:', e);
         this.snackbar.open('Invalid or corrupted file.');
       }
-    },
-    async installFile(filePath) {
-      const result = await PackManager.installCustomPack(filePath);
-      this.handleResult(result, filePath);
-    },
-    handleResult(result, filePath) {
-      if (result.status === 'installed') {
-        this.snackbar.open(`${result.pack.manifest.name} installed`);
-        return;
-      }
-      if (result.status === 'conflict') {
-        this.conflictContext = {
-          existingName: 'This dictionary',
-          existingVersion: '',
-          newVersion: '',
-          filePath,
-        };
-        this.conflictOpen = true;
-        return;
-      }
-      if (result.errorKind === 'incompatible') {
-        this.snackbar.open(
-          "This file isn't compatible with your app version. Please get an up-to-date file."
-        );
-      } else if (result.errorKind === 'corrupt') {
-        this.snackbar.open('Invalid or corrupted file.');
-      } else {
-        this.snackbar.open("This file isn't a valid dictionary.");
-      }
-    },
-    async onConfirmReplace() {
-      const { filePath } = this.conflictContext;
-      const result = await PackManager.installCustomPack(filePath, { force: true });
-      this.handleResult(result, filePath);
-    },
-    onCancelReplace() {
-      this.conflictContext = {
-        existingName: 'This dictionary',
-        existingVersion: '',
-        newVersion: '',
-        filePath: '',
-      };
     },
     async onRemove(pack) {
       await PackManager.removeCustomPack(pack.id);
@@ -182,22 +119,33 @@ export default {
 };
 </script>
 
-<style lang="stylus" scoped>
+<style lang="sass" scoped>
 .custom-pack-card
+  width: 100%
+
+  .v-toolbar .v-icon
+    margin: 0 10px 0 10px
+
+  .v-toolbar__title, .v-toolbar__title .text-caption
+    line-height: 1em
+
+  .v-toolbar__title .text-caption
+    margin-top: 5px
+
   .import-actions
-    padding 0 1em
+    padding: 8px 16px
 
   .pack-item
-    .v-list-item-subtitle
-      color rgba(0, 0, 0, .6)
+    border-bottom: thin solid rgba(0, 0, 0, 0.08)
+    min-height: 64px
 
   .empty-state
-    font-size .9em
-    color rgba(0, 0, 0, .6)
+    font-size: 0.9em
+    color: rgba(0, 0, 0, 0.6)
 
     code
-      background rgba(0, 0, 0, .05)
-      padding .1em .3em
-      border-radius 3px
-      font-size .95em
+      background: rgba(0, 0, 0, 0.05)
+      padding: 0.1em 0.3em
+      border-radius: 3px
+      font-size: 0.95em
 </style>

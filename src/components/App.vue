@@ -13,12 +13,14 @@ import AudioPlayerService from "../services/audio-player-service";
 import ResizeService from "../services/resize-service";
 import { supportsModularPacks } from "../config/platform";
 
+import TibdictInstaller from "../services/tibdict-installer";
 import { substituteLinksWithATags } from "../utils.js";
 import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup.vue";
 import OnboardingScreen from "./OnboardingScreen.vue";
 import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton.vue";
 import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton.vue";
 import SplitPageHelpDialogWithButton from "./SplitPageHelpDialogWithButton.vue";
+import CustomPackConflictModal from "./CustomPackConflictModal.vue";
 
 import "@mdi/font/css/materialdesignicons.css";
 
@@ -42,6 +44,7 @@ export default {
     DefinePageHelpDialogWithButton,
     SearchPageHelpDialogWithButton,
     SplitPageHelpDialogWithButton,
+    CustomPackConflictModal,
   },
   inject: ["snackbar"],
   setup() {
@@ -63,6 +66,9 @@ export default {
   computed: {
     isDark() {
       return this.theme.global.current.value.dark;
+    },
+    tibdictInstallerState() {
+      return TibdictInstaller.state;
     },
     tabs() {
       return [
@@ -90,58 +96,18 @@ export default {
           const files = event.payload.paths || [];
           const tibdicts = files.filter((f) => f.toLowerCase().endsWith('.tibdict'));
           if (tibdicts.length > 0) {
-            this.installTibdictQueue(tibdicts);
+            TibdictInstaller.installMany(tibdicts);
           }
         });
       } catch (e) {
         console.warn('[App] Could not set up drag-drop:', e);
       }
     },
-    async installTibdictQueue(filePaths) {
-      let installed = 0;
-      let cancelled = 0;
-
-      for (const filePath of filePaths) {
-        const result = await PackManager.installCustomPack(filePath);
-
-        if (result.status === 'installed') {
-          installed++;
-          if (filePaths.length === 1) {
-            this.snackbar.open(`${result.pack.manifest.name} installed`);
-          }
-          continue;
-        }
-
-        if (result.status === 'conflict') {
-          if (filePaths.length === 1) {
-            this.snackbar.open(
-              'This dictionary is already installed. Use Import… to replace it.'
-            );
-          }
-          cancelled++;
-          continue;
-        }
-
-        cancelled++;
-        if (filePaths.length === 1) {
-          if (result.errorKind === 'incompatible') {
-            this.snackbar.open(
-              "This file isn't compatible with your app version. Please get an up-to-date file."
-            );
-          } else if (result.errorKind === 'corrupt') {
-            this.snackbar.open('Invalid or corrupted file.');
-          } else {
-            this.snackbar.open("This file isn't a valid dictionary.");
-          }
-        }
-      }
-
-      if (filePaths.length > 1) {
-        const parts = [];
-        if (installed > 0) parts.push(`${installed} installed`);
-        if (cancelled > 0) parts.push(`${cancelled} skipped`);
-        if (parts.length) this.snackbar.open(parts.join(', '));
-      }
+    onTibdictConfirmReplace() {
+      TibdictInstaller.confirmReplace();
+    },
+    onTibdictCancelReplace() {
+      TibdictInstaller.cancelReplace();
     },
     async onOnboardingComplete() {
       this.showOnboarding = false;
@@ -223,6 +189,9 @@ export default {
     this.initializeFontSize();
     this.updateHtmlThemeClass();
     window.SqlDatabase = db;
+
+    // Route installer snackbar messages through the app-level snackbar.
+    TibdictInstaller.setSnackbar((text) => this.snackbar.open(text));
 
     // For Tauri with modular packs, init pack manager and check if onboarding is needed
     if (supportsModularPacks()) {
@@ -346,6 +315,16 @@ export default {
         </router-view>
       </div>
     </div>
+
+    <!-- Rendered at the app level so drag-drop confirmation works on every page -->
+    <CustomPackConflictModal
+      :model-value="tibdictInstallerState.conflictOpen"
+      :existing-manifest="tibdictInstallerState.existingManifest"
+      :incoming-manifest="tibdictInstallerState.incomingManifest"
+      @update:model-value="(v) => !v && onTibdictCancelReplace()"
+      @confirm="onTibdictConfirmReplace"
+      @cancel="onTibdictCancelReplace"
+    />
   </v-app>
 </template>
 

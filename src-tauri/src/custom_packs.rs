@@ -55,11 +55,23 @@ pub struct InstalledCustomPack {
 pub struct InstallError {
     pub code: String,
     pub message: String,
+    /// Populated on "conflict" so the frontend can show the real pack name
+    /// in its confirmation modal without re-reading the .tibdict itself.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub incoming_manifest: Option<TibdictManifest>,
+    /// Populated on "conflict" so the frontend can show the already-installed version.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub existing_manifest: Option<TibdictManifest>,
 }
 
 impl InstallError {
     fn new(code: &str, message: &str) -> Self {
-        Self { code: code.into(), message: message.into() }
+        Self {
+            code: code.into(),
+            message: message.into(),
+            incoming_manifest: None,
+            existing_manifest: None,
+        }
     }
 }
 
@@ -189,8 +201,15 @@ pub async fn install_custom_pack(
     // 5. Conflict handling
     if final_dir.exists() {
         if !force {
+            // Read the existing manifest so the frontend can show the installed version.
+            let existing = fs::read_to_string(final_dir.join("manifest.json"))
+                .ok()
+                .and_then(|s| serde_json::from_str::<TibdictManifest>(&s).ok());
             let _ = fs::remove_dir_all(&temp_dir);
-            return Err(InstallError::new("conflict", "pack already installed"));
+            let mut err = InstallError::new("conflict", "pack already installed");
+            err.incoming_manifest = Some(manifest.clone());
+            err.existing_manifest = existing;
+            return Err(err);
         }
         fs::remove_dir_all(&final_dir)
             .map_err(|e| InstallError::new("path", &format!("replace existing: {e}")))?;

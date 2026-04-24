@@ -34,7 +34,12 @@ export const CustomPackImporter = {
       const message = err?.message || String(err);
 
       if (code === 'conflict') {
-        return { status: 'conflict', message };
+        return {
+          status: 'conflict',
+          message,
+          incomingManifest: err?.incomingManifest || null,
+          existingManifest: err?.existingManifest || null,
+        };
       }
       return { status: 'error', errorKind: classifyError(err), message };
     }
