@@ -34,7 +34,7 @@ export function normalizeEntries(notes, { reversed }) {
     if (!tib || !hasTibetanLetter(tib)) continue;
 
     const { strippedTerm, annotations } = extractAnnotations(tib);
-    const definition = annotations.length
+    let definition = annotations.length
       ? `${fr}${fr ? ' ' : ''}${annotations.join(' ')}`.trim()
       : fr;
 
@@ -43,6 +43,15 @@ export function normalizeEntries(notes, { reversed }) {
     // chunks are pieces to concatenate (not alternatives) — "/" remains the only
     // alternative separator. Without "+", whitespace-separated chunks are alternatives.
     const compositional = /\+/.test(strippedTerm);
+
+    // Preserve the original grammar template (with its English hints, "+" signs and
+    // Tibetan pieces in context) in the definition so no info is lost. The user can
+    // always see the full pattern the normalized term came from.
+    if (compositional) {
+      definition = definition
+        ? `${definition}\n\n${strippedTerm}`
+        : strippedTerm;
+    }
 
     // Strip non-Tibetan noise: Latin grammar hints ("adj", "V", "présent", …)
     // and the "+" attachment marker itself. Whatever Tibetan remains is usable.

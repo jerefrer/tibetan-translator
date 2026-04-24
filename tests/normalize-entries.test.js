@@ -87,7 +87,9 @@ describe('normalizeEntries', () => {
   describe('grammar patterns', () => {
     it('concatenates whitespace-separated Tibetan chunks in compositional templates', () => {
       const out = normalizeEntries([['aller', 'V + ཀར་ + འགྲོ་བ་']], { reversed: false });
-      expect(out).toEqual([{ term: 'ཀར་འགྲོ་བ་', definition: 'aller' }]);
+      expect(out).toEqual([
+        { term: 'ཀར་འགྲོ་བ་', definition: 'aller\n\nV + ཀར་ + འགྲོ་བ་' },
+      ]);
     });
 
     it('handles four-part compositional patterns by joining the Tibetan pieces', () => {
@@ -95,12 +97,16 @@ describe('normalizeEntries', () => {
         [["d'après", 'X + erg. + ལབ་ཡག་ལ་ + V parole']],
         { reversed: false }
       );
-      expect(out).toEqual([{ term: 'ལབ་ཡག་ལ་', definition: "d'après" }]);
+      expect(out).toEqual([
+        { term: 'ལབ་ཡག་ལ་', definition: "d'après\n\nX + erg. + ལབ་ཡག་ལ་ + V parole" },
+      ]);
     });
 
     it('strips the grammar hint from a single-"+" pattern and keeps the Tibetan', () => {
       const out = normalizeEntries([['pouvoir', 'V présent + ཐུབ་པ་']], { reversed: false });
-      expect(out).toEqual([{ term: 'ཐུབ་པ་', definition: 'pouvoir' }]);
+      expect(out).toEqual([
+        { term: 'ཐུབ་པ་', definition: 'pouvoir\n\nV présent + ཐུབ་པ་' },
+      ]);
     });
 
     it('splits Tibetan alternatives separated by "/" after a grammar hint', () => {
@@ -111,12 +117,15 @@ describe('normalizeEntries', () => {
       expect(out.map((e) => e.term).sort()).toEqual(
         ['ཞེ་དྲགས་', 'ཞེ་པོ་', 'ཞེ་པོ་ཅིག་'].sort()
       );
-      for (const e of out) expect(e.definition).toBe('très ; beaucoup');
+      const expectedDef = 'très ; beaucoup\n\nadj + ཞེ་དྲགས། / ཞེ་པོ། / ཞེ་པོ་ཅིག';
+      for (const e of out) expect(e.definition).toBe(expectedDef);
     });
 
     it('strips trailing "adj" hint leaving only the leading Tibetan', () => {
       const out = normalizeEntries([['très', 'དཔེ་ + adj་']], { reversed: false });
-      expect(out).toEqual([{ term: 'དཔེ་', definition: 'très' }]);
+      expect(out).toEqual([
+        { term: 'དཔེ་', definition: 'très\n\nདཔེ་ + adj་' },
+      ]);
     });
   });
 
