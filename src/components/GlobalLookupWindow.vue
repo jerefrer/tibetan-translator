@@ -18,6 +18,9 @@ export default {
   },
   data() {
     return {
+      // 'define' = autocomplete over Tibetan terms (existing behaviour).
+      // 'search' = full-text search across all entries (definitions + phonetics).
+      mode: 'define',
       searchTerm: '',
       selectedTerm: null,
       selectedTermIndex: 0,
@@ -27,6 +30,9 @@ export default {
       termsBatchSize: 50,
       loadingEntries: false,
       allTerms: [],
+      // Full-text search results in "search" mode: [{ term, snippet }] deduped by term.
+      searchResults: [],
+      searchLoading: false,
     };
   },
   computed: {
@@ -39,14 +45,20 @@ export default {
         .filter((key) => key.indexOf(this.searchTerm) == 0)
         .sort();
     },
+    // Items rendered in the left panel: Define mode shows Tibetan terms,
+    // Search mode shows { term, snippet } search results.
+    listItems() {
+      if (this.mode === 'search') return this.searchResults;
+      return this.termsStartingWithSearchTerm.map((t) => ({ term: t, snippet: '' }));
+    },
     visibleTerms() {
-      return this.termsStartingWithSearchTerm.slice(0, this.displayedTermsCount);
+      return this.listItems.slice(0, this.displayedTermsCount);
     },
     hasMoreTerms() {
-      return this.displayedTermsCount < this.termsStartingWithSearchTerm.length;
+      return this.displayedTermsCount < this.listItems.length;
     },
     numberOfTerms() {
-      return this.termsStartingWithSearchTerm.length;
+      return this.listItems.length;
     },
   },
   watch: {
@@ -54,6 +66,15 @@ export default {
       console.log('[GlobalLookupWindow] searchTerm changed to:', newVal);
       this.displayedTermsCount = this.termsBatchSize;
       this.selectedTermIndex = 0;
+      if (this.mode === 'search') {
+        this.runFullTextSearchDebounced();
+        // Clear stale entries; we'll pick the first result when it arrives.
+        if (this.selectedTerm) {
+          this.entries = [];
+          this.selectedTerm = null;
+        }
+        return;
+      }
       // Clear stale entries if selected term is no longer in the filtered list
       if (this.selectedTerm && this.termsStartingWithSearchTerm.indexOf(this.selectedTerm) === -1) {
         this.entries = [];
@@ -89,11 +110,11 @@ export default {
       return cleaned;
     },
     async selectTermByIndex(index, immediate = false) {
-      const terms = this.termsStartingWithSearchTerm;
-      if (index < 0 || index >= terms.length) return;
+      const items = this.listItems;
+      if (index < 0 || index >= items.length) return;
 
       this.selectedTermIndex = index;
-      const term = terms[index];
+      const term = items[index]?.term;
       if (!term) return;
 
       this.selectedTerm = term;
@@ -117,9 +138,42 @@ export default {
       });
     },
     async selectTerm(term) {
-      const index = this.termsStartingWithSearchTerm.indexOf(term);
+      const index = this.listItems.findIndex((item) => item.term === term);
       if (index !== -1) {
         await this.selectTermByIndex(index);
+      }
+    },
+    async runFullTextSearch() {
+      const query = (this.searchTerm || '').trim();
+      if (!query) {
+        this.searchResults = [];
+        return;
+      }
+      this.searchLoading = true;
+      try {
+        const { invoke } = await import('@tauri-apps/api/core');
+        const entries = await invoke('pack_search_entries', {
+          query,
+          searchType: 'definition',
+        });
+        // Group by term, keep the first matching entry as the snippet source.
+        const byTerm = new Map();
+        for (const entry of entries) {
+          if (!byTerm.has(entry.term)) {
+            byTerm.set(entry.term, {
+              term: entry.term,
+              snippet: (entry.definition || '').split('\n')[0].slice(0, 120),
+            });
+          }
+        }
+        this.searchResults = Array.from(byTerm.values());
+        // Auto-select first result
+        this.$nextTick(() => this.selectTermByIndex(0, true));
+      } catch (err) {
+        console.error('[GlobalLookupWindow] Full-text search failed:', err);
+        this.searchResults = [];
+      } finally {
+        this.searchLoading = false;
       }
     },
     async getEntriesForTerm(term) {
@@ -137,12 +191,21 @@ export default {
         const { readText } = await import('@tauri-apps/plugin-clipboard-manager');
         const text = await readText();
         console.log('[GlobalLookupWindow] Clipboard text:', text);
-        if (text) {
-          const cleanedText = this.cleanTibetanText(text);
-          console.log('[GlobalLookupWindow] Cleaned text:', cleanedText);
-          if (cleanedText) {
-            this.searchTerm = cleanedText;
-          }
+        if (!text) return;
+        const raw = text.trim();
+        if (!raw) return;
+
+        // Auto-detect: any Tibetan character → Define mode (autocomplete),
+        // otherwise → Search mode (full-text search).
+        const hasTibetan = /[ༀ-࿿]/.test(raw);
+        this.mode = hasTibetan ? 'define' : 'search';
+
+        if (this.mode === 'define') {
+          const cleanedText = this.cleanTibetanText(raw);
+          if (cleanedText) this.searchTerm = cleanedText;
+        } else {
+          // Keep the plain text as-is for full-text search.
+          this.searchTerm = raw;
         }
       } catch (err) {
         console.error('[GlobalLookupWindow] Error reading clipboard:', err);
@@ -356,6 +419,9 @@ export default {
   async created() {
     this.initializeTheme();
 
+    // Debounced FTS search so the user can type quickly without hammering Rust.
+    this.runFullTextSearchDebounced = _.debounce(() => this.runFullTextSearch(), 150);
+
     // Load allTerms via Tauri IPC
     await new Promise(resolve => setTimeout(resolve, 100));
 
@@ -445,6 +511,7 @@ export default {
       <!-- Search bar -->
       <div class="search-bar">
         <TibetanTextField
+          v-if="mode === 'define'"
           ref="input"
           density="compact"
           variant="plain"
@@ -453,6 +520,20 @@ export default {
           hide-details
           v-model="searchTerm"
           placeholder="Type or paste Tibetan"
+          class="flex-grow-1"
+          @click:clear="searchTerm = ''"
+        />
+        <v-text-field
+          v-else
+          ref="input"
+          density="compact"
+          variant="plain"
+          autofocus
+          clearable
+          hide-details
+          v-model="searchTerm"
+          placeholder="Search across definitions"
+          prepend-inner-icon="mdi-magnify"
           class="flex-grow-1"
           @click:clear="searchTerm = ''"
         />
@@ -480,20 +561,24 @@ export default {
             <!-- Terms list (always visible) -->
             <div class="terms-panel">
               <div v-if="visibleTerms.length" class="terms-header text-caption text-grey px-3 py-1">
-                {{ numberOfTerms }} term{{ numberOfTerms !== 1 ? 's' : '' }}
+                {{ numberOfTerms }}
+                {{ mode === 'search' ? (numberOfTerms !== 1 ? 'matches' : 'match') : (numberOfTerms !== 1 ? 'terms' : 'term') }}
               </div>
               <div v-if="visibleTerms.length" class="terms-scroll" ref="termsList">
                 <div
-                  v-for="(term, index) in visibleTerms"
-                  :key="term"
-                  class="term-item tibetan"
+                  v-for="(item, index) in visibleTerms"
+                  :key="item.term"
+                  class="term-item"
                   :class="{
+                    tibetan: mode === 'define',
+                    'search-item': mode === 'search',
                     'active bg-primary': selectedTermIndex === index,
                     'text-white': selectedTermIndex === index && !isDark,
                   }"
                   @click="selectTermByIndex(index)"
                 >
-                  {{ term }}
+                  <div class="term-text tibetan">{{ item.term }}</div>
+                  <div v-if="item.snippet" class="term-snippet">{{ item.snippet }}</div>
                 </div>
                 <div v-if="hasMoreTerms" class="load-more-sentinel">
                   <v-btn variant="text" size="small" @click="loadMoreTerms">
@@ -501,13 +586,18 @@ export default {
                   </v-btn>
                 </div>
               </div>
+              <div v-else-if="searchLoading" class="flex-centered">
+                <v-progress-circular indeterminate size="32" />
+              </div>
               <div v-else-if="searchTerm" class="flex-centered no-results">
                 <v-icon size="32" color="grey" class="mb-1">mdi-book-search-outline</v-icon>
-                <div class="text-body-2">No terms found</div>
+                <div class="text-body-2">
+                  {{ mode === 'search' ? 'No results' : 'No terms found' }}
+                </div>
               </div>
               <div v-else class="flex-centered instructions">
                 <v-icon size="32" color="grey" class="mb-1">mdi-clipboard-text-search-outline</v-icon>
-                <div class="text-body-2">Copy Tibetan text</div>
+                <div class="text-body-2">Copy text to look up</div>
               </div>
             </div>
 
@@ -671,6 +761,21 @@ html, body
   &.active
     &:hover
       background: var(--v-theme-primary)
+
+  .term-text
+    overflow: hidden
+    text-overflow: ellipsis
+
+  .term-snippet
+    font-size: 0.8rem
+    opacity: 0.7
+    margin-top: 2px
+    overflow: hidden
+    text-overflow: ellipsis
+
+  &.search-item
+    white-space: normal
+    padding: 6px 12px
 
 .load-more-sentinel
   display: flex
