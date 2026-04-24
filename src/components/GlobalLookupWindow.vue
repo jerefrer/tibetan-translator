@@ -10,7 +10,13 @@ import Decorator from '../services/decorator';
 import DictionariesDetailsMixin from './DictionariesDetailsMixin';
 
 function escapeForRegExp(text) {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return (
+    text
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      // Treat ASCII apostrophe and curly right-single-quote as interchangeable
+      // so "d'après" highlights "d'après" in the text and vice-versa.
+      .replace(/['’]/g, "['’]")
+  );
 }
 
 export default {

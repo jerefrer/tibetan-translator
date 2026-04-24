@@ -262,7 +262,13 @@ export default {
       return _.chain(combinations).uniq().sortBy('length').value();
     },
     escapeForRegExp(text) {
-      return text.replace(/([\[\]\{\}\.\*\?])/, '\\$1');
+      return (
+        text
+          .replace(/([\[\]\{\}\.\*\?])/g, '\\$1')
+          // Treat ASCII apostrophe and curly right-single-quote as interchangeable
+          // so "d'après" highlights "d'après" in the text and vice-versa.
+          .replace(/['’]/g, "['’]")
+      );
     },
     clear() {
       this.searchQuery = '';

@@ -738,8 +738,11 @@ pub async fn pack_search_entries(
     let pack_paths = get_all_pack_db_paths(&app)?;
     let mut all_entries = Vec::new();
 
-    // Escape special FTS5 characters
-    let escaped_query = query.replace('"', "\"\"");
+    // Escape for both the outer SQL string literal (single quotes → double
+    // singles) and the inner FTS5 phrase (double quotes → double doubles).
+    // Missing the apostrophe escape used to break any query containing a
+    // plain "'" (e.g. "d'après"), since the apostrophe closed the SQL string.
+    let escaped_query = query.replace('\'', "''").replace('"', "\"\"");
 
     // Build the FTS5 MATCH clause based on search type
     let fts_query = match search_type.as_str() {
