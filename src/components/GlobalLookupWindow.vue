@@ -6,12 +6,19 @@ import { useTheme } from 'vuetify';
 import Entries from './Entries.vue';
 import TibetanTextField from './TibetanTextField.vue';
 import Storage from '../services/storage';
+import Decorator from '../services/decorator';
+import DictionariesDetailsMixin from './DictionariesDetailsMixin';
+
+function escapeForRegExp(text) {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
 
 export default {
   components: {
     Entries,
     TibetanTextField,
   },
+  mixins: [DictionariesDetailsMixin],
   setup() {
     const theme = useTheme();
     return { theme };
@@ -30,9 +37,11 @@ export default {
       termsBatchSize: 50,
       loadingEntries: false,
       allTerms: [],
-      // Full-text search results in "search" mode: [{ term, snippet }] deduped by term.
-      searchResults: [],
+      // Full-text search results in "search" mode: raw PackEntry rows.
+      searchEntries: [],
       searchLoading: false,
+      searchDisplayCount: 20,
+      searchBatchSize: 20,
     };
   },
   computed: {
@@ -45,11 +54,10 @@ export default {
         .filter((key) => key.indexOf(this.searchTerm) == 0)
         .sort();
     },
-    // Items rendered in the left panel: Define mode shows Tibetan terms,
-    // Search mode shows { term, snippet } search results.
+    // Items rendered in the left panel (Define mode). Search mode renders its
+    // own flat entries list.
     listItems() {
-      if (this.mode === 'search') return this.searchResults;
-      return this.termsStartingWithSearchTerm.map((t) => ({ term: t, snippet: '' }));
+      return this.termsStartingWithSearchTerm.map((t) => ({ term: t }));
     },
     visibleTerms() {
       return this.listItems.slice(0, this.displayedTermsCount);
@@ -59,6 +67,29 @@ export default {
     },
     numberOfTerms() {
       return this.listItems.length;
+    },
+    sortedSearchEntries() {
+      // Prefer shorter terms and earlier dictionary position; term starting
+      // with the query comes first. Mirrors SearchPage's sort without BM25
+      // (which pack_search_entries doesn't return).
+      const q = (this.searchTerm || '').toLowerCase();
+      return [...this.searchEntries].sort((a, b) => {
+        const aStarts = a.term.toLowerCase().startsWith(q) ? 0 : 1;
+        const bStarts = b.term.toLowerCase().startsWith(q) ? 0 : 1;
+        if (aStarts !== bStarts) return aStarts - bStarts;
+        if (a.term.length !== b.term.length) return a.term.length - b.term.length;
+        return (a.dictionaryPosition || 999) - (b.dictionaryPosition || 999);
+      });
+    },
+    visibleSearchEntries() {
+      return this.sortedSearchEntries.slice(0, this.searchDisplayCount).map((entry) => ({
+        ...entry,
+        decoratedDefinition: this.highlightInDefinition(Decorator.decorate(entry)),
+        decoratedTerm: this.highlightInTerm(entry.term),
+      }));
+    },
+    hasMoreSearchEntries() {
+      return this.searchDisplayCount < this.sortedSearchEntries.length;
     },
   },
   watch: {
@@ -146,35 +177,52 @@ export default {
     async runFullTextSearch() {
       const query = (this.searchTerm || '').trim();
       if (!query) {
-        this.searchResults = [];
+        this.searchEntries = [];
         return;
       }
       this.searchLoading = true;
+      this.searchDisplayCount = this.searchBatchSize;
       try {
         const { invoke } = await import('@tauri-apps/api/core');
         const entries = await invoke('pack_search_entries', {
           query,
           searchType: 'definition',
         });
-        // Group by term, keep the first matching entry as the snippet source.
-        const byTerm = new Map();
-        for (const entry of entries) {
-          if (!byTerm.has(entry.term)) {
-            byTerm.set(entry.term, {
-              term: entry.term,
-              snippet: (entry.definition || '').split('\n')[0].slice(0, 120),
-            });
-          }
-        }
-        this.searchResults = Array.from(byTerm.values());
-        // Auto-select first result
-        this.$nextTick(() => this.selectTermByIndex(0, true));
+        this.searchEntries = entries || [];
       } catch (err) {
         console.error('[GlobalLookupWindow] Full-text search failed:', err);
-        this.searchResults = [];
+        this.searchEntries = [];
       } finally {
         this.searchLoading = false;
       }
+    },
+    loadMoreSearchEntries() {
+      if (this.hasMoreSearchEntries) {
+        this.searchDisplayCount += this.searchBatchSize;
+      }
+    },
+    highlightInDefinition(html) {
+      const q = (this.searchTerm || '').trim();
+      if (!q) return html;
+      const escaped = escapeForRegExp(q);
+      const re = new RegExp(`(${escaped})`, 'gi');
+      // Only highlight text nodes to avoid breaking HTML tags.
+      return html
+        .split(/(<[^>]+>)/)
+        .map((part) => (part.startsWith('<') && part.endsWith('>') ? part : part.replace(re, '<em>$1</em>')))
+        .join('');
+    },
+    highlightInTerm(term) {
+      const q = (this.searchTerm || '').trim();
+      if (!q) return term;
+      const escaped = escapeForRegExp(q);
+      return term.replace(new RegExp(`(${escaped})`, 'gi'), '<em>$1</em>');
+    },
+    shortDictionaryLabelFor(entry) {
+      return this.dictionaryLabelFor(entry.dictionary, { short: true });
+    },
+    shortDictionaryLabelForHasTibetan(entry) {
+      return /[ༀ-࿿]/.test(this.shortDictionaryLabelFor(entry) || '');
     },
     async getEntriesForTerm(term) {
       try {
@@ -555,8 +603,51 @@ export default {
           <v-progress-circular indeterminate size="48" />
         </div>
 
+        <template v-else-if="mode === 'search'">
+          <!-- Flat search results, 2 columns per row (term | chip+definition) -->
+          <div v-if="searchLoading && !searchEntries.length" class="flex-centered">
+            <v-progress-circular indeterminate size="32" />
+          </div>
+          <div v-else-if="visibleSearchEntries.length" class="search-entries-list" ref="searchEntriesScroll">
+            <div class="results-count text-caption text-grey px-3 py-1">
+              {{ sortedSearchEntries.length }} result{{ sortedSearchEntries.length !== 1 ? 's' : '' }}
+            </div>
+            <div
+              v-for="(entry, index) in visibleSearchEntries"
+              :key="`${entry.term}-${entry.dictionaryId}-${index}`"
+              class="search-entry"
+            >
+              <div class="search-entry-term tibetan" v-html="entry.decoratedTerm" />
+              <div class="search-entry-body">
+                <v-chip
+                  variant="flat"
+                  size="x-small"
+                  class="dictionary-label mr-2"
+                  color="grey-darken-2"
+                  v-html="shortDictionaryLabelFor(entry)"
+                  :class="{ 'has-tibetan': shortDictionaryLabelForHasTibetan(entry) }"
+                />
+                <span class="definition" v-html="entry.decoratedDefinition" />
+              </div>
+            </div>
+            <div v-if="hasMoreSearchEntries" class="load-more-sentinel">
+              <v-btn variant="text" size="small" @click="loadMoreSearchEntries">
+                Load more...
+              </v-btn>
+            </div>
+          </div>
+          <div v-else-if="searchTerm" class="flex-centered no-results">
+            <v-icon size="32" color="grey" class="mb-1">mdi-book-search-outline</v-icon>
+            <div class="text-body-2">No results</div>
+          </div>
+          <div v-else class="flex-centered instructions">
+            <v-icon size="32" color="grey" class="mb-1">mdi-magnify</v-icon>
+            <div class="text-body-2">Type to search</div>
+          </div>
+        </template>
+
         <template v-else>
-          <!-- Split view: Terms on left, Definitions on right -->
+          <!-- Define mode: split view, Terms on left, Definitions on right -->
           <div class="split-view">
             <!-- Terms list (always visible) -->
             <div class="terms-panel">
@@ -781,6 +872,51 @@ html, body
   display: flex
   justify-content: center
   padding: 8px
+
+.search-entries-list
+  flex: 1
+  overflow-y: auto
+  min-height: 0
+
+  .results-count
+    border-bottom: 1px solid rgba(128, 128, 128, 0.1)
+
+  .search-entry
+    display: flex
+    gap: 12px
+    padding: 8px 12px
+    border-bottom: 1px solid rgba(128, 128, 128, 0.08)
+
+    &:hover
+      background: rgba(128, 128, 128, 0.05)
+
+  .search-entry-term
+    flex: 0 0 25%
+    min-width: 100px
+    max-width: 200px
+    overflow-wrap: break-word
+    line-height: 1.4
+
+  .search-entry-body
+    flex: 1
+    min-width: 0
+    line-height: 1.5
+
+    .dictionary-label
+      vertical-align: middle
+
+    .definition
+      overflow-wrap: break-word
+
+  em
+    color: black
+    font-style: normal
+    background: #ffc107
+
+  .tibetan em
+    background: none
+    color: inherit
+    text-decoration: underline #ffc107 3px
 
 .flex-centered
   display: flex
