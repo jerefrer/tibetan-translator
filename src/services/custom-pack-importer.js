@@ -23,16 +23,12 @@ function classifyError(err) {
   return 'unknown';
 }
 
-export const CustomPackImporter = {
-  async install(filePath, options = {}) {
-    const force = !!options.force;
-    try {
-      const pack = await invoke('install_custom_pack', { filePath, force });
-      return { status: 'installed', pack };
-    } catch (err) {
+function classifyResult(promise) {
+  return promise
+    .then((pack) => ({ status: 'installed', pack }))
+    .catch((err) => {
       const code = err?.code || '';
       const message = err?.message || String(err);
-
       if (code === 'conflict') {
         return {
           status: 'conflict',
@@ -42,7 +38,19 @@ export const CustomPackImporter = {
         };
       }
       return { status: 'error', errorKind: classifyError(err), message };
-    }
+    });
+}
+
+export const CustomPackImporter = {
+  async install(filePath, options = {}) {
+    const force = !!options.force;
+    return classifyResult(invoke('install_custom_pack', { filePath, force }));
+  },
+  /** Install from in-memory bytes (used by HTML5 drag-drop, where only the file
+   *  content is available — the webview's File API doesn't expose an OS path). */
+  async installFromBytes(data, options = {}) {
+    const force = !!options.force;
+    return classifyResult(invoke('install_custom_pack_from_bytes', { data, force }));
   },
 };
 

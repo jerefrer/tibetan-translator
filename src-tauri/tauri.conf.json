@@ -17,7 +17,7 @@
         "height": 1024,
         "resizable": true,
         "fullscreen": false,
-        "dragDropEnabled": true
+        "dragDropEnabled": false
       },
       {
         "label": "global-lookup-popup",

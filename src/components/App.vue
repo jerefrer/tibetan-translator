@@ -86,22 +86,33 @@ export default {
     },
   },
   methods: {
-    async setupTibdictDragDrop() {
+    setupTibdictDragDrop() {
       if (!supportsModularPacks()) return;
-      try {
-        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
-        const webview = getCurrentWebview();
-        this._tibdictUnlisten = await webview.onDragDropEvent((event) => {
-          if (event.payload.type !== 'drop') return;
-          const files = event.payload.paths || [];
-          const tibdicts = files.filter((f) => f.toLowerCase().endsWith('.tibdict'));
-          if (tibdicts.length > 0) {
-            TibdictInstaller.installMany(tibdicts);
-          }
-        });
-      } catch (e) {
-        console.warn('[App] Could not set up drag-drop:', e);
-      }
+      // Use HTML5 drop events so vuedraggable's internal drag-to-reorder keeps
+      // working (Tauri's own dragDropEnabled=true would intercept HTML5 drags).
+      const onDragOver = (e) => {
+        if (e.dataTransfer?.types?.includes('Files')) e.preventDefault();
+      };
+      const onDrop = async (e) => {
+        if (!e.dataTransfer?.files?.length) return;
+        const files = Array.from(e.dataTransfer.files);
+        const tibdicts = files.filter((f) => f.name.toLowerCase().endsWith('.tibdict'));
+        if (!tibdicts.length) return;
+        e.preventDefault();
+        const sources = await Promise.all(
+          tibdicts.map(async (f) => ({
+            name: f.name,
+            bytes: Array.from(new Uint8Array(await f.arrayBuffer())),
+          }))
+        );
+        TibdictInstaller.installMany(sources);
+      };
+      window.addEventListener('dragover', onDragOver);
+      window.addEventListener('drop', onDrop);
+      this._tibdictUnlisten = () => {
+        window.removeEventListener('dragover', onDragOver);
+        window.removeEventListener('drop', onDrop);
+      };
     },
     onTibdictConfirmReplace() {
       TibdictInstaller.confirmReplace();

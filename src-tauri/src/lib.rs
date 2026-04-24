@@ -3,7 +3,7 @@ mod database;
 mod packs;
 mod scans;
 
-use custom_packs::{install_custom_pack, list_custom_packs, remove_custom_pack};
+use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
 use database::{
     execute_query, get_all_terms, get_dictionaries, get_entries_for_term, init_database,
     search_entries,
@@ -72,6 +72,7 @@ pub fn run() {
             pack_execute_query,
             // Custom pack commands
             install_custom_pack,
+            install_custom_pack_from_bytes,
             list_custom_packs,
             remove_custom_pack,
         ])

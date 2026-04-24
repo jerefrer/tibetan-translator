@@ -16,7 +16,9 @@ import PackManager from './pack-manager';
 
 const state = reactive({
   conflictOpen: false,
-  pendingFilePath: '',
+  /** The source passed to install on conflict — either an OS path (string)
+   *  for the Import button, or { bytes, name } for HTML5 drag-drop. */
+  pendingSource: null,
   incomingManifest: null,
   existingManifest: null,
 });
@@ -35,13 +37,16 @@ function messageForError(result) {
   return "This file isn't a valid dictionary.";
 }
 
-async function runInstall(filePath, options = {}) {
-  const result = await PackManager.installCustomPack(filePath, options);
-  return result;
+async function runInstall(source, options = {}) {
+  // source is either a string (OS path) or { bytes, name } (in-memory file).
+  if (source && typeof source === 'object' && source.bytes) {
+    return PackManager.installCustomPackFromBytes(source.bytes, options);
+  }
+  return PackManager.installCustomPack(source, options);
 }
 
-function openConflictModal(filePath, result) {
-  state.pendingFilePath = filePath;
+function openConflictModal(source, result) {
+  state.pendingSource = source;
   state.incomingManifest = result.incomingManifest || null;
   state.existingManifest = result.existingManifest || null;
   state.conflictOpen = true;
@@ -49,7 +54,7 @@ function openConflictModal(filePath, result) {
 
 function closeConflictModal() {
   state.conflictOpen = false;
-  state.pendingFilePath = '';
+  state.pendingSource = null;
   state.incomingManifest = null;
   state.existingManifest = null;
 }
@@ -62,30 +67,32 @@ export const TibdictInstaller = {
     snackbarOpen = openFn;
   },
 
-  /** Install a single .tibdict file. Opens the conflict modal if needed. */
-  async install(filePath) {
-    const result = await runInstall(filePath);
+  /** Install a single .tibdict file. `source` is either an OS path (string)
+   *  or { bytes, name } for drag-dropped File content. Opens the conflict
+   *  modal if needed. */
+  async install(source) {
+    const result = await runInstall(source);
     if (result.status === 'installed') {
       notify(`${result.pack.manifest.name} installed`);
       return;
     }
     if (result.status === 'conflict') {
-      openConflictModal(filePath, result);
+      openConflictModal(source, result);
       return;
     }
     notify(messageForError(result));
   },
 
-  /** Install multiple .tibdict files sequentially, with a recap snackbar. */
-  async installMany(filePaths) {
-    if (filePaths.length === 1) {
-      await this.install(filePaths[0]);
+  /** Install multiple sources sequentially, with a recap snackbar. */
+  async installMany(sources) {
+    if (sources.length === 1) {
+      await this.install(sources[0]);
       return;
     }
     let installed = 0;
     let cancelled = 0;
-    for (const filePath of filePaths) {
-      const result = await runInstall(filePath);
+    for (const source of sources) {
+      const result = await runInstall(source);
       if (result.status === 'installed') {
         installed++;
         continue;
@@ -93,7 +100,7 @@ export const TibdictInstaller = {
       if (result.status === 'conflict') {
         // Queue the first conflict for user confirmation; skip subsequent ones silently.
         if (!state.conflictOpen) {
-          openConflictModal(filePath, result);
+          openConflictModal(source, result);
         }
         cancelled++;
         continue;
@@ -108,10 +115,10 @@ export const TibdictInstaller = {
 
   /** Called by the conflict modal when user confirms the replacement. */
   async confirmReplace() {
-    const filePath = state.pendingFilePath;
+    const source = state.pendingSource;
     const name = state.incomingManifest?.name || '';
     closeConflictModal();
-    const result = await runInstall(filePath, { force: true });
+    const result = await runInstall(source, { force: true });
     if (result.status === 'installed') {
       notify(`${result.pack.manifest.name || name} installed`);
     } else {

@@ -1,7 +1,7 @@
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::io::Read;
+use std::io::{Cursor, Read};
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 use zip::ZipArchive;
@@ -108,16 +108,36 @@ pub async fn install_custom_pack(
     file_path: String,
     force: Option<bool>,
 ) -> Result<InstalledCustomPack, InstallError> {
-    let force = force.unwrap_or(false);
     let src = PathBuf::from(&file_path);
     if !src.exists() {
         return Err(InstallError::new("path", &format!("File not found: {file_path}")));
     }
+    let bytes = fs::read(&src)
+        .map_err(|e| InstallError::new("corrupt", &format!("read file: {e}")))?;
+    install_from_bytes(app, bytes, force).await
+}
 
-    // 1. Open ZIP
-    let file = fs::File::open(&src)
-        .map_err(|e| InstallError::new("corrupt", &format!("open zip: {e}")))?;
-    let mut archive = ZipArchive::new(file)
+/// Same as install_custom_pack but takes raw ZIP bytes. Used by the frontend
+/// HTML5 drag-drop path where we only have the file's content (not an OS path).
+#[tauri::command]
+pub async fn install_custom_pack_from_bytes(
+    app: AppHandle,
+    data: Vec<u8>,
+    force: Option<bool>,
+) -> Result<InstalledCustomPack, InstallError> {
+    install_from_bytes(app, data, force).await
+}
+
+async fn install_from_bytes(
+    app: AppHandle,
+    bytes: Vec<u8>,
+    force: Option<bool>,
+) -> Result<InstalledCustomPack, InstallError> {
+    let force = force.unwrap_or(false);
+
+    // 1. Open ZIP from the in-memory bytes
+    let cursor = Cursor::new(&bytes);
+    let mut archive = ZipArchive::new(cursor)
         .map_err(|e| InstallError::new("corrupt", &format!("read zip: {e}")))?;
 
     // 2. Extract entries into memory

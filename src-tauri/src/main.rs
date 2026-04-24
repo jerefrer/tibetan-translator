@@ -9,7 +9,7 @@ use database::{
     execute_query, get_all_terms, get_dictionaries, get_entries_for_term, init_database,
     search_entries,
 };
-use custom_packs::{install_custom_pack, list_custom_packs, remove_custom_pack};
+use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
 use packs::{
     download_pack, ensure_pack_available, fetch_pack_manifest, get_installed_packs,
     get_pack_database_size, get_pack_path, pack_execute_query, pack_get_all_terms,
@@ -325,6 +325,7 @@ fn main() {
             pack_execute_query,
             // Custom pack commands
             install_custom_pack,
+            install_custom_pack_from_bytes,
             list_custom_packs,
             remove_custom_pack,
             // macOS fullscreen support

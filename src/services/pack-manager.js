@@ -593,6 +593,20 @@ export const PackManager = {
   },
 
   /**
+   * Install from raw ZIP bytes (HTML5 drag-drop path). Same semantics as
+   * installCustomPack but takes a Uint8Array / Array<number> rather than a path.
+   */
+  async installCustomPackFromBytes(data, options = {}) {
+    const { CustomPackImporter } = await import('./custom-pack-importer');
+    const result = await CustomPackImporter.installFromBytes(data, options);
+    if (result.status === 'installed') {
+      state.customPacks = await invoke('list_custom_packs');
+      await refreshDictionariesAndTerms();
+    }
+    return result;
+  },
+
+  /**
    * Remove a custom pack by id (must start with 'custom-').
    */
   async removeCustomPack(packId) {
