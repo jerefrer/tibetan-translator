@@ -415,7 +415,10 @@ export default {
   width: 100%
 
   .v-toolbar .v-icon
-    margin: 0 10px 0 10px
+    margin: 0 0 0 8px
+
+  :deep(.v-toolbar-title)
+    padding-inline-start: 12px
 
   .v-toolbar__title, .v-toolbar__title .text-caption
     line-height: 1em

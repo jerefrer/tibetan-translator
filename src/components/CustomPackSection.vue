@@ -10,19 +10,6 @@
       </v-toolbar-title>
     </v-toolbar>
 
-    <v-card-actions v-if="packs.length" class="import-actions">
-      <v-spacer />
-      <v-btn
-        variant="tonal"
-        color="primary"
-        size="small"
-        @click="onImportClick"
-      >
-        <v-icon start>mdi-file-upload</v-icon>
-        Import a dictionary…
-      </v-btn>
-    </v-card-actions>
-
     <v-list v-if="packs.length">
       <v-list-item v-for="pack in packs" :key="pack.id" class="pack-item">
         <template v-slot:prepend>
@@ -48,6 +35,18 @@
         </template>
       </v-list-item>
     </v-list>
+
+    <v-card-actions v-if="packs.length" class="import-actions">
+      <v-btn
+        variant="tonal"
+        color="primary"
+        size="small"
+        @click="onImportClick"
+      >
+        <v-icon start>mdi-file-upload</v-icon>
+        Import a dictionary…
+      </v-btn>
+    </v-card-actions>
 
     <v-card-text v-else class="empty-state text-center py-6">
       <p class="mb-4">
@@ -124,7 +123,10 @@ export default {
   width: 100%
 
   .v-toolbar .v-icon
-    margin: 0 10px 0 10px
+    margin: 0 0 0 8px
+
+  :deep(.v-toolbar-title)
+    padding-inline-start: 12px
 
   .v-toolbar__title, .v-toolbar__title .text-caption
     line-height: 1em
