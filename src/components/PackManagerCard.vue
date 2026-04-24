@@ -414,11 +414,14 @@ export default {
 .pack-manager-card
   width: 100%
 
+  // Align the header icon + title with the v-list-item prepend icon + content
+  // below: Vuetify's v-list-item uses 16px horizontal padding and a 16px
+  // prepend-padding between the icon and the text. Mirror the same on the toolbar.
   .v-toolbar .v-icon
-    margin: 0 0 0 8px
+    margin: 0 16px
 
   :deep(.v-toolbar-title)
-    padding-inline-start: 12px
+    padding-inline-start: 0
 
   .v-toolbar__title, .v-toolbar__title .text-caption
     line-height: 1em

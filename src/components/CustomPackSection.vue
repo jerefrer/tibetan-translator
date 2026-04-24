@@ -122,11 +122,13 @@ export default {
 .custom-pack-card
   width: 100%
 
+  // Same icon + title spacing as PackManagerCard, aligned with the v-list-item
+  // prepend below.
   .v-toolbar .v-icon
-    margin: 0 0 0 8px
+    margin: 0 16px
 
   :deep(.v-toolbar-title)
-    padding-inline-start: 12px
+    padding-inline-start: 0
 
   .v-toolbar__title, .v-toolbar__title .text-caption
     line-height: 1em
@@ -140,6 +142,16 @@ export default {
   .pack-item
     border-bottom: thin solid rgba(0, 0, 0, 0.08)
     min-height: 64px
+
+    // Match PackManagerCard's prepend sizing so the item text lines up
+    // identically across Dictionary Packs and Custom Dictionaries.
+    :deep(.v-list-item__prepend)
+      width: 24px
+      min-width: 24px
+      margin-right: 12px
+
+    :deep(.v-list-item__content)
+      padding-left: 0
 
   .empty-state
     font-size: 0.9em

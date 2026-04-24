@@ -698,17 +698,19 @@ export default {
   margin-top: 30px
   padding-bottom: 20px
 
-  // Tighten the gap between a card header's icon and its title across every card.
-  // Vuetify's v-toolbar-title has a default left padding (~20px); pair it with the
-  // reduced icon margin above to line the title up with list-item content below.
+  // Align the card-header icon + title with the v-list-item prepend icon +
+  // content below (Vuetify gives both a 16px prepend-padding around the icon).
+  // The .v-toolbar .v-icon rule below sets `margin: 0 16px` on the icon; here
+  // we kill the default title left padding so the title sits right after the
+  // icon's right margin, matching the list-item layout exactly.
   .v-toolbar-title
-    padding-inline-start: 12px
+    padding-inline-start: 0
 
   .theme-selector
     width: 100%
 
     .v-toolbar .v-icon
-      margin: 0 0 0 8px
+      margin: 0 16px
 
     .theme-buttons
       display: flex
@@ -720,7 +722,7 @@ export default {
     width: 100%
 
     .v-toolbar .v-icon
-      margin: 0 0 0 8px
+      margin: 0 16px
 
     .v-toolbar__title, .v-toolbar__title .text-caption
       line-height: 1em
@@ -782,7 +784,7 @@ export default {
     width: 100%
 
     .v-toolbar .v-icon
-      margin: 0 0 0 8px
+      margin: 0 16px
 
     .v-toolbar__title, .v-toolbar__title .text-caption
       line-height: 1em
@@ -814,7 +816,7 @@ export default {
     width: 100%
 
     .v-toolbar .v-icon
-      margin: 0 0 0 8px
+      margin: 0 16px
 
     .v-toolbar__title, .v-toolbar__title .text-caption
       line-height: 1em
@@ -847,7 +849,7 @@ export default {
     width: 100%
 
     .v-toolbar .v-icon
-      margin: 0 0 0 8px
+      margin: 0 16px
 
     .v-toolbar__title, .v-toolbar__title .text-caption
       line-height: 1em
