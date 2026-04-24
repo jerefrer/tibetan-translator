@@ -32,14 +32,33 @@ export function normalizeEntries(notes, { reversed }) {
     }
 
     if (!tib || !hasTibetanLetter(tib)) continue;
-    if (isGrammarPattern(tib)) continue;
+    if (isCompositionalGrammarPattern(tib)) continue;
 
     const { strippedTerm, annotations } = extractAnnotations(tib);
     const definition = annotations.length
       ? `${fr}${fr ? ' ' : ''}${annotations.join(' ')}`.trim()
       : fr;
 
-    const chunks = strippedTerm.split(/\s+/).filter(Boolean);
+    // Strip single-"+" grammar hints like "adj + ..." or "V présent + ...":
+    // the Latin tokens ("adj", "V", "présent", …) carry no dictionary content
+    // and "+" is the attachment marker. Whatever Tibetan remains is usable.
+    const withoutHints = strippedTerm
+      .replace(/[A-Za-zÀ-ſ][A-Za-zÀ-ſ.]*/g, '')
+      .replace(/\+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    // Split on whitespace first (outer alternatives), then further split each
+    // chunk on "/" ONLY if it has no optional parens — because "/" inside
+    // ༼...༽ is already handled by expandOptionalParens.
+    const chunks = [];
+    for (const chunk of withoutHints.split(/\s+/).filter(Boolean)) {
+      if (chunk.includes('༼')) {
+        chunks.push(chunk);
+      } else {
+        for (const sub of chunk.split('/').filter(Boolean)) chunks.push(sub);
+      }
+    }
     const alternatives = chunks.filter(
       (c) => hasTibetanLetter(c) || c.startsWith('༼')
     );
@@ -89,8 +108,12 @@ function hasTibetanLetter(s) {
   return TIBETAN_LETTER_RE.test(s);
 }
 
-function isGrammarPattern(term) {
-  return / \+ /.test(term);
+function isCompositionalGrammarPattern(term) {
+  // Two or more "+" signs means the term is a composition template like
+  // "V + ཀར་ + འགྲོ་བ་" or "X + erg. + ལབ་ཡག་ལ་ + V parole" where the Tibetan
+  // tokens are sub-elements of a structure, not standalone alternatives.
+  const plusCount = (term.match(/ \+ /g) || []).length;
+  return plusCount >= 2;
 }
 
 function extractAnnotations(term) {

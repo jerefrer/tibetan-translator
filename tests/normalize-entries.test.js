@@ -85,14 +85,38 @@ describe('normalizeEntries', () => {
   });
 
   describe('grammar patterns', () => {
-    it('skips terms containing " + "', () => {
+    it('skips compositional patterns with multiple "+" signs', () => {
       const out = normalizeEntries([['aller', 'V + ཀར་ + འགྲོ་བ་']], { reversed: false });
       expect(out).toEqual([]);
     });
 
-    it('skips "V présent + ཐུབ་པ་"', () => {
-      const out = normalizeEntries([['pouvoir', 'V présent + ཐུབ་པ་']], { reversed: false });
+    it('skips four-part compositional patterns too', () => {
+      const out = normalizeEntries(
+        [["d'après", 'X + erg. + ལབ་ཡག་ལ་ + V parole']],
+        { reversed: false }
+      );
       expect(out).toEqual([]);
+    });
+
+    it('strips the grammar hint from a single-"+" pattern and keeps the Tibetan', () => {
+      const out = normalizeEntries([['pouvoir', 'V présent + ཐུབ་པ་']], { reversed: false });
+      expect(out).toEqual([{ term: 'ཐུབ་པ་', definition: 'pouvoir' }]);
+    });
+
+    it('splits Tibetan alternatives separated by "/" after a grammar hint', () => {
+      const out = normalizeEntries(
+        [['très ; beaucoup', 'adj + ཞེ་དྲགས། / ཞེ་པོ། / ཞེ་པོ་ཅིག']],
+        { reversed: false }
+      );
+      expect(out.map((e) => e.term).sort()).toEqual(
+        ['ཞེ་དྲགས་', 'ཞེ་པོ་', 'ཞེ་པོ་ཅིག་'].sort()
+      );
+      for (const e of out) expect(e.definition).toBe('très ; beaucoup');
+    });
+
+    it('strips trailing "adj" hint leaving only the leading Tibetan', () => {
+      const out = normalizeEntries([['très', 'དཔེ་ + adj་']], { reversed: false });
+      expect(out).toEqual([{ term: 'དཔེ་', definition: 'très' }]);
     });
   });
 
