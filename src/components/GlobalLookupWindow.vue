@@ -883,6 +883,10 @@ html, body
   .term-text
     overflow: hidden
     text-overflow: ellipsis
+    // Override tibetan.css's tight 1.35rem line-height so vowel marks above
+    // and subscripts below the syllable aren't clipped.
+    &.tibetan
+      line-height: 1.8
 
   .term-snippet
     font-size: 0.8rem
