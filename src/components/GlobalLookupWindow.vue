@@ -233,12 +233,26 @@ export default {
     async getEntriesForTerm(term) {
       try {
         const { invoke } = await import('@tauri-apps/api/core');
-        return await invoke('pack_get_entries_for_term', { term });
+        const entries = await invoke('pack_get_entries_for_term', { term });
+        return this.sortEntriesByUserDictionaryOrder(entries);
       } catch (error) {
         console.error('[GlobalLookupWindow] Error getting entries via IPC:', error);
         const SqlDatabase = await import('../services/sql-database');
-        return await SqlDatabase.default.getEntriesFor(term);
+        return this.sortEntriesByUserDictionaryOrder(await SqlDatabase.default.getEntriesFor(term));
       }
+    },
+    sortEntriesByUserDictionaryOrder(entries) {
+      // The Rust command sorts by each pack's build-time `dictionaries.position`,
+      // but the user can reorder dictionaries via drag-drop in Settings; that
+      // custom order is persisted in localStorage. Mirror DictionariesMenuMixin
+      // so the popup respects the same preference order as the main app.
+      const stored = Storage.get('dictionaries') || [];
+      const positions = {};
+      for (const d of stored) positions[d.id] = d.position;
+      return [...entries].sort(
+        (a, b) => (positions[a.dictionaryId] || Number.MAX_SAFE_INTEGER) -
+                  (positions[b.dictionaryId] || Number.MAX_SAFE_INTEGER)
+      );
     },
     async readClipboardAndSetSearch() {
       try {
