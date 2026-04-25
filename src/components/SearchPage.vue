@@ -106,6 +106,13 @@ export default {
       // Use cached terms to avoid re-sorting on input change (only on search)
       const searchTermLower = this.cachedRegularTerms[0]?.toLowerCase() || '';
 
+      // Read the user's customised dictionary order from localStorage (the same
+      // order that drives DefinePage and the settings drag-drop). The SQL row's
+      // `dictionaryPosition` is the build-time order, which doesn't reflect
+      // user preferences.
+      const userDictPositions = {};
+      for (const d of this.dictionaries) userDictPositions[d.id] = d.position;
+
       return _.chain(this.entriesForEnabledDictionaries)
         .sortBy((entry) => {
           // Factor 1: Does term START WITH the search query? (0 = yes, 1 = no)
@@ -115,17 +122,19 @@ export default {
             ? 0
             : 1;
 
-          // Factor 2: BM25 rank (negative values, closer to 0 = better match)
+          // Factor 2: User-preferred dictionary position. Promoted above BM25
+          // so reordering dictionaries in Settings actually reorders results,
+          // even when BM25 scores differ slightly across packs.
+          const dictPos = userDictPositions[entry.dictionaryId] || 999;
+
+          // Factor 3: BM25 rank (negative values, closer to 0 = better match)
           // Add offset to make all values positive for string comparison
           const rankScore = (entry.rank || 0) + 1000;
 
-          // Factor 3: Term length (shorter = more specific match)
+          // Factor 4: Term length (shorter = more specific match)
           const termLength = entry.term.length;
 
-          // Factor 4: Dictionary position (user's preferred order)
-          const dictPos = entry.dictionaryPosition || 999;
-
-          return [startsWithBonus, rankScore, termLength, dictPos].map((x) =>
+          return [startsWithBonus, dictPos, rankScore, termLength].map((x) =>
             x.toString().padStart(10, '0')
           );
         })
