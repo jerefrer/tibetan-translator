@@ -860,7 +860,11 @@ html, body
   padding: 12px
 
 .term-item
-  padding: 8px 12px
+  padding: 10px 12px
+  // Tibetan vowel marks and subscripts extend well above/below the baseline.
+  // Default line-height (~1.2) clips them, so make the line tall enough to
+  // fit a full glyph stack.
+  line-height: 1.8
   font-size: 1rem
   cursor: pointer
   border-bottom: 1px solid rgba(128, 128, 128, 0.1)
