@@ -17,3 +17,7 @@ src-tauri/
 .playwright-mcp/
 
 public/packs/
+
+.serena/
+*.apkg
+*.tibdict
