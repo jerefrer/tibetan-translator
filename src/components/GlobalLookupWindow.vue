@@ -845,9 +845,12 @@ html, body
     pointer-events: none
 
 .mode-tabs
-  flex-shrink: 0
+  // `grow` on v-tabs sets flex-grow: 1 on the v-tabs element itself, which
+  // in our column flex container makes the bar expand vertically instead of
+  // just spreading tabs horizontally. Pin the height and disable vertical
+  // growth here.
+  flex: 0 0 32px
   border-bottom: 1px solid rgba(128, 128, 128, 0.2)
-  min-height: 32px
 
   .v-tab
     min-height: 32px
