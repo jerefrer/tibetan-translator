@@ -46,6 +46,7 @@ export default {
       if (
         isDropping ||
         event.key.match(/[་ ]/) ||
+        event.key === 'Enter' ||
         (event.ctrlKey && event.key == 'v')
       )
         this.text = this.convertWylie(this.text);
