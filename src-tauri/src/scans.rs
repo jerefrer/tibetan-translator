@@ -1,7 +1,7 @@
 use base64::{engine::general_purpose::STANDARD, Engine};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter, Manager, Window};
 
 /// Get the scans directory path within app data
 fn get_scans_dir(app: &AppHandle) -> Result<PathBuf, String> {
@@ -71,6 +71,7 @@ struct ScanDownloadProgress {
 #[tauri::command]
 pub async fn download_scan_images(
     app: AppHandle,
+    window: Window,
     scan_id: String,
     base_url: String,
     min_page: u32,
@@ -85,21 +86,30 @@ pub async fn download_scan_images(
     let total_pages = max_page - min_page + 1;
     let mut downloaded = 0u32;
 
+    let emit_progress = |downloaded: u32| {
+        let _ = window.emit(
+            "scan-download-progress",
+            ScanDownloadProgress {
+                scan_id: scan_id.clone(),
+                current: downloaded,
+                total: total_pages,
+                percent: (downloaded as f32 / total_pages as f32) * 100.0,
+            },
+        );
+    };
+
+    // Emit an initial 0% so the listener sees activity before the first
+    // page lands — useful for very small downloads that finish before the
+    // UI has a chance to render the first progress tick.
+    emit_progress(0);
+
     for page_num in min_page..=max_page {
         let image_path = scan_dir.join(format!("{}.png", page_num));
 
         // Skip if already downloaded but still count as progress
         if image_path.exists() {
             downloaded += 1;
-            let _ = app.emit(
-                "scan-download-progress",
-                ScanDownloadProgress {
-                    scan_id: scan_id.clone(),
-                    current: downloaded,
-                    total: total_pages,
-                    percent: (downloaded as f32 / total_pages as f32) * 100.0,
-                },
-            );
+            emit_progress(downloaded);
             continue;
         }
 
@@ -120,6 +130,7 @@ pub async fn download_scan_images(
                 response.status()
             );
             downloaded += 1;
+            emit_progress(downloaded);
             continue;
         }
 
@@ -132,17 +143,7 @@ pub async fn download_scan_images(
             .map_err(|e| format!("Failed to save page {}: {}", page_num, e))?;
 
         downloaded += 1;
-
-        // Emit progress event
-        let _ = app.emit(
-            "scan-download-progress",
-            ScanDownloadProgress {
-                scan_id: scan_id.clone(),
-                current: downloaded,
-                total: total_pages,
-                percent: (downloaded as f32 / total_pages as f32) * 100.0,
-            },
-        );
+        emit_progress(downloaded);
     }
 
     Ok(())
