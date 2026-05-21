@@ -8,6 +8,9 @@ import TibetanTextField from './TibetanTextField.vue';
 import Storage from '../services/storage';
 import Decorator from '../services/decorator';
 import DictionariesDetailsMixin from './DictionariesDetailsMixin';
+import { convertWylieInText } from '../utils';
+
+const TIBETAN_CHAR_RE = /[ༀ-࿿]/;
 
 function escapeForRegExp(text) {
   return (
@@ -263,21 +266,51 @@ export default {
         const raw = text.trim();
         if (!raw) return;
 
-        // Auto-detect: any Tibetan character → Define mode (autocomplete),
-        // otherwise → Search mode (full-text search).
-        const hasTibetan = /[ༀ-࿿]/.test(raw);
-        this.mode = hasTibetan ? 'define' : 'search';
-
-        if (this.mode === 'define') {
+        if (TIBETAN_CHAR_RE.test(raw)) {
+          this.mode = 'define';
           const cleanedText = this.cleanTibetanText(raw);
           if (cleanedText) this.searchTerm = cleanedText;
+          return;
+        }
+
+        // No Tibetan chars: maybe it's Wylie. Convert and check whether the
+        // result matches a known term — if so, treat it as Define; otherwise
+        // it's probably English/random text, fall back to Search.
+        const converted = this.wylieToTibetan(raw);
+        if (converted && TIBETAN_CHAR_RE.test(converted) && this.isKnownTermPrefix(converted)) {
+          this.mode = 'define';
+          this.searchTerm = converted;
         } else {
-          // Keep the plain text as-is for full-text search.
+          this.mode = 'search';
           this.searchTerm = raw;
         }
       } catch (err) {
         console.error('[GlobalLookupWindow] Error reading clipboard:', err);
       }
+    },
+    wylieToTibetan(text) {
+      return convertWylieInText(text, {
+        normalizeTrailingPunctuation: true,
+        normalizeMultipleTshegs: true,
+        preserveWhitespace: false,
+      });
+    },
+    isKnownTermPrefix(term) {
+      if (!term || !this.allTerms || !this.allTerms.length) return false;
+      return this.allTerms.some((t) => t.startsWith(term));
+    },
+    setMode(newMode) {
+      if (newMode !== 'define' && newMode !== 'search') return;
+      if (newMode === this.mode) return;
+
+      if (newMode === 'define' && this.searchTerm && !TIBETAN_CHAR_RE.test(this.searchTerm)) {
+        // Coming from Search with ASCII text: convert Wylie on the way in.
+        this.searchTerm = this.wylieToTibetan(this.searchTerm);
+      }
+      // Define → Search keeps the term as-is; Tibetan can be searched in
+      // definitions and the result is still useful.
+
+      this.mode = newMode;
     },
     loadMoreTerms() {
       if (this.hasMoreTerms) {
@@ -307,6 +340,9 @@ export default {
         event.preventDefault();
         event.stopPropagation();
         this.close();
+      } else if (event.key === 'Tab') {
+        event.preventDefault();
+        this.setMode(this.mode === 'define' ? 'search' : 'define');
       } else if (event.key === 'ArrowDown') {
         event.preventDefault();
         // Navigate through terms
@@ -579,6 +615,26 @@ export default {
         <span class="drag-dots">&#8943;&#8943;&#8943;</span>
       </div>
 
+      <!-- Mode tabs -->
+      <v-tabs
+        :model-value="mode"
+        @update:model-value="setMode"
+        density="compact"
+        height="32"
+        color="primary"
+        class="mode-tabs"
+        grow
+      >
+        <v-tab value="define">
+          <v-icon size="16" class="mr-1">mdi-book-open-variant</v-icon>
+          Define
+        </v-tab>
+        <v-tab value="search">
+          <v-icon size="16" class="mr-1">mdi-magnify</v-icon>
+          Search
+        </v-tab>
+      </v-tabs>
+
       <!-- Search bar -->
       <div class="search-bar">
         <TibetanTextField
@@ -738,7 +794,7 @@ export default {
 
       <!-- Footer -->
       <div class="popup-footer text-center text-caption text-grey">
-        <kbd>Esc</kbd> close · <kbd>↑</kbd><kbd>↓</kbd> navigate terms
+        <kbd>Esc</kbd> close · <kbd>Tab</kbd> toggle mode · <kbd>↑</kbd><kbd>↓</kbd> navigate terms
       </div>
     </div>
   </v-app>
@@ -787,6 +843,17 @@ html, body
     line-height: 1
     user-select: none
     pointer-events: none
+
+.mode-tabs
+  flex-shrink: 0
+  border-bottom: 1px solid rgba(128, 128, 128, 0.2)
+  min-height: 32px
+
+  .v-tab
+    min-height: 32px
+    font-size: 0.75rem
+    letter-spacing: 0.5px
+    text-transform: none
 
 .search-bar
   display: flex
