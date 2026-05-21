@@ -1,8 +1,10 @@
 import Storage from "./storage";
 import DICTIONARIES_DETAILS from "./dictionaries-details";
 
-// GitHub raw URL base for scan images
-const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/christiansteinert/tibetan-dictionary/master/webapp/data/scan";
+// GitHub raw URL base for scan images. The upstream repo moved scans from
+// `webapp/data/scan` to `backend/data/scan` at some point — only the new
+// path actually returns the PNGs now.
+const GITHUB_RAW_BASE = "https://raw.githubusercontent.com/christiansteinert/tibetan-dictionary/master/backend/data/scan";
 
 // Tauri invoke function (lazy loaded)
 let invoke = null;
