@@ -51,6 +51,11 @@ export default {
       searchLoading: false,
       searchDisplayCount: 20,
       searchBatchSize: 20,
+      // Last value displayed while in Define mode within the current popup
+      // session. Restored when toggling Search → Define with non-Tibetan
+      // text (the auto-detection already decided that text wasn't Wylie
+      // matching a known term, so re-converting it would be wrong).
+      lastDefineTerm: '',
     };
   },
   computed: {
@@ -270,6 +275,7 @@ export default {
           this.mode = 'define';
           const cleanedText = this.cleanTibetanText(raw);
           if (cleanedText) this.searchTerm = cleanedText;
+          this.lastDefineTerm = this.searchTerm;
           return;
         }
 
@@ -280,9 +286,13 @@ export default {
         if (converted && TIBETAN_CHAR_RE.test(converted) && this.isKnownTermPrefix(converted)) {
           this.mode = 'define';
           this.searchTerm = converted;
+          this.lastDefineTerm = converted;
         } else {
           this.mode = 'search';
           this.searchTerm = raw;
+          // Fresh popup session that landed in Search: clear any Define
+          // memory so a later toggle to Define starts empty.
+          this.lastDefineTerm = '';
         }
       } catch (err) {
         console.error('[GlobalLookupWindow] Error reading clipboard:', err);
@@ -303,12 +313,22 @@ export default {
       if (newMode !== 'define' && newMode !== 'search') return;
       if (newMode === this.mode) return;
 
-      if (newMode === 'define' && this.searchTerm && !TIBETAN_CHAR_RE.test(this.searchTerm)) {
-        // Coming from Search with ASCII text: convert Wylie on the way in.
-        this.searchTerm = this.wylieToTibetan(this.searchTerm);
+      if (newMode === 'define') {
+        if (this.searchTerm && TIBETAN_CHAR_RE.test(this.searchTerm)) {
+          // Tibetan in the input flows freely between modes.
+          this.lastDefineTerm = this.searchTerm;
+        } else {
+          // ASCII text in Search: the auto-detection already decided this
+          // isn't Wylie matching a known term, so re-converting now would
+          // produce garbage (e.g. `kind` → `ཀིནད་`). Restore the last
+          // Define-mode value from this session instead.
+          this.searchTerm = this.lastDefineTerm || '';
+        }
+      } else {
+        // Define → Search: remember the current Define value, keep
+        // displaying it in Search (Tibetan is valid in both modes).
+        this.lastDefineTerm = this.searchTerm;
       }
-      // Define → Search keeps the term as-is; Tibetan can be searched in
-      // definitions and the result is still useful.
 
       this.mode = newMode;
     },
