@@ -84,6 +84,9 @@ export default {
     tabIndex() {
       return this.tabs.findIndex((tab) => tab.id == this.currentTabId);
     },
+    updateReady() {
+      return UpdateService.state.updateReady;
+    },
   },
   methods: {
     setupTibdictDragDrop() {
@@ -304,10 +307,27 @@ export default {
             <div class="tab-content">
               <!-- Mobile: show icon for settings, plain text for others -->
               <template v-if="isMobile">
-                <v-icon v-if="tab.icon">{{ tab.icon }}</v-icon>
-                <span v-else>{{ tab.mobileName }}</span>
+                <v-badge
+                  v-if="tab.id === 'settings' && updateReady"
+                  dot
+                  color="error"
+                >
+                  <v-icon v-if="tab.icon">{{ tab.icon }}</v-icon>
+                </v-badge>
+                <template v-else>
+                  <v-icon v-if="tab.icon">{{ tab.icon }}</v-icon>
+                  <span v-else>{{ tab.mobileName }}</span>
+                </template>
               </template>
               <!-- Desktop: show name with underlined shortcut key -->
+              <v-badge
+                v-else-if="tab.id === 'settings' && updateReady"
+                dot
+                color="error"
+                inline
+              >
+                <span v-html="tab.name"></span>
+              </v-badge>
               <span v-else v-html="tab.name"></span>
               <DefinePageHelpDialogWithButton v-if="tab.id == 'define' && currentTabId == 'define'" />
               <SearchPageHelpDialogWithButton v-if="tab.id == 'search' && currentTabId == 'search'" />

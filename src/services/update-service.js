@@ -5,13 +5,21 @@
  * Updates are downloaded in the background and installed on next app restart.
  */
 
+import { reactive } from 'vue';
+
 import { isTauri, isMobile } from '../config/platform';
 
 class UpdateService {
   constructor() {
-    this.updateReady = false;
+    // Reactive so components (the Settings tab badge, the About card button)
+    // re-render as the update lifecycle progresses.
+    this.state = reactive({
+      updateReady: false,
+      version: null,
+      downloading: false,
+      downloadProgress: 0,
+    });
     this.updateInfo = null;
-    this.downloadProgress = 0;
     this.error = null;
   }
 
@@ -32,21 +40,34 @@ class UpdateService {
       if (!update) return null; // No update available
 
       this.updateInfo = update;
+      this.state.downloading = true;
+      this.state.downloadProgress = 0;
 
-      // Download silently in background
+      // Download silently in background. The updater reports the total size in
+      // the `Started` event and per-chunk sizes in `Progress`, so accumulate
+      // the chunks to get a real percentage.
+      let downloaded = 0;
+      let contentLength = 0;
       await update.downloadAndInstall((progress) => {
-        if (progress.event === 'Progress') {
-          this.downloadProgress = Math.round(
-            (progress.data.chunkLength / progress.data.contentLength) * 100
-          );
+        if (progress.event === 'Started') {
+          contentLength = progress.data.contentLength || 0;
+        } else if (progress.event === 'Progress') {
+          downloaded += progress.data.chunkLength || 0;
+          this.state.downloadProgress = contentLength
+            ? Math.round((downloaded / contentLength) * 100)
+            : 0;
         }
       });
 
-      this.updateReady = true;
+      this.state.downloading = false;
+      this.state.downloadProgress = 100;
+      this.state.updateReady = true;
+      this.state.version = update.version;
       if (onUpdateReady) onUpdateReady(update.version);
 
       return update;
     } catch (e) {
+      this.state.downloading = false;
       this.error = e;
       console.error('Update check failed:', e);
       return null;
@@ -76,7 +97,7 @@ class UpdateService {
    * Relaunch the app to apply the downloaded update
    */
   async installAndRelaunch() {
-    if (!this.updateReady) return;
+    if (!this.state.updateReady) return;
 
     try {
       const { relaunch } = await import('@tauri-apps/plugin-process');

@@ -69,8 +69,22 @@ export default {
       // App version and update settings
       appVersion: null,
       checkingForUpdates: false,
-      updateAvailable: null,
+      restartDialog: false,
     };
+  },
+  computed: {
+    updateReady() {
+      return UpdateService.state.updateReady;
+    },
+    updateVersion() {
+      return UpdateService.state.version;
+    },
+    updateDownloading() {
+      return UpdateService.state.downloading;
+    },
+    updateProgress() {
+      return UpdateService.state.downloadProgress;
+    },
   },
   watch: {
     dictionaries: {
@@ -283,11 +297,10 @@ export default {
       try {
         const update = await UpdateService.checkOnly();
         if (update) {
-          this.updateAvailable = update;
           this.snackbar.open(
             `Update to v${update.version} available! Downloading...`
           );
-          // Start the download
+          // Start the download; the reactive state drives the button + badge.
           await UpdateService.checkAndDownload((newVersion) => {
             this.snackbar.open(
               `Update to v${newVersion} ready! Will install on restart.`
@@ -302,6 +315,10 @@ export default {
       } finally {
         this.checkingForUpdates = false;
       }
+    },
+    async confirmRestart() {
+      this.restartDialog = false;
+      await UpdateService.installAndRelaunch();
     }
   },
   async created() {
@@ -370,9 +387,34 @@ export default {
         <div class="d-flex justify-space-between align-center">
           <div>
             <div class="font-weight-medium">Tibetan Translator</div>
-            <div class="text-caption text-grey">Version {{ appVersion }}</div>
+            <div v-if="updateReady" class="text-caption text-grey">
+              Version {{ appVersion }} &rarr; v{{ updateVersion }} ready
+            </div>
+            <div v-else class="text-caption text-grey">Version {{ appVersion }}</div>
           </div>
+          <!-- Update downloaded: prompt restart -->
           <v-btn
+            v-if="updateReady"
+            color="primary"
+            variant="flat"
+            size="small"
+            prepend-icon="mdi-restart"
+            @click="restartDialog = true"
+          >
+            Restart to update
+          </v-btn>
+          <!-- Update downloading -->
+          <v-btn
+            v-else-if="updateDownloading"
+            variant="tonal"
+            size="small"
+            disabled
+          >
+            Downloading… {{ updateProgress }}%
+          </v-btn>
+          <!-- No update: manual check -->
+          <v-btn
+            v-else
             variant="tonal"
             size="small"
             :loading="checkingForUpdates"
@@ -383,6 +425,21 @@ export default {
         </div>
       </v-card-text>
     </v-card>
+
+    <!-- Restart confirmation -->
+    <v-dialog v-model="restartDialog" max-width="400">
+      <v-card>
+        <v-card-title>Restart to update</v-card-title>
+        <v-card-text>
+          Restart now to apply update v{{ updateVersion }}?
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="restartDialog = false">Cancel</v-btn>
+          <v-btn color="primary" variant="flat" @click="confirmRestart">Restart</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
 
     <v-card class="theme-selector mb-4">
       <v-toolbar>
