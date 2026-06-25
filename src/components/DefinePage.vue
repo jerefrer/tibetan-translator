@@ -6,6 +6,8 @@ import { useTheme } from "vuetify";
 import { TERMS_BATCH_SIZE, DEBOUNCE_SEARCH_MS } from "../config/constants";
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
+import CopyService from "../services/copy-service";
+import { getScanInfo } from "../services/scan-service";
 import Entries from "./Entries.vue";
 import TibetanTextField from "./TibetanTextField.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
@@ -14,6 +16,7 @@ import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictio
 
 export default {
   mixins: [DictionariesMenuMixin, MobileResponsiveMixin],
+  inject: ["snackbar"],
   setup() {
     const theme = useTheme();
     return { theme };
@@ -100,6 +103,12 @@ export default {
     numberOfTermsStartingWithSearchTerm() {
       return this.termsStartingWithSearchTerm.length;
     },
+    copyableEntries() {
+      // Scanned-dictionary entries hold a page number, not a definition — exclude them.
+      return this.entriesForEnabledDictionaries.filter(
+        (entry) => !getScanInfo(entry.dictionary)
+      );
+    },
   },
   methods: {
     pushRoute(term) {
@@ -113,6 +122,16 @@ export default {
       Storage.delete("selectedTerm");
       this.entries = [];
       this.pushRoute("");
+    },
+    async copyAll() {
+      try {
+        await CopyService.writeToClipboard(
+          CopyService.entriesToText(this.selectedTerm, this.copyableEntries)
+        );
+        this.snackbar.open("Copied");
+      } catch (err) {
+        this.snackbar.open("Copy failed");
+      }
     },
     setSearchTerm() {
       if (!this.searchTerm || !this.selectedTerm?.includes(this.searchTerm))
@@ -295,6 +314,21 @@ export default {
       </div>
 
       <div class="definitions-container">
+        <!-- Copy-all action (term itself is already shown in the search bar and sidebar) -->
+        <div
+          v-if="!loading && copyableEntries.length"
+          class="definitions-header"
+        >
+          <v-btn
+            size="small"
+            variant="text"
+            prepend-icon="mdi-content-copy"
+            @click="copyAll"
+          >
+            Copy all
+          </v-btn>
+        </div>
+
         <!-- Loading state when fetching definitions -->
         <div v-if="loading" class="loading-state">
           <v-progress-circular indeterminate size="64" color="primary" />
@@ -390,6 +424,17 @@ export default {
     position relative
     background white
 
+    .definitions-header
+      position sticky
+      top 0
+      z-index 5
+      display flex
+      align-items center
+      justify-content flex-end
+      padding 4px 12px
+      background #fffcf4
+      border-bottom 1px solid rgba(0, 0, 0, 0.08)
+
     .loading-state,
     .empty-state
       display flex
@@ -480,6 +525,9 @@ export default {
         background rgba(255, 255, 255, 0.08)
   .definitions-container
     background #252525
+    .definitions-header
+      background #1e1e1e
+      border-bottom-color rgba(255, 255, 255, 0.12)
 
 // Light theme hover
 .v-theme--light .define-page

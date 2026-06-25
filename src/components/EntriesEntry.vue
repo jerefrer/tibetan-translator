@@ -2,6 +2,7 @@
   import DictionariesDetailsMixin from './DictionariesDetailsMixin'
   import ScanViewer from './ScanViewer.vue'
   import { getScanInfo } from '../services/scan-service'
+  import CopyService from '../services/copy-service'
 
   export default {
     mixins: [DictionariesDetailsMixin],
@@ -13,7 +14,8 @@
     },
     data() {
       return {
-        showScanViewer: false
+        showScanViewer: false,
+        copied: false
       }
     },
     computed: {
@@ -44,7 +46,21 @@
       },
       openScanViewer() {
         this.showScanViewer = true;
+      },
+      async copyEntry() {
+        try {
+          await CopyService.writeToClipboard(CopyService.entryToText(this.entry));
+          this.copied = true;
+          this.snackbar.open('Copied');
+          clearTimeout(this._copiedTimer);
+          this._copiedTimer = setTimeout(() => { this.copied = false; }, 1200);
+        } catch (err) {
+          this.snackbar.open('Copy failed');
+        }
       }
+    },
+    beforeUnmount() {
+      clearTimeout(this._copiedTimer);
     }
   }
 </script>
@@ -64,6 +80,19 @@
       >
         <span v-html="dictionaryLabelFor(entry.dictionary, { short: true })" />
       </v-chip>
+
+      <v-btn
+        v-if="!isScannedDictionary"
+        class="copy-button"
+        variant="text"
+        size="small"
+        icon
+        :color="copied ? 'success' : undefined"
+        :title="copied ? 'Copied' : 'Copy definition'"
+        @click="copyEntry"
+      >
+        <v-icon size="small">{{ copied ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
+      </v-btn>
     </div>
 
     <!-- Regular definition display -->
@@ -116,7 +145,20 @@
 }
 
 .entry-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+.copy-button {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.copy-button:hover {
+  opacity: 1;
 }
 
 .dictionary-label {
