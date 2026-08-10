@@ -8,6 +8,7 @@
           v-model="term"
           label="Tibetan term"
           :error-messages="termError ? [termError] : []"
+          hide-details="auto"
           autofocus
         />
         <v-textarea
@@ -67,6 +68,7 @@ export default {
       this.definition = this.entry?.definition || '';
       this.termError = '';
       this.definitionError = '';
+      this.saving = false;
     },
   },
   methods: {
@@ -86,6 +88,10 @@ export default {
           this.term,
           this.definition
         );
+        if (!outcome) {
+          this.termError = 'Could not save this entry.';
+          return;
+        }
         this.$emit('saved', outcome);
         this.close(false);
       } catch (e) {
