@@ -1077,15 +1077,46 @@ pub async fn rename_lexicon(
 /// The patch version is bumped and persisted first: without it, every export
 /// would carry the same version and the recipient's conflict modal would
 /// compare v1.0.0 against v1.0.0 and tell them nothing.
+/// Write a .tibdict archive: a ZIP holding exactly `manifest.json` + `data.sqlite`.
+///
+/// Split out from `lexicon_export` so the archive layout — which is what the
+/// install path on the recipient's machine validates — is testable without an
+/// AppHandle. `custom_packs.rs` rejects an archive missing either member, so a
+/// silent change here would only surface on someone else's computer.
+pub fn write_tibdict_archive(
+    dest_path: &Path,
+    manifest_bytes: &[u8],
+    sqlite_bytes: &[u8],
+) -> Result<(), LexiconError> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+
+    let file = fs::File::create(dest_path)
+        .map_err(|e| LexiconError::new("path", format!("create {}: {e}", dest_path.display())))?;
+    let mut zip = zip::ZipWriter::new(file);
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+    for (name, bytes) in [
+        ("manifest.json", manifest_bytes),
+        ("data.sqlite", sqlite_bytes),
+    ] {
+        zip.start_file(name, options)
+            .map_err(|e| LexiconError::new("path", format!("start {name} in archive: {e}")))?;
+        zip.write_all(bytes)
+            .map_err(|e| LexiconError::new("path", format!("write {name} to archive: {e}")))?;
+    }
+
+    zip.finish()
+        .map_err(|e| LexiconError::new("path", format!("finalize archive: {e}")))?;
+    Ok(())
+}
+
 #[tauri::command]
 pub async fn lexicon_export(
     app: AppHandle,
     pack_id: String,
     dest_path: String,
 ) -> Result<ExportOutcome, LexiconError> {
-    use std::io::Write;
-    use zip::write::SimpleFileOptions;
-
     let dir = pack_dir(&app, &pack_id)?;
 
     let mut manifest = read_manifest(&dir)?;
@@ -1098,35 +1129,82 @@ pub async fn lexicon_export(
     let sqlite_bytes = fs::read(dir.join("data.sqlite"))
         .map_err(|e| LexiconError::new("corrupt", format!("read database: {e}")))?;
 
-    let file = fs::File::create(&dest_path)
-        .map_err(|e| LexiconError::new("path", format!("create {dest_path}: {e}")))?;
-    let mut zip = zip::ZipWriter::new(file);
-    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
-
-    zip.start_file("manifest.json", options)
-        .and_then(|_| zip.write_all(&manifest_bytes).map_err(zip::result::ZipError::from))
-        .map_err(|e| LexiconError::new("path", format!("write manifest to archive: {e}")))?;
-    zip.start_file("data.sqlite", options)
-        .and_then(|_| zip.write_all(&sqlite_bytes).map_err(zip::result::ZipError::from))
-        .map_err(|e| LexiconError::new("path", format!("write database to archive: {e}")))?;
-    zip.finish()
-        .map_err(|e| LexiconError::new("path", format!("finalize archive: {e}")))?;
+    write_tibdict_archive(Path::new(&dest_path), &manifest_bytes, &sqlite_bytes)?;
 
     Ok(ExportOutcome { version })
 }
 ```
 
-- [ ] **Step 2: Verify the crate compiles**
+- [ ] **Step 2: Add the archive tests**
 
-Run: `cd src-tauri && cargo check`
-Expected: no errors. If the `zip` crate rejects `SimpleFileOptions`, check the version in `src-tauri/Cargo.toml` — on `zip 2.x` it is `zip::write::SimpleFileOptions`; adjust the import to whatever that version exposes and keep the rest identical.
+Append inside the existing `#[cfg(test)] mod tests` block:
 
-- [ ] **Step 3: Confirm the archive writer is enabled**
+```rust
+    #[test]
+    fn writes_an_archive_holding_exactly_the_two_expected_members() {
+        let dest = std::env::temp_dir().join(format!("lexicon-export-{}.tibdict", std::process::id()));
+        let _ = fs::remove_file(&dest);
+
+        write_tibdict_archive(&dest, b"{\"format\":\"tibdict\"}", b"SQLite format 3\0")
+            .expect("write archive");
+
+        let file = fs::File::open(&dest).expect("open archive");
+        let mut zip = zip::ZipArchive::new(file).expect("read archive");
+
+        let mut names: Vec<String> = (0..zip.len())
+            .map(|i| zip.by_index(i).expect("entry").name().to_string())
+            .collect();
+        names.sort();
+        assert_eq!(names, vec!["data.sqlite".to_string(), "manifest.json".to_string()]);
+
+        let _ = fs::remove_file(&dest);
+    }
+
+    #[test]
+    fn round_trips_member_contents_through_the_archive() {
+        use std::io::Read;
+
+        let dest = std::env::temp_dir().join(format!("lexicon-roundtrip-{}.tibdict", std::process::id()));
+        let _ = fs::remove_file(&dest);
+
+        let manifest = br#"{"format":"tibdict","id":"demo"}"#;
+        let sqlite = b"SQLite format 3\0some bytes";
+        write_tibdict_archive(&dest, manifest, sqlite).expect("write archive");
+
+        let file = fs::File::open(&dest).expect("open archive");
+        let mut zip = zip::ZipArchive::new(file).expect("read archive");
+
+        let mut got_manifest = Vec::new();
+        zip.by_name("manifest.json")
+            .expect("manifest member")
+            .read_to_end(&mut got_manifest)
+            .expect("read manifest");
+        let mut got_sqlite = Vec::new();
+        zip.by_name("data.sqlite")
+            .expect("sqlite member")
+            .read_to_end(&mut got_sqlite)
+            .expect("read sqlite");
+
+        assert_eq!(got_manifest, manifest.to_vec());
+        assert_eq!(got_sqlite, sqlite.to_vec(), "binary content must survive intact");
+
+        let _ = fs::remove_file(&dest);
+    }
+```
+
+- [ ] **Step 3: Verify the crate compiles and the tests pass**
+
+Run: `cd src-tauri && cargo test lexicon`
+Expected: all tests pass, including the two new archive tests.
+
+If the `zip` crate rejects `SimpleFileOptions`, check the version in `src-tauri/Cargo.toml` — on `zip 2.x` it is `zip::write::SimpleFileOptions`; adjust the import to whatever that version exposes and keep the rest identical. If `ZipArchive` reading is unavailable with the crate's current feature set, add what it needs to `Cargo.toml` and record that in your report.
+
+- [ ] **Step 4: Confirm the archive writer is enabled**
 
 Run: `cd src-tauri && cargo tree -p zip -e features | head -20`
 Expected: the `deflate` feature is present. The existing `Cargo.toml` declares `zip = { version = "2", default-features = false, features = ["deflate"] }`, which supports writing.
 
-- [ ] **Step 4: Register both commands**
+- [ ] **Step 5: Register both commands**
 
 In `src-tauri/src/main.rs`, extend the lexicon block to:
 
@@ -1142,12 +1220,12 @@ In `src-tauri/src/main.rs`, extend the lexicon block to:
 
 and update the import accordingly.
 
-- [ ] **Step 5: Run the full Rust test suite**
+- [ ] **Step 6: Run the full Rust test suite**
 
 Run: `cd src-tauri && cargo test`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
 git add src-tauri/src/lexicon.rs src-tauri/src/main.rs
