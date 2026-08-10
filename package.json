@@ -36,6 +36,7 @@
     "build:database": "babel-node ./build/build-database.js",
     "build:packs": "babel-node ./build/build-packs.js && pnpm clear:cache",
     "build:tibdict": "babel-node ./build/convert-anki-to-tibdict.js",
+    "build:empty-pack": "babel-node ./build/make-empty-pack.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",

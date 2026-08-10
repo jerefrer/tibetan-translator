@@ -55,7 +55,8 @@
     ],
     "resources": {
       "../public/packs/core.sqlite": "core.sqlite",
-      "../public/packs/pack-manifest.json": "pack-manifest.json"
+      "../public/packs/pack-manifest.json": "pack-manifest.json",
+      "resources/empty-pack.sqlite": "empty-pack.sqlite"
     },
     "shortDescription": "The best Tibetan dictionaries in a pleasant interface for all devices",
     "longDescription": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",
