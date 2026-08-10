@@ -6,7 +6,7 @@
  *
  * Two responsibilities live here rather than in Rust:
  *   - term normalization, because lookups are exact matches and
- *     GlobalLookupPopup / SelectedTibetanEntriesPopup query with
+ *     GlobalLookupWindow.vue / SelectedTibetanEntriesPopup.vue query with
  *     tibetanLookupKey()
  *   - phonetics, because strictAndLoosePhoneticsFor() has no Rust equivalent
  *     and is the same function search and the build scripts use
@@ -44,7 +44,7 @@ export function slugForName(name, existingIds = []) {
 /**
  * Normalize a term for storage. Returns '' when nothing usable remains.
  *
- * Delegates to tibetanLookupKey() — the same derivation GlobalLookupPopup.vue
+ * Delegates to tibetanLookupKey() — the same derivation GlobalLookupWindow.vue
  * and SelectedTibetanEntriesPopup.vue use to build their query key — so a
  * stored term is never invisible to the global hotkey or the selection popup.
  * cleanTerm() is NOT used here: it's built for pre-conversion Wylie (where a

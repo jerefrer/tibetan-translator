@@ -94,7 +94,7 @@ export const withTrailingTshek = function (tibetan) {
  * Strip everything that isn't Tibetan script, then drop any punctuation left
  * exposed at the start (e.g. a leading tsheg once neighboring text is gone).
  *
- * This is the "cleaned but not yet tsheg-terminated" text GlobalLookupPopup
+ * This is the "cleaned but not yet tsheg-terminated" text GlobalLookupWindow
  * and SelectedTibetanEntriesPopup keep around for display before querying.
  */
 export const strippedTibetanText = function (text) {

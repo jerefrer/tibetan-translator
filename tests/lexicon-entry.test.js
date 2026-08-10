@@ -3,7 +3,7 @@ import TibetanRegExps from 'tibetan-regexps';
 import { withTrailingTshek } from '../src/utils.js';
 import { normalizeTerm, prepareEntry } from '../src/services/lexicon.js';
 
-// Mirrors what GlobalLookupPopup.vue and SelectedTibetanEntriesPopup.vue do
+// Mirrors what GlobalLookupWindow.vue and SelectedTibetanEntriesPopup.vue do
 // before querying (strip non-Tibetan characters, drop leading punctuation,
 // end with exactly one tsheg) — computed here from the raw regexes rather
 // than via the lexicon service or the strippedTibetanText/tibetanLookupKey
@@ -23,7 +23,7 @@ describe('normalizeTerm', () => {
   });
 
   it('replaces a trailing shad with a tsheg so the global lookup finds it', () => {
-    // GlobalLookupPopup queries with withTrailingTshek(); storing a shad would
+    // GlobalLookupWindow queries with tibetanLookupKey(); storing a shad would
     // make the entry invisible to the hotkey.
     expect(normalizeTerm('ཞི་བདེ།')).toBe('ཞི་བདེ་');
   });
@@ -43,7 +43,7 @@ describe('normalizeTerm', () => {
   });
 
   describe('matches what the lookup path queries with', () => {
-    // GlobalLookupPopup.vue and SelectedTibetanEntriesPopup.vue delete every
+    // GlobalLookupWindow.vue and SelectedTibetanEntriesPopup.vue delete every
     // non-Tibetan character rather than substituting it. A term stored with
     // an embedded hyphen/quote/newline replaced by a space (as cleanTerm()
     // would do) is a different string, so `WHERE entries.term = ?` never
