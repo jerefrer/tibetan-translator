@@ -118,7 +118,7 @@ All take a `packId` that must start with `custom-`; anything else is rejected. T
 
 | Command | Input | Output |
 |---|---|---|
-| `create_lexicon` | `name`, `description` | `InstalledCustomPack` |
+| `create_lexicon` | `id`, `name`, `description` | `InstalledCustomPack` |
 | `rename_lexicon` | `packId`, `name`, `description` | updated manifest |
 | `lexicon_entries` | `packId`, `dictionaryId`, `search?`, `limit`, `offset` | `{ total, entries: [{ id, term, definition }] }` |
 | `lexicon_upsert_entry` | `packId`, `dictionaryId`, `entry` | `{ id, created: bool }` |
@@ -141,7 +141,9 @@ One new optional field, `modifiedAt`, added to `TibdictManifest` as `#[serde(def
 
 A lexicon created in-app gets `version: "1.0.0"`, `icon: "mdi-notebook-edit-outline"`, `author: null`, `description: ""` when left blank, and a single dictionary named after the lexicon.
 
-The `id` is a slug derived from the name (lowercased, ASCII-folded, non-alphanumerics → `-`, deduplicated with a numeric suffix if taken). It matches the existing `^[a-z0-9][a-z0-9-]*[a-z0-9]$` rule and is **never shown or asked**. A name that slugs to nothing (e.g. only Tibetan characters) falls back to `lexicon`.
+The `id` is a slug derived from the name (lowercased, ASCII-folded, non-alphanumerics → `-`, deduplicated with a numeric suffix if taken). It matches the existing `^[a-z0-9][a-z0-9-]*[a-z0-9]$` rule and is **never shown or asked**. A name that slugs to nothing (e.g. only Tibetan characters) falls back to `lexicon`; a slug shorter than the two characters the regex requires is padded to `<slug>-lexicon`.
+
+The slug is generated **in JS** and passed to `create_lexicon` as `id` without the `custom-` prefix, which Rust adds. Keeping it in JS makes the rules unit-testable without a Tauri runtime, and the deduplication list is already in memory as `PackManager.customPacks`.
 
 ### The empty template
 
