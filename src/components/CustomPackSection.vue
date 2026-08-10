@@ -26,6 +26,15 @@
             icon
             variant="text"
             size="small"
+            @click="onManage(pack)"
+          >
+            <v-icon>mdi-playlist-edit</v-icon>
+            <v-tooltip activator="parent" location="top">Manage entries</v-tooltip>
+          </v-btn>
+          <v-btn
+            icon
+            variant="text"
+            size="small"
             color="error"
             @click="onRemove(pack)"
           >
@@ -46,6 +55,10 @@
         <v-icon start>mdi-file-upload</v-icon>
         Import a dictionary…
       </v-btn>
+      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreate">
+        <v-icon start>mdi-plus</v-icon>
+        New dictionary
+      </v-btn>
     </v-card-actions>
 
     <v-card-text v-else class="empty-state text-center py-6">
@@ -62,7 +75,41 @@
         <v-icon start>mdi-file-upload</v-icon>
         Import a dictionary…
       </v-btn>
+      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreate">
+        <v-icon start>mdi-plus</v-icon>
+        New dictionary
+      </v-btn>
     </v-card-text>
+
+    <v-dialog v-model="createOpen" max-width="460">
+      <v-card>
+        <v-card-title>New dictionary</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="newName"
+            label="Name"
+            density="comfortable"
+            autofocus
+            :error-messages="createError ? [createError] : []"
+            @keyup.enter="confirmCreate"
+          />
+          <v-textarea
+            v-model="newDescription"
+            label="Description (optional)"
+            rows="2"
+            auto-grow
+            density="comfortable"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="createOpen = false">Cancel</v-btn>
+          <v-btn color="primary" variant="tonal" :loading="creating" @click="confirmCreate">
+            Create
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -70,11 +117,21 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import PackManager from '../services/pack-manager';
 import TibdictInstaller from '../services/tibdict-installer';
+import Lexicon from '../services/lexicon';
 import { supportsModularPacks } from '../config/platform';
 
 export default {
   name: 'CustomPackSection',
   inject: ['snackbar'],
+  data() {
+    return {
+      createOpen: false,
+      creating: false,
+      newName: '',
+      newDescription: '',
+      createError: '',
+    };
+  },
   computed: {
     isSupported() {
       return supportsModularPacks();
@@ -113,6 +170,35 @@ export default {
     async onRemove(pack) {
       await PackManager.removeCustomPack(pack.id);
       this.snackbar.open(`${pack.manifest.name} removed`);
+    },
+    onManage(pack) {
+      this.$router.push(`/lexicon/${pack.id}`);
+    },
+    onCreate() {
+      this.newName = '';
+      this.newDescription = '';
+      this.createError = '';
+      this.creating = false;
+      this.createOpen = true;
+    },
+    async confirmCreate() {
+      const name = this.newName.trim();
+      if (!name) {
+        this.createError = 'A name is required.';
+        return;
+      }
+      this.creating = true;
+      try {
+        const pack = await Lexicon.create(name, this.newDescription.trim());
+        this.createOpen = false;
+        this.snackbar.open(`${pack.manifest.name} created`);
+        this.$router.push(`/lexicon/${pack.id}`);
+      } catch (e) {
+        console.error('[CustomPackSection] create failed:', e);
+        this.createError = 'Could not create this dictionary.';
+      } finally {
+        this.creating = false;
+      }
     },
   },
 };

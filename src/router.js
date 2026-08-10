@@ -7,6 +7,7 @@ import SearchPage from './components/SearchPage.vue'
 import SegmentPage from './components/SegmentPage.vue'
 import ConfigurePage from './components/ConfigurePage.vue'
 import TestsPage from './components/TestsPage.vue'
+import LexiconPage from './components/LexiconPage.vue'
 
 const routes = [
   { path: '/', redirect: '/define' },
@@ -16,6 +17,8 @@ const routes = [
   { path: '/search/:query', component: SearchPage },
   { path: '/segment', component: SegmentPage },
   { path: '/settings', component: ConfigurePage },
+  { path: '/lexicon', component: LexiconPage },
+  { path: '/lexicon/:packId', component: LexiconPage },
   { path: '/tests', component: TestsPage },
 ]
 
