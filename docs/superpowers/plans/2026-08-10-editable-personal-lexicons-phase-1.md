@@ -1965,22 +1965,80 @@ Add a "New dictionary" button next to each "Import a dictionary…" button (both
       </v-btn>
 ```
 
+**Do not use `window.prompt` to ask for the name.** WKWebView does not implement it unless the host application supplies a text-input panel delegate, so in the packaged macOS app it fails silently and the button appears dead. Add a small Vuetify dialog to the same component instead:
+
+```vue
+    <v-dialog v-model="createOpen" max-width="460">
+      <v-card>
+        <v-card-title>New dictionary</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="newName"
+            label="Name"
+            density="comfortable"
+            autofocus
+            :error-messages="createError ? [createError] : []"
+            @keyup.enter="confirmCreate"
+          />
+          <v-textarea
+            v-model="newDescription"
+            label="Description (optional)"
+            rows="2"
+            auto-grow
+            density="comfortable"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="createOpen = false">Cancel</v-btn>
+          <v-btn color="primary" variant="tonal" :loading="creating" @click="confirmCreate">
+            Create
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+```
+
+Add to `data()`:
+
+```js
+      createOpen: false,
+      creating: false,
+      newName: '',
+      newDescription: '',
+      createError: '',
+```
+
 Add to the component's `methods`:
 
 ```js
     onManage(pack) {
       this.$router.push(`/lexicon/${pack.id}`);
     },
-    async onCreate() {
-      const name = window.prompt('Name of the new dictionary');
-      if (!name || !name.trim()) return;
+    onCreate() {
+      this.newName = '';
+      this.newDescription = '';
+      this.createError = '';
+      this.creating = false;
+      this.createOpen = true;
+    },
+    async confirmCreate() {
+      const name = this.newName.trim();
+      if (!name) {
+        this.createError = 'A name is required.';
+        return;
+      }
+      this.creating = true;
       try {
-        const pack = await Lexicon.create(name.trim());
+        const pack = await Lexicon.create(name, this.newDescription.trim());
+        this.createOpen = false;
         this.snackbar.open(`${pack.manifest.name} created`);
         this.$router.push(`/lexicon/${pack.id}`);
       } catch (e) {
         console.error('[CustomPackSection] create failed:', e);
-        this.snackbar.open('Could not create this dictionary.');
+        this.createError = 'Could not create this dictionary.';
+      } finally {
+        this.creating = false;
       }
     },
 ```
