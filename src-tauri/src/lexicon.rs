@@ -323,6 +323,20 @@ pub fn upsert_entry_in(
     Ok(UpsertOutcome { id: conn.last_insert_rowid(), created: true })
 }
 
+/// Build a SQL `LIKE ... ESCAPE '\'` pattern that matches `needle` as a literal
+/// substring. The backslash (the escape character itself) must be escaped
+/// first, before the wildcards `%` and `_` — escaping it after would
+/// double-escape the backslashes just inserted to escape those wildcards.
+/// Otherwise a literal backslash in `needle` is either silently consumed by
+/// LIKE (matching more than intended) or, if trailing, consumes the `%` this
+/// function appends (matching nothing at all).
+fn like_pattern(needle: &str) -> String {
+    format!(
+        "%{}%",
+        needle.replace('\\', "\\\\").replace('%', "\\%").replace('_', "\\_")
+    )
+}
+
 /// One page of entries, optionally filtered. `search` matches the term or the
 /// definition with a LIKE on both, which is what the management table needs —
 /// FTS is for the app's real search, not for this admin listing.
@@ -339,7 +353,7 @@ pub async fn lexicon_entries(
     let conn = open_db(&dir)?;
 
     let needle = search.unwrap_or_default();
-    let pattern = format!("%{}%", needle.replace('%', "\\%").replace('_', "\\_"));
+    let pattern = like_pattern(&needle);
     let filtered = !needle.trim().is_empty();
 
     let total: i64 = if filtered {
@@ -607,6 +621,68 @@ mod tests {
         assert!(a.created);
         assert!(b.created);
         assert_ne!(a.id, b.id);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn like_pattern_escapes_the_escape_character_before_wildcards() {
+        // Backslash must be doubled first, or LIKE silently consumes it and
+        // treats the next character as literal instead of matching a real
+        // backslash — `a\b` would then match `ab`.
+        assert_eq!(like_pattern("a\\b"), "%a\\\\b%");
+        // Wildcards are still escaped, as before.
+        assert_eq!(like_pattern("100%"), "%100\\%%");
+        assert_eq!(like_pattern("a_b"), "%a\\_b%");
+        // A needle ending in a backslash must not be able to consume the `%`
+        // this function appends — that would turn a substring search into an
+        // impossible exact-suffix match that returns nothing.
+        assert_eq!(like_pattern("abc\\"), "%abc\\\\%");
+    }
+
+    #[test]
+    fn like_search_matches_a_literal_backslash_without_over_or_under_matching() {
+        let (conn, path) = temp_db("like-backslash");
+        // Contains a literal backslash — this is the row a search for `a\b` must find.
+        upsert_entry_in(&conn, 1, &input("term-a", "path is a\\b on disk")).unwrap();
+        // Would incorrectly match under the old escaping if the backslash were
+        // silently consumed instead of escaped.
+        upsert_entry_in(&conn, 1, &input("term-b", "path is ab on disk")).unwrap();
+        // Contains a percent sign, to confirm wildcard-escaping still holds
+        // alongside the backslash fix.
+        upsert_entry_in(&conn, 1, &input("term-c", "100% done")).unwrap();
+
+        let pattern = like_pattern("a\\b");
+        let mut stmt = conn
+            .prepare("SELECT term FROM entries WHERE definition LIKE ? ESCAPE '\\' ORDER BY term")
+            .unwrap();
+        let matches: Vec<String> =
+            stmt.query_map(params![&pattern], |row| row.get(0)).unwrap().flatten().collect();
+
+        assert_eq!(
+            matches,
+            vec!["term-a".to_string()],
+            "only the entry containing a literal backslash should match"
+        );
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn like_search_handles_a_needle_ending_in_a_backslash() {
+        let (conn, path) = temp_db("like-trailing-backslash");
+        upsert_entry_in(&conn, 1, &input("term-a", "prefix abc\\ suffix")).unwrap();
+
+        let pattern = like_pattern("abc\\");
+        let matches: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM entries WHERE definition LIKE ? ESCAPE '\\'",
+                params![&pattern],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(
+            matches, 1,
+            "a needle ending in a backslash must still work as a substring search"
+        );
         let _ = fs::remove_file(path);
     }
 }
