@@ -11,7 +11,7 @@ use database::{
     search_entries,
 };
 use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
-use lexicon::create_lexicon;
+use lexicon::{create_lexicon, lexicon_delete_entry, lexicon_entries, lexicon_upsert_entry};
 use packs::{
     download_pack, ensure_pack_available, fetch_pack_manifest, get_installed_packs,
     get_pack_database_size, get_pack_path, pack_execute_query, pack_get_all_terms,
@@ -332,6 +332,9 @@ fn main() {
             remove_custom_pack,
             // Lexicon (editable custom pack) commands
             create_lexicon,
+            lexicon_entries,
+            lexicon_upsert_entry,
+            lexicon_delete_entry,
             // macOS fullscreen support
             configure_window_for_fullscreen,
             show_lookup_panel,

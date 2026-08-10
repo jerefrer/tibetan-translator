@@ -266,6 +266,171 @@ pub async fn create_lexicon(
     Ok(InstalledCustomPack { id: pack_id, manifest })
 }
 
+/// Insert or update by exact term within one dictionary.
+///
+/// Resolution happens here rather than trusting an id resolved earlier by the
+/// frontend, which makes the operation idempotent and safe when the lexicon
+/// changed between a preview and its confirmation.
+pub fn upsert_entry_in(
+    conn: &Connection,
+    dictionary_id: i64,
+    entry: &LexiconEntryInput,
+) -> rusqlite::Result<UpsertOutcome> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM entries WHERE dictionaryId = ? AND term = ?",
+            params![dictionary_id, &entry.term],
+            |row| row.get(0),
+        )
+        .ok();
+
+    if let Some(id) = existing {
+        conn.execute(
+            "UPDATE entries SET
+                term = ?, termPhoneticsStrict = ?, termPhoneticsLoose = ?,
+                definition = ?, definitionPhoneticsWordsStrict = ?, definitionPhoneticsWordsLoose = ?
+             WHERE id = ?",
+            params![
+                &entry.term,
+                &entry.term_phonetics_strict,
+                &entry.term_phonetics_loose,
+                &entry.definition,
+                &entry.definition_phonetics_words_strict,
+                &entry.definition_phonetics_words_loose,
+                id
+            ],
+        )?;
+        return Ok(UpsertOutcome { id, created: false });
+    }
+
+    conn.execute(
+        "INSERT INTO entries (
+            term, termPhoneticsStrict, termPhoneticsLoose,
+            definition, definitionPhoneticsWordsStrict, definitionPhoneticsWordsLoose,
+            dictionaryId
+         ) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        params![
+            &entry.term,
+            &entry.term_phonetics_strict,
+            &entry.term_phonetics_loose,
+            &entry.definition,
+            &entry.definition_phonetics_words_strict,
+            &entry.definition_phonetics_words_loose,
+            dictionary_id
+        ],
+    )?;
+
+    Ok(UpsertOutcome { id: conn.last_insert_rowid(), created: true })
+}
+
+/// One page of entries, optionally filtered. `search` matches the term or the
+/// definition with a LIKE on both, which is what the management table needs —
+/// FTS is for the app's real search, not for this admin listing.
+#[tauri::command]
+pub async fn lexicon_entries(
+    app: AppHandle,
+    pack_id: String,
+    dictionary_id: i64,
+    search: Option<String>,
+    limit: i64,
+    offset: i64,
+) -> Result<LexiconEntriesPage, LexiconError> {
+    let dir = pack_dir(&app, &pack_id)?;
+    let conn = open_db(&dir)?;
+
+    let needle = search.unwrap_or_default();
+    let pattern = format!("%{}%", needle.replace('%', "\\%").replace('_', "\\_"));
+    let filtered = !needle.trim().is_empty();
+
+    let total: i64 = if filtered {
+        conn.query_row(
+            "SELECT COUNT(*) FROM entries
+             WHERE dictionaryId = ? AND (term LIKE ? ESCAPE '\\' OR definition LIKE ? ESCAPE '\\')",
+            params![dictionary_id, &pattern, &pattern],
+            |row| row.get(0),
+        )
+    } else {
+        conn.query_row(
+            "SELECT COUNT(*) FROM entries WHERE dictionaryId = ?",
+            params![dictionary_id],
+            |row| row.get(0),
+        )
+    }
+    .map_err(|e| LexiconError::new("corrupt", format!("count entries: {e}")))?;
+
+    let mut entries = Vec::new();
+    if filtered {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, term, definition FROM entries
+                 WHERE dictionaryId = ? AND (term LIKE ? ESCAPE '\\' OR definition LIKE ? ESCAPE '\\')
+                 ORDER BY term LIMIT ? OFFSET ?",
+            )
+            .map_err(|e| LexiconError::new("corrupt", format!("prepare: {e}")))?;
+        let rows = stmt
+            .query_map(params![dictionary_id, &pattern, &pattern, limit, offset], |row| {
+                Ok(LexiconEntry { id: row.get(0)?, term: row.get(1)?, definition: row.get(2)? })
+            })
+            .map_err(|e| LexiconError::new("corrupt", format!("query: {e}")))?;
+        for row in rows.flatten() {
+            entries.push(row);
+        }
+    } else {
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, term, definition FROM entries
+                 WHERE dictionaryId = ? ORDER BY term LIMIT ? OFFSET ?",
+            )
+            .map_err(|e| LexiconError::new("corrupt", format!("prepare: {e}")))?;
+        let rows = stmt
+            .query_map(params![dictionary_id, limit, offset], |row| {
+                Ok(LexiconEntry { id: row.get(0)?, term: row.get(1)?, definition: row.get(2)? })
+            })
+            .map_err(|e| LexiconError::new("corrupt", format!("query: {e}")))?;
+        for row in rows.flatten() {
+            entries.push(row);
+        }
+    }
+
+    Ok(LexiconEntriesPage { total, entries })
+}
+
+#[tauri::command]
+pub async fn lexicon_upsert_entry(
+    app: AppHandle,
+    pack_id: String,
+    dictionary_id: i64,
+    entry: LexiconEntryInput,
+) -> Result<UpsertOutcome, LexiconError> {
+    if entry.term.trim().is_empty() {
+        return Err(LexiconError::new("notFound", "a term is required"));
+    }
+    let dir = pack_dir(&app, &pack_id)?;
+    let conn = open_db(&dir)?;
+    let outcome = upsert_entry_in(&conn, dictionary_id, &entry)
+        .map_err(|e| LexiconError::new("corrupt", format!("write entry: {e}")))?;
+    touch_manifest(&dir, &conn)?;
+    Ok(outcome)
+}
+
+#[tauri::command]
+pub async fn lexicon_delete_entry(
+    app: AppHandle,
+    pack_id: String,
+    entry_id: i64,
+) -> Result<(), LexiconError> {
+    let dir = pack_dir(&app, &pack_id)?;
+    let conn = open_db(&dir)?;
+    let affected = conn
+        .execute("DELETE FROM entries WHERE id = ?", params![entry_id])
+        .map_err(|e| LexiconError::new("corrupt", format!("delete entry: {e}")))?;
+    if affected == 0 {
+        return Err(LexiconError::new("notFound", format!("entry {entry_id} not found")));
+    }
+    touch_manifest(&dir, &conn)?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -341,5 +506,107 @@ mod tests {
         assert_eq!(stamp.len(), 20);
         assert!(stamp.ends_with('Z'));
         assert!(stamp.starts_with("20"), "expected a 21st-century year, got {stamp}");
+    }
+
+    use std::path::PathBuf;
+
+    /// Copy the committed template into a temp file and open it, so tests
+    /// exercise the real schema (triggers and FTS included) without an AppHandle.
+    fn temp_db(label: &str) -> (Connection, PathBuf) {
+        let template = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("resources")
+            .join("empty-pack.sqlite");
+        let path = std::env::temp_dir().join(format!("lexicon-test-{label}-{}.sqlite", std::process::id()));
+        let _ = fs::remove_file(&path);
+        fs::copy(&template, &path).expect("copy template");
+        let conn = Connection::open(&path).expect("open temp db");
+        conn.execute(
+            "INSERT INTO dictionaries (id, name, position, enabled) VALUES (1, 'Test', 1, 1)",
+            [],
+        )
+        .expect("insert dictionary");
+        (conn, path)
+    }
+
+    fn input(term: &str, definition: &str) -> LexiconEntryInput {
+        LexiconEntryInput {
+            term: term.to_string(),
+            term_phonetics_strict: "ts".to_string(),
+            term_phonetics_loose: "tl".to_string(),
+            definition: definition.to_string(),
+            definition_phonetics_words_strict: "ds".to_string(),
+            definition_phonetics_words_loose: "dl".to_string(),
+        }
+    }
+
+    #[test]
+    fn inserts_an_entry_that_is_absent() {
+        let (conn, path) = temp_db("insert");
+        let outcome = upsert_entry_in(&conn, 1, &input("ཞི་བདེ་", "peace")).unwrap();
+        assert!(outcome.created);
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM entries", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn updates_an_existing_term_instead_of_duplicating_it() {
+        let (conn, path) = temp_db("update");
+        let first = upsert_entry_in(&conn, 1, &input("ཞི་བདེ་", "peace")).unwrap();
+        let second = upsert_entry_in(&conn, 1, &input("ཞི་བདེ་", "peace, tranquillity")).unwrap();
+
+        assert!(first.created);
+        assert!(!second.created);
+        assert_eq!(first.id, second.id);
+
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM entries", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 1);
+
+        let definition: String = conn
+            .query_row("SELECT definition FROM entries WHERE id = ?", params![first.id], |r| r.get(0))
+            .unwrap();
+        assert_eq!(definition, "peace, tranquillity");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn keeps_the_fts_index_in_sync_on_update() {
+        let (conn, path) = temp_db("fts");
+        upsert_entry_in(&conn, 1, &input("ཞི་བདེ་", "peace")).unwrap();
+        upsert_entry_in(&conn, 1, &input("ཞི་བདེ་", "tranquillity")).unwrap();
+
+        let stale: i64 = conn
+            .query_row("SELECT COUNT(*) FROM entries_fts WHERE entries_fts MATCH 'peace'", [], |r| r.get(0))
+            .unwrap();
+        let fresh: i64 = conn
+            .query_row("SELECT COUNT(*) FROM entries_fts WHERE entries_fts MATCH 'tranquillity'", [], |r| r.get(0))
+            .unwrap();
+
+        assert_eq!(stale, 0, "the old definition must be gone from the FTS index");
+        assert_eq!(fresh, 1);
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn treats_the_same_term_in_different_dictionaries_as_distinct() {
+        let (conn, path) = temp_db("multi-dict");
+        conn.execute(
+            "INSERT INTO dictionaries (id, name, position, enabled) VALUES (2, 'Other', 2, 1)",
+            [],
+        )
+        .unwrap();
+
+        let a = upsert_entry_in(&conn, 1, &input("ཞི་བདེ་", "peace")).unwrap();
+        let b = upsert_entry_in(&conn, 2, &input("ཞི་བདེ་", "paix")).unwrap();
+
+        assert!(a.created);
+        assert!(b.created);
+        assert_ne!(a.id, b.id);
+        let _ = fs::remove_file(path);
     }
 }
