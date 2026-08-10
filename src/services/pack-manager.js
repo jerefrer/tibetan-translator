@@ -622,6 +622,18 @@ export const PackManager = {
   async refreshCustomPacks() {
     state.customPacks = await invoke('list_custom_packs').catch(() => []);
   },
+
+  /**
+   * Refresh everything after a lexicon write (create, edit, delete, import).
+   * Re-reads the custom pack list so manifests (name, entriesCount) are current,
+   * then rebuilds the dictionary registry and allTerms so the new entries are
+   * searchable and the Define autocomplete picks them up.
+   */
+  async refreshAfterLexiconChange() {
+    if (!supportsModularPacks()) return;
+    await this.refreshCustomPacks();
+    await refreshDictionariesAndTerms();
+  },
 };
 
 export default PackManager;
