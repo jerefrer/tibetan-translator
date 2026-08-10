@@ -7,7 +7,7 @@
     <template v-else>
       <div class="d-flex align-center mb-4">
         <v-select
-          v-model="selectedKey"
+          :model-value="selectedKey"
           :items="dictionaryOptions"
           item-title="label"
           item-value="key"
@@ -15,6 +15,7 @@
           density="comfortable"
           hide-details
           style="max-width: 340px"
+          @update:model-value="onSelectDictionary"
         />
         <v-spacer />
         <v-btn
@@ -107,7 +108,6 @@ export default {
   inject: ['snackbar'],
   data() {
     return {
-      selectedKey: null,
       search: '',
       page: 1,
       total: 0,
@@ -130,8 +130,37 @@ export default {
         label: dictionary.name,
       }));
     },
+    // The route is the ONLY source of truth for which dictionary is shown —
+    // not a separate `selectedKey` data field. A round of review found that
+    // mirroring the route into local state and reconciling the two with a
+    // '$route.params.packId' watcher was unsound: the watcher only sees the
+    // immediately preceding value, so a round trip through an unrelated
+    // route (e.g. /lexicon/A -> /settings -> /lexicon/A) looks identical,
+    // from that one watcher's perspective, to a fresh navigation back to A —
+    // there is no way to tell "the user pressed back" apart from "the user
+    // clicked Manage entries on A again" from route state alone. Deriving
+    // `selected` straight from $route.params removes the second source of
+    // truth instead of trying to arbitrate between them.
     selected() {
-      return this.dictionaryOptions.find((option) => option.key === this.selectedKey) || null;
+      const options = this.dictionaryOptions;
+      const packId = this.$route.params.packId;
+      if (!packId) return null;
+      const dictionaryId = this.$route.params.dictionaryId;
+      if (dictionaryId) {
+        return (
+          options.find(
+            (option) =>
+              option.packId === packId && String(option.dictionaryId) === String(dictionaryId)
+          ) || null
+        );
+      }
+      // No dictionaryId in the route — e.g. Settings' "Manage entries" button
+      // only knows about packs, not individual dictionaries within one.
+      // Default to that pack's first dictionary.
+      return options.find((option) => option.packId === packId) || null;
+    },
+    selectedKey() {
+      return this.selected ? this.selected.key : null;
     },
     pageCount() {
       return Math.max(1, Math.ceil(this.total / PAGE_SIZE));
@@ -141,19 +170,6 @@ export default {
     selectedKey() {
       this.page = 1;
       this.load();
-    },
-    // App.vue's <keep-alive> keys route components on the first path segment
-    // ("lexicon" for both /lexicon and /lexicon/:packId), so navigating
-    // between two dictionaries via "Manage entries" reuses ONE LexiconPage
-    // instance and does NOT trigger activated()/deactivated() — only $route
-    // changes. This watcher is what a same-instance navigation actually
-    // relies on; syncSelection() (called from activated()) is a fallback for
-    // the cases where no navigation happened (fresh state, or the selected
-    // dictionary vanished).
-    '$route.params.packId'(packId) {
-      if (!packId) return;
-      const match = this.dictionaryOptions.find((option) => option.packId === packId);
-      if (match) this.selectedKey = match.key;
     },
   },
   created() {
@@ -177,26 +193,29 @@ export default {
     window.removeEventListener('dictionaries-updated', this.syncSelection);
   },
   methods: {
+    // Falls back to the first available dictionary — and navigates so the
+    // route reflects that fallback — when the route names nothing, names a
+    // pack/dictionary that isn't installed, or names one that was just
+    // deleted. When the route already names a valid, installed dictionary,
+    // `selected` is already correct and there is nothing to do here.
+    // Returns the navigation's promise (or undefined when there's nothing to
+    // do) so callers that need to know the route has actually settled — the
+    // test suite, in particular — can await it deterministically instead of
+    // guessing how many microtask/scheduler ticks vue-router needs.
     syncSelection() {
-      const routePackId = this.$route.params.packId;
+      if (this.selected) return;
       const options = this.dictionaryOptions;
-      if (!options.length) {
-        this.selectedKey = null;
-        return;
-      }
-      const fromRoute = routePackId && options.find((option) => option.packId === routePackId);
-      // Nothing selected yet (first-ever activation, or every dictionary was
-      // just removed and then one was added back): honour the route before
-      // falling back to the first option. Once something IS selected, the
-      // '$route.params.packId' watcher above is what tracks the route — this
-      // only needs to check whether that selection is still valid.
-      if (!this.selectedKey) {
-        this.selectedKey = (fromRoute || options[0]).key;
-        return;
-      }
-      const stillThere = options.some((option) => option.key === this.selectedKey);
-      if (stillThere) return;
-      this.selectedKey = (fromRoute || options[0]).key;
+      if (!options.length) return;
+      return this.navigateTo(options[0]);
+    },
+    onSelectDictionary(key) {
+      const option = this.dictionaryOptions.find((o) => o.key === key);
+      if (option) return this.navigateTo(option);
+    },
+    navigateTo(option) {
+      const path = `/lexicon/${option.packId}/${option.dictionaryId}`;
+      if (this.$route.path === path) return; // avoid a redundant-navigation warning
+      return this.$router.replace(path);
     },
     async load() {
       if (!this.selected) {

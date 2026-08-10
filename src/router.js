@@ -17,8 +17,7 @@ const routes = [
   { path: '/search/:query', component: SearchPage },
   { path: '/segment', component: SegmentPage },
   { path: '/settings', component: ConfigurePage },
-  { path: '/lexicon', component: LexiconPage },
-  { path: '/lexicon/:packId', component: LexiconPage },
+  { path: '/lexicon/:packId?/:dictionaryId?', component: LexiconPage },
   { path: '/tests', component: TestsPage },
 ]
 
