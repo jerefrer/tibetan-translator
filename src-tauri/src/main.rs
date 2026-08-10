@@ -2,6 +2,7 @@
 
 mod custom_packs;
 mod database;
+mod lexicon;
 mod packs;
 mod scans;
 
@@ -10,6 +11,7 @@ use database::{
     search_entries,
 };
 use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
+use lexicon::create_lexicon;
 use packs::{
     download_pack, ensure_pack_available, fetch_pack_manifest, get_installed_packs,
     get_pack_database_size, get_pack_path, pack_execute_query, pack_get_all_terms,
@@ -328,6 +330,8 @@ fn main() {
             install_custom_pack_from_bytes,
             list_custom_packs,
             remove_custom_pack,
+            // Lexicon (editable custom pack) commands
+            create_lexicon,
             // macOS fullscreen support
             configure_window_for_fullscreen,
             show_lookup_panel,
