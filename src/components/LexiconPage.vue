@@ -142,6 +142,19 @@ export default {
       this.page = 1;
       this.load();
     },
+    // App.vue's <keep-alive> keys route components on the first path segment
+    // ("lexicon" for both /lexicon and /lexicon/:packId), so navigating
+    // between two dictionaries via "Manage entries" reuses ONE LexiconPage
+    // instance and does NOT trigger activated()/deactivated() — only $route
+    // changes. This watcher is what a same-instance navigation actually
+    // relies on; syncSelection() (called from activated()) is a fallback for
+    // the cases where no navigation happened (fresh state, or the selected
+    // dictionary vanished).
+    '$route.params.packId'(packId) {
+      if (!packId) return;
+      const match = this.dictionaryOptions.find((option) => option.packId === packId);
+      if (match) this.selectedKey = match.key;
+    },
   },
   created() {
     this.onSearchInput = _.debounce(() => {
@@ -171,9 +184,18 @@ export default {
         this.selectedKey = null;
         return;
       }
+      const fromRoute = routePackId && options.find((option) => option.packId === routePackId);
+      // Nothing selected yet (first-ever activation, or every dictionary was
+      // just removed and then one was added back): honour the route before
+      // falling back to the first option. Once something IS selected, the
+      // '$route.params.packId' watcher above is what tracks the route — this
+      // only needs to check whether that selection is still valid.
+      if (!this.selectedKey) {
+        this.selectedKey = (fromRoute || options[0]).key;
+        return;
+      }
       const stillThere = options.some((option) => option.key === this.selectedKey);
       if (stillThere) return;
-      const fromRoute = routePackId && options.find((option) => option.packId === routePackId);
       this.selectedKey = (fromRoute || options[0]).key;
     },
     async load() {
@@ -183,13 +205,29 @@ export default {
         return;
       }
       try {
-        const page = await Lexicon.entries(this.selected.packId, this.selected.dictionaryId, {
-          search: this.search || '',
-          limit: PAGE_SIZE,
-          offset: (this.page - 1) * PAGE_SIZE,
-        });
-        this.entries = page.entries;
-        this.total = page.total;
+        const fetchPage = () =>
+          Lexicon.entries(this.selected.packId, this.selected.dictionaryId, {
+            search: this.search || '',
+            limit: PAGE_SIZE,
+            offset: (this.page - 1) * PAGE_SIZE,
+          });
+        let response = await fetchPage();
+        // `total` is a plain COUNT(*), independent of the requested offset,
+        // and an out-of-range offset returns zero rows rather than an error
+        // — so deleting the last entry on the last page (or switching to a
+        // smaller dictionary while on a later page) leaves `page` pointing
+        // past the end. Clamp and re-fetch once instead of stranding the
+        // user on an empty page with no pagination control left to escape
+        // it (v-pagination only renders when pageCount > 1). Bounded to a
+        // single retry by construction — no recursive self-call, so this
+        // cannot loop.
+        const lastValidPage = Math.max(1, Math.ceil(response.total / PAGE_SIZE));
+        if (this.page > lastValidPage) {
+          this.page = lastValidPage;
+          response = await fetchPage();
+        }
+        this.entries = response.entries;
+        this.total = response.total;
       } catch (e) {
         console.error('[LexiconPage] load failed:', e);
         this.snackbar.open('Could not read this dictionary.');
