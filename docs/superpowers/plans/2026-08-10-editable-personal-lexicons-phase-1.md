@@ -1391,7 +1391,7 @@ const CUSTOM_PREFIX = 'custom-';
 export function slugForName(name, existingIds = []) {
   const base = String(name ?? '')
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '') // strip combining accents left by NFD
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-+|-+$/g, '');
