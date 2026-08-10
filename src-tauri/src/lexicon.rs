@@ -294,6 +294,19 @@ mod tests {
         assert!(!is_lexicon_pack_id("custom-../escape"));
     }
 
+    /// Regression coverage for path-traversal shapes. The ASCII allowlist in
+    /// `is_lexicon_pack_id` (lowercase, digits, hyphen only) blocks all of these
+    /// by construction today — these tests exist so that if the guard is ever
+    /// refactored toward a blocklist or a strip-based approach, a reintroduced
+    /// `/`- or `\`-based bypass fails a test instead of shipping silently.
+    #[test]
+    fn rejects_path_traversal_shaped_ids() {
+        assert!(!is_lexicon_pack_id("custom-a/b"));
+        assert!(!is_lexicon_pack_id("custom-a\\b"));
+        assert!(!is_lexicon_pack_id("custom-/etc/passwd"));
+        assert!(!is_lexicon_pack_id("custom-%2e%2e%2fescape"));
+    }
+
     #[test]
     fn bumps_the_patch_component() {
         assert_eq!(bump_patch_version(Some("1.0.0")), "1.0.1");
