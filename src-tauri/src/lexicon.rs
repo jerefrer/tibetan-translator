@@ -445,6 +445,112 @@ pub async fn lexicon_delete_entry(
     Ok(())
 }
 
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportOutcome {
+    pub version: String,
+}
+
+/// Rename the lexicon. The pack id never changes — renaming must not orphan the
+/// folder on disk or break dictionary ordering stored against the old id.
+#[tauri::command]
+pub async fn rename_lexicon(
+    app: AppHandle,
+    pack_id: String,
+    name: String,
+    description: String,
+) -> Result<TibdictManifest, LexiconError> {
+    if name.trim().is_empty() {
+        return Err(LexiconError::new("notFound", "a name is required"));
+    }
+    let dir = pack_dir(&app, &pack_id)?;
+    let conn = open_db(&dir)?;
+
+    // A lexicon created in-app holds a single dictionary whose name mirrors the
+    // pack name; keep the two in step so search results show the new name.
+    let dictionary_count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM dictionaries", [], |row| row.get(0))
+        .unwrap_or(0);
+    if dictionary_count == 1 {
+        conn.execute("UPDATE dictionaries SET name = ? WHERE id = 1", params![&name])
+            .map_err(|e| LexiconError::new("corrupt", format!("rename dictionary: {e}")))?;
+    }
+
+    let mut manifest = read_manifest(&dir)?;
+    manifest.name = name.clone();
+    manifest.description = description;
+    manifest.modified_at = Some(now_iso8601());
+    if dictionary_count == 1 {
+        if let Some(first) = manifest.dictionaries.first_mut() {
+            first.name = name;
+        }
+    }
+    write_manifest(&dir, &manifest)?;
+    Ok(manifest)
+}
+
+/// Zip manifest.json + data.sqlite into a .tibdict at `dest_path`.
+///
+/// The patch version is bumped and persisted first: without it, every export
+/// would carry the same version and the recipient's conflict modal would
+/// compare v1.0.0 against v1.0.0 and tell them nothing.
+/// Write a .tibdict archive: a ZIP holding exactly `manifest.json` + `data.sqlite`.
+///
+/// Split out from `lexicon_export` so the archive layout — which is what the
+/// install path on the recipient's machine validates — is testable without an
+/// AppHandle. `custom_packs.rs` rejects an archive missing either member, so a
+/// silent change here would only surface on someone else's computer.
+pub fn write_tibdict_archive(
+    dest_path: &Path,
+    manifest_bytes: &[u8],
+    sqlite_bytes: &[u8],
+) -> Result<(), LexiconError> {
+    use std::io::Write;
+    use zip::write::SimpleFileOptions;
+
+    let file = fs::File::create(dest_path)
+        .map_err(|e| LexiconError::new("path", format!("create {}: {e}", dest_path.display())))?;
+    let mut zip = zip::ZipWriter::new(file);
+    let options = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+
+    for (name, bytes) in [
+        ("manifest.json", manifest_bytes),
+        ("data.sqlite", sqlite_bytes),
+    ] {
+        zip.start_file(name, options)
+            .map_err(|e| LexiconError::new("path", format!("start {name} in archive: {e}")))?;
+        zip.write_all(bytes)
+            .map_err(|e| LexiconError::new("path", format!("write {name} to archive: {e}")))?;
+    }
+
+    zip.finish()
+        .map_err(|e| LexiconError::new("path", format!("finalize archive: {e}")))?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn lexicon_export(
+    app: AppHandle,
+    pack_id: String,
+    dest_path: String,
+) -> Result<ExportOutcome, LexiconError> {
+    let dir = pack_dir(&app, &pack_id)?;
+
+    let mut manifest = read_manifest(&dir)?;
+    let version = bump_patch_version(manifest.version.as_deref());
+    manifest.version = Some(version.clone());
+    write_manifest(&dir, &manifest)?;
+
+    let manifest_bytes = serde_json::to_vec_pretty(&manifest)
+        .map_err(|e| LexiconError::new("corrupt", format!("serialize manifest: {e}")))?;
+    let sqlite_bytes = fs::read(dir.join("data.sqlite"))
+        .map_err(|e| LexiconError::new("corrupt", format!("read database: {e}")))?;
+
+    write_tibdict_archive(Path::new(&dest_path), &manifest_bytes, &sqlite_bytes)?;
+
+    Ok(ExportOutcome { version })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -684,5 +790,56 @@ mod tests {
             "a needle ending in a backslash must still work as a substring search"
         );
         let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn writes_an_archive_holding_exactly_the_two_expected_members() {
+        let dest = std::env::temp_dir().join(format!("lexicon-export-{}.tibdict", std::process::id()));
+        let _ = fs::remove_file(&dest);
+
+        write_tibdict_archive(&dest, b"{\"format\":\"tibdict\"}", b"SQLite format 3\0")
+            .expect("write archive");
+
+        let file = fs::File::open(&dest).expect("open archive");
+        let mut zip = zip::ZipArchive::new(file).expect("read archive");
+
+        let mut names: Vec<String> = (0..zip.len())
+            .map(|i| zip.by_index(i).expect("entry").name().to_string())
+            .collect();
+        names.sort();
+        assert_eq!(names, vec!["data.sqlite".to_string(), "manifest.json".to_string()]);
+
+        let _ = fs::remove_file(&dest);
+    }
+
+    #[test]
+    fn round_trips_member_contents_through_the_archive() {
+        use std::io::Read;
+
+        let dest = std::env::temp_dir().join(format!("lexicon-roundtrip-{}.tibdict", std::process::id()));
+        let _ = fs::remove_file(&dest);
+
+        let manifest = br#"{"format":"tibdict","id":"demo"}"#;
+        let sqlite = b"SQLite format 3\0some bytes";
+        write_tibdict_archive(&dest, manifest, sqlite).expect("write archive");
+
+        let file = fs::File::open(&dest).expect("open archive");
+        let mut zip = zip::ZipArchive::new(file).expect("read archive");
+
+        let mut got_manifest = Vec::new();
+        zip.by_name("manifest.json")
+            .expect("manifest member")
+            .read_to_end(&mut got_manifest)
+            .expect("read manifest");
+        let mut got_sqlite = Vec::new();
+        zip.by_name("data.sqlite")
+            .expect("sqlite member")
+            .read_to_end(&mut got_sqlite)
+            .expect("read sqlite");
+
+        assert_eq!(got_manifest, manifest.to_vec());
+        assert_eq!(got_sqlite, sqlite.to_vec(), "binary content must survive intact");
+
+        let _ = fs::remove_file(&dest);
     }
 }
