@@ -58,26 +58,29 @@ Verified in the codebase before writing this spec:
 | 5 | **Identical rows are never listed**, only counted | Avoids drowning the user in a wall of unchanged entries |
 | 6 | Phonetics computed in **JS**, spreadsheets parsed in **Rust** | Single source of truth for phonetics; no stale JS xlsx parser in the bundle |
 | 7 | New lexicons are created by **copying a committed empty template** | Avoids duplicating the DDL in Rust and letting it drift from `pack-schema.js` |
-| 8 | Terms are stored as `withTrailingTshek(cleanTerm(input))` | See §6 — required for the global lookup popup to find them |
+| 8 | Terms are stored via a single shared `tibetanLookupKey` helper | See §6 — storage and lookup must be byte-identical, so the rule lives in exactly one place |
 
 ## 6. Term normalization — the one correctness trap
 
 Lookups are **exact matches**: `src-tauri/src/packs.rs` runs `WHERE entries.term = ?`.
 
-Two callers query with arbitrary text rather than a term picked from a list:
-
-- `src/components/GlobalLookupPopup.vue:83` — `getEntriesFor(withTrailingTshek(this.term))`
-- `src/components/SelectedTibetanEntriesPopup.vue:58` — same
-
-`withTrailingTshek` (`src/utils.js:89`) strips any trailing punctuation and appends a single tsheg (`་`).
-
-Therefore a lexicon entry whose term ends in a shad (`།`) would be **invisible to the global hotkey lookup**. Every write path — the editor, quick add, and import — must normalize the term as:
+Two callers query with arbitrary text rather than a term picked from a list — `src/components/GlobalLookupPopup.vue` and `src/components/SelectedTibetanEntriesPopup.vue`. Both derive their query the same way:
 
 ```js
-withTrailingTshek(cleanTerm(rawInput))
+text.replace(TibetanRegExps.anythingNonTibetan, '')   // DELETE every non-Tibetan character
+    .replace(TibetanRegExps.beginningPunctuation, '') // drop leading punctuation
+// …then, at the query call:
+withTrailingTshek(that)                               // end with exactly one tsheg
 ```
 
-Note this differs from `build/lib/build-tibdict-sqlite.js`'s local `ensureTrailingTsheg`, which preserves a trailing shad. That function stays as-is for the Anki pipeline; the lexicon uses the app-side rule because the lexicon is queried by the app-side lookups.
+Therefore a lexicon entry stored any other way is **invisible to the global hotkey lookup**. Two ways to get this wrong, both found during implementation:
+
+1. Storing a term that ends in a shad (`།`). `withTrailingTshek` (`src/utils.js`) replaces trailing punctuation with a tsheg, so the shad form is never queried for.
+2. Using `cleanTerm` (`src/utils.js`) to tidy the input. It *substitutes* `-`, `"` and newlines with a space, whereas the lookup path *deletes* them — so `ཤེས་རིག-དཔེ་མཛོད` would be stored as `ཤེས་རིག དཔེ་མཛོད་` but searched for as `ཤེས་རིགདཔེ་མཛོད་`. `cleanTerm` exists for the build scripts, which run it on raw pre-conversion **Wylie**, where a hyphen is a syllable separator that legitimately becomes a space. It is the wrong tool for post-conversion Tibetan Unicode.
+
+The rule is therefore expressed **once**, as `tibetanLookupKey` in `src/utils.js`, and used by every site that either stores or searches for a term — the lexicon write paths and both popups. Duplicating the rule is what let it drift in the first place; a single exported helper is what keeps storage and lookup byte-identical.
+
+Note this also differs from `build/lib/build-tibdict-sqlite.js`'s local `ensureTrailingTsheg`, which preserves a trailing shad. That function stays as-is for the Anki pipeline.
 
 The same normalization defines the import diff key, so "same term written with a shad" and "same term written with a tsheg" collapse to one entry rather than silently duplicating.
 

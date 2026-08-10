@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- **Term normalization is non-negotiable.** Every write path stores `withTrailingTshek(cleanTerm(input))` from `src/utils.js`. Lookups are exact matches (`WHERE entries.term = ?`), and `GlobalLookupPopup.vue:83` queries with `withTrailingTshek(...)`. Any other normalization makes lexicon entries invisible to the global hotkey.
+- **Term normalization is non-negotiable.** Lookups are exact matches (`WHERE entries.term = ?`), and `GlobalLookupPopup.vue` / `SelectedTibetanEntriesPopup.vue` query with non-Tibetan characters **deleted**, leading punctuation dropped, then `withTrailingTshek`. Every write path must derive the term identically, through the single shared `tibetanLookupKey` helper in `src/utils.js`. Do NOT use `cleanTerm` — it substitutes `-`/`"`/newlines with a space instead of deleting them, and exists for the build scripts' pre-conversion Wylie input. Any divergence makes the user's own entries invisible to the global hotkey.
 - **Never duplicate the SQLite DDL.** `build/lib/pack-schema.js` is the only place tables are defined. Rust copies a template; it never runs `CREATE TABLE`.
 - **All lexicon commands reject a `packId` that does not start with `custom-`.** This is what keeps official packs read-only.
 - **Editing is Tauri-only.** Every new UI element is gated on `supportsModularPacks()` from `src/config/platform.js`.
