@@ -323,6 +323,27 @@ pub fn upsert_entry_in(
     Ok(UpsertOutcome { id: conn.last_insert_rowid(), created: true })
 }
 
+/// Rename the pack's dictionary when there is exactly one, reporting whether a
+/// row was actually renamed. Multi-dictionary packs are left alone: nothing
+/// says which of their dictionaries the pack name refers to.
+///
+/// Resolves the row's actual id rather than assuming 1 — packs installed from
+/// a third-party `.tibdict` via `install_custom_pack` may number their sole
+/// dictionary any way they like, unlike ones `create_lexicon` creates.
+pub fn rename_sole_dictionary_in(conn: &Connection, name: &str) -> rusqlite::Result<bool> {
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM dictionaries", [], |row| row.get(0))?;
+    if count != 1 {
+        return Ok(false);
+    }
+    let dictionary_id: i64 =
+        conn.query_row("SELECT id FROM dictionaries LIMIT 1", [], |row| row.get(0))?;
+    conn.execute(
+        "UPDATE dictionaries SET name = ? WHERE id = ?",
+        params![name, dictionary_id],
+    )?;
+    Ok(true)
+}
+
 /// Build a SQL `LIKE ... ESCAPE '\'` pattern that matches `needle` as a literal
 /// substring. The backslash (the escape character itself) must be escaped
 /// first, before the wildcards `%` and `_` — escaping it after would
@@ -468,19 +489,18 @@ pub async fn rename_lexicon(
 
     // A lexicon created in-app holds a single dictionary whose name mirrors the
     // pack name; keep the two in step so search results show the new name.
-    let dictionary_count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM dictionaries", [], |row| row.get(0))
-        .unwrap_or(0);
-    if dictionary_count == 1 {
-        conn.execute("UPDATE dictionaries SET name = ? WHERE id = 1", params![&name])
-            .map_err(|e| LexiconError::new("corrupt", format!("rename dictionary: {e}")))?;
-    }
+    // Whether that row actually changed is the single source of truth for
+    // whether the manifest's dictionary name changes too — otherwise a pack
+    // whose sole dictionary the SQL update didn't touch could still get its
+    // manifest rewritten, and the pack list and search results would drift.
+    let dictionary_renamed = rename_sole_dictionary_in(&conn, &name)
+        .map_err(|e| LexiconError::new("corrupt", format!("rename dictionary: {e}")))?;
 
     let mut manifest = read_manifest(&dir)?;
     manifest.name = name.clone();
     manifest.description = description;
     manifest.modified_at = Some(now_iso8601());
-    if dictionary_count == 1 {
+    if dictionary_renamed {
         if let Some(first) = manifest.dictionaries.first_mut() {
             first.name = name;
         }
@@ -841,5 +861,50 @@ mod tests {
         assert_eq!(got_sqlite, sqlite.to_vec(), "binary content must survive intact");
 
         let _ = fs::remove_file(&dest);
+    }
+
+    #[test]
+    fn renames_the_sole_dictionary_even_when_its_row_id_is_not_one() {
+        let (conn, path) = temp_db("rename-sole-not-one");
+        // temp_db seeds id=1; replace it with a row shaped like an imported
+        // third-party .tibdict that numbers its sole dictionary differently.
+        conn.execute("DELETE FROM dictionaries WHERE id = 1", []).unwrap();
+        conn.execute(
+            "INSERT INTO dictionaries (id, name, position, enabled) VALUES (7, 'Old Name', 1, 1)",
+            [],
+        )
+        .unwrap();
+
+        let renamed = rename_sole_dictionary_in(&conn, "New Name").unwrap();
+        assert!(renamed, "the sole dictionary must be reported as renamed");
+
+        let name: String = conn
+            .query_row("SELECT name FROM dictionaries WHERE id = 7", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(name, "New Name");
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn leaves_a_multi_dictionary_pack_untouched() {
+        let (conn, path) = temp_db("rename-multi");
+        conn.execute(
+            "INSERT INTO dictionaries (id, name, position, enabled) VALUES (2, 'Other', 2, 1)",
+            [],
+        )
+        .unwrap();
+
+        let renamed = rename_sole_dictionary_in(&conn, "New Name").unwrap();
+        assert!(!renamed, "a pack with more than one dictionary must be left alone");
+
+        let name1: String = conn
+            .query_row("SELECT name FROM dictionaries WHERE id = 1", [], |r| r.get(0))
+            .unwrap();
+        let name2: String = conn
+            .query_row("SELECT name FROM dictionaries WHERE id = 2", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(name1, "Test", "unrelated first dictionary must be untouched");
+        assert_eq!(name2, "Other", "unrelated second dictionary must be untouched");
+        let _ = fs::remove_file(path);
     }
 }
