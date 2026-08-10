@@ -6,13 +6,14 @@
  *
  * Two responsibilities live here rather than in Rust:
  *   - term normalization, because lookups are exact matches and
- *     GlobalLookupPopup queries with withTrailingTshek()
+ *     GlobalLookupPopup / SelectedTibetanEntriesPopup query with
+ *     tibetanLookupKey()
  *   - phonetics, because strictAndLoosePhoneticsFor() has no Rust equivalent
  *     and is the same function search and the build scripts use
  */
 
 import { invoke } from '@tauri-apps/api/core';
-import { withTrailingTshek, cleanTerm, strictAndLoosePhoneticsFor } from '../utils';
+import { tibetanLookupKey, strictAndLoosePhoneticsFor } from '../utils';
 import PackManager from './pack-manager';
 
 const CUSTOM_PREFIX = 'custom-';
@@ -43,14 +44,17 @@ export function slugForName(name, existingIds = []) {
 /**
  * Normalize a term for storage. Returns '' when nothing usable remains.
  *
- * Must match what GlobalLookupPopup.vue and SelectedTibetanEntriesPopup.vue
- * query with, or lexicon entries become invisible to the global hotkey.
+ * Delegates to tibetanLookupKey() — the same derivation GlobalLookupPopup.vue
+ * and SelectedTibetanEntriesPopup.vue use to build their query key — so a
+ * stored term is never invisible to the global hotkey or the selection popup.
+ * cleanTerm() is NOT used here: it's built for pre-conversion Wylie (where a
+ * hyphen is a syllable separator that legitimately becomes a space), not
+ * post-conversion Tibetan Unicode, where the lookup path deletes such
+ * characters rather than substituting them.
  */
 export function normalizeTerm(raw) {
-  const cleaned = cleanTerm(String(raw ?? ''));
-  if (!cleaned) return '';
-  const normalized = withTrailingTshek(cleaned);
-  return normalized === '་' ? '' : normalized;
+  const key = tibetanLookupKey(String(raw ?? ''));
+  return key === '་' ? '' : key;
 }
 
 /** Build a write-ready entry, or null when term or definition is unusable. */

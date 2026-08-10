@@ -90,6 +90,31 @@ export const withTrailingTshek = function (tibetan) {
   return tibetan.replace(TibetanRegExps.endPunctuation, '') + '་';
 }
 
+/**
+ * Strip everything that isn't Tibetan script, then drop any punctuation left
+ * exposed at the start (e.g. a leading tsheg once neighboring text is gone).
+ *
+ * This is the "cleaned but not yet tsheg-terminated" text GlobalLookupPopup
+ * and SelectedTibetanEntriesPopup keep around for display before querying.
+ */
+export const strippedTibetanText = function (text) {
+  return text
+    .replace(TibetanRegExps.anythingNonTibetan, '')
+    .replace(TibetanRegExps.beginningPunctuation, '');
+}
+
+/**
+ * The canonical lookup key for a Tibetan term: strip everything non-Tibetan,
+ * drop leading punctuation, and end with exactly one tsheg.
+ *
+ * Entry lookups are exact string matches, so anything that STORES a term and
+ * anything that SEARCHES for one must derive it identically. Keep this the
+ * only place that rule is expressed.
+ */
+export const tibetanLookupKey = function (text) {
+  return withTrailingTshek(strippedTibetanText(text));
+}
+
 export const arrayPositionInArray = function (termArray, array) {
   var firstElement = termArray[0];
   var indexesForFirstElement = array.reduce((indexes, value, index) => {

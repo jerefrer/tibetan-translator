@@ -6,7 +6,7 @@
 
   import Entries from './Entries.vue'
   import SqlDatabase from '../services/sql-database'
-  import { withTrailingTshek } from '../utils.js'
+  import { withTrailingTshek, strippedTibetanText } from '../utils.js'
 
   var mouseX;
   var mouseY;
@@ -87,9 +87,9 @@
         if (selectionString == entryTerm)
           return false;
 
-        this.term = selectionString.
-          replace(TibetanRegExps.anythingNonTibetan, '').  // Remove any non tibetan character, like in "= གོོ་ཏ་མ!"
-          replace(TibetanRegExps.beginningPunctuation, ''); // Remove any punctuation before, like in "་ཡི་སྒྲ་"
+        // Remove any non-Tibetan characters, like in "= གོོ་ཏ་མ!", and any
+        // punctuation exposed at the start, like in "་ཡི་སྒྲ་"
+        this.term = strippedTibetanText(selectionString);
         return this.term.match(TibetanRegExps.tibetanGroups);
       },
       calculateLeft () {

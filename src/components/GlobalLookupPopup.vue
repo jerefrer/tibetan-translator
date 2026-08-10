@@ -4,7 +4,7 @@ import { useTheme } from 'vuetify';
 
 import Entries from './Entries.vue';
 import SqlDatabase from '../services/sql-database';
-import { withTrailingTshek } from '../utils.js';
+import { withTrailingTshek, strippedTibetanText } from '../utils.js';
 
 export default {
   components: {
@@ -65,9 +65,7 @@ export default {
       if (!text) return;
 
       // Clean the text - remove non-Tibetan characters
-      const cleanedText = text
-        .replace(TibetanRegExps.anythingNonTibetan, '')
-        .replace(TibetanRegExps.beginningPunctuation, '');
+      const cleanedText = strippedTibetanText(text);
 
       // Check if it has Tibetan content
       if (!cleanedText.match(TibetanRegExps.tibetanGroups)) {
