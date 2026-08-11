@@ -12,6 +12,7 @@
     "core:app:default",
     "core:resources:default",
     "core:image:default",
-    "dialog:allow-open"
+    "dialog:allow-open",
+    "dialog:allow-save"
   ]
 }
