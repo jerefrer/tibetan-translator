@@ -11,6 +11,7 @@ import {
 import { convertWylieInText, tibetanLookupKey, withTrailingTshek } from "../utils";
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
+import { mayNeedLegacyRepair } from "../services/legacy-to-unicode";
 import Entries from "./Entries.vue";
 import ResizableDivider from "./ResizableDivider.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
@@ -583,6 +584,31 @@ export default {
     },
 
     async onPaste(event) {
+      const clipboard = {
+        text: event.clipboardData?.getData("text/plain") || "",
+        html: event.clipboardData?.getData("text/html") || "",
+      };
+
+      // A passage set in a pre-Unicode Tibetan font arrives as Latin gibberish,
+      // and repairing it needs the markup, which the textarea would have thrown
+      // away by the time the timeout below runs. Take over the insertion only
+      // then; every other paste keeps the browser's own.
+      if (mayNeedLegacyRepair(clipboard)) {
+        event.preventDefault();
+        const start = event.target.selectionStart;
+        const end = event.target.selectionEnd;
+        const { convertLegacyPaste } = await import(
+          "../services/legacy-to-unicode"
+        );
+        const repaired = (await convertLegacyPaste(clipboard)) || clipboard.text;
+        const current = this.inputText || "";
+        this.inputText = this.convertWylie(
+          current.substring(0, start) + repaired + current.substring(end)
+        );
+        await this.resegmentText();
+        return;
+      }
+
       // Wait for the paste to complete, convert Wylie, then segment
       setTimeout(async () => {
         this.inputText = this.convertWylie(this.inputText);

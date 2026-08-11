@@ -14,6 +14,7 @@ import Decorator from '../services/decorator';
 import PhoneticSearch from '../services/phonetic-search';
 import SqlDatabase from '../services/sql-database';
 import Storage from '../services/storage';
+import { mayNeedLegacyRepair } from '../services/legacy-to-unicode';
 import { supportsModularPacks } from '../config/platform';
 import {
   convertWylieInParentheses,
@@ -294,6 +295,39 @@ export default {
           .replace(/['’]/g, "['’]")
       );
     },
+    async onPaste(event) {
+      const clipboard = {
+        text: event.clipboardData?.getData('text/plain') || '',
+        html: event.clipboardData?.getData('text/html') || '',
+      };
+      // Text set in a pre-Unicode Tibetan font arrives as Latin gibberish. This
+      // field deliberately applies no Wylie conversion — the query syntax only
+      // converts Wylie inside parentheses — so repairing is all it does, and
+      // every other paste is left to the browser.
+      if (!mayNeedLegacyRepair(clipboard)) return;
+
+      event.preventDefault();
+      const input = event.target;
+      const start = input.selectionStart;
+      const end = input.selectionEnd;
+      const current = this.searchQuery || '';
+
+      const { repairPasteInto } = await import('../services/legacy-to-unicode');
+      // The repair can still decline once the font tables are loaded — styled
+      // text in an ordinary font reaches this far. preventDefault() has already
+      // happened by then, so the raw text has to be inserted by hand.
+      const result = (await repairPasteInto(clipboard, {
+        value: current,
+        start,
+        end,
+      })) || {
+        value: current.substring(0, start) + clipboard.text + current.substring(end),
+        caret: start + clipboard.text.length,
+      };
+
+      this.searchQuery = result.value;
+      this.$nextTick(() => input.setSelectionRange(result.caret, result.caret));
+    },
     clear() {
       this.searchQuery = '';
       Storage.delete('searchQuery');
@@ -548,6 +582,7 @@ export default {
         autocorrect="off"
         v-model="searchQuery"
         @keyup.enter="performSearch()"
+        @paste="onPaste"
         @click:clear="clear"
       >
         <template v-slot:append-inner>
@@ -927,7 +962,7 @@ export default {
 .search-page .results-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   padding: 12px 16px;
   background: var(--paper, #faf3e0);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
@@ -943,6 +978,10 @@ export default {
   font-size: 0.875rem;
   font-weight: 500;
   color: #666;
+  /* Takes all the free space so the actions after it pack against the right
+     edge. With space-between they were spread out instead, which left the
+     "Add my definition" button stranded in the middle of the bar. */
+  margin-right: auto;
 }
 
 .v-theme--dark .search-page .results-header .results-count {

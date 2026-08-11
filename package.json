@@ -69,6 +69,7 @@
     "moment": "^2.29.4",
     "pluralize": "^8.0.0",
     "tauri-plugin-macos-permissions-api": "^2.3.0",
+    "tibetan-ansi-to-unicode": "^1.8.0",
     "tibetan-normalizer": "^0.1.0",
     "tibetan-regexps": "^1.0.3",
     "tibetan-to-phonetics": "^0.8.5",

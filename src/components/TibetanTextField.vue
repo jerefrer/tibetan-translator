@@ -1,6 +1,7 @@
 <script>
 import _ from 'underscore';
 import { convertWylieInText } from '../utils';
+import { mayNeedLegacyRepair } from '../services/legacy-to-unicode';
 
 export default {
   inheritAttrs: false,
@@ -52,18 +53,33 @@ export default {
         this.text = this.convertWylie(this.text);
       this.$emit('update:modelValue', this.text);
     },
-    handlePaste(event) {
-      var pastedText = event.clipboardData.getData('text/plain');
+    async handlePaste(event) {
+      event.preventDefault();
+      var clipboard = {
+        text: event.clipboardData.getData('text/plain'),
+        html: event.clipboardData.getData('text/html'),
+      };
+      // The selection has to be read before awaiting, while the event is still
+      // the one that describes the caret the user pasted at.
+      var input = this.$refs.input.$el.querySelector('input');
+      var start = input.selectionStart;
+      var end = input.selectionEnd;
+
+      // Text set in a pre-Unicode Tibetan font arrives as Latin gibberish;
+      // repair it so the rest of this handler sees ordinary Unicode Tibetan.
+      var pastedText = clipboard.text;
+      if (mayNeedLegacyRepair(clipboard)) {
+        const { convertLegacyPaste } = await import(
+          '../services/legacy-to-unicode'
+        );
+        pastedText = (await convertLegacyPaste(clipboard)) || clipboard.text;
+      }
+
       // For multi-line paste, emit paste:multiple if listener exists
       if (pastedText.split(/[\r\n]+/).length > 1) {
-        event.preventDefault();
         this.$emit('paste:multiple', this.convertWylie(pastedText));
       } else {
         // For single-line paste, convert and insert at cursor position
-        event.preventDefault();
-        var input = this.$refs.input.$el.querySelector('input');
-        var start = input.selectionStart;
-        var end = input.selectionEnd;
         var currentText = this.text || '';
         var newText =
           currentText.substring(0, start) +

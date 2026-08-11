@@ -1,7 +1,14 @@
 <template>
   <v-dialog :model-value="modelValue" max-width="560" @update:model-value="close">
     <v-card>
-      <v-card-title>Add my definition</v-card-title>
+      <v-card-item>
+        <v-card-title>{{ targets.length ? 'Add my definition' : 'Create a dictionary' }}</v-card-title>
+        <!-- With a single dictionary the picker below is hidden, so this is the
+             only thing that says where the definition is about to go. -->
+        <v-card-subtitle v-if="targets.length === 1">
+          Saving to {{ selectedTarget.name }}
+        </v-card-subtitle>
+      </v-card-item>
 
       <v-card-text class="quick-add-form">
         <template v-if="targets.length">
@@ -12,21 +19,26 @@
             item-title="name"
             item-value="key"
             label="Add to"
-            variant="filled"
+            variant="outlined"
+            color="primary"
             density="comfortable"
             hide-details
           />
           <TibetanTextField
             v-model="localTerm"
             label="Tibetan term"
-            variant="filled"
+            variant="outlined"
+            color="primary"
+            density="comfortable"
             :error-messages="termError ? [termError] : []"
             hide-details="auto"
           />
           <v-textarea
             v-model="definition"
             label="My definition"
-            variant="filled"
+            variant="outlined"
+            color="primary"
+            density="comfortable"
             rows="4"
             auto-grow
             autofocus
@@ -45,14 +57,17 @@
         </template>
 
         <template v-else>
-          <p class="mb-3">
-            You don't have a personal dictionary yet. Create one to start collecting
-            your own definitions.
+          <p>
+            You don't have a personal dictionary yet. Name one to start
+            collecting your own definitions.
           </p>
           <v-text-field
             v-model="newLexiconName"
-            label="Name of the new dictionary"
+            label="Dictionary name"
+            variant="outlined"
+            color="primary"
             density="comfortable"
+            hide-details="auto"
             autofocus
           />
         </template>
@@ -61,16 +76,18 @@
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="close(false)">Cancel</v-btn>
+        <!-- Solid, not tonal: tonal over this theme's deep red (#A30000) reads
+             as a warning rather than as the action the dialog is here for. -->
         <v-btn
           v-if="targets.length"
           color="primary"
-          variant="tonal"
+          variant="flat"
           :loading="saving"
           @click="save"
         >
           Save
         </v-btn>
-        <v-btn v-else color="primary" variant="tonal" :loading="saving" @click="createThenSave">
+        <v-btn v-else color="primary" variant="flat" :loading="saving" @click="createThenSave">
           Create
         </v-btn>
       </v-card-actions>
@@ -250,9 +267,10 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
+// v-card-item already sets the gap under the title, so the extra padding-top
+// this used to carry only widened the void the outlined fields now close.
 .quick-add-form
   display flex
   flex-direction column
   gap 16px
-  padding-top 8px
 </style>

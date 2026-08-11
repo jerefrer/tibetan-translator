@@ -8,6 +8,7 @@ import Storage from '../services/storage';
 import Decorator from '../services/decorator';
 import DictionariesDetailsMixin from './DictionariesDetailsMixin';
 import { convertWylieInText, tibetanLookupKey } from '../utils';
+import { mayNeedLegacyRepair } from '../services/legacy-to-unicode';
 
 const TIBETAN_CHAR_RE = /[ༀ-࿿]/;
 
@@ -262,8 +263,21 @@ export default {
         const text = await readText();
         console.log('[GlobalLookupWindow] Clipboard text:', text);
         if (!text) return;
-        const raw = text.trim();
+        let raw = text.trim();
         if (!raw) return;
+
+        // The Tauri clipboard exposes no HTML flavour, so a term copied out of
+        // a pre-Unicode Tibetan document can only be repaired from the text
+        // itself. That is enough whenever the source used a single legacy font,
+        // which is the common case for a copied term; a document interleaving
+        // several of them is not recoverable without the markup and simply
+        // falls through to the Wylie branch below, as it did before.
+        if (mayNeedLegacyRepair({ text: raw })) {
+          const { convertLegacyPaste } = await import(
+            '../services/legacy-to-unicode'
+          );
+          raw = (await convertLegacyPaste({ text: raw })) || raw;
+        }
 
         if (TIBETAN_CHAR_RE.test(raw)) {
           this.mode = 'define';
