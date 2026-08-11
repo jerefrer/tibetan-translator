@@ -962,7 +962,7 @@ export default {
 .search-page .results-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
   padding: 12px 16px;
   background: var(--paper, #faf3e0);
   border-bottom: 1px solid rgba(0, 0, 0, 0.08);
@@ -978,6 +978,10 @@ export default {
   font-size: 0.875rem;
   font-weight: 500;
   color: #666;
+  /* Takes all the free space so the actions after it pack against the right
+     edge. With space-between they were spread out instead, which left the
+     "Add my definition" button stranded in the middle of the bar. */
+  margin-right: auto;
 }
 
 .v-theme--dark .search-page .results-header .results-count {
