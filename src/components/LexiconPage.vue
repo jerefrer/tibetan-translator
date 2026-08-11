@@ -1,110 +1,134 @@
 <template>
-  <div class="lexicon-page pa-4">
-    <div v-if="!isSupported" class="text-center text-grey py-8">
-      Editing dictionaries is only available in the desktop and mobile apps.
-    </div>
-
-    <template v-else>
-      <div class="d-flex align-center mb-4">
-        <v-select
-          :model-value="selectedKey"
-          :items="dictionaryOptions"
-          item-title="label"
-          item-value="key"
-          label="Dictionary"
-          density="comfortable"
-          hide-details
-          style="max-width: 340px"
-          @update:model-value="onSelectDictionary"
-        />
-        <v-spacer />
-        <v-btn
-          v-if="selected"
-          variant="tonal"
-          color="primary"
-          class="mr-2"
-          @click="openAdd"
-        >
-          <v-icon start>mdi-plus</v-icon>
-          Add an entry
-        </v-btn>
-        <v-btn v-if="selected" variant="text" @click="exportLexicon">
-          <v-icon start>mdi-export</v-icon>
-          Export
-        </v-btn>
+  <div class="lexicon-page-wrapper">
+    <v-container class="lexicon-page">
+      <div v-if="!isSupported" class="text-center text-grey py-8">
+        Editing dictionaries is only available in the desktop and mobile apps.
       </div>
 
-      <div v-if="!dictionaryOptions.length" class="text-center text-grey py-8">
-        No custom dictionary yet. Create one from Settings.
-      </div>
-
-      <template v-else-if="selected">
-        <v-text-field
-          v-model="search"
-          label="Search in this dictionary"
-          prepend-inner-icon="mdi-magnify"
-          density="comfortable"
-          clearable
-          hide-details
-          class="mb-3"
-          @update:model-value="onSearchInput"
-        />
-
-        <div class="text-caption text-grey mb-2">{{ total }} entries</div>
-
-        <v-list v-if="entries.length" density="comfortable">
-          <v-list-item v-for="row in entries" :key="row.id" class="entry-row">
-            <v-list-item-title class="tibetan">{{ row.term }}</v-list-item-title>
-            <v-list-item-subtitle class="definition">{{ row.definition }}</v-list-item-subtitle>
-            <template v-slot:append>
-              <v-btn icon variant="text" size="small" @click="openEdit(row)">
-                <v-icon>mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn icon variant="text" size="small" color="error" @click="promptRemove(row)">
-                <v-icon>mdi-delete</v-icon>
-              </v-btn>
-            </template>
-          </v-list-item>
-        </v-list>
-
-        <div v-else class="text-center text-grey py-8">
-          {{ search ? 'No entry matches this search.' : 'This dictionary is empty.' }}
-        </div>
-
-        <v-pagination
-          v-if="pageCount > 1"
-          v-model="page"
-          :length="pageCount"
-          density="comfortable"
-          class="mt-4"
-          @update:model-value="load"
-        />
-      </template>
-
-      <LexiconEntryDialog
-        v-if="selected"
-        v-model="dialogOpen"
-        :pack-id="selected.packId"
-        :dictionary-id="selected.dictionaryId"
-        :entry="editing"
-        @saved="onSaved"
-      />
-
-      <v-dialog v-model="removeOpen" max-width="420">
-        <v-card v-if="removeTarget">
-          <v-card-title>Delete this entry?</v-card-title>
-          <v-card-text>
-            <p class="tibetan mb-1">{{ removeTarget.term }}</p>
-            <p class="text-body-2 text-grey">This cannot be undone.</p>
+      <template v-else>
+        <v-card v-if="!dictionaryOptions.length" class="lexicon-card">
+          <v-card-text class="text-center text-grey py-10">
+            <v-icon size="48" color="grey-lighten-1" class="mb-3">mdi-notebook-outline</v-icon>
+            <p class="mb-1">You don't have a dictionary of your own yet.</p>
+            <p class="text-caption mb-0">
+              Create one from the Settings page to start collecting your words.
+            </p>
           </v-card-text>
-          <v-card-actions>
-            <v-spacer />
-            <v-btn variant="text" @click="removeOpen = false">Cancel</v-btn>
-            <v-btn color="error" variant="elevated" @click="confirmRemove">Delete</v-btn>
-          </v-card-actions>
         </v-card>
-      </v-dialog>
-    </template>
+
+        <v-card v-else class="lexicon-card">
+          <v-toolbar>
+            <v-icon size="x-large" color="grey">mdi-notebook-edit-outline</v-icon>
+            <v-toolbar-title>
+              {{ selected ? selected.name : 'My dictionary' }}
+              <div class="text-caption text-grey">{{ entriesLabel }}</div>
+            </v-toolbar-title>
+
+            <v-select
+              v-if="dictionaryOptions.length > 1"
+              :model-value="selectedKey"
+              :items="dictionaryOptions"
+              item-title="label"
+              item-value="key"
+              density="compact"
+              variant="outlined"
+              hide-details
+              class="dictionary-switcher mr-4"
+              @update:model-value="onSelectDictionary"
+            />
+          </v-toolbar>
+
+          <template v-if="selected">
+            <div class="actions-row">
+              <v-text-field
+                v-model="search"
+                placeholder="Search in this dictionary"
+                prepend-inner-icon="mdi-magnify"
+                density="compact"
+                variant="solo-filled"
+                flat
+                clearable
+                hide-details
+                class="search-field"
+                @update:model-value="onSearchInput"
+              />
+              <v-btn variant="tonal" color="primary" class="ml-3" @click="openAdd">
+                <v-icon start>mdi-plus</v-icon>
+                Add an entry
+              </v-btn>
+              <v-btn variant="text" class="ml-1" @click="exportLexicon">
+                <v-icon start>mdi-export-variant</v-icon>
+                Export
+              </v-btn>
+            </div>
+
+            <v-list v-if="entries.length" class="entry-list py-0">
+              <v-list-item v-for="row in entries" :key="row.id" class="entry-row">
+                <div class="entry-term tibetan">{{ row.term }}</div>
+                <div class="entry-definition text-medium-emphasis">{{ row.definition }}</div>
+
+                <template v-slot:append>
+                  <div class="entry-actions">
+                    <v-btn icon variant="text" size="small" @click="openEdit(row)">
+                      <v-icon size="20">mdi-pencil-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">Edit</v-tooltip>
+                    </v-btn>
+                    <v-btn
+                      icon
+                      variant="text"
+                      size="small"
+                      class="delete-btn"
+                      @click="promptRemove(row)"
+                    >
+                      <v-icon size="20">mdi-delete-outline</v-icon>
+                      <v-tooltip activator="parent" location="top">Delete</v-tooltip>
+                    </v-btn>
+                  </div>
+                </template>
+              </v-list-item>
+            </v-list>
+
+            <v-card-text v-else class="text-center text-grey py-10">
+              {{ search ? 'No entry matches this search.' : 'This dictionary is empty — add your first word.' }}
+            </v-card-text>
+
+            <div v-if="pageCount > 1" class="pagination-row">
+              <v-pagination
+                v-model="page"
+                :length="pageCount"
+                density="comfortable"
+                :total-visible="7"
+                @update:model-value="load"
+              />
+            </div>
+          </template>
+        </v-card>
+
+        <LexiconEntryDialog
+          v-if="selected"
+          v-model="dialogOpen"
+          :pack-id="selected.packId"
+          :dictionary-id="selected.dictionaryId"
+          :entry="editing"
+          @saved="onSaved"
+        />
+
+        <v-dialog v-model="removeOpen" max-width="420">
+          <v-card v-if="removeTarget">
+            <v-card-title>Delete this entry?</v-card-title>
+            <v-card-text>
+              <p class="tibetan mb-1">{{ removeTarget.term }}</p>
+              <p class="text-body-2 text-grey mb-0">This cannot be undone.</p>
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="removeOpen = false">Cancel</v-btn>
+              <v-btn color="error" variant="elevated" @click="confirmRemove">Delete</v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
+      </template>
+    </v-container>
   </div>
 </template>
 
@@ -181,6 +205,11 @@ export default {
     },
     pageCount() {
       return Math.max(1, Math.ceil(this.total / PAGE_SIZE));
+    },
+    entriesLabel() {
+      const noun = this.total === 1 ? 'entry' : 'entries';
+      if (!this.search) return `${this.total} ${noun}`;
+      return `${this.total} ${noun} matching`;
     },
   },
   watch: {
@@ -322,13 +351,89 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
-.lexicon-page
-  max-width 900px
-  margin 0 auto
+.lexicon-page-wrapper
+  height 100%
+  overflow-y auto
 
-.entry-row
+.lexicon-page
+  margin-top 30px
+  padding-bottom 20px
+
+// Align the toolbar icon + title with the list rows below, the same way
+// ConfigurePage aligns its cards: 16px start padding on the toolbar content,
+// 16px right margin on the icon.
+.lexicon-card
+  :deep(.v-toolbar__content)
+    padding-inline-start 16px
+
+  :deep(.v-toolbar__content > .v-icon)
+    margin-inline 0 16px
+
+  :deep(.v-toolbar-title)
+    padding-inline-start 0
+    margin-inline-start 0
+
+  .v-toolbar__title, .v-toolbar__title .text-caption
+    line-height 1em
+
+  .v-toolbar__title .text-caption
+    margin-top 5px
+
+.dictionary-switcher
+  max-width 260px
+  flex 0 0 auto
+
+.actions-row
+  display flex
+  align-items center
+  padding 12px 16px
   border-bottom thin solid rgba(128, 128, 128, 0.2)
 
-  .definition
-    white-space pre-wrap
+  .search-field
+    flex 1 1 auto
+    min-width 0
+
+.entry-list
+  .entry-row
+    min-height 64px
+    padding-top 10px
+    padding-bottom 10px
+
+    & + .entry-row
+      border-top thin solid rgba(128, 128, 128, 0.16)
+
+    // The term is what the eye should land on first: it is the thing the
+    // user filed away, the definition is the payload.
+    .entry-term
+      font-size 1.35rem
+      line-height 1.5
+      margin-bottom 2px
+
+    // Definitions are frequently multi-line; Vuetify's list subtitle would
+    // clamp them to one line and hide the rest behind an ellipsis.
+    // Colour comes from the .text-medium-emphasis utility so it follows the
+    // theme — Stylus cannot evaluate Vuetify's CSS custom properties.
+    .entry-definition
+      white-space pre-wrap
+      font-size 0.9rem
+      line-height 1.4
+
+    .entry-actions
+      display flex
+      gap 2px
+      align-self flex-start
+      opacity 0.55
+      transition opacity 0.15s ease
+
+    &:hover .entry-actions
+      opacity 1
+
+    .delete-btn:hover
+      color unquote('rgb(var(--v-theme-error))')
+
+.pagination-row
+  display flex
+  justify-content center
+  padding 12px 16px
+  border-top thin solid rgba(128, 128, 128, 0.2)
 </style>
