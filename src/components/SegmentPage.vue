@@ -8,7 +8,7 @@ import {
   DEBOUNCE_ENTRIES_MS,
   DEBOUNCE_TEXTAREA_MS,
 } from "../config/constants";
-import { convertWylieInText } from "../utils";
+import { convertWylieInText, tibetanLookupKey, withTrailingTshek } from "../utils";
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
 import Entries from "./Entries.vue";
@@ -64,11 +64,6 @@ export default {
         return this.termsList[this.selectedTermIndex];
       }
       return null;
-    },
-    // Normalized term for lookup (without trailing tsek)
-    selectedTermNormalized() {
-      if (!this.selectedTerm) return null;
-      return this.selectedTerm.replace(/[་།]+$/, "");
     },
     topStyle() {
       return {
@@ -354,8 +349,8 @@ export default {
       for (let count = 2; count <= Math.min(MAX_MERGE_TERM_COUNT, this.termsList.length - i); count++) {
         const termsToMerge = this.termsList.slice(i, i + count);
         const merged = termsToMerge
-          .map(t => t.replace(/[་།]+$/, ""))
-          .join("་") + "་";
+          .map(withTrailingTshek)
+          .join("");
 
         // Use merged directly (already has trailing tsek)
         const rows = await SqlDatabase.getEntriesFor(merged);
@@ -415,8 +410,8 @@ export default {
       // Merge terms at startIndex through startIndex + count - 1
       const termsToMerge = this.termsList.slice(startIndex, startIndex + count);
       const merged = termsToMerge
-        .map(t => t.replace(/[་།]+$/, ""))
-        .join("་") + "་";
+        .map(withTrailingTshek)
+        .join("");
 
       // Remember the currently selected term content
       const previousSelectedTerm = this.selectedTerm;
@@ -533,8 +528,13 @@ export default {
       if (this.selectedTerm) {
         this.loading = true;
         try {
-          // Normalize: strip trailing punctuation and add exactly one tsek
-          const normalizedTerm = this.selectedTerm.replace(/[་།]+$/, "") + "་";
+          // Entry lookups are exact string matches, so the key must be derived
+          // exactly as everything that stores a term derives it. The local
+          // version this replaced stripped only [་།] where endPunctuation
+          // covers eight marks, so a word ending in a gter tsheg or a double
+          // shad was searched for with the punctuation still attached and
+          // never matched anything — in this page's own dictionaries either.
+          const normalizedTerm = tibetanLookupKey(this.selectedTerm);
           const rows = await SqlDatabase.getEntriesFor(normalizedTerm);
           this.entries = rows;
           this.resetDictionariesToDefaultAndSetNumberOfEntries();
