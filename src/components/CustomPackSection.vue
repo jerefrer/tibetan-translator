@@ -146,7 +146,7 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import PackManager from '../services/pack-manager';
 import TibdictInstaller from '../services/tibdict-installer';
-import Lexicon from '../services/lexicon';
+import Lexicon, { messageForError } from '../services/lexicon';
 import { supportsModularPacks } from '../config/platform';
 
 export default {
@@ -223,7 +223,7 @@ export default {
         this.snackbar.open(`${pack.manifest.name} removed`);
       } catch (e) {
         console.error('[CustomPackSection] remove failed:', e);
-        this.snackbar.open('Could not remove this dictionary.');
+        this.snackbar.open(messageForError(e, 'Could not remove this dictionary.'));
       } finally {
         this.removing = false;
       }
@@ -252,7 +252,7 @@ export default {
         this.$router.push(`/lexicon/${pack.id}`);
       } catch (e) {
         console.error('[CustomPackSection] create failed:', e);
-        this.createError = 'Could not create this dictionary.';
+        this.createError = messageForError(e, 'Could not create this dictionary.');
       } finally {
         this.creating = false;
       }

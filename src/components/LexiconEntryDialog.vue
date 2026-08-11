@@ -96,7 +96,7 @@
 <script>
 import _ from 'underscore';
 import TibetanTextField from './TibetanTextField.vue';
-import Lexicon, { normalizeTerm } from '../services/lexicon';
+import Lexicon, { normalizeTerm, messageForError } from '../services/lexicon';
 
 export default {
   name: 'LexiconEntryDialog',
@@ -244,7 +244,7 @@ export default {
         this.close(false);
       } catch (e) {
         console.error('[LexiconEntryDialog] save failed:', e);
-        this.termError = 'Could not save this entry.';
+        this.termError = messageForError(e, 'Could not save this entry.');
       } finally {
         this.saving = false;
       }

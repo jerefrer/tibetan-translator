@@ -77,6 +77,34 @@ export function prepareEntry(rawTerm, rawDefinition) {
   };
 }
 
+/**
+ * Turn a LexiconError from Rust into something worth reading.
+ *
+ * src-tauri/src/lexicon.rs tags every failure with a `code`; without this the
+ * UI collapses all of them into one generic sentence and the user is left
+ * guessing — most painfully for `conflict`, where the fix (pick another name)
+ * is obvious once stated and invisible otherwise.
+ *
+ * `fallback` covers the codes that carry no advice for the user, plus anything
+ * that isn't a LexiconError at all.
+ */
+export function messageForError(error, fallback) {
+  switch (error?.code) {
+    case 'conflict':
+      return 'A dictionary with that name already exists. Try another name.';
+    case 'notFound':
+      return 'That no longer exists — it may have been removed already.';
+    case 'notCustom':
+      return 'Only your own dictionaries can be edited.';
+    case 'corrupt':
+      return "This dictionary's file could not be read. It may be damaged.";
+    case 'path':
+      return 'Could not write to disk. Check that there is space available.';
+    default:
+      return fallback;
+  }
+}
+
 export const Lexicon = {
   /** Every dictionary the user is allowed to write to, flattened across packs. */
   editableDictionaries() {

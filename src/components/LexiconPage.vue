@@ -135,7 +135,7 @@
 <script>
 import { save } from '@tauri-apps/plugin-dialog';
 import _ from 'underscore';
-import Lexicon from '../services/lexicon';
+import Lexicon, { messageForError } from '../services/lexicon';
 import LexiconEntryDialog from './LexiconEntryDialog.vue';
 import { supportsModularPacks } from '../config/platform';
 
@@ -301,7 +301,7 @@ export default {
         this.total = response.total;
       } catch (e) {
         console.error('[LexiconPage] load failed:', e);
-        this.snackbar.open('Could not read this dictionary.');
+        this.snackbar.open(messageForError(e, 'Could not read this dictionary.'));
       }
     },
     openAdd() {
@@ -329,7 +329,7 @@ export default {
         this.load();
       } catch (e) {
         console.error('[LexiconPage] delete failed:', e);
-        this.snackbar.open('Could not remove this entry.');
+        this.snackbar.open(messageForError(e, 'Could not remove this entry.'));
       }
     },
     async exportLexicon() {
@@ -343,7 +343,7 @@ export default {
         this.snackbar.open(`Exported as v${outcome.version}`);
       } catch (e) {
         console.error('[LexiconPage] export failed:', e);
-        this.snackbar.open('Could not export this dictionary.');
+        this.snackbar.open(messageForError(e, 'Could not export this dictionary.'));
       }
     },
   },

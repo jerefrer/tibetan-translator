@@ -81,7 +81,7 @@
 <script>
 import _ from 'underscore';
 import TibetanTextField from './TibetanTextField.vue';
-import Lexicon, { normalizeTerm } from '../services/lexicon';
+import Lexicon, { normalizeTerm, messageForError } from '../services/lexicon';
 import Storage from '../services/storage';
 
 export default {
@@ -225,7 +225,7 @@ export default {
         this.close(false);
       } catch (e) {
         console.error('[QuickAddDialog] save failed:', e);
-        this.error = 'Could not save this entry.';
+        this.error = messageForError(e, 'Could not save this entry.');
       } finally {
         this.saving = false;
       }
@@ -240,7 +240,7 @@ export default {
         this.snackbar.open(`${pack.manifest.name} created`);
       } catch (e) {
         console.error('[QuickAddDialog] create failed:', e);
-        this.snackbar.open('Could not create this dictionary.');
+        this.snackbar.open(messageForError(e, 'Could not create this dictionary.'));
       } finally {
         this.saving = false;
       }
