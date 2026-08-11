@@ -56,7 +56,9 @@
         <TibetanTextField
           v-model="term"
           label="Tibetan term"
-          variant="filled"
+          variant="outlined"
+          color="primary"
+          density="comfortable"
           :error-messages="termError ? [termError] : []"
           hide-details="auto"
           autofocus
@@ -65,7 +67,9 @@
         <v-textarea
           v-model="definition"
           label="Definition"
-          variant="filled"
+          variant="outlined"
+          color="primary"
+          density="comfortable"
           rows="4"
           auto-grow
           hide-details="auto"
@@ -87,7 +91,7 @@
       <v-card-actions>
         <v-spacer />
         <v-btn variant="text" @click="close(false)">Cancel</v-btn>
-        <v-btn color="primary" variant="tonal" :loading="saving" @click="save">Save</v-btn>
+        <v-btn color="primary" variant="flat" :loading="saving" @click="save">Save</v-btn>
       </v-card-actions>
     </v-card>
   </v-dialog>
