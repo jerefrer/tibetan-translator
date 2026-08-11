@@ -1,26 +1,87 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="560" @update:model-value="close">
-    <v-card>
+  <v-dialog
+    :model-value="modelValue"
+    :persistent="conflictOpen"
+    max-width="560"
+    @update:model-value="close"
+  >
+    <!-- One dialog, two states. Stacking a second v-dialog on top of this one
+         leaves the form's buttons peeking out below the decision, which reads
+         as an accident rather than a deliberate step. -->
+    <v-card v-if="conflictOpen && existing">
+      <v-card-title>This term already exists</v-card-title>
+      <v-card-text>
+        <p class="tibetan collision-term mb-4">{{ existing.term }}</p>
+
+        <div class="collision-block">
+          <div class="collision-label">Already saved</div>
+          <div class="collision-text">{{ existing.definition }}</div>
+        </div>
+
+        <div class="collision-block">
+          <div class="collision-label">What you just wrote</div>
+          <div class="collision-text">{{ definition }}</div>
+        </div>
+      </v-card-text>
+
+      <v-card-actions class="collision-actions">
+        <v-btn variant="text" @click="conflictOpen = false">Back</v-btn>
+        <v-spacer />
+        <!-- Keeping both is the recoverable choice, so it carries the visual
+             weight; replacing discards the user's earlier work and is offered
+             without encouragement. -->
+        <v-btn
+          color="error"
+          variant="text"
+          :loading="saving"
+          @click="resolveConflict('replace')"
+        >
+          Replace it
+        </v-btn>
+        <v-btn
+          color="primary"
+          variant="flat"
+          :loading="saving"
+          @click="resolveConflict('merge')"
+        >
+          Keep both
+        </v-btn>
+      </v-card-actions>
+    </v-card>
+
+    <v-card v-else>
       <v-card-title>{{ isEditing ? 'Edit entry' : 'Add an entry' }}</v-card-title>
 
-      <v-card-text>
+      <v-card-text class="entry-form">
         <TibetanTextField
           v-model="term"
           label="Tibetan term"
+          variant="filled"
           :error-messages="termError ? [termError] : []"
           hide-details="auto"
           autofocus
+          @update:model-value="onTermInput"
         />
         <v-textarea
           v-model="definition"
           label="Definition"
+          variant="filled"
           rows="4"
           auto-grow
+          hide-details="auto"
           :error-messages="definitionError ? [definitionError] : []"
         />
-        <p class="text-caption text-grey mt-2">
-          A term already in this dictionary is updated rather than duplicated.
-        </p>
+
+        <v-alert
+          v-if="existing"
+          type="info"
+          variant="tonal"
+          density="compact"
+          class="collision-notice"
+        >
+          This term is already in this dictionary. You'll be asked what to do
+          with the existing definition when you save.
+        </v-alert>
       </v-card-text>
 
       <v-card-actions>
@@ -33,6 +94,7 @@
 </template>
 
 <script>
+import _ from 'underscore';
 import TibetanTextField from './TibetanTextField.vue';
 import Lexicon, { normalizeTerm } from '../services/lexicon';
 
@@ -54,6 +116,10 @@ export default {
       termError: '',
       definitionError: '',
       saving: false,
+      /** A different entry already using the typed term, or null. */
+      existing: null,
+      conflictOpen: false,
+      onTermInput: () => {},
     };
   },
   computed: {
@@ -69,24 +135,66 @@ export default {
       this.termError = '';
       this.definitionError = '';
       this.saving = false;
+      this.existing = null;
+      this.conflictOpen = false;
+      this.checkExisting();
     },
+  },
+  created() {
+    this.onTermInput = _.debounce(() => this.checkExisting(), 250);
   },
   methods: {
     close(value = false) {
       this.$emit('update:modelValue', value);
+    },
+    /**
+     * Look up the typed term by exact match, so the user is told BEFORE saving
+     * that they are about to write over something. The entry being edited is
+     * not a collision with itself.
+     */
+    async checkExisting() {
+      if (!normalizeTerm(this.term)) {
+        this.existing = null;
+        return;
+      }
+      try {
+        const found = await Lexicon.findEntry(this.packId, this.dictionaryId, this.term);
+        this.existing = found && found.id !== this.entry?.id ? found : null;
+      } catch (e) {
+        console.error('[LexiconEntryDialog] existence check failed:', e);
+        this.existing = null;
+      }
+    },
+    /** Apply the user's choice from the collision dialog. */
+    resolveConflict(mode) {
+      const merged = `${this.existing.definition}\n${this.definition}`;
+      this.conflictOpen = false;
+      this.commit(mode === 'merge' ? merged : this.definition);
     },
     async save() {
       this.termError = normalizeTerm(this.term) ? '' : 'A Tibetan term is required.';
       this.definitionError = this.definition.trim() ? '' : 'A definition is required.';
       if (this.termError || this.definitionError) return;
 
+      // The debounced check may still be pending, and saving on a stale result
+      // is exactly the silent overwrite this dialog exists to prevent.
+      this.onTermInput.cancel();
+      await this.checkExisting();
+      if (this.existing) {
+        this.conflictOpen = true;
+        return;
+      }
+
+      await this.commit(this.definition);
+    },
+    async commit(definitionToSave) {
       this.saving = true;
       try {
         const outcome = await Lexicon.saveEntry(
           this.packId,
           this.dictionaryId,
           this.term,
-          this.definition
+          definitionToSave
         );
         if (!outcome) {
           this.termError = 'Could not save this entry.';
@@ -144,3 +252,36 @@ export default {
   },
 };
 </script>
+
+<style lang="stylus" scoped>
+.entry-form
+  display flex
+  flex-direction column
+  gap 16px
+  padding-top 8px
+
+.collision-notice
+  margin 0
+
+.collision-term
+  font-size 1.5rem
+  line-height 1.6
+
+.collision-block
+  & + .collision-block
+    margin-top 14px
+
+  .collision-label
+    font-size 0.75rem
+    letter-spacing 0.04em
+    text-transform uppercase
+    opacity 0.6
+    margin-bottom 2px
+
+  .collision-text
+    white-space pre-wrap
+    line-height 1.45
+
+.collision-actions
+  gap 8px
+</style>

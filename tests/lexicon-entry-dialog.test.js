@@ -39,6 +39,7 @@ if (typeof window.visualViewport === 'undefined') {
 
 const saveEntryMock = vi.fn()
 const deleteEntryMock = vi.fn()
+const findEntryMock = vi.fn()
 
 // Mock only the Tauri-backed calls on Lexicon. Keep normalizeTerm and
 // everything else real, since the dialog's own validation depends on it.
@@ -50,6 +51,7 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
       ...actual.default,
       saveEntry: (...args) => saveEntryMock(...args),
       deleteEntry: (...args) => deleteEntryMock(...args),
+      findEntry: (...args) => findEntryMock(...args),
     },
   }
 })
@@ -62,6 +64,8 @@ describe('LexiconEntryDialog', () => {
   beforeEach(() => {
     saveEntryMock.mockReset()
     deleteEntryMock.mockReset().mockResolvedValue(undefined)
+    // No collision unless a test sets one up.
+    findEntryMock.mockReset().mockResolvedValue(null)
   })
 
   afterEach(() => {
@@ -266,6 +270,116 @@ describe('LexiconEntryDialog', () => {
     })
   })
 
+  describe('saving onto a term that already exists', () => {
+    const collision = { id: 99, term: 'ཀ་', definition: 'the letter ka' }
+
+    it('warns in the form as soon as the typed term matches an existing entry', async () => {
+      findEntryMock.mockResolvedValue(collision)
+      const wrapper = mountDialog()
+
+      wrapper.vm.term = 'ཀ་'
+      await wrapper.vm.checkExisting()
+      await nextTick()
+
+      expect(wrapper.vm.existing).toEqual(collision)
+      expect(document.body.textContent).toContain('This term is already in this dictionary')
+
+      wrapper.unmount()
+    })
+
+    it('does not warn when the only match is the entry being edited', async () => {
+      findEntryMock.mockResolvedValue(collision)
+      const wrapper = mountDialog({ entry: { ...collision } })
+
+      await wrapper.vm.checkExisting()
+      await nextTick()
+
+      // Editing an entry is not a collision with itself.
+      expect(wrapper.vm.existing).toBeNull()
+      expect(document.body.textContent).not.toContain('This term is already in this dictionary')
+
+      wrapper.unmount()
+    })
+
+    it('asks what to do instead of saving straight over the existing definition', async () => {
+      findEntryMock.mockResolvedValue(collision)
+      const wrapper = mountDialog()
+      wrapper.vm.term = 'ཀ་'
+      wrapper.vm.definition = 'a new gloss'
+      await nextTick()
+
+      await clickSave()
+
+      // The whole point: nothing was written, the user was asked first.
+      expect(saveEntryMock).not.toHaveBeenCalled()
+      expect(wrapper.vm.conflictOpen).toBe(true)
+      expect(document.body.textContent).toContain('This term already exists')
+      expect(document.body.textContent).toContain('the letter ka')
+      expect(document.body.textContent).toContain('a new gloss')
+
+      wrapper.unmount()
+    })
+
+    it('keeps both definitions when the user chooses to merge', async () => {
+      findEntryMock.mockResolvedValue(collision)
+      saveEntryMock.mockResolvedValue({ id: 99, created: false })
+      const wrapper = mountDialog()
+      wrapper.vm.term = 'ཀ་'
+      wrapper.vm.definition = 'a new gloss'
+      await nextTick()
+      await clickSave()
+
+      findButton('Keep both').click()
+      await flushPromises()
+
+      expect(saveEntryMock).toHaveBeenCalledWith(
+        'custom-x',
+        1,
+        'ཀ་',
+        'the letter ka\na new gloss'
+      )
+      expect(wrapper.emitted('saved')).toBeTruthy()
+
+      wrapper.unmount()
+    })
+
+    it('writes only the new definition when the user chooses to replace', async () => {
+      findEntryMock.mockResolvedValue(collision)
+      saveEntryMock.mockResolvedValue({ id: 99, created: false })
+      const wrapper = mountDialog()
+      wrapper.vm.term = 'ཀ་'
+      wrapper.vm.definition = 'a new gloss'
+      await nextTick()
+      await clickSave()
+
+      findButton('Replace it').click()
+      await flushPromises()
+
+      expect(saveEntryMock).toHaveBeenCalledWith('custom-x', 1, 'ཀ་', 'a new gloss')
+
+      wrapper.unmount()
+    })
+
+    it('goes back to the form without writing anything when the user backs out', async () => {
+      findEntryMock.mockResolvedValue(collision)
+      const wrapper = mountDialog()
+      wrapper.vm.term = 'ཀ་'
+      wrapper.vm.definition = 'a new gloss'
+      await nextTick()
+      await clickSave()
+
+      findButton('Back').click()
+      await flushPromises()
+
+      expect(wrapper.vm.conflictOpen).toBe(false)
+      expect(saveEntryMock).not.toHaveBeenCalled()
+      // The dialog stays open so the typed definition is not lost.
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+
+      wrapper.unmount()
+    })
+  })
+
   it('resets the saving flag when the dialog is reopened while a save is still in flight', async () => {
     let resolveSave
     saveEntryMock.mockImplementation(
@@ -280,7 +394,9 @@ describe('LexiconEntryDialog', () => {
     await nextTick()
 
     findButton('Save').click()
-    await nextTick()
+    // save() now awaits the exact-match collision check before committing, so
+    // the saving flag is raised a microtask later than a single tick.
+    await flushPromises()
     expect(wrapper.vm.saving).toBe(true)
 
     // Parent closes the dialog (e.g. user dismisses it) while the save is

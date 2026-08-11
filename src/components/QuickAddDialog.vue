@@ -3,7 +3,7 @@
     <v-card>
       <v-card-title>Add my definition</v-card-title>
 
-      <v-card-text>
+      <v-card-text class="quick-add-form">
         <template v-if="targets.length">
           <v-select
             v-if="targets.length > 1"
@@ -12,26 +12,36 @@
             item-title="name"
             item-value="key"
             label="Add to"
+            variant="filled"
             density="comfortable"
-            class="mb-2"
+            hide-details
           />
           <TibetanTextField
             v-model="localTerm"
             label="Tibetan term"
+            variant="filled"
             :error-messages="termError ? [termError] : []"
             hide-details="auto"
           />
           <v-textarea
             v-model="definition"
             label="My definition"
+            variant="filled"
             rows="4"
             auto-grow
             autofocus
+            hide-details="auto"
             :error-messages="error ? [error] : []"
           />
-          <p v-if="existingId" class="text-caption text-grey">
-            This term is already in {{ selectedTarget.name }} — saving will update it.
-          </p>
+          <v-alert
+            v-if="existingId"
+            type="info"
+            variant="tonal"
+            density="compact"
+          >
+            This term is already in {{ selectedTarget.name }} — saving will
+            replace the definition shown above.
+          </v-alert>
         </template>
 
         <template v-else>
@@ -238,3 +248,11 @@ export default {
   },
 };
 </script>
+
+<style lang="stylus" scoped>
+.quick-add-form
+  display flex
+  flex-direction column
+  gap 16px
+  padding-top 8px
+</style>
