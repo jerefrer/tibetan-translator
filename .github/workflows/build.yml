@@ -59,6 +59,24 @@ jobs:
         run: cd public/packs && 7z x core.7z
         shell: bash
 
+      # The release body is also what tauri-action writes into the updater's
+      # latest.json, so this is the text users read in the in-app update prompt.
+      - name: Read release notes from CHANGELOG.md
+        id: notes
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES=$(node ./scripts/extract-release-notes.js "$VERSION")
+          if [ -z "$NOTES" ]; then
+            echo "::warning::No CHANGELOG.md section for $VERSION; falling back to the generic body."
+            NOTES="See the assets below to download and install this version."
+          fi
+          {
+            echo "body<<CHANGELOG_NOTES_EOF"
+            echo "$NOTES"
+            echo "CHANGELOG_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,9 +89,11 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
-          tagName: app-v__VERSION__
+          # Attach the release to the tag that triggered this run, instead of
+          # minting a parallel app-v* tag for every version.
+          tagName: ${{ github.ref_name }}
           releaseName: 'App v__VERSION__'
-          releaseBody: 'See the assets to download this version and install.'
+          releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
