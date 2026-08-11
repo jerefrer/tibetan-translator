@@ -18,6 +18,34 @@ Run `pnpm check:tauri-versions` to verify alignment in ~300ms without a full bui
 
 When adding a new Tauri plugin, add its pair to the `PAIRS` array in `scripts/check-tauri-versions.js`.
 
+## Release process
+
+`pnpm release:patch|minor|major` runs the whole chain:
+
+```
+check:tauri-versions
+  → bump-version <type> --print     resolve the next version, write nothing
+  → generate-changelog --next       write notes, OPEN $EDITOR, may abort
+  → bump-version <type>             now write package.json/tauri.conf.json/Cargo.toml
+  → git add -A, commit, tag v<version>, push
+```
+
+**It is interactive.** `generate-changelog --next` collects the commits since the last published release, has `claude -p --model sonnet` write user-facing notes into `CHANGELOG.md`, then opens `$VISUAL → $EDITOR → git core.editor → vi` and waits. Save and quit to continue. **Leaving the version's section empty aborts the release** — nothing is bumped, committed or tagged, and `CHANGELOG.md` is restored. That is the intended way to back out.
+
+Changelog entries never repeat the verb in their `###` heading ("Copy buttons on every definition", not "Added copy buttons"), and carry no trailing full stop. The rule lives in the prompt inside `scripts/generate-changelog.js`.
+
+This text is user-visible in three places: the GitHub release body, the `notes` field of `latest.json`, and the **What's new** dialog the app shows before restarting to install an update. Sloppy notes ship to users.
+
+Pure logic lives in `scripts/lib/changelog-core.js`, covered by `tests/changelog.test.js`. Two one-off scripts exist and should not be needed again: `generate-changelog.js --backfill` rebuilds the whole file from every published release, and `sync-release-notes.js` (dry run by default, `--apply` to write) pushes each section to its GitHub release body.
+
+### CI gotchas
+
+**The Linux build takes ~2 hours.** A `Build/release` run sitting in `in_progress` for an hour with only `ubuntu-22.04` outstanding is normal, not stuck. Do not conclude the job is hung.
+
+**Each matrix job merges its own entries into the release's `latest.json`.** A job that dies after uploading its binaries but before writing that entry leaves a release carrying every asset while the updater silently stops offering it to that platform — this happened to Intel Macs on v1.9.2. The `verify-updater-manifest` job now fails the run and names the missing platforms. The fix is to re-run the failed matrix job once the run completes; re-running merges, it does not overwrite.
+
+Releases from v1.9.2 onward sit on a single `v*` tag. Earlier ones sit on a parallel `app-v*` tag that `tauri-action` used to mint, which is why compare links in `CHANGELOG.md` use both forms.
+
 ## Project Overview
 
 Tibetan Translator is a multi-platform dictionary app that provides access to 60+ Tibetan dictionaries through a unified interface. It runs as a **Tauri 2** desktop/mobile app and can also run in a web browser.
@@ -44,6 +72,8 @@ pnpm test             # Run tests (vitest)
 pnpm test:watch       # Watch mode
 pnpm build:database   # Build full SQLite DB from dictionary sources
 pnpm build:packs      # Build modular pack .sqlite files
+pnpm release:patch    # Full release: changelog (interactive) + bump + tag + push
+pnpm check:tauri-versions  # Verify @tauri-apps/* npm vs Rust crate alignment
 ```
 
 ## Project Structure
