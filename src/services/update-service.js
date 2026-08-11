@@ -16,6 +16,10 @@ class UpdateService {
     this.state = reactive({
       updateReady: false,
       version: null,
+      // Release notes for the pending update, straight from the release body
+      // that tauri-action wrote into latest.json. Markdown, rendered by
+      // release-notes-markdown.js.
+      notes: null,
       downloading: false,
       downloadProgress: 0,
     });
@@ -40,6 +44,8 @@ class UpdateService {
       if (!update) return null; // No update available
 
       this.updateInfo = update;
+      this.state.version = update.version;
+      this.state.notes = update.body || null;
       this.state.downloading = true;
       this.state.downloadProgress = 0;
 
@@ -85,6 +91,7 @@ class UpdateService {
       const { check } = await import('@tauri-apps/plugin-updater');
       const update = await check();
       this.updateInfo = update;
+      if (update) this.state.notes = update.body || null;
       return update;
     } catch (e) {
       this.error = e;

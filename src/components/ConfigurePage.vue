@@ -6,6 +6,7 @@ import Storage from '../services/storage';
 import DictionariesDetails from '../services/dictionaries-details';
 import GlobalLookup from '../services/global-lookup';
 import UpdateService from '../services/update-service';
+import { renderReleaseNotes } from '../services/release-notes-markdown';
 import { isTauri } from '../config/platform';
 import {
   getScannedDictionaries,
@@ -84,6 +85,9 @@ export default {
     },
     updateProgress() {
       return UpdateService.state.downloadProgress;
+    },
+    updateNotesHtml() {
+      return renderReleaseNotes(UpdateService.state.notes);
     },
   },
   watch: {
@@ -389,6 +393,15 @@ export default {
             <div class="font-weight-medium">Tibetan Translator</div>
             <div v-if="updateReady" class="text-caption text-grey">
               Version {{ appVersion }} &rarr; v{{ updateVersion }} ready
+              <v-btn
+                class="whats-new-link"
+                variant="text"
+                size="x-small"
+                density="compact"
+                @click="restartDialog = true"
+              >
+                What's new
+              </v-btn>
             </div>
             <div v-else class="text-caption text-grey">Version {{ appVersion }}</div>
           </div>
@@ -426,17 +439,23 @@ export default {
       </v-card-text>
     </v-card>
 
-    <!-- Restart confirmation -->
-    <v-dialog v-model="restartDialog" max-width="400">
+    <!-- Release notes for the downloaded update, plus the restart confirmation -->
+    <v-dialog v-model="restartDialog" max-width="560">
       <v-card>
-        <v-card-title>Restart to update</v-card-title>
+        <v-card-title>What's new in v{{ updateVersion }}</v-card-title>
         <v-card-text>
-          Restart now to apply update v{{ updateVersion }}?
+          <div v-if="updateNotesHtml" class="release-notes" v-html="updateNotesHtml" />
+          <div v-else class="text-body-2 text-grey">
+            No release notes were published for this version.
+          </div>
+          <div class="text-caption text-grey mt-4">
+            The update is already downloaded and will be applied when the app restarts.
+          </div>
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn variant="text" @click="restartDialog = false">Cancel</v-btn>
-          <v-btn color="primary" variant="flat" @click="confirmRestart">Restart</v-btn>
+          <v-btn variant="text" @click="restartDialog = false">Later</v-btn>
+          <v-btn color="primary" variant="flat" @click="confirmRestart">Restart now</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -750,6 +769,41 @@ export default {
 .configure-page-wrapper
   height: 100%
   overflow-y: auto
+
+// The update dialog is teleported to the body, so its styles live at the top
+// level rather than nested inside .configure-page.
+.whats-new-link
+  margin-left: 4px
+  padding: 0 4px
+  min-width: 0
+  height: auto
+  text-transform: none
+  letter-spacing: normal
+
+.release-notes
+  max-height: 50vh
+  overflow-y: auto
+
+  h4
+    font-size: 0.875rem
+    font-weight: 600
+    margin: 12px 0 4px
+
+    &:first-child
+      margin-top: 0
+
+  ul
+    margin: 0
+    padding-left: 20px
+
+  li
+    font-size: 0.875rem
+    line-height: 1.5
+    margin-bottom: 4px
+
+  p
+    font-size: 0.875rem
+    margin: 0 0 8px
 
 .configure-page
   margin-top: 30px
