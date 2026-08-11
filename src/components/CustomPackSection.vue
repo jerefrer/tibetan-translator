@@ -110,6 +110,35 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="removeOpen" max-width="460">
+      <v-card v-if="removeTarget">
+        <v-card-title>Remove dictionary?</v-card-title>
+        <v-card-text>
+          <p>
+            <strong>{{ removeTarget.manifest.name }}</strong> will be permanently deleted from
+            this device. This cannot be undone.
+          </p>
+          <v-alert
+            v-if="removeHasLocalEdits"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mt-3"
+          >
+            This dictionary has entries you added or edited here, nowhere else. Consider
+            exporting it first if you want to keep a copy.
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="removeOpen = false">Cancel</v-btn>
+          <v-btn color="error" variant="elevated" :loading="removing" @click="confirmRemove">
+            Remove
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -130,6 +159,9 @@ export default {
       newName: '',
       newDescription: '',
       createError: '',
+      removeOpen: false,
+      removing: false,
+      removeTarget: null,
     };
   },
   computed: {
@@ -138,6 +170,15 @@ export default {
     },
     packs() {
       return PackManager.customPacks;
+    },
+    // Same field the conflict modal treats as "edited since it came into
+    // existence" (see CustomPackConflictModal.vue's hasLocalEdits and the
+    // create_lexicon fix that leaves modifiedAt unset until an entry is
+    // actually written): a freshly created, never-touched lexicon reads as
+    // false, so the stronger export-first wording only shows once there is
+    // something on this device that exists nowhere else.
+    removeHasLocalEdits() {
+      return !!this.removeTarget?.manifest?.modifiedAt;
     },
   },
   methods: {
@@ -167,9 +208,25 @@ export default {
         this.snackbar.open('Invalid or corrupted file.');
       }
     },
-    async onRemove(pack) {
-      await PackManager.removeCustomPack(pack.id);
-      this.snackbar.open(`${pack.manifest.name} removed`);
+    onRemove(pack) {
+      this.removeTarget = pack;
+      this.removing = false;
+      this.removeOpen = true;
+    },
+    async confirmRemove() {
+      const pack = this.removeTarget;
+      if (!pack) return;
+      this.removing = true;
+      try {
+        await PackManager.removeCustomPack(pack.id);
+        this.removeOpen = false;
+        this.snackbar.open(`${pack.manifest.name} removed`);
+      } catch (e) {
+        console.error('[CustomPackSection] remove failed:', e);
+        this.snackbar.open('Could not remove this dictionary.');
+      } finally {
+        this.removing = false;
+      }
     },
     onManage(pack) {
       this.$router.push(`/lexicon/${pack.id}`);

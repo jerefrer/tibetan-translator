@@ -60,7 +60,7 @@
               <v-btn icon variant="text" size="small" @click="openEdit(row)">
                 <v-icon>mdi-pencil</v-icon>
               </v-btn>
-              <v-btn icon variant="text" size="small" color="error" @click="remove(row)">
+              <v-btn icon variant="text" size="small" color="error" @click="promptRemove(row)">
                 <v-icon>mdi-delete</v-icon>
               </v-btn>
             </template>
@@ -89,6 +89,21 @@
         :entry="editing"
         @saved="onSaved"
       />
+
+      <v-dialog v-model="removeOpen" max-width="420">
+        <v-card v-if="removeTarget">
+          <v-card-title>Delete this entry?</v-card-title>
+          <v-card-text>
+            <p class="tibetan mb-1">{{ removeTarget.term }}</p>
+            <p class="text-body-2 text-grey">This cannot be undone.</p>
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="removeOpen = false">Cancel</v-btn>
+            <v-btn color="error" variant="elevated" @click="confirmRemove">Delete</v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </template>
   </div>
 </template>
@@ -114,6 +129,8 @@ export default {
       entries: [],
       dialogOpen: false,
       editing: null,
+      removeOpen: false,
+      removeTarget: null,
       // Assigned in created() so the template's @update:model-value="onSearchInput"
       // binding always resolves to the debounced call, even on the very first render.
       onSearchInput: null,
@@ -269,9 +286,16 @@ export default {
     onSaved() {
       this.load();
     },
-    async remove(row) {
+    promptRemove(row) {
+      this.removeTarget = row;
+      this.removeOpen = true;
+    },
+    async confirmRemove() {
+      const row = this.removeTarget;
+      if (!row) return;
       try {
         await Lexicon.deleteEntry(this.selected.packId, row.id);
+        this.removeOpen = false;
         this.snackbar.open('Entry removed');
         this.load();
       } catch (e) {

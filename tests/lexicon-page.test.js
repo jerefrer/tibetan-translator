@@ -55,6 +55,21 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import { ref } from 'vue'
 
+// happy-dom does not implement window.visualViewport, which Vuetify's
+// VOverlay location strategy reads unconditionally once a v-dialog actually
+// opens. Without this the dialog throws on mount instead of rendering. The
+// delete-confirmation dialog (BLOCKING 2) is the first thing in this file to
+// actually open one — earlier tests only ever read/write component state,
+// never toggled dialogOpen/removeOpen to true.
+if (typeof window.visualViewport === 'undefined') {
+  window.visualViewport = {
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }
+}
+
 // LexiconPage is gated entirely behind supportsModularPacks(); force it on
 // so the real page renders instead of the "desktop/mobile only" message.
 vi.mock('../src/config/platform.js', () => ({
@@ -311,11 +326,15 @@ describe('LexiconPage', () => {
       // 51-entry / 2-page dictionary.
       page.vm.page = 2
 
-      // remove() awaits the delete but not the load() it kicks off
+      // confirmRemove() awaits the delete but not the load() it kicks off
       // afterwards (unchanged from earlier rounds — not touched this round
       // per instruction), so its completion is still observed by waiting on
       // the condition rather than assuming a single flush is enough.
-      await page.vm.remove({ id: 999, term: 'x', definition: 'y' })
+      // The delete now goes through a confirmation dialog (promptRemove
+      // stages the target, confirmRemove performs the delete) rather than
+      // deleting immediately — see the final-review fix for BLOCKING 2.
+      page.vm.promptRemove({ id: 999, term: 'x', definition: 'y' })
+      await page.vm.confirmRemove()
       await vi.waitFor(() => {
         expect(page.vm.page).toBe(1)
       })
