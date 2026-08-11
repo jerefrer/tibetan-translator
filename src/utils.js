@@ -90,6 +90,45 @@ export const withTrailingTshek = function (tibetan) {
   return tibetan.replace(TibetanRegExps.endPunctuation, '') + '་';
 }
 
+/**
+ * Strip everything that isn't Tibetan script, then drop any punctuation left
+ * exposed at the start (e.g. a leading tsheg once neighboring text is gone).
+ *
+ * This is the "cleaned but not yet tsheg-terminated" text GlobalLookupWindow
+ * and SelectedTibetanEntriesPopup keep around for display before querying.
+ */
+export const strippedTibetanText = function (text) {
+  return text
+    .replace(TibetanRegExps.anythingNonTibetan, '')
+    .replace(TibetanRegExps.beginningPunctuation, '');
+}
+
+/**
+ * The canonical lookup key for a Tibetan term: strip everything non-Tibetan,
+ * drop leading punctuation, and end with exactly one tsheg.
+ *
+ * Entry lookups are exact string matches, so anything that STORES a term and
+ * anything that SEARCHES for one must derive it identically. Keep this the
+ * only place that rule is expressed for any new call site.
+ *
+ * It is not, as of this writing, the only place it's ALREADY expressed —
+ * two known, tracked divergences predate this function and are out of scope
+ * for the lexicon work to touch:
+ *   - SegmentPage.vue independently re-implements a narrower version of it
+ *     four times (`replace(/[་།]+$/, "") + "་"` — a 2-character class,
+ *     where endPunctuation here covers 8).
+ *   - decorator.js's wrapAllTibetanWithSpansAndAddTshekIfMissing holds a
+ *     fifth, partial copy that only appends a tsheg when no ending
+ *     punctuation is present at all, rather than replacing whatever is
+ *     there.
+ * Neither is a call site to keep in sync with this function — they're
+ * pre-existing, separate implementations this comment can't truthfully
+ * claim don't exist.
+ */
+export const tibetanLookupKey = function (text) {
+  return withTrailingTshek(strippedTibetanText(text));
+}
+
 export const arrayPositionInArray = function (termArray, array) {
   var firstElement = termArray[0];
   var indexesForFirstElement = array.reduce((indexes, value, index) => {

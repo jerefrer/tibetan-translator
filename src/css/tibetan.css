@@ -11,16 +11,37 @@
   line-height: 1.35rem;
   vertical-align: middle;
 }
-.v-input.tibetan textarea,
-.v-input.tibetan input[type=text] {
+/* Vuetify renders the <input> AS the .v-field__input element, so this padding
+   is the same padding it uses to indent the text and to reserve room for a
+   floating label. Zeroing it is right for the standalone search fields (Define
+   page, global lookup) which have no label — but inside a form it makes the
+   Tibetan sit flush against the edge and collide with the label above it.
+   Labelled fields are therefore excluded and keep Vuetify's own metrics. */
+.v-input.tibetan:not(.tibetan-labelled) textarea,
+.v-input.tibetan:not(.tibetan-labelled) input[type=text] {
   padding: 0;
   height: 2.25rem;
   line-height: 2.25rem;
   max-height: none !important;
 }
 
+/* Tibetan stacks vowel signs above and below the base letter, so a labelled
+   field needs more vertical room than the Latin default leaves it. */
+.v-input.tibetan.tibetan-labelled input[type=text] {
+  line-height: 1.9rem;
+}
+
 .tibetan .v-btn {
   font-family: "Roboto", sans-serif !important;
+}
+
+/* Field labels, counters and messages are UI chrome in the interface language,
+   not Tibetan content — without this they inherit DDC_Uchen from the root and
+   render with visibly wrong spacing. */
+.v-input.tibetan label,
+.v-input.tibetan .v-messages,
+.v-input.tibetan .v-counter {
+  font-family: "Roboto", sans-serif;
 }
 
 a.tibetan,

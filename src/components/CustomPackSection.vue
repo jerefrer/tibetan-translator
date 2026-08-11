@@ -26,6 +26,15 @@
             icon
             variant="text"
             size="small"
+            @click="onManage(pack)"
+          >
+            <v-icon>mdi-playlist-edit</v-icon>
+            <v-tooltip activator="parent" location="top">Manage entries</v-tooltip>
+          </v-btn>
+          <v-btn
+            icon
+            variant="text"
+            size="small"
             color="error"
             @click="onRemove(pack)"
           >
@@ -46,6 +55,10 @@
         <v-icon start>mdi-file-upload</v-icon>
         Import a dictionary…
       </v-btn>
+      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreate">
+        <v-icon start>mdi-plus</v-icon>
+        New dictionary
+      </v-btn>
     </v-card-actions>
 
     <v-card-text v-else class="empty-state text-center py-6">
@@ -62,7 +75,70 @@
         <v-icon start>mdi-file-upload</v-icon>
         Import a dictionary…
       </v-btn>
+      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreate">
+        <v-icon start>mdi-plus</v-icon>
+        New dictionary
+      </v-btn>
     </v-card-text>
+
+    <v-dialog v-model="createOpen" max-width="460">
+      <v-card>
+        <v-card-title>New dictionary</v-card-title>
+        <v-card-text>
+          <v-text-field
+            v-model="newName"
+            label="Name"
+            density="comfortable"
+            autofocus
+            :error-messages="createError ? [createError] : []"
+            @keyup.enter="confirmCreate"
+          />
+          <v-textarea
+            v-model="newDescription"
+            label="Description (optional)"
+            rows="2"
+            auto-grow
+            density="comfortable"
+          />
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="createOpen = false">Cancel</v-btn>
+          <v-btn color="primary" variant="tonal" :loading="creating" @click="confirmCreate">
+            Create
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="removeOpen" max-width="460">
+      <v-card v-if="removeTarget">
+        <v-card-title>Remove dictionary?</v-card-title>
+        <v-card-text>
+          <p>
+            <strong>{{ removeTarget.manifest.name }}</strong> will be permanently deleted from
+            this device. This cannot be undone.
+          </p>
+          <v-alert
+            v-if="removeHasLocalEdits"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mt-3"
+          >
+            This dictionary has entries you added or edited here, nowhere else. Consider
+            exporting it first if you want to keep a copy.
+          </v-alert>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" @click="removeOpen = false">Cancel</v-btn>
+          <v-btn color="error" variant="elevated" :loading="removing" @click="confirmRemove">
+            Remove
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-card>
 </template>
 
@@ -70,17 +146,39 @@
 import { open } from '@tauri-apps/plugin-dialog';
 import PackManager from '../services/pack-manager';
 import TibdictInstaller from '../services/tibdict-installer';
+import Lexicon, { messageForError } from '../services/lexicon';
 import { supportsModularPacks } from '../config/platform';
 
 export default {
   name: 'CustomPackSection',
   inject: ['snackbar'],
+  data() {
+    return {
+      createOpen: false,
+      creating: false,
+      newName: '',
+      newDescription: '',
+      createError: '',
+      removeOpen: false,
+      removing: false,
+      removeTarget: null,
+    };
+  },
   computed: {
     isSupported() {
       return supportsModularPacks();
     },
     packs() {
       return PackManager.customPacks;
+    },
+    // Same field the conflict modal treats as "edited since it came into
+    // existence" (see CustomPackConflictModal.vue's hasLocalEdits and the
+    // create_lexicon fix that leaves modifiedAt unset until an entry is
+    // actually written): a freshly created, never-touched lexicon reads as
+    // false, so the stronger export-first wording only shows once there is
+    // something on this device that exists nowhere else.
+    removeHasLocalEdits() {
+      return !!this.removeTarget?.manifest?.modifiedAt;
     },
   },
   methods: {
@@ -110,9 +208,54 @@ export default {
         this.snackbar.open('Invalid or corrupted file.');
       }
     },
-    async onRemove(pack) {
-      await PackManager.removeCustomPack(pack.id);
-      this.snackbar.open(`${pack.manifest.name} removed`);
+    onRemove(pack) {
+      this.removeTarget = pack;
+      this.removing = false;
+      this.removeOpen = true;
+    },
+    async confirmRemove() {
+      const pack = this.removeTarget;
+      if (!pack) return;
+      this.removing = true;
+      try {
+        await PackManager.removeCustomPack(pack.id);
+        this.removeOpen = false;
+        this.snackbar.open(`${pack.manifest.name} removed`);
+      } catch (e) {
+        console.error('[CustomPackSection] remove failed:', e);
+        this.snackbar.open(messageForError(e, 'Could not remove this dictionary.'));
+      } finally {
+        this.removing = false;
+      }
+    },
+    onManage(pack) {
+      this.$router.push(`/lexicon/${pack.id}`);
+    },
+    onCreate() {
+      this.newName = '';
+      this.newDescription = '';
+      this.createError = '';
+      this.creating = false;
+      this.createOpen = true;
+    },
+    async confirmCreate() {
+      const name = this.newName.trim();
+      if (!name) {
+        this.createError = 'A name is required.';
+        return;
+      }
+      this.creating = true;
+      try {
+        const pack = await Lexicon.create(name, this.newDescription.trim());
+        this.createOpen = false;
+        this.snackbar.open(`${pack.manifest.name} created`);
+        this.$router.push(`/lexicon/${pack.id}`);
+      } catch (e) {
+        console.error('[CustomPackSection] create failed:', e);
+        this.createError = messageForError(e, 'Could not create this dictionary.');
+      } finally {
+        this.creating = false;
+      }
     },
   },
 };

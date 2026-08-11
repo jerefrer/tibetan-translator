@@ -96,7 +96,7 @@ export default {
     v-model="text"
     v-bind="$attrs"
     :placeholder="placeholder"
-    class="tibetan"
+    :class="['tibetan', { 'tibetan-labelled': !!$attrs.label }]"
     spellcheck="false"
     autocomplete="off"
     autocapitalize="off"
@@ -110,7 +110,10 @@ export default {
     @drop="handleDrop"
     @click:clear="$emit('click:clear')"
   >
-    <template v-slot:append>
+    <!-- Declaring this slot unconditionally makes Vuetify render an empty
+         .v-input__append, whose 16px inline padding shrinks the field and
+         leaves it visibly narrower than a plain field beside it in a form. -->
+    <template v-if="$slots.append" v-slot:append>
       <slot name="append" />
     </template>
   </v-text-field>

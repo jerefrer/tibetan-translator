@@ -8,8 +8,10 @@ import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
 import CopyService from "../services/copy-service";
 import { getScanInfo } from "../services/scan-service";
+import { supportsModularPacks } from "../config/platform";
 import Entries from "./Entries.vue";
 import TibetanTextField from "./TibetanTextField.vue";
+import QuickAddDialog from "./QuickAddDialog.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
 import MobileResponsiveMixin from "./mixins/MobileResponsiveMixin";
 import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries.vue";
@@ -24,6 +26,7 @@ export default {
   components: {
     Entries,
     TibetanTextField,
+    QuickAddDialog,
     ResultsAndPaginationAndDictionaries,
   },
   data() {
@@ -34,6 +37,7 @@ export default {
       termsBatchSize: TERMS_BATCH_SIZE,
       loading: false,
       allTermsVersion: 0,
+      quickAddOpen: false,
     };
   },
   watch: {
@@ -109,6 +113,9 @@ export default {
         (entry) => !getScanInfo(entry.dictionary)
       );
     },
+    canAddToLexicon() {
+      return supportsModularPacks();
+    },
   },
   methods: {
     pushRoute(term) {
@@ -147,6 +154,10 @@ export default {
           })
           .finally(() => (this.loading = false));
       }
+    },
+    onLexiconEntrySaved() {
+      // Re-run the current lookup so the new definition shows immediately.
+      if (this.selectedTerm) this.setEntriesForSelectedTerm();
     },
     selectFirstTermOrClearEntries() {
       var firstTerm =
@@ -316,16 +327,28 @@ export default {
       <div class="definitions-container">
         <!-- Copy-all action (term itself is already shown in the search bar and sidebar) -->
         <div
-          v-if="!loading && copyableEntries.length"
+          v-if="!loading && (copyableEntries.length || (canAddToLexicon && selectedTerm))"
           class="definitions-header"
         >
           <v-btn
+            v-if="copyableEntries.length"
             size="small"
             variant="text"
             prepend-icon="mdi-content-copy"
             @click="copyAll"
           >
             Copy all
+          </v-btn>
+
+          <v-btn
+            v-if="canAddToLexicon && selectedTerm"
+            icon
+            variant="text"
+            size="small"
+            @click="quickAddOpen = true"
+          >
+            <v-icon>mdi-book-plus</v-icon>
+            <v-tooltip activator="parent" location="top">Add my definition</v-tooltip>
           </v-btn>
         </div>
 
@@ -345,6 +368,15 @@ export default {
         </v-fade-transition>
       </div>
     </div>
+
+    <!-- Mounted at page level (not inside .definitions-header) so it survives
+         that div's own v-if — e.g. loading=true on term change — while open,
+         instead of being torn down and losing whatever the user typed. -->
+    <QuickAddDialog
+      v-model="quickAddOpen"
+      :term="selectedTerm || ''"
+      @saved="onLexiconEntrySaved"
+    />
   </div>
 </template>
 

@@ -1,6 +1,5 @@
 <script>
 import _ from 'underscore';
-import TibetanRegExps from 'tibetan-regexps';
 import { useTheme } from 'vuetify';
 
 import Entries from './Entries.vue';
@@ -8,7 +7,7 @@ import TibetanTextField from './TibetanTextField.vue';
 import Storage from '../services/storage';
 import Decorator from '../services/decorator';
 import DictionariesDetailsMixin from './DictionariesDetailsMixin';
-import { convertWylieInText } from '../utils';
+import { convertWylieInText, tibetanLookupKey } from '../utils';
 
 const TIBETAN_CHAR_RE = /[ༀ-࿿]/;
 
@@ -147,12 +146,7 @@ export default {
     },
     cleanTibetanText(text) {
       if (!text) return '';
-      let cleaned = text
-        .replace(TibetanRegExps.anythingNonTibetan, '')
-        .replace(TibetanRegExps.beginningPunctuation, '');
-      // Replace any trailing punctuation with a single tsheg
-      cleaned = cleaned.replace(/[་།༑༔]*$/, '་');
-      return cleaned;
+      return tibetanLookupKey(text);
     },
     async selectTermByIndex(index, immediate = false) {
       const items = this.listItems;

@@ -13,7 +13,7 @@ const MAX_SUPPORTED_FORMAT_VERSION: u32 = 1;
 /// MUST match SUPPORTED_SCHEMA_VERSION in src/config/pack-definitions.js
 const SUPPORTED_SCHEMA_VERSION: u32 = 3;
 
-const CUSTOM_ID_PREFIX: &str = "custom-";
+pub(crate) const CUSTOM_ID_PREFIX: &str = "custom-";
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -30,6 +30,8 @@ pub struct TibdictManifest {
     pub version: Option<String>,
     #[serde(default)]
     pub created_at: Option<String>,
+    #[serde(default)]
+    pub modified_at: Option<String>,
     #[serde(default)]
     pub icon: Option<String>,
     pub dictionaries: Vec<TibdictManifestDictionary>,
@@ -75,7 +77,7 @@ impl InstallError {
     }
 }
 
-fn custom_packs_dir(app: &AppHandle) -> Result<PathBuf, InstallError> {
+pub(crate) fn custom_packs_dir(app: &AppHandle) -> Result<PathBuf, InstallError> {
     let base = app
         .path()
         .app_data_dir()
