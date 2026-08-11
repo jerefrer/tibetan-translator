@@ -109,6 +109,19 @@ export const Lexicon = {
     return invoke('lexicon_entries', { packId, dictionaryId, search, limit, offset });
   },
 
+  /**
+   * Exact-match lookup: null when the term isn't present. Always finds an
+   * existing entry regardless of dictionary size, unlike entries()'s
+   * paginated substring search — callers deciding "does this term already
+   * exist" (e.g. QuickAddDialog, before an upsert) must use this, not
+   * entries(), or a match sorted past the page limit reads as absent.
+   */
+  async findEntry(packId, dictionaryId, rawTerm) {
+    const term = normalizeTerm(rawTerm);
+    if (!term) return null;
+    return invoke('lexicon_find_entry', { packId, dictionaryId, term });
+  },
+
   /** Returns { id, created } or null when the input was unusable. */
   async saveEntry(packId, dictionaryId, rawTerm, rawDefinition) {
     const entry = prepareEntry(rawTerm, rawDefinition);

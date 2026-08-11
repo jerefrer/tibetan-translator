@@ -9,7 +9,7 @@
 //!   2. Phonetic columns are computed by the frontend (src/utils.js) and
 //!      arrive pre-filled. Rust never interprets Tibetan.
 
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -430,6 +430,47 @@ pub async fn lexicon_entries(
     Ok(LexiconEntriesPage { total, entries })
 }
 
+/// Exact-match lookup within one dictionary.
+///
+/// `lexicon_entries` above answers "what substring-matches this needle" for
+/// the management table, paginated with `LIMIT`/`OFFSET`. It must not be
+/// reused to answer "does this exact term already exist": in a dictionary
+/// with 50+ entries whose term or definition merely contain the needle as a
+/// substring and sort ahead of it, the real match falls off the first page
+/// and a caller deciding "insert vs. update" from that page silently
+/// concludes the term is new when it isn't. This queries `term` directly —
+/// the same column `upsert_entry_in` resolves against — so it always finds
+/// an exact match regardless of dictionary size.
+pub fn find_entry_in(
+    conn: &Connection,
+    dictionary_id: i64,
+    term: &str,
+) -> rusqlite::Result<Option<LexiconEntry>> {
+    conn.query_row(
+        "SELECT id, term, definition FROM entries WHERE dictionaryId = ? AND term = ?",
+        params![dictionary_id, term],
+        |row| Ok(LexiconEntry { id: row.get(0)?, term: row.get(1)?, definition: row.get(2)? }),
+    )
+    .optional()
+}
+
+/// Exact-match lookup by term, for callers (the quick-add dialog) that need
+/// to know whether a specific term already exists before writing — see
+/// `find_entry_in` for why this must not reuse `lexicon_entries`'s paginated
+/// substring search for that decision.
+#[tauri::command]
+pub async fn lexicon_find_entry(
+    app: AppHandle,
+    pack_id: String,
+    dictionary_id: i64,
+    term: String,
+) -> Result<Option<LexiconEntry>, LexiconError> {
+    let dir = pack_dir(&app, &pack_id)?;
+    let conn = open_db(&dir)?;
+    find_entry_in(&conn, dictionary_id, &term)
+        .map_err(|e| LexiconError::new("corrupt", format!("find entry: {e}")))
+}
+
 #[tauri::command]
 pub async fn lexicon_upsert_entry(
     app: AppHandle,
@@ -747,6 +788,94 @@ mod tests {
         assert!(a.created);
         assert!(b.created);
         assert_ne!(a.id, b.id);
+        let _ = fs::remove_file(path);
+    }
+
+    /// Regression coverage for the data-loss bug: `loadExisting()` on the
+    /// frontend used to decide "does this term already exist" from the same
+    /// paginated substring search `lexicon_entries` runs for the management
+    /// table (`ORDER BY term LIMIT 50`). In a dictionary where 50+ entries
+    /// alphabetically ahead of the target also contain the searched text —
+    /// in their term OR their definition — the real match falls off the
+    /// first page, the frontend concludes the term is new, and a save then
+    /// silently overwrites the existing definition with no warning shown.
+    /// `find_entry_in` must find the same match regardless of dictionary size.
+    #[test]
+    fn find_entry_in_finds_an_exact_match_that_a_limit_bounded_substring_search_would_miss() {
+        let (conn, path) = temp_db("find-entry-bounded");
+        let target_term = "ཀ་";
+
+        // 55 decoys — more than the LIMIT 50 page size — whose ASCII term
+        // sorts before any Tibetan term under SQLite's default byte-wise
+        // (BINARY) collation, and whose definition contains the target term
+        // as a substring, so each matches the same `term LIKE ? OR
+        // definition LIKE ?` clause `lexicon_entries` uses. With `ORDER BY
+        // term` ascending, all 55 fill the first page before the real
+        // match, which sorts 56th.
+        for i in 0..55 {
+            upsert_entry_in(
+                &conn,
+                1,
+                &input(&format!("aaa{i:03}"), &format!("mentions {target_term} in passing")),
+            )
+            .unwrap();
+        }
+        let target = upsert_entry_in(&conn, 1, &input(target_term, "the real definition")).unwrap();
+
+        // Reproduce the exact bounded substring query `lexicon_entries` runs
+        // for its first page, to prove it misses the match.
+        let pattern = like_pattern(target_term);
+        let mut stmt = conn
+            .prepare(
+                "SELECT id, term, definition FROM entries
+                 WHERE dictionaryId = ? AND (term LIKE ? ESCAPE '\\' OR definition LIKE ? ESCAPE '\\')
+                 ORDER BY term LIMIT 50 OFFSET 0",
+            )
+            .unwrap();
+        let bounded_page_terms: Vec<String> = stmt
+            .query_map(params![1i64, &pattern, &pattern], |row| row.get::<_, String>(1))
+            .unwrap()
+            .flatten()
+            .collect();
+        assert_eq!(bounded_page_terms.len(), 50, "sanity check: the page is full of decoys");
+        assert!(
+            !bounded_page_terms.contains(&target_term.to_string()),
+            "the bounded substring search must miss the exact match here — that's the bug"
+        );
+
+        // The exact-match lookup must find it regardless of page size.
+        let found = find_entry_in(&conn, 1, target_term).unwrap();
+        let found = found.expect("find_entry_in must find the exact match a bounded search misses");
+        assert_eq!(found.id, target.id);
+        assert_eq!(found.definition, "the real definition");
+
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn find_entry_in_returns_none_when_the_term_is_absent() {
+        let (conn, path) = temp_db("find-entry-absent");
+        let found = find_entry_in(&conn, 1, "མེད་པ་").unwrap();
+        assert!(found.is_none());
+        let _ = fs::remove_file(path);
+    }
+
+    #[test]
+    fn find_entry_in_scopes_to_the_given_dictionary() {
+        let (conn, path) = temp_db("find-entry-scoped");
+        conn.execute(
+            "INSERT INTO dictionaries (id, name, position, enabled) VALUES (2, 'Other', 2, 1)",
+            [],
+        )
+        .unwrap();
+        upsert_entry_in(&conn, 2, &input("ཞི་བདེ་", "peace, in dictionary 2")).unwrap();
+
+        let found = find_entry_in(&conn, 1, "ཞི་བདེ་").unwrap();
+        assert!(found.is_none(), "the entry lives in dictionary 2, not 1");
+
+        let found = find_entry_in(&conn, 2, "ཞི་བདེ་").unwrap();
+        assert!(found.is_some());
+
         let _ = fs::remove_file(path);
     }
 

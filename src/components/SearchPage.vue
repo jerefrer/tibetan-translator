@@ -614,12 +614,6 @@ export default {
         <v-tooltip activator="parent" location="top">Add my definition</v-tooltip>
       </v-btn>
 
-      <QuickAddDialog
-        v-model="quickAddOpen"
-        :term="quickAddTerm"
-        @saved="onLexiconEntrySaved"
-      />
-
       <ResultsAndPaginationAndDictionaries
         :dictionaries="dictionariesForCurrentResults"
         :totalNumberOfEntries="totalNumberOfEntriesForEnabledDictionaries"
@@ -739,6 +733,16 @@ export default {
       @update:model-value="closeScanViewer"
       :dictionary-id="scanViewerEntry?.dictionary"
       :initial-page="getScanPageNumber(scanViewerEntry)"
+    />
+
+    <!-- Mounted at page level (not inside .results-header) so it survives
+         that div's own v-if — e.g. entries clearing or a result count
+         dropping to zero — while open, instead of being torn down and
+         losing whatever the user typed. -->
+    <QuickAddDialog
+      v-model="quickAddOpen"
+      :term="quickAddTerm"
+      @saved="onLexiconEntrySaved"
     />
   </div>
 </template>

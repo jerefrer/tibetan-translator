@@ -12,8 +12,8 @@ use database::{
 };
 use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
 use lexicon::{
-    create_lexicon, lexicon_delete_entry, lexicon_entries, lexicon_export, lexicon_upsert_entry,
-    rename_lexicon,
+    create_lexicon, lexicon_delete_entry, lexicon_entries, lexicon_export, lexicon_find_entry,
+    lexicon_upsert_entry, rename_lexicon,
 };
 use packs::{
     download_pack, ensure_pack_available, fetch_pack_manifest, get_installed_packs,
@@ -337,6 +337,7 @@ fn main() {
             create_lexicon,
             rename_lexicon,
             lexicon_entries,
+            lexicon_find_entry,
             lexicon_upsert_entry,
             lexicon_delete_entry,
             lexicon_export,

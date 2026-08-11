@@ -1,14 +1,20 @@
 /**
  * QuickAddDialog Component Tests
  *
- * Covers the quick-add gesture wired into DefinePage and SearchPage (Task 9):
+ * Covers the quick-add gesture wired into DefinePage and SearchPage (Task 9),
+ * plus the review-round fixes on top of it:
  *  - Lexicon.saveEntry() returning null (unusable input) must not be treated
  *    as a successful save — same guard already proven for LexiconEntryDialog
  *    in lexicon-entry-dialog.test.js
  *  - when the user has no personal dictionary yet, the dialog offers an
  *    inline "create a dictionary" path instead of a term/definition form
  *  - when the incoming term prop already exists in the target dictionary,
- *    its definition is pre-loaded into the textarea for editing
+ *    its definition is pre-loaded for editing via an EXACT-MATCH lookup
+ *    (Lexicon.findEntry), not the paginated substring search behind
+ *    Lexicon.entries() — a bounded search can miss a real match in a large
+ *    dictionary and silently let a save overwrite it (review finding)
+ *  - "A Tibetan term is required." renders on the term field, not the
+ *    definition field (review finding — it was bound to the wrong field)
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -32,6 +38,7 @@ if (typeof window.visualViewport === 'undefined') {
 
 const editableDictionariesMock = vi.fn()
 const entriesMock = vi.fn()
+const findEntryMock = vi.fn()
 const saveEntryMock = vi.fn()
 const createMock = vi.fn()
 
@@ -46,6 +53,7 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
       ...actual.default,
       editableDictionaries: (...args) => editableDictionariesMock(...args),
       entries: (...args) => entriesMock(...args),
+      findEntry: (...args) => findEntryMock(...args),
       saveEntry: (...args) => saveEntryMock(...args),
       create: (...args) => createMock(...args),
     },
@@ -65,6 +73,7 @@ describe('QuickAddDialog', () => {
   beforeEach(() => {
     editableDictionariesMock.mockReset().mockReturnValue(ONE_TARGET)
     entriesMock.mockReset().mockResolvedValue({ total: 0, entries: [] })
+    findEntryMock.mockReset().mockResolvedValue(null)
     saveEntryMock.mockReset()
     createMock.mockReset()
     snackbar.open.mockClear()
@@ -97,6 +106,17 @@ describe('QuickAddDialog', () => {
       b.textContent.trim() === text || b.textContent.trim().includes(text)
     )
 
+  // Vuetify renders each field's label and its error messages inside the
+  // same `.v-input` wrapper, so this locates the wrapper for a given field
+  // by its visible label text — letting a test assert an error is attached
+  // to the RIGHT field, not merely present somewhere in the DOM.
+  const fieldContainerFor = (labelText) => {
+    const label = Array.from(document.body.querySelectorAll('label')).find((l) =>
+      l.textContent.trim().startsWith(labelText)
+    )
+    return label?.closest('.v-input') ?? null
+  }
+
   it('does not emit "saved" or close the dialog when Lexicon.saveEntry resolves null', async () => {
     saveEntryMock.mockResolvedValue(null)
     const wrapper = mountDialog()
@@ -112,6 +132,33 @@ describe('QuickAddDialog', () => {
     expect(wrapper.emitted('update:modelValue')).toBeUndefined()
     expect(wrapper.vm.saving).toBe(false)
     expect(document.body.textContent).toContain('A Tibetan term is required.')
+
+    wrapper.unmount()
+  })
+
+  it('renders "A Tibetan term is required." on the term field, not the definition field', async () => {
+    // Regression check for a review finding: the message was previously
+    // bound to the definition v-textarea's :error-messages, not the term
+    // TibetanTextField's — wrong field entirely. TibetanTextField also
+    // hardcodes `hide-details` on its inner v-text-field, which swallows
+    // error-messages unless the caller overrides it with
+    // hide-details="auto" — asserting against component state alone would
+    // pass even with that bug present, so this must check the rendered DOM.
+    saveEntryMock.mockResolvedValue(null)
+    const wrapper = mountDialog()
+    wrapper.vm.localTerm = 'ཀ'
+    wrapper.vm.definition = 'a letter'
+    await nextTick()
+
+    findButton('Save').click()
+    await flushPromises()
+
+    const termField = fieldContainerFor('Tibetan term')
+    const definitionField = fieldContainerFor('My definition')
+    expect(termField).not.toBeNull()
+    expect(definitionField).not.toBeNull()
+    expect(termField.textContent).toContain('A Tibetan term is required.')
+    expect(definitionField.textContent).not.toContain('A Tibetan term is required.')
 
     wrapper.unmount()
   })
@@ -140,11 +187,15 @@ describe('QuickAddDialog', () => {
     wrapper.unmount()
   })
 
-  it('pre-loads the existing definition when the term is already in the target dictionary', async () => {
-    entriesMock.mockResolvedValue({
-      total: 1,
-      entries: [{ id: 7, term: 'ཀ་', definition: 'existing definition' }],
-    })
+  it('pre-loads the existing definition via the exact-match lookup, even when a bounded substring search would have missed it', async () => {
+    // Simulate the data-loss scenario the review finding described: a
+    // bounded substring search (Lexicon.entries, LIMIT 50) finds nothing
+    // for this term — exactly what happens when 50+ other entries sort
+    // ahead of it while also matching the same LIKE clause — while the
+    // exact-match lookup (Lexicon.findEntry) finds it regardless.
+    entriesMock.mockResolvedValue({ total: 0, entries: [] })
+    findEntryMock.mockResolvedValue({ id: 7, term: 'ཀ་', definition: 'existing definition' })
+
     // Mount closed first, then open — the prefill/lookup logic lives in the
     // modelValue watcher, which only fires on a false -> true transition
     // (exactly what happens when a caller flips its v-model open), not on
@@ -153,14 +204,24 @@ describe('QuickAddDialog', () => {
     await wrapper.setProps({ modelValue: true })
     await flushPromises()
 
-    expect(entriesMock).toHaveBeenCalledWith('custom-mine', 1, {
-      search: 'ཀ་',
-      limit: 50,
-      offset: 0,
-    })
+    expect(findEntryMock).toHaveBeenCalledWith('custom-mine', 1, 'ཀ')
+    expect(entriesMock).not.toHaveBeenCalled()
     expect(wrapper.vm.existingId).toBe(7)
     expect(wrapper.vm.definition).toBe('existing definition')
     expect(document.body.textContent).toContain('This term is already in My Lexicon')
+
+    wrapper.unmount()
+  })
+
+  it('does not pre-load or warn when the exact-match lookup finds nothing', async () => {
+    findEntryMock.mockResolvedValue(null)
+    const wrapper = mountDialog({ modelValue: false, term: 'ཀ' })
+    await wrapper.setProps({ modelValue: true })
+    await flushPromises()
+
+    expect(wrapper.vm.existingId).toBeNull()
+    expect(wrapper.vm.definition).toBe('')
+    expect(document.body.textContent).not.toContain('saving will update it')
 
     wrapper.unmount()
   })

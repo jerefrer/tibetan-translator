@@ -15,7 +15,12 @@
             density="comfortable"
             class="mb-2"
           />
-          <TibetanTextField v-model="localTerm" label="Tibetan term" />
+          <TibetanTextField
+            v-model="localTerm"
+            label="Tibetan term"
+            :error-messages="termError ? [termError] : []"
+            hide-details="auto"
+          />
           <v-textarea
             v-model="definition"
             label="My definition"
@@ -85,6 +90,7 @@ export default {
       newLexiconName: '',
       existingId: null,
       error: '',
+      termError: '',
       saving: false,
     };
   },
@@ -105,6 +111,7 @@ export default {
       this.localTerm = this.term || '';
       this.definition = '';
       this.error = '';
+      this.termError = '';
       this.newLexiconName = '';
       this.existingId = null;
       this.saving = false;
@@ -122,19 +129,22 @@ export default {
     close(value = false) {
       this.$emit('update:modelValue', value);
     },
-    /** Pre-fill the definition when this term is already in the target dictionary. */
+    /** Pre-fill the definition when this term is already in the target dictionary.
+     *
+     * Uses an exact-match lookup (Lexicon.findEntry), not the paginated
+     * substring search behind Lexicon.entries(): in a large dictionary, 50+
+     * entries whose term OR definition merely contain this term as a
+     * substring can sort ahead of the actual exact match and push it off
+     * the page, silently reporting "not found" for a term that does exist —
+     * whatever the user then types would overwrite it on save with no
+     * warning shown. */
     async loadExisting() {
       this.existingId = null;
       const target = this.selectedTarget;
       const term = normalizeTerm(this.localTerm);
       if (!target || !term) return;
       try {
-        const page = await Lexicon.entries(target.packId, target.dictionaryId, {
-          search: term,
-          limit: 50,
-          offset: 0,
-        });
-        const match = page.entries.find((entry) => entry.term === term);
+        const match = await Lexicon.findEntry(target.packId, target.dictionaryId, this.localTerm);
         if (match) {
           this.existingId = match.id;
           if (!this.definition) this.definition = match.definition;
@@ -146,6 +156,8 @@ export default {
     async save() {
       const target = this.selectedTarget;
       if (!target) return;
+      this.error = '';
+      this.termError = '';
       if (!this.definition.trim()) {
         this.error = 'A definition is required.';
         return;
@@ -159,7 +171,7 @@ export default {
           this.definition
         );
         if (!outcome) {
-          this.error = 'A Tibetan term is required.';
+          this.termError = 'A Tibetan term is required.';
           return;
         }
         Storage.set('lastLexiconTarget', target.key);

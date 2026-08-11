@@ -350,12 +350,6 @@ export default {
             <v-icon>mdi-book-plus</v-icon>
             <v-tooltip activator="parent" location="top">Add my definition</v-tooltip>
           </v-btn>
-
-          <QuickAddDialog
-            v-model="quickAddOpen"
-            :term="selectedTerm || ''"
-            @saved="onLexiconEntrySaved"
-          />
         </div>
 
         <!-- Loading state when fetching definitions -->
@@ -374,6 +368,15 @@ export default {
         </v-fade-transition>
       </div>
     </div>
+
+    <!-- Mounted at page level (not inside .definitions-header) so it survives
+         that div's own v-if — e.g. loading=true on term change — while open,
+         instead of being torn down and losing whatever the user typed. -->
+    <QuickAddDialog
+      v-model="quickAddOpen"
+      :term="selectedTerm || ''"
+      @saved="onLexiconEntrySaved"
+    />
   </div>
 </template>
 
