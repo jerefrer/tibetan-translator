@@ -178,8 +178,14 @@ export default {
       this.load();
     }, 250);
   },
-  activated() {
-    this.syncSelection();
+  async activated() {
+    // syncSelection() returns its navigation promise specifically so this can
+    // be awaited: Vue discards whatever a lifecycle hook returns, so this
+    // changes no runtime behaviour, but it removes an unhandled floating
+    // promise and makes the ordering (settle the route, then load) explicit
+    // instead of relying on the selectedKey watcher to paper over a load()
+    // that ran before the route had actually settled.
+    await this.syncSelection();
     this.load();
   },
   mounted() {

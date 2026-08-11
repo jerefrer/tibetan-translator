@@ -24,6 +24,23 @@
  *    (v-if="pageCount > 1") disappeared, and the user was stranded on an
  *    empty page with no control left to get back to page 1.
  *
+ *  - Flaky scenario (d) (round 4): a route.replace() fired fire-and-forget
+ *    from inside activated() -> syncSelection() resolves over a genuinely
+ *    variable number of scheduler hops. A bounded flushPromises()+nextTick()
+ *    loop (however generous) is a fixed guess against a non-deterministic
+ *    wait and flaked ~20-65% of the time. Anywhere a test observes the
+ *    result of a navigation it cannot await directly (fired from a lifecycle
+ *    hook or a DOM event listener, whose return value nothing awaits), it
+ *    now waits on the actual condition via vi.waitFor instead of a tick
+ *    count. Navigations the test itself awaits directly
+ *    (`await router.push(...)`, `await component.onSelectDictionary(...)`)
+ *    do not have this problem for computed reads, which are live the moment
+ *    the awaited promise resolves — but a resulting re-render (e.g.
+ *    <keep-alive> swapping which component is mounted) or a watcher's side
+ *    effect is still scheduled asynchronously by Vue itself, so those are
+ *    also asserted through vi.waitFor rather than assumed to have happened
+ *    by the next line.
+ *
  * These tests mount a small Shell that reproduces App.vue's actual
  * <router-view><keep-alive :key="currentTabId"> structure (App.vue:342-346),
  * not a bare LexiconPage — a bare mount cannot observe deactivation at all,
@@ -36,7 +53,7 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import { createVuetify } from 'vuetify'
 import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
-import { ref, nextTick } from 'vue'
+import { ref } from 'vue'
 
 // LexiconPage is gated entirely behind supportsModularPacks(); force it on
 // so the real page renders instead of the "desktop/mobile only" message.
@@ -142,23 +159,14 @@ async function mountShell(initialPath, dictionaries) {
       provide: { snackbar },
     },
   })
-  await settle()
+  // One tick for the initial render. If the initial route requires
+  // syncSelection() to fall back and navigate (e.g. bare /lexicon — scenario
+  // d), that navigation is fire-and-forget from activated()'s point of view
+  // as far as this helper is concerned; callers that depend on its outcome
+  // wait on the actual condition via vi.waitFor rather than assuming this
+  // single flush was enough.
+  await flushPromises()
   return { wrapper, router }
-}
-
-// A router.replace()/push() triggered from inside a component method that
-// nothing awaits (e.g. a fire-and-forget navigateTo() called from
-// activated()) resolves over several chained microtask/scheduler hops —
-// empirically more than one flushPromises() + nextTick() round in this
-// environment. Rather than hardcode a fragile hop count everywhere a
-// navigation might be triggered indirectly (a 'dictionaries-updated' event
-// handler, for instance, whose return value nothing can await), loop enough
-// rounds to reliably drain it.
-async function settle() {
-  for (let i = 0; i < 10; i += 1) {
-    await flushPromises()
-    await nextTick()
-  }
 }
 
 // LexiconPage is nested inside the Shell's <router-view>/<keep-alive>; find
@@ -188,8 +196,10 @@ describe('LexiconPage', () => {
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
 
       // Mirrors CustomPackSection.vue's onManage(pack): router.push(`/lexicon/${pack.id}`).
+      // Directly awaited by the test, so the navigation itself is not the
+      // uncertain part here — `selected` is a computed reading $route.params
+      // and is live the instant the awaited push() resolves.
       await router.push('/lexicon/custom-b')
-      await settle()
 
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
     })
@@ -198,21 +208,29 @@ describe('LexiconPage', () => {
       const { wrapper, router } = await mountShell('/lexicon/custom-a', [PACK_A, PACK_B])
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
 
-      // Manual choice via the dropdown navigates rather than mutating local state.
+      // Manual choice via the dropdown navigates rather than mutating local
+      // state, and the test awaits that navigation directly.
       await lexiconPage(wrapper).vm.onSelectDictionary('custom-b:1')
-      await settle()
       expect(router.currentRoute.value.path).toBe('/lexicon/custom-b/1')
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
 
       // Leave to Settings. This must be a REAL deactivation — the whole
       // point of this harness — not just data surviving in a bare mount.
+      // <keep-alive> swapping which component is mounted is a Vue re-render
+      // triggered by the route change, scheduled on Vue's own microtask
+      // queue rather than returned by router.push()'s promise, so this is
+      // exactly a "result of a navigation the test cannot await directly" —
+      // wait on the condition, not an assumed tick count.
       await router.push('/settings')
-      await settle()
-      expect(lexiconPage(wrapper).exists()).toBe(false)
+      await vi.waitFor(() => {
+        expect(lexiconPage(wrapper).exists()).toBe(false)
+      })
 
       // Come back to exactly the URL the dropdown pick left behind.
       await router.push('/lexicon/custom-b/1')
-      await settle()
+      await vi.waitFor(() => {
+        expect(lexiconPage(wrapper).exists()).toBe(true)
+      })
 
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
     })
@@ -224,21 +242,29 @@ describe('LexiconPage', () => {
       // Pack A is removed elsewhere (e.g. from Settings); only B remains.
       // The real app learns this via the 'dictionaries-updated' CustomEvent
       // LexiconPage listens for in mounted(). Nothing can await that
-      // listener's return value (the DOM event system discards it), so this
-      // relies on settle()'s multi-round drain rather than a direct await.
+      // listener's return value (the DOM event system discards it) or the
+      // fallback navigation syncSelection() fires from inside it — this is
+      // exactly the "cannot await directly" case, so wait on the condition.
       dictionariesRef.value = [PACK_B]
       window._triggerEvent('dictionaries-updated')
-      await settle()
 
+      await vi.waitFor(() => {
+        expect(router.currentRoute.value.path).toBe('/lexicon/custom-b/1')
+      })
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
-      expect(router.currentRoute.value.path).toBe('/lexicon/custom-b/1')
     })
 
     it('(d) picks the first available dictionary, and navigates there, when arriving at bare /lexicon', async () => {
       const { wrapper, router } = await mountShell('/lexicon', [PACK_A, PACK_B])
 
+      // The fix for this exact test's flakiness (round 4): syncSelection()'s
+      // fallback navigation is fired from activated(), which the test never
+      // calls or awaits itself — only vi.waitFor's retrying, not a fixed
+      // tick count, reliably observes when it has actually settled.
+      await vi.waitFor(() => {
+        expect(router.currentRoute.value.path).toBe('/lexicon/custom-a/1')
+      })
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
-      expect(router.currentRoute.value.path).toBe('/lexicon/custom-a/1')
     })
 
     it('(e) a multi-dictionary pack: selecting its second dictionary survives a deactivate/reactivate round trip', async () => {
@@ -246,16 +272,18 @@ describe('LexiconPage', () => {
       expect(lexiconPage(wrapper).vm.selected?.dictionaryId).toBe(1)
 
       await lexiconPage(wrapper).vm.onSelectDictionary('custom-c:2')
-      await settle()
       expect(router.currentRoute.value.path).toBe('/lexicon/custom-c/2')
 
       await router.push('/settings')
-      await settle()
-      expect(lexiconPage(wrapper).exists()).toBe(false)
+      await vi.waitFor(() => {
+        expect(lexiconPage(wrapper).exists()).toBe(false)
+      })
 
       // A packId-only route could not have distinguished this from volume 1.
       await router.push('/lexicon/custom-c/2')
-      await settle()
+      await vi.waitFor(() => {
+        expect(lexiconPage(wrapper).exists()).toBe(true)
+      })
 
       expect(lexiconPage(wrapper).vm.selected?.dictionaryId).toBe(2)
     })
@@ -283,11 +311,16 @@ describe('LexiconPage', () => {
       // 51-entry / 2-page dictionary.
       page.vm.page = 2
 
+      // remove() awaits the delete but not the load() it kicks off
+      // afterwards (unchanged from earlier rounds — not touched this round
+      // per instruction), so its completion is still observed by waiting on
+      // the condition rather than assuming a single flush is enough.
       await page.vm.remove({ id: 999, term: 'x', definition: 'y' })
-      await flushPromises()
+      await vi.waitFor(() => {
+        expect(page.vm.page).toBe(1)
+      })
 
       expect(deleteEntryMock).toHaveBeenCalledWith('custom-a', 999)
-      expect(page.vm.page).toBe(1)
       expect(page.vm.entries.length).toBe(50)
       expect(page.vm.total).toBe(50)
     })
@@ -301,10 +334,14 @@ describe('LexiconPage', () => {
       const page = lexiconPage(wrapper)
 
       page.vm.page = 3
+      // onSelectDictionary's navigation is directly awaited, but the
+      // resulting `page = 1` reset happens inside the selectedKey watcher,
+      // which Vue schedules on its own microtask queue rather than exposing
+      // through the navigation promise — wait on the condition.
       await page.vm.onSelectDictionary('custom-b:1')
-      await settle()
-
-      expect(page.vm.page).toBe(1)
+      await vi.waitFor(() => {
+        expect(page.vm.page).toBe(1)
+      })
     })
   })
 })
