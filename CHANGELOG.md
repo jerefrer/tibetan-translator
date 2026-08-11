@@ -5,6 +5,17 @@ All notable changes to Tibetan Translator are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0](https://github.com/jerefrer/tibetan-translator/compare/v1.9.2...v1.10.0) - 2026-08-11
+
+### Added
+- Automatic conversion of pasted pre-Unicode Tibetan text to Unicode
+
+### Changed
+- Entry dialogs now use lighter, outlined fields instead of solid-filled ones
+
+### Fixed
+- The add-definition button no longer sits in the middle of the search results bar
+
 ## [1.9.2](https://github.com/jerefrer/tibetan-translator/compare/app-v1.9.1...v1.9.2) - 2026-08-11
 
 ### Added
