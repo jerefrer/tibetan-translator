@@ -51,6 +51,14 @@ const currentVersion = packageJson.version;
 // Calculate the new version
 const newVersion = getNextVersion(currentVersion, bumpType);
 
+// `--print` resolves the next version without touching a single file, so the
+// release chain can generate the changelog before it mutates the tree. An
+// aborted changelog then leaves nothing to clean up.
+if (process.argv.includes("--print")) {
+  process.stdout.write(newVersion);
+  process.exit(0);
+}
+
 // Update package.json
 updateJsonFile(packageJsonPath, newVersion);
 
