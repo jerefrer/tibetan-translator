@@ -291,8 +291,15 @@ pub async fn list_custom_packs(app: AppHandle) -> Result<Vec<InstalledCustomPack
 /// Remove an installed custom pack
 #[tauri::command]
 pub async fn remove_custom_pack(app: AppHandle, pack_id: String) -> Result<(), String> {
-    if !pack_id.starts_with(CUSTOM_ID_PREFIX) {
-        return Err("pack_id must start with 'custom-'".into());
+    // A prefix check alone is not enough here: this ends in a recursive
+    // remove_dir_all, and an id like "custom-../../something" satisfies
+    // starts_with while resolving to a directory outside the packs folder.
+    // is_lexicon_pack_id enforces the full slug shape (lowercase ASCII,
+    // digits and hyphens only), so a traversal segment cannot survive it.
+    // Not reachable today — ids always come from a directory listing — but
+    // this is the one id-to-path command that was still trusting its input.
+    if !crate::lexicon::is_lexicon_pack_id(&pack_id) {
+        return Err("pack_id is not a valid custom pack id".into());
     }
     let packs_dir = custom_packs_dir(&app).map_err(|e| e.message)?;
     let target = packs_dir.join(&pack_id);
