@@ -2348,14 +2348,46 @@ git commit -m "feat(lexicon): adds quick add from Define and Search"
 ### Task 10: Local-modification warning in the conflict modal
 
 **Files:**
+- Modify: `src-tauri/src/lexicon.rs` (export clears `modifiedAt` in the archive)
 - Modify: `src/components/CustomPackConflictModal.vue`
 
 **Interfaces:**
-- Consumes: `existingManifest.modifiedAt` and `existingManifest.createdAt` (Task 2)
+- Consumes: `existingManifest.modifiedAt` (Task 2), set by `touch_manifest` on every local write
 
-- [ ] **Step 1: Add the warning**
+**The semantics of `modifiedAt` must be fixed first.** `install_from_bytes` (`src-tauri/src/custom_packs.rs`) writes the archive's `manifest.json` **verbatim**. So a `.tibdict` received from someone else carries *their* `modifiedAt`, and a naive "modifiedAt is later than createdAt" test would tell the recipient they had modified a dictionary they never touched.
 
-In `src/components/CustomPackConflictModal.vue`, add to the card text, after the existing version comparison line:
+The field therefore has to mean *"edited on this machine, since it arrived"*. Achieved by having export strip it from the archived copy while keeping it on disk:
+
+- `touch_manifest` already sets `modifiedAt` on every local write — unchanged.
+- `lexicon_export` writes the local manifest with `modifiedAt` intact (it is this machine's record), but clears it in the bytes placed inside the archive.
+- A pack installed from a `.tibdict` therefore starts with no `modifiedAt` and gains one only when its new owner edits it.
+- The modal's test becomes simply: `modifiedAt` present.
+
+- [ ] **Step 1: Clear `modifiedAt` in the exported archive**
+
+In `src-tauri/src/lexicon.rs`, inside `lexicon_export`, after the local manifest has been written and before serializing the archive copy:
+
+```rust
+    // The archive is a pristine snapshot for its recipient: modifiedAt means
+    // "edited on this machine since it arrived", so it must not travel. Without
+    // this, install_from_bytes copies the manifest verbatim and the recipient is
+    // warned about edits that are ours, not theirs.
+    let mut archived = manifest.clone();
+    archived.modified_at = None;
+
+    let manifest_bytes = serde_json::to_vec_pretty(&archived)
+        .map_err(|e| LexiconError::new("corrupt", format!("serialize manifest: {e}")))?;
+```
+
+`TibdictManifest` must derive `Clone` for this; it already does.
+
+- [ ] **Step 2: Add a Rust test**
+
+Append inside the existing `#[cfg(test)] mod tests` block a test asserting that a manifest serialized for the archive has `modifiedAt` absent or null while the equivalent local manifest retains it. Structure it around whatever seam `lexicon_export` exposes — if the clearing is inline and untestable, extract it into a small pure helper (e.g. `fn archived_manifest(manifest: &TibdictManifest) -> TibdictManifest`) and test that.
+
+- [ ] **Step 3: Add the warning to the modal**
+
+In `src/components/CustomPackConflictModal.vue`, add to the card text after the version comparison paragraph:
 
 ```vue
         <v-alert v-if="hasLocalEdits" type="warning" variant="tonal" density="compact" class="mt-3">
@@ -2367,23 +2399,19 @@ Add to `computed`:
 
 ```js
     hasLocalEdits() {
-      const existing = this.existingManifest;
-      if (!existing || !existing.modifiedAt || !existing.createdAt) return false;
-      return new Date(existing.modifiedAt).getTime() > new Date(existing.createdAt).getTime();
+      return !!this.existingManifest?.modifiedAt;
     },
 ```
 
-If the component receives its manifests under different prop or computed names, match the existing ones rather than introducing `existingManifest`.
+- [ ] **Step 4: Verify**
 
-- [ ] **Step 2: Verify the build**
+Run: `cd src-tauri && cargo test lexicon`, then `pnpm test` and `pnpm build`.
+Expected: all pass.
 
-Run: `pnpm build`
-Expected: build succeeds.
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/CustomPackConflictModal.vue
+git add src-tauri/src/lexicon.rs src/components/CustomPackConflictModal.vue
 git commit -m "feat(lexicon): warns before replacing a locally edited dictionary"
 ```
 
