@@ -109,7 +109,21 @@ export const strippedTibetanText = function (text) {
  *
  * Entry lookups are exact string matches, so anything that STORES a term and
  * anything that SEARCHES for one must derive it identically. Keep this the
- * only place that rule is expressed.
+ * only place that rule is expressed for any new call site.
+ *
+ * It is not, as of this writing, the only place it's ALREADY expressed —
+ * two known, tracked divergences predate this function and are out of scope
+ * for the lexicon work to touch:
+ *   - SegmentPage.vue independently re-implements a narrower version of it
+ *     four times (`replace(/[་།]+$/, "") + "་"` — a 2-character class,
+ *     where endPunctuation here covers 8).
+ *   - decorator.js's wrapAllTibetanWithSpansAndAddTshekIfMissing holds a
+ *     fifth, partial copy that only appends a tsheg when no ending
+ *     punctuation is present at all, rather than replacing whatever is
+ *     there.
+ * Neither is a call site to keep in sync with this function — they're
+ * pre-existing, separate implementations this comment can't truthfully
+ * claim don't exist.
  */
 export const tibetanLookupKey = function (text) {
   return withTrailingTshek(strippedTibetanText(text));

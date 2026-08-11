@@ -571,11 +571,6 @@ pub async fn rename_lexicon(
     Ok(manifest)
 }
 
-/// Zip manifest.json + data.sqlite into a .tibdict at `dest_path`.
-///
-/// The patch version is bumped and persisted first: without it, every export
-/// would carry the same version and the recipient's conflict modal would
-/// compare v1.0.0 against v1.0.0 and tell them nothing.
 /// Write a .tibdict archive: a ZIP holding exactly `manifest.json` + `data.sqlite`.
 ///
 /// Split out from `lexicon_export` so the archive layout — which is what the
