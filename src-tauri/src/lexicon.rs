@@ -267,8 +267,15 @@ pub async fn create_lexicon(
         description,
         author: None,
         version: Some("1.0.0".to_string()),
-        created_at: Some(now.clone()),
-        modified_at: Some(now),
+        created_at: Some(now),
+        // Left unset at birth, not stamped to `now` alongside createdAt.
+        // hasLocalEdits (CustomPackConflictModal.vue) and the delete
+        // confirmation in CustomPackSection.vue both treat a present
+        // modifiedAt as "edited since this lexicon came into existence" —
+        // touch_manifest() is what sets it, the first time an entry is
+        // actually written. Stamping it here made every freshly created,
+        // untouched lexicon read as already modified.
+        modified_at: None,
         icon: Some(DEFAULT_ICON.to_string()),
         dictionaries: vec![TibdictManifestDictionary {
             name,
