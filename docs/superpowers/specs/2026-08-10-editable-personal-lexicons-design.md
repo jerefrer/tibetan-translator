@@ -153,7 +153,7 @@ The slug is generated **in JS** and passed to `create_lexicon` as `id` without t
 `build/lib/pack-schema.js` is the canonical DDL. Rather than restating it in Rust, a small script emits an empty database from that same function:
 
 ```
-node build/make-empty-pack.js  →  src-tauri/resources/empty-pack.sqlite
+pnpm build:empty-pack  →  src-tauri/resources/empty-pack.sqlite
 ```
 
 The ~20 KB file is **committed**, so no build step is added to the release pipeline, and `create_lexicon` merely copies it and inserts one `dictionaries` row. A test asserts the committed template's schema matches `createPackTables` output, so drift is caught in CI rather than at runtime.

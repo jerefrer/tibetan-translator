@@ -6,7 +6,11 @@
  * The output is COMMITTED to the repo so the release pipeline needs no extra
  * build step. Re-run this script whenever build/lib/pack-schema.js changes:
  *
- *   node build/make-empty-pack.js
+ *   pnpm build:empty-pack
+ *
+ * (not `node build/make-empty-pack.js` directly — this file mixes an ESM
+ * `import` with CJS `__dirname`, which only resolves under the babel-node
+ * runtime the pnpm script invokes.)
  */
 
 import fs from 'fs';
