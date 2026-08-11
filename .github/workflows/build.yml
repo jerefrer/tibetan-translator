@@ -97,3 +97,29 @@ jobs:
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
+
+  # Each matrix job merges its own entries into the release's latest.json. A job
+  # that dies after uploading its binaries but before writing that entry leaves a
+  # release that looks complete while the updater quietly stops offering it to
+  # that platform — which is what happened to Intel Macs on v1.9.2.
+  #
+  # `always()` so this still reports when a matrix job failed: the job failure is
+  # visible on its own, but not its consequence for the updater. The cost is a
+  # second red mark on an already-red run.
+  verify-updater-manifest:
+    needs: publish-tauri
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+
+      - name: Check latest.json covers every platform
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node ./scripts/check-updater-manifest.js "$GITHUB_REF_NAME"
