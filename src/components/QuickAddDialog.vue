@@ -69,6 +69,7 @@
 </template>
 
 <script>
+import _ from 'underscore';
 import TibetanTextField from './TibetanTextField.vue';
 import Lexicon, { normalizeTerm } from '../services/lexicon';
 import Storage from '../services/storage';
@@ -92,6 +93,10 @@ export default {
       error: '',
       termError: '',
       saving: false,
+      // Assigned in created() so the watcher below always resolves to the
+      // debounced call, even on the very first reactive update — same
+      // pattern as LexiconPage.vue's onSearchInput.
+      onLocalTermInput: null,
     };
   },
   computed: {
@@ -124,6 +129,22 @@ export default {
     targetKey() {
       this.loadExisting();
     },
+    // The existence check must not go stale while the user edits the term:
+    // loadExisting() previously only ran on dialog open and on a target
+    // change, so retyping the term over an existing one never re-checked,
+    // and saveEntry's upsert-by-term then silently overwrote whatever
+    // already lived under the new term with no warning shown. Debounced
+    // (not immediate) so it doesn't fire an exact-match lookup on every
+    // keystroke/Wylie-conversion tick — same 250ms window LexiconPage.vue
+    // uses for its own search-as-you-type lookup.
+    localTerm() {
+      this.onLocalTermInput();
+    },
+  },
+  created() {
+    this.onLocalTermInput = _.debounce(() => {
+      this.loadExisting();
+    }, 250);
   },
   methods: {
     close(value = false) {

@@ -15,6 +15,13 @@
  *    dictionary and silently let a save overwrite it (review finding)
  *  - "A Tibetan term is required." renders on the term field, not the
  *    definition field (review finding — it was bound to the wrong field)
+ *
+ * Plus the final-review fix (BLOCKING 4): loadExisting() only ran on dialog
+ * open and on a target-dictionary change — not while the user edits the
+ * term. Typing over the pre-filled term with one that already exists left
+ * the "already in X" warning unshown and the existing definition unloaded,
+ * so Save's upsert-by-term silently overwrote it with no warning. A
+ * debounced watcher on localTerm keeps the check live as the term changes.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -222,6 +229,41 @@ describe('QuickAddDialog', () => {
     expect(wrapper.vm.existingId).toBeNull()
     expect(wrapper.vm.definition).toBe('')
     expect(document.body.textContent).not.toContain('saving will update it')
+
+    wrapper.unmount()
+  })
+
+  it('re-checks for an existing entry when the user edits the term after opening (BLOCKING 4)', async () => {
+    // Opens on a term with no existing entry...
+    findEntryMock.mockResolvedValue(null)
+    const wrapper = mountDialog({ modelValue: false, term: 'ཀ' })
+    await wrapper.setProps({ modelValue: true })
+    await flushPromises()
+
+    expect(wrapper.vm.existingId).toBeNull()
+
+    // ...then the user types over it with a DIFFERENT term that already
+    // exists in the target dictionary. Without a live re-check this stays
+    // silently stale: no warning, nothing pre-filled, and Save's
+    // upsert-by-term would overwrite the existing definition unannounced.
+    findEntryMock.mockReset().mockResolvedValue({
+      id: 9,
+      term: 'ཁ་',
+      definition: 'existing definition for kha',
+    })
+    wrapper.vm.localTerm = 'ཁ'
+    await nextTick()
+
+    // The check is debounced (not immediate, to avoid a lookup per
+    // keystroke/Wylie-conversion tick) — real wait, comfortably past the
+    // 250ms window.
+    await new Promise((resolve) => setTimeout(resolve, 400))
+    await flushPromises()
+
+    expect(findEntryMock).toHaveBeenCalledWith('custom-mine', 1, 'ཁ')
+    expect(wrapper.vm.existingId).toBe(9)
+    expect(wrapper.vm.definition).toBe('existing definition for kha')
+    expect(document.body.textContent).toContain('This term is already in My Lexicon')
 
     wrapper.unmount()
   })
