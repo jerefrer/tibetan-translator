@@ -657,12 +657,10 @@ export default {
           density="compact"
           variant="plain"
           autofocus
-          clearable
           hide-details
           v-model="searchTerm"
           placeholder="Type or paste Tibetan"
           class="flex-grow-1"
-          @click:clear="searchTerm = ''"
         />
         <v-text-field
           v-else
@@ -670,13 +668,11 @@ export default {
           density="compact"
           variant="plain"
           autofocus
-          clearable
           hide-details
           v-model="searchTerm"
           placeholder="Search across definitions"
           prepend-inner-icon="mdi-magnify"
           class="flex-grow-1"
-          @click:clear="searchTerm = ''"
         />
         <v-btn
           icon
