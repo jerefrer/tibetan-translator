@@ -1,9 +1,14 @@
 mod custom_packs;
 mod database;
+mod lexicon;
 mod packs;
 mod scans;
 
 use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
+use lexicon::{
+    create_lexicon, lexicon_delete_entry, lexicon_entries, lexicon_export,
+    lexicon_find_entry, lexicon_upsert_entry, rename_lexicon,
+};
 use database::{
     execute_query, get_all_terms, get_dictionaries, get_entries_for_term, init_database,
     search_entries,
@@ -75,6 +80,14 @@ pub fn run() {
             install_custom_pack_from_bytes,
             list_custom_packs,
             remove_custom_pack,
+            // Lexicon (editable custom pack) commands
+            create_lexicon,
+            rename_lexicon,
+            lexicon_entries,
+            lexicon_find_entry,
+            lexicon_upsert_entry,
+            lexicon_delete_entry,
+            lexicon_export,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
