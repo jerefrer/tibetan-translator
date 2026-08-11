@@ -92,6 +92,46 @@ export default {
           this.termError = 'Could not save this entry.';
           return;
         }
+
+        // lexicon_upsert_entry resolves purely by (dictionaryId, term), so
+        // editing the term doesn't rename this row — it makes the upsert
+        // above write a DIFFERENT one (outcome.id !== this.entry.id): either
+        // a freshly inserted row, or a pre-existing row that already used
+        // the new term. Either way the original row under the old term is
+        // now a stale duplicate unless it's removed here. This also fires
+        // with no visible term edit at all when the stored term and its
+        // normalized form differ (e.g. entries imported from the Anki
+        // pipeline keep a trailing shad, which tibetanLookupKey rewrites to
+        // a tsheg) — pressing Save with no changes still normalizes the
+        // term and lands on a different row.
+        //
+        // The upsert runs FIRST and the delete SECOND, never the reverse:
+        // that ordering's only failure mode is an error surfaced to the user
+        // with a transient duplicate they can retry away — the new
+        // definition is always safely written before anything old is
+        // touched. Deleting first would risk the opposite and strictly
+        // worse outcome: if the write after the delete then failed, the
+        // entry would be gone entirely, an unrecoverable loss of the user's
+        // data instead of a recoverable duplicate.
+        if (this.isEditing && outcome.id !== this.entry.id) {
+          try {
+            await Lexicon.deleteEntry(this.packId, this.entry.id);
+          } catch (e) {
+            console.error('[LexiconEntryDialog] cleanup of the renamed entry failed:', e);
+            // Do NOT report success here: the new definition is safely
+            // saved, but the old row under the previous term is still
+            // present, so telling the user "saved" would hide a duplicate
+            // that only looks like data loss the next time they see the
+            // entry appear twice. Refresh the list (so the duplicate is at
+            // least visible) but keep the dialog open with an explicit
+            // error instead of closing it.
+            this.$emit('saved', outcome);
+            this.termError =
+              'Saved, but the previous version of this entry could not be removed — you may see it twice.';
+            return;
+          }
+        }
+
         this.$emit('saved', outcome);
         this.close(false);
       } catch (e) {

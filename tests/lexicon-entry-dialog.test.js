@@ -7,6 +7,15 @@
  *    v-text-field; the dialog must override it so error-messages render)
  *  - Lexicon.saveEntry() returning null (unusable input) must not be treated
  *    as a successful save: no 'saved' emit, dialog stays open, error shown
+ *
+ * Plus the final-review fix (BLOCKING 3): lexicon_upsert_entry resolves
+ * purely by (dictionaryId, term), so editing an entry's term never renamed
+ * the row — it inserted (or matched) a different one and left the original
+ * behind, duplicating the entry. Two ways this fired, both covered below:
+ * a visible term edit (typo fix), and no visible edit at all, because a
+ * stored term and its normalized form can differ (imported entries keep a
+ * trailing shad; tibetanLookupKey rewrites it to a tsheg), so pressing Save
+ * with no changes still resolves to a different row.
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -29,14 +38,19 @@ if (typeof window.visualViewport === 'undefined') {
 }
 
 const saveEntryMock = vi.fn()
+const deleteEntryMock = vi.fn()
 
-// Mock only Lexicon.saveEntry (the Tauri-backed call). Keep normalizeTerm and
+// Mock only the Tauri-backed calls on Lexicon. Keep normalizeTerm and
 // everything else real, since the dialog's own validation depends on it.
 vi.mock('../src/services/lexicon', async (importOriginal) => {
   const actual = await importOriginal()
   return {
     ...actual,
-    default: { ...actual.default, saveEntry: (...args) => saveEntryMock(...args) },
+    default: {
+      ...actual.default,
+      saveEntry: (...args) => saveEntryMock(...args),
+      deleteEntry: (...args) => deleteEntryMock(...args),
+    },
   }
 })
 
@@ -47,6 +61,7 @@ const vuetify = createVuetify({ components, directives })
 describe('LexiconEntryDialog', () => {
   beforeEach(() => {
     saveEntryMock.mockReset()
+    deleteEntryMock.mockReset().mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -142,8 +157,113 @@ describe('LexiconEntryDialog', () => {
 
     expect(wrapper.emitted('saved')).toEqual([[{ id: 42, created: true }]])
     expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+    // Adding a brand new entry (entry: null, not editing) must never trigger
+    // the rename cleanup below — there is no previous row to remove.
+    expect(deleteEntryMock).not.toHaveBeenCalled()
 
     wrapper.unmount()
+  })
+
+  describe('editing renames the term instead of duplicating it (BLOCKING 3)', () => {
+    // Mount closed then open, mirroring quick-add-dialog.test.js: the
+    // term/definition prefill from `entry` lives in the modelValue watcher,
+    // which only fires on a false -> true transition, not on the initial
+    // prop value at mount time.
+    const mountForEdit = (entry) => {
+      const wrapper = mountDialog({ modelValue: false, entry })
+      return wrapper
+    }
+
+    it('removes the original row when a visible term edit resolves to a different row (typo fix)', async () => {
+      saveEntryMock.mockResolvedValue({ id: 42, created: true })
+      const wrapper = mountForEdit({ id: 5, term: 'ཀ་', definition: 'old definition' })
+      await wrapper.setProps({ modelValue: true })
+      await nextTick()
+
+      expect(wrapper.vm.term).toBe('ཀ་') // prefilled from the entry being edited
+
+      wrapper.vm.term = 'ཁ་' // the user fixes a typo
+      await nextTick()
+
+      await clickSave()
+
+      expect(saveEntryMock).toHaveBeenCalledWith('custom-x', 1, 'ཁ་', 'old definition')
+      expect(deleteEntryMock).toHaveBeenCalledWith('custom-x', 5)
+      expect(wrapper.emitted('saved')).toEqual([[{ id: 42, created: true }]])
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+
+      wrapper.unmount()
+    })
+
+    it('removes the original row on Save with NO visible edit, when the stored term normalizes differently (shad vs tsheg)', async () => {
+      // Anki-imported entries keep a trailing shad
+      // (build/lib/build-tibdict-sqlite.js's ensureTrailingTsheg preserves
+      // it), but tibetanLookupKey — the rule saveEntry's prepareEntry()
+      // applies before writing — rewrites a trailing shad to a tsheg. So
+      // even pressing Save with the field untouched normalizes 'ཀ།' to
+      // 'ཀ་' and the upsert resolves to a different row than entry.id.
+      saveEntryMock.mockResolvedValue({ id: 99, created: true })
+      const wrapper = mountForEdit({ id: 7, term: 'ཀ།', definition: 'unchanged definition' })
+      await wrapper.setProps({ modelValue: true })
+      await nextTick()
+
+      expect(wrapper.vm.term).toBe('ཀ།') // confirms no edit — this is the field as opened
+
+      await clickSave()
+
+      expect(saveEntryMock).toHaveBeenCalledWith('custom-x', 1, 'ཀ།', 'unchanged definition')
+      expect(deleteEntryMock).toHaveBeenCalledWith('custom-x', 7)
+      expect(wrapper.emitted('saved')).toEqual([[{ id: 99, created: true }]])
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+
+      wrapper.unmount()
+    })
+
+    it('does not delete anything when the upsert resolves back to the same row (definition-only edit)', async () => {
+      saveEntryMock.mockResolvedValue({ id: 5, created: false })
+      const wrapper = mountForEdit({ id: 5, term: 'ཀ་', definition: 'old definition' })
+      await wrapper.setProps({ modelValue: true })
+      await nextTick()
+
+      wrapper.vm.definition = 'a corrected definition'
+      await nextTick()
+
+      await clickSave()
+
+      expect(deleteEntryMock).not.toHaveBeenCalled()
+      expect(wrapper.emitted('saved')).toEqual([[{ id: 5, created: false }]])
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+
+      wrapper.unmount()
+    })
+
+    it('keeps the dialog open with an explicit error, rather than reporting success, when cleanup of the old row fails', async () => {
+      // This is the ordering guarantee the fix depends on: the upsert (new
+      // definition) already succeeded by the time this delete is attempted,
+      // so the failure mode is a surfaced error with a retryable duplicate —
+      // never silent data loss, and never a false "saved" while a duplicate
+      // is left behind unmentioned.
+      saveEntryMock.mockResolvedValue({ id: 42, created: true })
+      deleteEntryMock.mockRejectedValue(new Error('disk error'))
+      const wrapper = mountForEdit({ id: 5, term: 'ཀ་', definition: 'old definition' })
+      await wrapper.setProps({ modelValue: true })
+      await nextTick()
+
+      wrapper.vm.term = 'ཁ་'
+      await nextTick()
+
+      await clickSave()
+
+      expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+      expect(document.body.textContent).toContain(
+        'Saved, but the previous version of this entry could not be removed'
+      )
+      // The parent must still be told a save happened, so its list reflects
+      // the (temporarily duplicated) reality instead of looking unchanged.
+      expect(wrapper.emitted('saved')).toEqual([[{ id: 42, created: true }]])
+
+      wrapper.unmount()
+    })
   })
 
   it('resets the saving flag when the dialog is reopened while a save is still in flight', async () => {
