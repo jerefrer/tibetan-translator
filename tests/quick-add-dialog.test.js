@@ -268,6 +268,55 @@ describe('QuickAddDialog', () => {
     wrapper.unmount()
   })
 
+  it('cancels the pending debounce and re-checks synchronously when Save is clicked inside the 250ms window (residual fix)', async () => {
+    // Opens on a term with no existing entry, same as the BLOCKING 4 case
+    // above, but this time the user does NOT wait out the debounce before
+    // saving.
+    findEntryMock.mockResolvedValue(null)
+    const wrapper = mountDialog({ modelValue: false, term: 'ཀ' })
+    await wrapper.setProps({ modelValue: true })
+    await flushPromises()
+    expect(wrapper.vm.existingId).toBeNull()
+
+    // Definition typed first...
+    wrapper.vm.definition = 'a fresh definition typed before editing the term'
+
+    // ...then the term is edited to one that already exists in the target
+    // dictionary. This starts the 250ms debounced onLocalTermInput timer
+    // but does NOT let it fire.
+    findEntryMock.mockReset().mockResolvedValue({
+      id: 9,
+      term: 'ཁ་',
+      definition: 'existing definition for kha',
+    })
+    wrapper.vm.localTerm = 'ཁ'
+    await nextTick()
+
+    // Capture existingId at the exact moment Lexicon.saveEntry (the upsert)
+    // is invoked. If save() still trusts the stale, not-yet-fired debounced
+    // check, existingId will read null here — the same stale read that let
+    // the upsert silently overwrite an existing entry with no warning.
+    let existingIdWhenUpsertRan
+    saveEntryMock.mockImplementation(() => {
+      existingIdWhenUpsertRan = wrapper.vm.existingId
+      return Promise.resolve({ id: 9, created: false })
+    })
+
+    // Click Save immediately — well inside the 250ms window, with no real
+    // time elapsed and no fake timers advanced.
+    findButton('Save').click()
+    await flushPromises()
+
+    // save() must have cancelled the stale debounce and re-run the
+    // exact-match lookup for the CURRENT term itself, synchronously ahead
+    // of the upsert — not relied on the abandoned debounced call.
+    expect(findEntryMock).toHaveBeenCalledWith('custom-mine', 1, 'ཁ')
+    expect(existingIdWhenUpsertRan).toBe(9)
+    expect(wrapper.vm.existingId).toBe(9)
+
+    wrapper.unmount()
+  })
+
   it('resets the saving flag when the dialog is reopened while a save is still in flight', async () => {
     let resolveSave
     saveEntryMock.mockImplementation(
@@ -282,7 +331,12 @@ describe('QuickAddDialog', () => {
     await nextTick()
 
     findButton('Save').click()
-    await nextTick()
+    // save() now awaits a synchronous loadExisting() re-check (the
+    // debounce-race fix, tested above) before setting saving = true, adding
+    // an extra microtask hop that a single nextTick() no longer spans —
+    // flushPromises() drains that chain and then blocks on the still-
+    // unresolved saveEntryMock promise below, leaving saving = true.
+    await flushPromises()
     expect(wrapper.vm.saving).toBe(true)
 
     // Parent closes the dialog (e.g. user dismisses it) while the save is

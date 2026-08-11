@@ -183,6 +183,20 @@ export default {
         this.error = 'A definition is required.';
         return;
       }
+      // loadExisting() is debounced 250ms behind localTerm (see the watcher
+      // above). If the user edits the term and clicks Save inside that
+      // window, existingId is stale and saveEntry's upsert-by-term would
+      // silently overwrite an existing definition with no warning shown.
+      // Cancel the pending debounced call and run the check synchronously
+      // so existingId (and the "already in X" caption) reflect the current
+      // term before the upsert. This runs AFTER the definition-required
+      // guard, not before: loadExisting() has a side effect of filling in
+      // this.definition when it's empty (to pre-load an existing
+      // definition for editing), and running it before that guard would let
+      // it silently populate the field and mask a real "definition is
+      // required" validation failure.
+      this.onLocalTermInput.cancel();
+      await this.loadExisting();
       this.saving = true;
       try {
         const outcome = await Lexicon.saveEntry(
