@@ -95,6 +95,20 @@ pub fn is_lexicon_pack_id(id: &str) -> bool {
         && rest.bytes().all(|b| edge_ok(b) || b == b'-')
 }
 
+/// Build the manifest copy that goes inside a `.tibdict` archive.
+///
+/// The archive is a pristine snapshot for its recipient: `modifiedAt` means
+/// "edited on this machine since it arrived", so it must not travel. Without
+/// this, `install_from_bytes` copies the manifest verbatim and the recipient
+/// is warned about edits that are ours, not theirs. The local manifest on
+/// disk keeps `modifiedAt` — it is this machine's own record — only the
+/// archived copy is stripped.
+pub fn archived_manifest(manifest: &TibdictManifest) -> TibdictManifest {
+    let mut archived = manifest.clone();
+    archived.modified_at = None;
+    archived
+}
+
 /// Increment the patch component so a re-exported lexicon shows a newer version
 /// in the recipient's conflict modal. Missing or non-semver input restarts at 1.0.1.
 pub fn bump_patch_version(version: Option<&str>) -> String {
@@ -602,7 +616,8 @@ pub async fn lexicon_export(
     manifest.version = Some(version.clone());
     write_manifest(&dir, &manifest)?;
 
-    let manifest_bytes = serde_json::to_vec_pretty(&manifest)
+    let archived = archived_manifest(&manifest);
+    let manifest_bytes = serde_json::to_vec_pretty(&archived)
         .map_err(|e| LexiconError::new("corrupt", format!("serialize manifest: {e}")))?;
     let sqlite_bytes = fs::read(dir.join("data.sqlite"))
         .map_err(|e| LexiconError::new("corrupt", format!("read database: {e}")))?;
@@ -651,6 +666,46 @@ mod tests {
         assert!(!is_lexicon_pack_id("custom-a\\b"));
         assert!(!is_lexicon_pack_id("custom-/etc/passwd"));
         assert!(!is_lexicon_pack_id("custom-%2e%2e%2fescape"));
+    }
+
+    /// The archived copy must not carry `modifiedAt` — a `.tibdict` is a
+    /// pristine snapshot for its recipient, and `install_from_bytes` copies
+    /// its manifest verbatim, so anything left here would falsely tell the
+    /// recipient they had edited a dictionary they never touched. The local
+    /// manifest passed in is untouched: `modifiedAt` there is this machine's
+    /// own record and must survive the call.
+    #[test]
+    fn archived_manifest_clears_modified_at_but_leaves_the_local_copy_intact() {
+        let manifest = TibdictManifest {
+            format: "tibdict".to_string(),
+            format_version: FORMAT_VERSION,
+            schema_version: SCHEMA_VERSION,
+            id: "my-lexicon".to_string(),
+            name: "My Lexicon".to_string(),
+            description: "desc".to_string(),
+            author: None,
+            version: Some("1.0.1".to_string()),
+            created_at: Some("2026-01-01T00:00:00Z".to_string()),
+            modified_at: Some("2026-02-02T00:00:00Z".to_string()),
+            icon: Some(DEFAULT_ICON.to_string()),
+            dictionaries: vec![TibdictManifestDictionary {
+                name: "My Lexicon".to_string(),
+                entries_count: Some(3),
+            }],
+        };
+
+        let archived = archived_manifest(&manifest);
+
+        assert_eq!(archived.modified_at, None, "the archived copy must not carry modifiedAt");
+        assert_eq!(
+            manifest.modified_at,
+            Some("2026-02-02T00:00:00Z".to_string()),
+            "the local manifest must retain its own modifiedAt"
+        );
+        // Everything else about the manifest travels unchanged.
+        assert_eq!(archived.id, manifest.id);
+        assert_eq!(archived.version, manifest.version);
+        assert_eq!(archived.created_at, manifest.created_at);
     }
 
     #[test]

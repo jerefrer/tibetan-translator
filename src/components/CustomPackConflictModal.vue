@@ -17,6 +17,9 @@
         <p v-if="newVersion && existingVersion && newVersion !== existingVersion" class="mt-2">
           The new file is version {{ newVersion }}.
         </p>
+        <v-alert v-if="hasLocalEdits" type="warning" variant="tonal" density="compact" class="mt-3">
+          You have modified this dictionary. Replacing it will discard your changes.
+        </v-alert>
       </v-card-text>
 
       <v-card-actions>
@@ -58,6 +61,9 @@ export default {
       return this.incomingManifest?.version
         ? `v${this.incomingManifest.version}`
         : '';
+    },
+    hasLocalEdits() {
+      return !!this.existingManifest?.modifiedAt;
     },
   },
   methods: {
