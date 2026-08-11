@@ -14,6 +14,7 @@ import Decorator from '../services/decorator';
 import PhoneticSearch from '../services/phonetic-search';
 import SqlDatabase from '../services/sql-database';
 import Storage from '../services/storage';
+import { supportsModularPacks } from '../config/platform';
 import {
   convertWylieInParentheses,
   phoneticsLooseFor,
@@ -24,6 +25,7 @@ import {
 import DictionariesMenuMixin from './DictionariesMenuMixin';
 import InfiniteScrollMixin from './mixins/InfiniteScrollMixin';
 
+import QuickAddDialog from './QuickAddDialog.vue';
 import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries.vue';
 import ScanViewer from './ScanViewer.vue';
 import SearchBuilder from './SearchBuilder.vue';
@@ -36,6 +38,7 @@ export default {
     return { theme };
   },
   components: {
+    QuickAddDialog,
     ResultsAndPaginationAndDictionaries,
     ScanViewer,
     SearchBuilder,
@@ -56,6 +59,7 @@ export default {
       cachedPhoneticsLooseTerms: [],
       // Search builder state
       builderVisible: Storage.get('searchBuilderVisible') !== false,
+      quickAddOpen: false,
     };
   },
   watch: {
@@ -92,6 +96,17 @@ export default {
   computed: {
     isDark() {
       return this.theme.global.current.value.dark;
+    },
+    canAddToLexicon() {
+      return supportsModularPacks();
+    },
+    /** The current query, or '' when it isn't a single plain Tibetan term
+     *  (multi-term '&' queries and phonetic [..]/{..} syntax stay editable
+     *  in the dialog's own field instead of being pre-filled here). */
+    quickAddTerm() {
+      const trimmed = (this.searchQuery || '').trim();
+      if (!trimmed || trimmed.includes('&') || /[[\]{}]/.test(trimmed)) return '';
+      return this.containsTibetan(trimmed) ? trimmed : '';
     },
     // InfiniteScrollMixin configuration
     infiniteScrollRootMargin() {
@@ -291,6 +306,10 @@ export default {
     clearPreviousQueries() {
       this.previousQueries = [];
       this.focusInput();
+    },
+    onLexiconEntrySaved() {
+      // Re-run the current search so the new definition shows immediately.
+      if (this.searchQuery) this.performSearch({ query: this.searchQuery, fromNavigation: true });
     },
     focusInput() {
       this.$refs.input.focus();
@@ -583,6 +602,24 @@ export default {
         Showing {{ visibleEntries.length }} of
         {{ totalNumberOfEntriesForEnabledDictionaries }} results
       </div>
+
+      <v-btn
+        v-if="canAddToLexicon && searchQuery"
+        icon
+        variant="text"
+        size="small"
+        @click="quickAddOpen = true"
+      >
+        <v-icon>mdi-book-plus</v-icon>
+        <v-tooltip activator="parent" location="top">Add my definition</v-tooltip>
+      </v-btn>
+
+      <QuickAddDialog
+        v-model="quickAddOpen"
+        :term="quickAddTerm"
+        @saved="onLexiconEntrySaved"
+      />
+
       <ResultsAndPaginationAndDictionaries
         :dictionaries="dictionariesForCurrentResults"
         :totalNumberOfEntries="totalNumberOfEntriesForEnabledDictionaries"
