@@ -152,7 +152,7 @@ import _ from 'underscore';
 import Lexicon, { messageForError } from '../services/lexicon';
 import LexiconEntryDialog from './LexiconEntryDialog.vue';
 import ImportPreviewDialog from './ImportPreviewDialog.vue';
-import { supportsModularPacks } from '../config/platform';
+import { isMobile, supportsModularPacks } from '../config/platform';
 
 const PAGE_SIZE = 50;
 
@@ -172,6 +172,7 @@ export default {
       removeTarget: null,
       importOpen: false,
       importGrid: null,
+      unlistenDrop: null,
       // Assigned in created() so the template's @update:model-value="onSearchInput"
       // binding always resolves to the debounced call, even on the very first render.
       onSearchInput: null,
@@ -257,9 +258,12 @@ export default {
     // on navigation), so a single add here can never double-register — same
     // pattern as DefinePage.vue's 'all-terms-updated' listener.
     window.addEventListener('dictionaries-updated', this.syncSelection);
+    this.listenForDroppedSpreadsheets();
   },
   beforeUnmount() {
     window.removeEventListener('dictionaries-updated', this.syncSelection);
+    this.unlistenDrop?.();
+    this.unlistenDrop = null;
   },
   methods: {
     // Falls back to the first available dictionary — and navigates so the
@@ -379,6 +383,27 @@ export default {
       this.importOpen = false;
       await this.load();
       this.snackbar.open(`${inserted} added, ${updated} updated`);
+    },
+    /** Accept a spreadsheet dropped anywhere on the window.
+     *
+     * Desktop only: there is no drag-and-drop on iOS or Android, so the
+     * listener would never fire there. Registered from mounted() rather than
+     * activated() for the reason spelled out above — activated() repeats on
+     * every navigation back to this page and would stack a listener each time. */
+    async listenForDroppedSpreadsheets() {
+      if (!supportsModularPacks() || isMobile()) return;
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        this.unlistenDrop = await getCurrentWebview().onDragDropEvent((event) => {
+          if (event.payload.type !== 'drop') return;
+          const path = (event.payload.paths || []).find((candidate) =>
+            /\.(xlsx|xls|ods|csv|tsv)$/i.test(candidate)
+          );
+          if (path) this.openImportFor(path);
+        });
+      } catch (e) {
+        console.error('[LexiconPage] could not listen for dropped files:', e);
+      }
     },
     async exportLexicon() {
       try {
