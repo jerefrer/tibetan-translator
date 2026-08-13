@@ -56,6 +56,10 @@
                 <v-icon start>mdi-plus</v-icon>
                 Add an entry
               </v-btn>
+              <v-btn variant="text" class="ml-1" @click="importSpreadsheet">
+                <v-icon start>mdi-file-import-outline</v-icon>
+                Import
+              </v-btn>
               <v-btn variant="text" class="ml-1" @click="exportLexicon">
                 <v-icon start>mdi-export-variant</v-icon>
                 Export
@@ -113,6 +117,16 @@
           @saved="onSaved"
         />
 
+        <ImportPreviewDialog
+          v-if="selected && importGrid"
+          v-model="importOpen"
+          :grid="importGrid"
+          :pack-id="selected.packId"
+          :dictionary-id="selected.dictionaryId"
+          :dictionary-name="selected.name"
+          @imported="onImported"
+        />
+
         <v-dialog v-model="removeOpen" max-width="420">
           <v-card v-if="removeTarget">
             <v-card-title>Delete this entry?</v-card-title>
@@ -133,17 +147,18 @@
 </template>
 
 <script>
-import { save } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import _ from 'underscore';
 import Lexicon, { messageForError } from '../services/lexicon';
 import LexiconEntryDialog from './LexiconEntryDialog.vue';
+import ImportPreviewDialog from './ImportPreviewDialog.vue';
 import { supportsModularPacks } from '../config/platform';
 
 const PAGE_SIZE = 50;
 
 export default {
   name: 'LexiconPage',
-  components: { LexiconEntryDialog },
+  components: { LexiconEntryDialog, ImportPreviewDialog },
   inject: ['snackbar'],
   data() {
     return {
@@ -155,6 +170,8 @@ export default {
       editing: null,
       removeOpen: false,
       removeTarget: null,
+      importOpen: false,
+      importGrid: null,
       // Assigned in created() so the template's @update:model-value="onSearchInput"
       // binding always resolves to the debounced call, even on the very first render.
       onSearchInput: null,
@@ -331,6 +348,37 @@ export default {
         console.error('[LexiconPage] delete failed:', e);
         this.snackbar.open(messageForError(e, 'Could not remove this entry.'));
       }
+    },
+    /** Read a spreadsheet and open the preview on it.
+     *
+     * Reads through plugin-fs rather than handing Rust the path: the picker
+     * returns a content:// URI on Android and a file:// URI on iOS, and only
+     * plugin-fs understands all three platforms' formats. */
+    async openImportFor(path) {
+      try {
+        const { readFile } = await import('@tauri-apps/plugin-fs');
+        const data = await readFile(path);
+        const fileName = String(path).split(/[\\/]/).pop();
+        this.importGrid = await Lexicon.readSpreadsheet(Array.from(data), fileName);
+        this.importOpen = true;
+      } catch (e) {
+        console.error('[LexiconPage] could not read the spreadsheet:', e);
+        this.snackbar.open(messageForError(e, 'Could not read this file.'));
+      }
+    },
+    async importSpreadsheet() {
+      const path = await open({
+        multiple: false,
+        filters: [
+          { name: 'Spreadsheets', extensions: ['xlsx', 'xls', 'ods', 'csv', 'tsv'] },
+        ],
+      });
+      if (path) await this.openImportFor(path);
+    },
+    async onImported({ inserted, updated }) {
+      this.importOpen = false;
+      await this.load();
+      this.snackbar.open(`${inserted} added, ${updated} updated`);
     },
     async exportLexicon() {
       try {
