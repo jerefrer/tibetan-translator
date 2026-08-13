@@ -142,12 +142,23 @@ pub fn read_workbook(data: Vec<u8>) -> Result<SpreadsheetGrid, String> {
 // subjoined letters inside the same em, so it carries far less ink per point
 // than Latin does. The app's own stylesheet already compensates the same way,
 // setting Tibetan a size above the surrounding interface text.
-const TIBETAN_FONT_SIZE: u32 = 20;
-const TEXT_FONT_SIZE: u32 = 12;
-const TIBETAN_COLUMN_WIDTH: f64 = 34.0;
-const TEXT_COLUMN_WIDTH: f64 = 60.0;
-const HEADER_ROW_HEIGHT: f64 = 22.0;
-const BODY_ROW_HEIGHT: f64 = 32.0;
+// Naming a real Tibetan font is not cosmetic. Left to Calibri, which has no
+// Tibetan glyphs at all, Excel falls back character by character on the grid
+// and can split a stack like ར + ྒ + ྱ across two font runs — once split, the
+// subjoined letters never combine and the syllable renders broken. Entering a
+// cell hides it, because the edit control goes through the OS text engine,
+// which falls back per cluster instead.
+//
+// Kailasa ships with every macOS install, so it resolves on any Mac that opens
+// the file. Windows has no Tibetan font under this name and falls back exactly
+// as it does today — no worse than naming nothing.
+const TIBETAN_FONT_NAME: &str = "Kailasa";
+const TIBETAN_FONT_SIZE: u32 = 28;
+const TEXT_FONT_SIZE: u32 = 14;
+const TIBETAN_COLUMN_WIDTH: f64 = 42.0;
+const TEXT_COLUMN_WIDTH: f64 = 70.0;
+const HEADER_ROW_HEIGHT: f64 = 26.0;
+const BODY_ROW_HEIGHT: f64 = 46.0;
 
 /// Write a grid out as an xlsx workbook, in memory.
 ///
@@ -172,6 +183,7 @@ pub fn grid_to_xlsx(
         .set_font_size(TEXT_FONT_SIZE)
         .set_align(FormatAlign::VerticalCenter);
     let tibetan_format = Format::new()
+        .set_font_name(TIBETAN_FONT_NAME)
         .set_font_size(TIBETAN_FONT_SIZE)
         .set_align(FormatAlign::VerticalCenter);
     let text_format = Format::new()
@@ -275,6 +287,12 @@ mod tests {
         let styles = xlsx_member(&bytes, "xl/styles.xml");
         assert!(styles.contains(&format!("val=\"{TIBETAN_FONT_SIZE}\"")), "no {TIBETAN_FONT_SIZE}pt font in styles.xml: {styles}");
         assert!(styles.contains("<b/>"), "no bold run in styles.xml: {styles}");
+        // Without a Tibetan family named here, Excel falls back per character
+        // on the grid and breaks the stacks.
+        assert!(
+            styles.contains(&format!("val=\"{TIBETAN_FONT_NAME}\"")),
+            "the Tibetan column names no Tibetan font: {styles}"
+        );
     }
 
     #[test]
