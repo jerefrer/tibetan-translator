@@ -205,3 +205,32 @@ describe('entriesForImport', () => {
     expect(entriesForImport([{ term: '   ', definition: 'orphan' }])).toEqual([]);
   });
 });
+
+describe('importing the same sheet twice', () => {
+  // The proof that the diff key and the write key are the same rule. If they
+  // ever drift, the second import reports every row as new and the entries
+  // become invisible to the global hotkey — the failure mode §6 of the design
+  // calls "the one correctness trap".
+  it('reports nothing to do the second time round', () => {
+    const rows = [
+      ['སངས་རྒྱས།', 'buddha'],
+      ['བླ་མ་', 'lama'],
+    ];
+    const columns = { termColumn: 0, definitionColumn: 1 };
+
+    const first = diffRows(rows, columns, []);
+    expect(first.created).toHaveLength(2);
+
+    // What the write path would actually store: prepareEntry's own normalization.
+    const stored = entriesForImport(first.created).map((entry, index) => ({
+      id: index + 1,
+      term: entry.term,
+      definition: entry.definition,
+    }));
+
+    const second = diffRows(rows, columns, stored);
+    expect(second.created).toEqual([]);
+    expect(second.modified).toEqual([]);
+    expect(second.unchangedCount).toBe(2);
+  });
+});
