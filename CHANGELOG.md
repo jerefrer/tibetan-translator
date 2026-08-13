@@ -5,6 +5,11 @@ All notable changes to Tibetan Translator are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0](https://github.com/jerefrer/tibetan-translator/compare/v1.10.0...v1.11.0) - 2026-08-13
+
+### Added
+- Import and export of your own dictionaries as spreadsheets — build a word list in Excel or Numbers, drop the file onto the app, and it works out which column is which on its own
+
 ## [1.10.0](https://github.com/jerefrer/tibetan-translator/compare/v1.9.2...v1.10.0) - 2026-08-11
 
 ### Added

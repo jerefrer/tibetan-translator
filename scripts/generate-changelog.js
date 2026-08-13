@@ -78,6 +78,20 @@ Write the release notes in English, as Markdown, following these rules:
   tests, dependencies or CI.
 - Silently drop every commit a user could not possibly notice.
 - Fold several commits describing the same user-facing change into one bullet.
+- At most three bullets per group. A release that touched a lot of code is
+  still only a few things from the outside: fold the small ones into the bullet
+  they belong with instead of listing them separately.
+- About twenty words per bullet. If a bullet needs a comma-separated list to
+  stay accurate, it is too detailed — name the thing once and stop.
+- Never list file formats, extensions, or every place a feature can be reached
+  from. "Import your dictionaries from a spreadsheet" is enough; the reader
+  will find the button.
+- Say what the reader can now do, not how the app pulls it off. "It works out
+  which column is which on its own" is what they get; "automatic detection of
+  the header row and the term and definition columns" is machinery, and reads
+  like a specification.
+- Write it the way you would tell a friend what is new — plain and warm, no
+  marketing, no exclamation marks.
 - Keep it tight. No preamble, no closing remarks, no code fences.
 - If nothing in the list is user-visible, output exactly: ${NOTHING_MARKER}
 
