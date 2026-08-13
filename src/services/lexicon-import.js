@@ -108,13 +108,18 @@ export function diffRows(dataRows, { termColumn, definitionColumn }, existingEnt
       ignored.push({ row, reason: 'duplicate' });
       continue;
     }
+
+    // prepareEntry() refuses an entry with an empty definition, so a row like
+    // this would be dropped between the recap and the write — the counts have
+    // to account for it here or they promise an entry that never lands.
+    const definition = (dataRows[index][definitionColumn] || '').trim();
+    if (!definition) {
+      ignored.push({ row, reason: 'noDefinition' });
+      continue;
+    }
+
     seen.add(key);
-    retained.push({
-      row,
-      key,
-      term: key,
-      definition: (dataRows[index][definitionColumn] || '').trim(),
-    });
+    retained.push({ row, key, term: key, definition });
   }
 
   retained.reverse();

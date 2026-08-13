@@ -78,6 +78,17 @@ export function prepareEntry(rawTerm, rawDefinition) {
 }
 
 /**
+ * Turn confirmed diff rows into the payload lexicon_apply_import expects.
+ *
+ * Phonetics are computed here because JS owns them — Rust never derives them.
+ * The filter is a backstop: diffRows() already drops the rows prepareEntry
+ * would reject, so anything falling out here means the two disagree.
+ */
+export function entriesForImport(rows) {
+  return rows.map((row) => prepareEntry(row.term, row.definition)).filter(Boolean);
+}
+
+/**
  * Turn a LexiconError from Rust into something worth reading.
  *
  * src-tauri/src/lexicon.rs tags every failure with a `code`; without this the
@@ -166,6 +177,25 @@ export const Lexicon = {
 
   export(packId, destPath) {
     return invoke('lexicon_export', { packId, destPath });
+  },
+
+  /** Read a spreadsheet into a plain grid.
+   *
+   * Takes bytes rather than a path because the dialog plugin hands back a
+   * content:// URI on Android and a file:// URI on iOS; plugin-fs reads all
+   * three platforms' formats, and Rust only ever sees the bytes. */
+  readSpreadsheet(data, fileName) {
+    return invoke('read_spreadsheet', { data, fileName });
+  },
+
+  async applyImport(packId, dictionaryId, rows) {
+    const outcome = await invoke('lexicon_apply_import', {
+      packId,
+      dictionaryId,
+      entries: entriesForImport(rows),
+    });
+    await PackManager.refreshAfterLexiconChange();
+    return outcome;
   },
 };
 

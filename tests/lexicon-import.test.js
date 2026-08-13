@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { detectLayout, diffRows } from '../src/services/lexicon-import.js';
+import { entriesForImport } from '../src/services/lexicon.js';
 
 const GRID = {
   headers: ['A', 'B', 'C'],
@@ -164,5 +165,43 @@ describe('diffRows', () => {
     // What goes in must be byte-identical to what the lookup path searches for.
     const diff = diffRows([['བླ་མ།', 'lama']], COLUMNS, []);
     expect(diff.created[0].term).toBe('བླ་མ་');
+  });
+});
+
+describe('rows the write path would silently drop', () => {
+  const COLUMNS = { termColumn: 0, definitionColumn: 1 };
+
+  it('ignores a row with a term but no definition', () => {
+    // prepareEntry() returns null when either side is empty, so counting such
+    // a row as created would make the recap promise an entry that never lands.
+    const diff = diffRows([['བླ་མ་', '']], COLUMNS, []);
+    expect(diff.created).toEqual([]);
+    expect(diff.ignored).toEqual([{ row: 1, reason: 'noDefinition' }]);
+  });
+
+  it('still counts a blank definition as unchanged when the entry is blank too', () => {
+    const diff = diffRows([['བླ་མ་', '']], COLUMNS, [
+      { id: 1, term: 'བླ་མ་', definition: '' },
+    ]);
+    expect(diff.ignored).toEqual([{ row: 1, reason: 'noDefinition' }]);
+  });
+});
+
+describe('entriesForImport', () => {
+  it('gives every row the six phonetic columns Rust expects', () => {
+    const [entry] = entriesForImport([{ term: 'སངས་རྒྱས་', definition: 'buddha' }]);
+    expect(Object.keys(entry).sort()).toEqual([
+      'definition',
+      'definitionPhoneticsWordsLoose',
+      'definitionPhoneticsWordsStrict',
+      'term',
+      'termPhoneticsLoose',
+      'termPhoneticsStrict',
+    ]);
+    expect(entry.termPhoneticsStrict).toBeTruthy();
+  });
+
+  it('drops rows that prepareEntry rejects as unusable', () => {
+    expect(entriesForImport([{ term: '   ', definition: 'orphan' }])).toEqual([]);
   });
 });
