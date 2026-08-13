@@ -149,10 +149,17 @@ pub fn read_workbook(data: Vec<u8>) -> Result<SpreadsheetGrid, String> {
 // cell hides it, because the edit control goes through the OS text engine,
 // which falls back per cluster instead.
 //
-// Kailasa ships with every macOS install, so it resolves on any Mac that opens
-// the file. Windows has no Tibetan font under this name and falls back exactly
-// as it does today — no worse than naming nothing.
+// A SpreadsheetML font carries exactly one name — no per-script attribute, no
+// fallback list — so a single file cannot name one font for macOS and another
+// for Windows. The best available is to name the one that ships with the
+// platform doing the export, which covers the ordinary case of opening your own
+// file. A workbook sent to the other platform falls back as it does today.
+#[cfg(target_os = "macos")]
 const TIBETAN_FONT_NAME: &str = "Kailasa";
+#[cfg(target_os = "windows")]
+const TIBETAN_FONT_NAME: &str = "Microsoft Himalaya";
+#[cfg(not(any(target_os = "macos", target_os = "windows")))]
+const TIBETAN_FONT_NAME: &str = "Noto Serif Tibetan";
 const TIBETAN_FONT_SIZE: u32 = 28;
 const TEXT_FONT_SIZE: u32 = 14;
 const TIBETAN_COLUMN_WIDTH: f64 = 42.0;
