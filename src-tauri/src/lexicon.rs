@@ -434,7 +434,7 @@ pub async fn lexicon_export_xlsx(
         .map_err(|e| LexiconError::new("corrupt", format!("read entries: {e}")))?;
 
     let headers = vec!["Tibetan term".to_string(), "Definition".to_string()];
-    crate::spreadsheet::grid_to_xlsx(&headers, &rows)
+    crate::spreadsheet::grid_to_xlsx(&headers, &rows, Some(0))
         .map_err(|e| LexiconError::new("path", format!("write workbook: {e}")))
 }
 

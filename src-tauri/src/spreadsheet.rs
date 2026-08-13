@@ -138,6 +138,17 @@ pub fn read_workbook(data: Vec<u8>) -> Result<SpreadsheetGrid, String> {
     })
 }
 
+// Excel's 11pt default leaves Tibetan unreadable: the script stacks vowels and
+// subjoined letters inside the same em, so it carries far less ink per point
+// than Latin does. The app's own stylesheet already compensates the same way,
+// setting Tibetan a size above the surrounding interface text.
+const TIBETAN_FONT_SIZE: u32 = 20;
+const TEXT_FONT_SIZE: u32 = 12;
+const TIBETAN_COLUMN_WIDTH: f64 = 34.0;
+const TEXT_COLUMN_WIDTH: f64 = 60.0;
+const HEADER_ROW_HEIGHT: f64 = 22.0;
+const BODY_ROW_HEIGHT: f64 = 32.0;
+
 /// Write a grid out as an xlsx workbook, in memory.
 ///
 /// Returns bytes rather than writing a file for the same reason the reader
@@ -146,24 +157,74 @@ pub fn read_workbook(data: Vec<u8>) -> Result<SpreadsheetGrid, String> {
 ///
 /// Everything is written as a string. Tibetan is text, and so is a definition
 /// like "1000" that Excel would otherwise reopen as a number.
-pub fn grid_to_xlsx(headers: &[String], rows: &[Vec<String>]) -> Result<Vec<u8>, String> {
-    use rust_xlsxwriter::Workbook;
+///
+/// `tibetan_column` gets the larger typeface and a wider column. Pass None for
+/// a grid with no Tibetan in it.
+pub fn grid_to_xlsx(
+    headers: &[String],
+    rows: &[Vec<String>],
+    tibetan_column: Option<usize>,
+) -> Result<Vec<u8>, String> {
+    use rust_xlsxwriter::{Format, FormatAlign, Workbook};
+
+    let header_format = Format::new()
+        .set_bold()
+        .set_font_size(TEXT_FONT_SIZE)
+        .set_align(FormatAlign::VerticalCenter);
+    let tibetan_format = Format::new()
+        .set_font_size(TIBETAN_FONT_SIZE)
+        .set_align(FormatAlign::VerticalCenter);
+    let text_format = Format::new()
+        .set_font_size(TEXT_FONT_SIZE)
+        .set_align(FormatAlign::VerticalCenter);
+
+    let is_tibetan = |column: usize| tibetan_column == Some(column);
+    let width = headers.len().max(rows.iter().map(|row| row.len()).max().unwrap_or(0));
 
     let mut workbook = Workbook::new();
     let sheet = workbook.add_worksheet();
 
-    for (column, header) in headers.iter().enumerate() {
+    for column in 0..width {
+        let column_width = if is_tibetan(column) {
+            TIBETAN_COLUMN_WIDTH
+        } else {
+            TEXT_COLUMN_WIDTH
+        };
         sheet
-            .write_string(0, column as u16, header)
+            .set_column_width(column as u16, column_width)
             .map_err(|e| format!("writeFailed: {e}"))?;
     }
+
+    sheet
+        .set_row_height(0, HEADER_ROW_HEIGHT)
+        .map_err(|e| format!("writeFailed: {e}"))?;
+    for (column, header) in headers.iter().enumerate() {
+        sheet
+            .write_string_with_format(0, column as u16, header, &header_format)
+            .map_err(|e| format!("writeFailed: {e}"))?;
+    }
+
     for (index, row) in rows.iter().enumerate() {
+        let row_number = index as u32 + 1;
+        sheet
+            .set_row_height(row_number, BODY_ROW_HEIGHT)
+            .map_err(|e| format!("writeFailed: {e}"))?;
         for (column, cell) in row.iter().enumerate() {
+            let format = if is_tibetan(column) {
+                &tibetan_format
+            } else {
+                &text_format
+            };
             sheet
-                .write_string(index as u32 + 1, column as u16, cell)
+                .write_string_with_format(row_number, column as u16, cell, format)
                 .map_err(|e| format!("writeFailed: {e}"))?;
         }
     }
+
+    // Keep the header in view while a long dictionary is scrolled.
+    sheet
+        .set_freeze_panes(1, 0)
+        .map_err(|e| format!("writeFailed: {e}"))?;
 
     workbook
         .save_to_buffer()
@@ -189,6 +250,49 @@ pub fn read_spreadsheet(data: Vec<u8>, file_name: String) -> Result<SpreadsheetG
 mod tests {
     use super::*;
 
+    /// Pull one member out of the generated workbook, which is a zip archive.
+    #[cfg(test)]
+    fn xlsx_member(bytes: &[u8], name: &str) -> String {
+        use std::io::Read;
+        let mut archive = zip::ZipArchive::new(Cursor::new(bytes.to_vec())).unwrap();
+        let mut file = archive.by_name(name).unwrap();
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).unwrap();
+        contents
+    }
+
+    #[test]
+    fn the_tibetan_column_is_written_much_larger_than_the_rest() {
+        // Tibetan at the 11pt Excel default is unreadable — the glyphs carry
+        // stacked vowels and render far smaller than Latin at the same size.
+        let bytes = grid_to_xlsx(
+            &["Tibetan term".to_string(), "Definition".to_string()],
+            &[vec!["\u{f66}\u{f44}\u{f66}\u{f0b}".to_string(), "buddha".to_string()]],
+            Some(0),
+        )
+        .unwrap();
+
+        let styles = xlsx_member(&bytes, "xl/styles.xml");
+        assert!(styles.contains(&format!("val=\"{TIBETAN_FONT_SIZE}\"")), "no {TIBETAN_FONT_SIZE}pt font in styles.xml: {styles}");
+        assert!(styles.contains("<b/>"), "no bold run in styles.xml: {styles}");
+    }
+
+    #[test]
+    fn the_columns_are_widened_and_the_rows_heightened() {
+        let bytes = grid_to_xlsx(
+            &["Tibetan term".to_string(), "Definition".to_string()],
+            &[vec!["\u{f66}\u{f44}\u{f66}\u{f0b}".to_string(), "buddha".to_string()]],
+            Some(0),
+        )
+        .unwrap();
+
+        let sheet = xlsx_member(&bytes, "xl/worksheets/sheet1.xml");
+        assert!(sheet.contains("<col"), "no column widths written: {sheet}");
+        assert!(sheet.contains("customHeight=\"1\""), "no explicit row height: {sheet}");
+        // The header stays put while a long dictionary is scrolled.
+        assert!(sheet.contains("<pane"), "header row not frozen: {sheet}");
+    }
+
     #[test]
     fn a_written_workbook_reads_back_as_the_same_grid() {
         // The round trip that matters: what the exporter writes must be exactly
@@ -200,7 +304,7 @@ mod tests {
             vec!["\u{f56}\u{fb3}\u{f0b}\u{f58}\u{f0b}".to_string(), "lama".to_string()],
         ];
 
-        let bytes = grid_to_xlsx(&headers, &rows).unwrap();
+        let bytes = grid_to_xlsx(&headers, &rows, Some(0)).unwrap();
         let grid = read_workbook(bytes).unwrap();
 
         assert_eq!(grid.rows[0], headers);
@@ -212,7 +316,7 @@ mod tests {
     #[test]
     fn an_empty_dictionary_still_writes_its_header() {
         let headers = vec!["Tibetan term".to_string(), "Definition".to_string()];
-        let bytes = grid_to_xlsx(&headers, &[]).unwrap();
+        let bytes = grid_to_xlsx(&headers, &[], Some(0)).unwrap();
         let grid = read_workbook(bytes).unwrap();
         assert_eq!(grid.rows.len(), 1);
         assert_eq!(grid.rows[0], headers);
