@@ -5,6 +5,7 @@ mod database;
 mod lexicon;
 mod packs;
 mod scans;
+mod spreadsheet;
 
 use database::{
     execute_query, get_all_terms, get_dictionaries, get_entries_for_term, init_database,
@@ -22,6 +23,7 @@ use packs::{
     read_pack_database_chunk, remove_pack, supports_modular_packs, update_pack,
 };
 use scans::{check_scan_downloaded, delete_scan, download_scan_images, get_scan_image_data};
+use spreadsheet::read_spreadsheet;
 
 // Desktop-only: Menu functionality
 #[cfg(desktop)]
@@ -308,6 +310,7 @@ fn main() {
             // Scan commands
             check_scan_downloaded,
             get_scan_image_data,
+            read_spreadsheet,
             download_scan_images,
             delete_scan,
             // Pack commands
