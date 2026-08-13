@@ -6,6 +6,7 @@
  * without a filesystem.
  */
 import TibetanRegExps from 'tibetan-regexps';
+import { tibetanLookupKey } from '../utils';
 
 const TIBETAN = new RegExp(
   `[${TibetanRegExps.expressions.allTibetanCharacters}]`,
@@ -68,4 +69,71 @@ export function detectLayout({ headers = [], rows = [] } = {}) {
     definitionColumn: definitionColumn === -1 ? null : definitionColumn,
     dataRows,
   };
+}
+
+/**
+ * Classify every data row against what the dictionary already holds.
+ *
+ * Keyed on tibetanLookupKey — the same normalization the write and lookup paths
+ * use — so "same term written with a shad" and "with a tsheg" collapse to one
+ * entry instead of silently duplicating. tibetanLookupKey returns a lone tsheg
+ * for anything with no Tibetan in it, which is how a stray "notes" cell is
+ * told apart from a real term.
+ *
+ * @param {string[][]} dataRows Rows with the header already removed.
+ * @param {{termColumn: number, definitionColumn: number}} columns
+ * @param {Array<{id: number, term: string, definition: string}>} existingEntries
+ * @returns {{created: Array, modified: Array, unchangedCount: number, ignored: Array}}
+ */
+export function diffRows(dataRows, { termColumn, definitionColumn }, existingEntries = []) {
+  const existing = new Map(
+    existingEntries.map((entry) => [tibetanLookupKey(entry.term), entry])
+  );
+
+  // Last occurrence wins, so walk backwards and skip keys already taken.
+  const seen = new Set();
+  const ignored = [];
+  const retained = [];
+
+  for (let index = dataRows.length - 1; index >= 0; index--) {
+    const row = index + 1; // 1-based: what the user sees in the sheet
+    const rawTerm = (dataRows[index][termColumn] || '').trim();
+    const key = rawTerm ? tibetanLookupKey(rawTerm) : '';
+
+    if (!key || !key.replace(/[་།༑༔\s]/g, '')) {
+      ignored.push({ row, reason: 'noTerm' });
+      continue;
+    }
+    if (seen.has(key)) {
+      ignored.push({ row, reason: 'duplicate' });
+      continue;
+    }
+    seen.add(key);
+    retained.push({
+      row,
+      key,
+      term: key,
+      definition: (dataRows[index][definitionColumn] || '').trim(),
+    });
+  }
+
+  retained.reverse();
+  ignored.sort((a, b) => a.row - b.row);
+
+  const created = [];
+  const modified = [];
+  let unchangedCount = 0;
+
+  for (const { row, key, term, definition } of retained) {
+    const match = existing.get(key);
+    if (!match) {
+      created.push({ term, definition, row });
+    } else if (match.definition === definition) {
+      unchangedCount++;
+    } else {
+      modified.push({ term, definition, previousDefinition: match.definition, row });
+    }
+  }
+
+  return { created, modified, unchangedCount, ignored };
 }

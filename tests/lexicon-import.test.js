@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { detectLayout } from '../src/services/lexicon-import.js';
+import { detectLayout, diffRows } from '../src/services/lexicon-import.js';
 
 const GRID = {
   headers: ['A', 'B', 'C'],
@@ -75,5 +75,94 @@ describe('detectLayout', () => {
 
   it('survives being handed nothing at all', () => {
     expect(detectLayout().termColumn).toBe(null);
+  });
+});
+
+describe('diffRows', () => {
+  const COLUMNS = { termColumn: 0, definitionColumn: 1 };
+  const EXISTING = [
+    { id: 1, term: 'སངས་རྒྱས་', definition: 'buddha' },
+    { id: 2, term: 'ཆོས་', definition: 'dharma' },
+  ];
+
+  it('classifies an absent term as created', () => {
+    const diff = diffRows([['བླ་མ་', 'lama']], COLUMNS, EXISTING);
+    expect(diff.created).toEqual([{ term: 'བླ་མ་', definition: 'lama', row: 1 }]);
+  });
+
+  it('classifies a changed definition as modified and carries the old one', () => {
+    const diff = diffRows([['སངས་རྒྱས་', 'awakened one']], COLUMNS, EXISTING);
+    expect(diff.modified).toEqual([
+      { term: 'སངས་རྒྱས་', definition: 'awakened one', previousDefinition: 'buddha', row: 1 },
+    ]);
+  });
+
+  it('counts an identical definition as unchanged and never lists it', () => {
+    const diff = diffRows([['སངས་རྒྱས་', 'buddha']], COLUMNS, EXISTING);
+    expect(diff.unchangedCount).toBe(1);
+    expect(diff.created).toEqual([]);
+    expect(diff.modified).toEqual([]);
+  });
+
+  it('matches a term written with a shad against one stored with a tsheg', () => {
+    // tibetanLookupKey is the single normalization shared by storage, lookup
+    // and this diff — without it this row would duplicate the entry.
+    const diff = diffRows([['སངས་རྒྱས།', 'buddha']], COLUMNS, EXISTING);
+    expect(diff.unchangedCount).toBe(1);
+    expect(diff.created).toEqual([]);
+  });
+
+  it('ignores a row whose term cell is empty', () => {
+    expect(diffRows([['', 'orphan']], COLUMNS, EXISTING).ignored).toEqual([
+      { row: 1, reason: 'noTerm' },
+    ]);
+  });
+
+  it('ignores a row whose term holds no Tibetan at all', () => {
+    expect(diffRows([['notes', 'orphan']], COLUMNS, EXISTING).ignored).toEqual([
+      { row: 1, reason: 'noTerm' },
+    ]);
+  });
+
+  it('lets the last of two identical terms win and reports the earlier one', () => {
+    const diff = diffRows(
+      [
+        ['བླ་མ་', 'first'],
+        ['བླ་མ་', 'second'],
+      ],
+      COLUMNS,
+      EXISTING
+    );
+    expect(diff.created).toEqual([{ term: 'བླ་མ་', definition: 'second', row: 2 }]);
+    expect(diff.ignored).toEqual([{ row: 1, reason: 'duplicate' }]);
+  });
+
+  it('numbers rows from 1 so they match what the user sees in the sheet', () => {
+    const diff = diffRows([['', 'a'], ['', 'b']], COLUMNS, EXISTING);
+    expect(diff.ignored.map((entry) => entry.row)).toEqual([1, 2]);
+  });
+
+  it('keeps created entries in sheet order', () => {
+    const diff = diffRows(
+      [
+        ['བླ་མ་', 'lama'],
+        ['དགེ་བ་', 'virtue'],
+      ],
+      COLUMNS,
+      EXISTING
+    );
+    expect(diff.created.map((entry) => entry.row)).toEqual([1, 2]);
+  });
+
+  it('treats every row as created when the dictionary is empty', () => {
+    const diff = diffRows([['བླ་མ་', 'lama']], COLUMNS, []);
+    expect(diff.created).toHaveLength(1);
+    expect(diff.modified).toEqual([]);
+  });
+
+  it('stores the normalized term, not the raw cell', () => {
+    // What goes in must be byte-identical to what the lookup path searches for.
+    const diff = diffRows([['བླ་མ།', 'lama']], COLUMNS, []);
+    expect(diff.created[0].term).toBe('བླ་མ་');
   });
 });
