@@ -138,6 +138,38 @@ pub fn read_workbook(data: Vec<u8>) -> Result<SpreadsheetGrid, String> {
     })
 }
 
+/// Write a grid out as an xlsx workbook, in memory.
+///
+/// Returns bytes rather than writing a file for the same reason the reader
+/// takes them: the save dialog hands back a URI on mobile that `std::fs`
+/// cannot create, so the frontend does the writing through `plugin-fs`.
+///
+/// Everything is written as a string. Tibetan is text, and so is a definition
+/// like "1000" that Excel would otherwise reopen as a number.
+pub fn grid_to_xlsx(headers: &[String], rows: &[Vec<String>]) -> Result<Vec<u8>, String> {
+    use rust_xlsxwriter::Workbook;
+
+    let mut workbook = Workbook::new();
+    let sheet = workbook.add_worksheet();
+
+    for (column, header) in headers.iter().enumerate() {
+        sheet
+            .write_string(0, column as u16, header)
+            .map_err(|e| format!("writeFailed: {e}"))?;
+    }
+    for (index, row) in rows.iter().enumerate() {
+        for (column, cell) in row.iter().enumerate() {
+            sheet
+                .write_string(index as u32 + 1, column as u16, cell)
+                .map_err(|e| format!("writeFailed: {e}"))?;
+        }
+    }
+
+    workbook
+        .save_to_buffer()
+        .map_err(|e| format!("writeFailed: {e}"))
+}
+
 /// Return the first sheet as a plain grid of strings. Makes no decision about
 /// header rows or column meaning.
 #[tauri::command]
@@ -156,6 +188,35 @@ pub fn read_spreadsheet(data: Vec<u8>, file_name: String) -> Result<SpreadsheetG
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_written_workbook_reads_back_as_the_same_grid() {
+        // The round trip that matters: what the exporter writes must be exactly
+        // what the importer sees, or "export, edit in Excel, import back"
+        // silently loses or shifts a column.
+        let headers = vec!["Tibetan term".to_string(), "Definition".to_string()];
+        let rows = vec![
+            vec!["\u{f66}\u{f44}\u{f66}\u{f0b}".to_string(), "buddha".to_string()],
+            vec!["\u{f56}\u{fb3}\u{f0b}\u{f58}\u{f0b}".to_string(), "lama".to_string()],
+        ];
+
+        let bytes = grid_to_xlsx(&headers, &rows).unwrap();
+        let grid = read_workbook(bytes).unwrap();
+
+        assert_eq!(grid.rows[0], headers);
+        assert_eq!(grid.rows[1], rows[0]);
+        assert_eq!(grid.rows[2], rows[1]);
+        assert_eq!(grid.headers, vec!["A", "B"]);
+    }
+
+    #[test]
+    fn an_empty_dictionary_still_writes_its_header() {
+        let headers = vec!["Tibetan term".to_string(), "Definition".to_string()];
+        let bytes = grid_to_xlsx(&headers, &[]).unwrap();
+        let grid = read_workbook(bytes).unwrap();
+        assert_eq!(grid.rows.len(), 1);
+        assert_eq!(grid.rows[0], headers);
+    }
 
     #[test]
     fn column_letters_walk_past_z() {

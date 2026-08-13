@@ -13,6 +13,7 @@
     "core:resources:default",
     "core:image:default",
     "fs:allow-read-file",
+    "fs:allow-write-file",
     "dialog:allow-open",
     "dialog:allow-save"
   ]

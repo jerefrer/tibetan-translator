@@ -7,7 +7,7 @@ mod spreadsheet;
 
 use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
 use lexicon::{
-    lexicon_apply_import,
+    lexicon_apply_import, lexicon_export_xlsx,
     create_lexicon, lexicon_delete_entry, lexicon_entries, lexicon_export,
     lexicon_find_entry, lexicon_upsert_entry, rename_lexicon,
 };
@@ -59,6 +59,7 @@ pub fn run() {
             check_scan_downloaded,
             get_scan_image_data,
             lexicon_apply_import,
+            lexicon_export_xlsx,
             read_spreadsheet,
             download_scan_images,
             delete_scan,

@@ -179,6 +179,15 @@ export const Lexicon = {
     return invoke('lexicon_export', { packId, destPath });
   },
 
+  /** The dictionary as xlsx bytes, ready to be written wherever the user asked.
+   *
+   * Rust builds the workbook in memory rather than saving it: the save dialog
+   * returns a URI on mobile that std::fs cannot create, so the write goes
+   * through plugin-fs on the JS side — the mirror of readSpreadsheet(). */
+  exportXlsx(packId, dictionaryId) {
+    return invoke('lexicon_export_xlsx', { packId, dictionaryId });
+  },
+
   /** Read a spreadsheet into a plain grid.
    *
    * Takes bytes rather than a path because the dialog plugin hands back a

@@ -60,10 +60,24 @@
                 <v-icon start>mdi-file-import-outline</v-icon>
                 Import
               </v-btn>
-              <v-btn variant="text" class="ml-1" @click="exportLexicon">
-                <v-icon start>mdi-export-variant</v-icon>
-                Export
-              </v-btn>
+              <v-menu location="bottom end">
+                <template v-slot:activator="{ props }">
+                  <v-btn variant="text" class="ml-1" v-bind="props">
+                    <v-icon start>mdi-export-variant</v-icon>
+                    Export
+                  </v-btn>
+                </template>
+                <v-list density="compact">
+                  <v-list-item @click="exportLexicon">
+                    <v-list-item-title>Dictionary file</v-list-item-title>
+                    <v-list-item-subtitle>To share, or to reinstall later</v-list-item-subtitle>
+                  </v-list-item>
+                  <v-list-item @click="exportXlsx">
+                    <v-list-item-title>Spreadsheet</v-list-item-title>
+                    <v-list-item-subtitle>To edit in Excel and import back</v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
             </div>
 
             <v-list v-if="entries.length" class="entry-list py-0">
@@ -403,6 +417,30 @@ export default {
         });
       } catch (e) {
         console.error('[LexiconPage] could not listen for dropped files:', e);
+      }
+    },
+    /** Write the dictionary out as xlsx.
+     *
+     * The bytes come from Rust and are written here through plugin-fs, which
+     * understands the URI the save dialog returns on iOS and Android where
+     * std::fs would not. */
+    async exportXlsx() {
+      try {
+        const destPath = await save({
+          defaultPath: `${this.selected.name}.xlsx`,
+          filters: [{ name: 'Spreadsheet', extensions: ['xlsx'] }],
+        });
+        if (!destPath) return;
+        const bytes = await Lexicon.exportXlsx(
+          this.selected.packId,
+          this.selected.dictionaryId
+        );
+        const { writeFile } = await import('@tauri-apps/plugin-fs');
+        await writeFile(destPath, new Uint8Array(bytes));
+        this.snackbar.open('Exported as a spreadsheet');
+      } catch (e) {
+        console.error('[LexiconPage] xlsx export failed:', e);
+        this.snackbar.open(messageForError(e, 'Could not export this dictionary.'));
       }
     },
     async exportLexicon() {

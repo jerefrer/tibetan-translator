@@ -234,3 +234,40 @@ describe('importing the same sheet twice', () => {
     expect(second.unchangedCount).toBe(2);
   });
 });
+
+describe('the contract between the xlsx export and the import', () => {
+  // lexicon_export_xlsx writes exactly these two header labels. If either side
+  // drifts, a file exported by the app stops auto-detecting on the way back in
+  // and the user lands on the mapping step for no reason.
+  const EXPORT_HEADERS = ['Tibetan term', 'Definition'];
+
+  it('auto-detects a freshly exported file without asking anything', () => {
+    const layout = detectLayout({
+      headers: ['A', 'B'],
+      rows: [
+        EXPORT_HEADERS,
+        ['སངས་རྒྱས་', 'buddha'],
+        ['བླ་མ་', 'lama'],
+      ],
+    });
+    expect(layout.hasHeaderRow).toBe(true);
+    expect(layout.termColumn).toBe(0);
+    expect(layout.definitionColumn).toBe(1);
+    expect(layout.labels).toEqual(EXPORT_HEADERS);
+  });
+
+  it('reports nothing to do when an untouched export is imported back', () => {
+    const rows = [
+      ['སངས་རྒྱས་', 'buddha'],
+      ['བླ་མ་', 'lama'],
+    ];
+    const stored = entriesForImport(
+      rows.map(([term, definition]) => ({ term, definition }))
+    ).map((entry, index) => ({ id: index + 1, ...entry }));
+
+    const diff = diffRows(rows, { termColumn: 0, definitionColumn: 1 }, stored);
+    expect(diff.unchangedCount).toBe(2);
+    expect(diff.created).toEqual([]);
+    expect(diff.modified).toEqual([]);
+  });
+});
