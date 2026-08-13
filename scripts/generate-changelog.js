@@ -67,7 +67,10 @@ Write the release notes in English, as Markdown, following these rules:
 - One bullet per user-visible change.
 - Never repeat the heading's verb in the bullet. The heading already says it.
   Under "### Added", name the thing that now exists: "Copy buttons on every
-  definition", not "Added copy buttons".
+  definition", not "Added copy buttons". Name it, do not instruct: "Import of
+  your dictionaries from a spreadsheet", not "Import your dictionaries from a
+  spreadsheet". These are notes about what the release contains, not steps to
+  follow.
   Under "### Fixed", describe how it behaves now: "Scan downloads no longer
   save to the wrong folder", not "Fixed scan downloads saving to the wrong
   folder".
@@ -77,6 +80,10 @@ Write the release notes in English, as Markdown, following these rules:
   Never mention file names, function names, commit scopes, internal refactors,
   tests, dependencies or CI.
 - Silently drop every commit a user could not possibly notice.
+- Only list something under "### Fixed" if the bug was in a version people
+  actually ran. A bug introduced and fixed within this same release never
+  reached anyone, and announcing it tells them something was broken when it
+  never was — fold those commits away without a word.
 - Fold several commits describing the same user-facing change into one bullet.
 - At most three bullets per group. A release that touched a lot of code is
   still only a few things from the outside: fold the small ones into the bullet
