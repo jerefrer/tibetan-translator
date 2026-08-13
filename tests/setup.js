@@ -138,6 +138,22 @@ class MockIntersectionObserver {
 
 window.IntersectionObserver = MockIntersectionObserver
 
+// Vuetify's VOverlay positions connected overlays (a v-select's menu, a
+// v-tooltip) against window.visualViewport, which happy-dom does not implement.
+// Without this, mounting any component containing a v-select inside a v-dialog
+// throws "visualViewport is not defined" before a single assertion runs.
+if (!window.visualViewport) {
+  window.visualViewport = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    offsetLeft: 0,
+    offsetTop: 0,
+    scale: 1,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }
+}
+
 // Mock Tauri API
 window.__TAURI__ = undefined
 window.__TAURI_INTERNALS__ = undefined

@@ -18,6 +18,7 @@ const PAIRS = [
   ['tauri',                          '@tauri-apps/api'],
   ['tauri-plugin-clipboard-manager', '@tauri-apps/plugin-clipboard-manager'],
   ['tauri-plugin-dialog',            '@tauri-apps/plugin-dialog'],
+  ['tauri-plugin-fs',                '@tauri-apps/plugin-fs'],
   ['tauri-plugin-global-shortcut',   '@tauri-apps/plugin-global-shortcut'],
   ['tauri-plugin-process',           '@tauri-apps/plugin-process'],
   ['tauri-plugin-updater',           '@tauri-apps/plugin-updater'],

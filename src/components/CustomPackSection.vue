@@ -59,6 +59,10 @@
         <v-icon start>mdi-plus</v-icon>
         New dictionary
       </v-btn>
+      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreateFromSpreadsheet">
+        <v-icon start>mdi-file-table-outline</v-icon>
+        From a spreadsheet…
+      </v-btn>
     </v-card-actions>
 
     <v-card-text v-else class="empty-state text-center py-6">
@@ -79,7 +83,19 @@
         <v-icon start>mdi-plus</v-icon>
         New dictionary
       </v-btn>
+      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreateFromSpreadsheet">
+        <v-icon start>mdi-file-table-outline</v-icon>
+        From a spreadsheet…
+      </v-btn>
     </v-card-text>
+
+    <ImportPreviewDialog
+      v-if="importGrid"
+      v-model="importOpen"
+      :grid="importGrid"
+      :pack-id="null"
+      @create-requested="onCreateRequested"
+    />
 
     <v-dialog v-model="createOpen" max-width="460">
       <v-card>
@@ -147,11 +163,13 @@ import { open } from '@tauri-apps/plugin-dialog';
 import PackManager from '../services/pack-manager';
 import TibdictInstaller from '../services/tibdict-installer';
 import Lexicon, { messageForError } from '../services/lexicon';
+import ImportPreviewDialog from './ImportPreviewDialog.vue';
 import { supportsModularPacks } from '../config/platform';
 
 export default {
   name: 'CustomPackSection',
   inject: ['snackbar'],
+  components: { ImportPreviewDialog },
   data() {
     return {
       createOpen: false,
@@ -159,6 +177,11 @@ export default {
       newName: '',
       newDescription: '',
       createError: '',
+      importOpen: false,
+      importGrid: null,
+      // Rows confirmed in the preview, waiting for the dictionary that will
+      // hold them. Empty for a plain "New dictionary".
+      pendingRows: [],
       removeOpen: false,
       removing: false,
       removeTarget: null,
@@ -236,6 +259,40 @@ export default {
       this.newDescription = '';
       this.createError = '';
       this.creating = false;
+      this.pendingRows = [];
+      this.createOpen = true;
+    },
+    /** Pick a spreadsheet and preview it before any dictionary exists. */
+    async onCreateFromSpreadsheet() {
+      const path = await open({
+        multiple: false,
+        filters: [
+          { name: 'Spreadsheets', extensions: ['xlsx', 'xls', 'ods', 'csv', 'tsv'] },
+        ],
+      });
+      if (!path) return;
+      try {
+        const { readFile } = await import('@tauri-apps/plugin-fs');
+        const data = await readFile(path);
+        const fileName = String(path).split(/[\\/]/).pop();
+        this.importGrid = await Lexicon.readSpreadsheet(Array.from(data), fileName);
+        this.importOpen = true;
+      } catch (e) {
+        console.error('[CustomPackSection] could not read the spreadsheet:', e);
+        this.snackbar.open(messageForError(e, 'Could not read this file.'));
+      }
+    },
+    /** The preview was confirmed. Ask for a name, and only then create.
+     *
+     * Creating up front would leave an empty dictionary behind every time the
+     * user backed out of the name dialog. */
+    onCreateRequested(rows) {
+      this.pendingRows = rows;
+      this.importOpen = false;
+      this.newName = this.importGrid?.sheetName || '';
+      this.newDescription = '';
+      this.createError = '';
+      this.creating = false;
       this.createOpen = true;
     },
     async confirmCreate() {
@@ -247,8 +304,15 @@ export default {
       this.creating = true;
       try {
         const pack = await Lexicon.create(name, this.newDescription.trim());
+        let message = `${pack.manifest.name} created`;
+        if (this.pendingRows.length) {
+          const { inserted } = await Lexicon.applyImport(pack.id, 1, this.pendingRows);
+          message = `${pack.manifest.name} created with ${inserted} entries`;
+        }
         this.createOpen = false;
-        this.snackbar.open(`${pack.manifest.name} created`);
+        this.pendingRows = [];
+        this.importGrid = null;
+        this.snackbar.open(message);
         this.$router.push(`/lexicon/${pack.id}`);
       } catch (e) {
         console.error('[CustomPackSection] create failed:', e);

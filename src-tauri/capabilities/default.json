@@ -34,6 +34,8 @@
     "clipboard-manager:allow-write-text",
     "updater:default",
     "process:allow-restart",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
     "dialog:allow-open",
     "dialog:allow-save"
   ]

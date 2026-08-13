@@ -20,18 +20,6 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import { nextTick } from 'vue'
 
-// happy-dom does not implement window.visualViewport, which Vuetify's
-// VOverlay location strategy reads unconditionally once a v-dialog actually
-// opens. Without this the dialog throws on mount instead of rendering.
-if (typeof window.visualViewport === 'undefined') {
-  window.visualViewport = {
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }
-}
-
 vi.mock('../src/config/platform.js', () => ({
   isTauri: () => true,
   supportsModularPacks: () => true,
@@ -48,6 +36,21 @@ vi.mock('../src/services/pack-manager', () => ({
     removeCustomPack: (...args) => removeCustomPackMock(...args),
   },
 }))
+
+const createMock = vi.fn()
+const applyImportMock = vi.fn()
+
+vi.mock('../src/services/lexicon', async (importOriginal) => {
+  const actual = await importOriginal()
+  return {
+    ...actual,
+    default: {
+      ...actual.default,
+      create: (...args) => createMock(...args),
+      applyImport: (...args) => applyImportMock(...args),
+    },
+  }
+})
 
 import CustomPackSection from '../src/components/CustomPackSection.vue'
 
@@ -73,6 +76,8 @@ describe('CustomPackSection', () => {
   beforeEach(() => {
     customPacks = [PACK]
     removeCustomPackMock.mockReset().mockResolvedValue(undefined)
+    createMock.mockReset().mockResolvedValue({ id: 'custom-x', manifest: { name: 'X' } })
+    applyImportMock.mockReset().mockResolvedValue({ inserted: 0, updated: 0 })
     snackbar.open.mockClear()
   })
 
@@ -86,7 +91,11 @@ describe('CustomPackSection', () => {
 
   const mountSection = () =>
     mount(CustomPackSection, {
-      global: { plugins: [vuetify], provide: { snackbar } },
+      global: {
+        plugins: [vuetify],
+        provide: { snackbar },
+        mocks: { $router: { push: vi.fn() } },
+      },
       attachTo: document.body,
     })
 
@@ -175,5 +184,104 @@ describe('CustomPackSection', () => {
     expect(wrapper.vm.removing).toBe(false)
 
     wrapper.unmount()
+  })
+})
+
+/**
+ * Creating a dictionary straight from a spreadsheet.
+ *
+ * The ordering is the whole point: Lexicon.create() must not run until the
+ * user has confirmed both the preview and the name, or backing out of either
+ * would leave an empty dictionary behind.
+ */
+describe('CustomPackSection — create from a spreadsheet', () => {
+  const GRID = {
+    sheetName: 'vocabulaire',
+    headers: ['A', 'B'],
+    rows: [
+      ['Terme', 'Traduction'],
+      ['བླ་མ་', 'lama'],
+    ],
+  }
+  const ROWS = [{ term: 'བླ་མ་', definition: 'lama' }]
+
+  beforeEach(() => {
+    customPacks = [PACK]
+    createMock.mockReset().mockResolvedValue({ id: 'custom-x', manifest: { name: 'X' } })
+    applyImportMock.mockReset().mockResolvedValue({ inserted: 0, updated: 0 })
+    snackbar.open.mockClear()
+  })
+
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  const mountSection = () =>
+    mount(CustomPackSection, {
+      global: {
+        plugins: [vuetify],
+        provide: { snackbar },
+        mocks: { $router: { push: vi.fn() } },
+      },
+      attachTo: document.body,
+    })
+
+  it('creates nothing while the preview is merely open', async () => {
+    const wrapper = mountSection()
+    wrapper.vm.importGrid = GRID
+    wrapper.vm.importOpen = true
+    await flushPromises()
+    expect(createMock).not.toHaveBeenCalled()
+    expect(applyImportMock).not.toHaveBeenCalled()
+  })
+
+  it('still creates nothing when the preview is confirmed but the name is not', async () => {
+    const wrapper = mountSection()
+    wrapper.vm.importGrid = GRID
+    wrapper.vm.onCreateRequested(ROWS)
+    await flushPromises()
+    expect(wrapper.vm.createOpen).toBe(true)
+    expect(createMock).not.toHaveBeenCalled()
+    expect(applyImportMock).not.toHaveBeenCalled()
+  })
+
+  it('offers the sheet name as the dictionary name', async () => {
+    const wrapper = mountSection()
+    wrapper.vm.importGrid = GRID
+    wrapper.vm.onCreateRequested(ROWS)
+    await flushPromises()
+    expect(wrapper.vm.newName).toBe('vocabulaire')
+  })
+
+  it('creates the dictionary first, then writes the rows into it', async () => {
+    const order = []
+    createMock.mockImplementation(async () => {
+      order.push('create')
+      return { id: 'custom-vocabulaire', manifest: { name: 'vocabulaire' } }
+    })
+    applyImportMock.mockImplementation(async () => {
+      order.push('applyImport')
+      return { inserted: 1, updated: 0 }
+    })
+
+    const wrapper = mountSection()
+    wrapper.vm.importGrid = GRID
+    wrapper.vm.onCreateRequested(ROWS)
+    await flushPromises()
+    await wrapper.vm.confirmCreate()
+
+    expect(order).toEqual(['create', 'applyImport'])
+    expect(applyImportMock).toHaveBeenCalledWith('custom-vocabulaire', 1, ROWS)
+    expect(snackbar.open).toHaveBeenCalledWith('vocabulaire created with 1 entries')
+  })
+
+  it('does not import anything for a plain new dictionary', async () => {
+    createMock.mockResolvedValue({ id: 'custom-plain', manifest: { name: 'Plain' } })
+    const wrapper = mountSection()
+    wrapper.vm.onCreate()
+    wrapper.vm.newName = 'Plain'
+    await wrapper.vm.confirmCreate()
+    expect(applyImportMock).not.toHaveBeenCalled()
+    expect(snackbar.open).toHaveBeenCalledWith('Plain created')
   })
 })

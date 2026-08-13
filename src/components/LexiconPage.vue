@@ -56,10 +56,28 @@
                 <v-icon start>mdi-plus</v-icon>
                 Add an entry
               </v-btn>
-              <v-btn variant="text" class="ml-1" @click="exportLexicon">
-                <v-icon start>mdi-export-variant</v-icon>
-                Export
+              <v-btn variant="text" class="ml-1" @click="importSpreadsheet">
+                <v-icon start>mdi-file-import-outline</v-icon>
+                Import
               </v-btn>
+              <v-menu location="bottom end">
+                <template v-slot:activator="{ props }">
+                  <v-btn variant="text" class="ml-1" v-bind="props">
+                    <v-icon start>mdi-export-variant</v-icon>
+                    Export
+                  </v-btn>
+                </template>
+                <v-list density="compact">
+                  <v-list-item @click="exportLexicon">
+                    <v-list-item-title>Dictionary file</v-list-item-title>
+                    <v-list-item-subtitle>To share, or to reinstall later</v-list-item-subtitle>
+                  </v-list-item>
+                  <v-list-item @click="exportXlsx">
+                    <v-list-item-title>Spreadsheet</v-list-item-title>
+                    <v-list-item-subtitle>To edit in Excel and import back</v-list-item-subtitle>
+                  </v-list-item>
+                </v-list>
+              </v-menu>
             </div>
 
             <v-list v-if="entries.length" class="entry-list py-0">
@@ -113,6 +131,16 @@
           @saved="onSaved"
         />
 
+        <ImportPreviewDialog
+          v-if="selected && importGrid"
+          v-model="importOpen"
+          :grid="importGrid"
+          :pack-id="selected.packId"
+          :dictionary-id="selected.dictionaryId"
+          :dictionary-name="selected.name"
+          @imported="onImported"
+        />
+
         <v-dialog v-model="removeOpen" max-width="420">
           <v-card v-if="removeTarget">
             <v-card-title>Delete this entry?</v-card-title>
@@ -133,17 +161,18 @@
 </template>
 
 <script>
-import { save } from '@tauri-apps/plugin-dialog';
+import { open, save } from '@tauri-apps/plugin-dialog';
 import _ from 'underscore';
 import Lexicon, { messageForError } from '../services/lexicon';
 import LexiconEntryDialog from './LexiconEntryDialog.vue';
-import { supportsModularPacks } from '../config/platform';
+import ImportPreviewDialog from './ImportPreviewDialog.vue';
+import { isMobile, supportsModularPacks } from '../config/platform';
 
 const PAGE_SIZE = 50;
 
 export default {
   name: 'LexiconPage',
-  components: { LexiconEntryDialog },
+  components: { LexiconEntryDialog, ImportPreviewDialog },
   inject: ['snackbar'],
   data() {
     return {
@@ -155,6 +184,9 @@ export default {
       editing: null,
       removeOpen: false,
       removeTarget: null,
+      importOpen: false,
+      importGrid: null,
+      unlistenDrop: null,
       // Assigned in created() so the template's @update:model-value="onSearchInput"
       // binding always resolves to the debounced call, even on the very first render.
       onSearchInput: null,
@@ -240,9 +272,12 @@ export default {
     // on navigation), so a single add here can never double-register — same
     // pattern as DefinePage.vue's 'all-terms-updated' listener.
     window.addEventListener('dictionaries-updated', this.syncSelection);
+    this.listenForDroppedSpreadsheets();
   },
   beforeUnmount() {
     window.removeEventListener('dictionaries-updated', this.syncSelection);
+    this.unlistenDrop?.();
+    this.unlistenDrop = null;
   },
   methods: {
     // Falls back to the first available dictionary — and navigates so the
@@ -330,6 +365,82 @@ export default {
       } catch (e) {
         console.error('[LexiconPage] delete failed:', e);
         this.snackbar.open(messageForError(e, 'Could not remove this entry.'));
+      }
+    },
+    /** Read a spreadsheet and open the preview on it.
+     *
+     * Reads through plugin-fs rather than handing Rust the path: the picker
+     * returns a content:// URI on Android and a file:// URI on iOS, and only
+     * plugin-fs understands all three platforms' formats. */
+    async openImportFor(path) {
+      try {
+        const { readFile } = await import('@tauri-apps/plugin-fs');
+        const data = await readFile(path);
+        const fileName = String(path).split(/[\\/]/).pop();
+        this.importGrid = await Lexicon.readSpreadsheet(Array.from(data), fileName);
+        this.importOpen = true;
+      } catch (e) {
+        console.error('[LexiconPage] could not read the spreadsheet:', e);
+        this.snackbar.open(messageForError(e, 'Could not read this file.'));
+      }
+    },
+    async importSpreadsheet() {
+      const path = await open({
+        multiple: false,
+        filters: [
+          { name: 'Spreadsheets', extensions: ['xlsx', 'xls', 'ods', 'csv', 'tsv'] },
+        ],
+      });
+      if (path) await this.openImportFor(path);
+    },
+    async onImported({ inserted, updated }) {
+      this.importOpen = false;
+      await this.load();
+      this.snackbar.open(`${inserted} added, ${updated} updated`);
+    },
+    /** Accept a spreadsheet dropped anywhere on the window.
+     *
+     * Desktop only: there is no drag-and-drop on iOS or Android, so the
+     * listener would never fire there. Registered from mounted() rather than
+     * activated() for the reason spelled out above — activated() repeats on
+     * every navigation back to this page and would stack a listener each time. */
+    async listenForDroppedSpreadsheets() {
+      if (!supportsModularPacks() || isMobile()) return;
+      try {
+        const { getCurrentWebview } = await import('@tauri-apps/api/webview');
+        this.unlistenDrop = await getCurrentWebview().onDragDropEvent((event) => {
+          if (event.payload.type !== 'drop') return;
+          const path = (event.payload.paths || []).find((candidate) =>
+            /\.(xlsx|xls|ods|csv|tsv)$/i.test(candidate)
+          );
+          if (path) this.openImportFor(path);
+        });
+      } catch (e) {
+        console.error('[LexiconPage] could not listen for dropped files:', e);
+      }
+    },
+    /** Write the dictionary out as xlsx.
+     *
+     * The bytes come from Rust and are written here through plugin-fs, which
+     * understands the URI the save dialog returns on iOS and Android where
+     * std::fs would not. */
+    async exportXlsx() {
+      try {
+        const destPath = await save({
+          defaultPath: `${this.selected.name}.xlsx`,
+          filters: [{ name: 'Spreadsheet', extensions: ['xlsx'] }],
+        });
+        if (!destPath) return;
+        const bytes = await Lexicon.exportXlsx(
+          this.selected.packId,
+          this.selected.dictionaryId
+        );
+        const { writeFile } = await import('@tauri-apps/plugin-fs');
+        await writeFile(destPath, new Uint8Array(bytes));
+        this.snackbar.open('Exported as a spreadsheet');
+      } catch (e) {
+        console.error('[LexiconPage] xlsx export failed:', e);
+        this.snackbar.open(messageForError(e, 'Could not export this dictionary.'));
       }
     },
     async exportLexicon() {

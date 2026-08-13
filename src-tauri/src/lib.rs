@@ -3,9 +3,11 @@ mod database;
 mod lexicon;
 mod packs;
 mod scans;
+mod spreadsheet;
 
 use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
 use lexicon::{
+    lexicon_apply_import, lexicon_export_xlsx,
     create_lexicon, lexicon_delete_entry, lexicon_entries, lexicon_export,
     lexicon_find_entry, lexicon_upsert_entry, rename_lexicon,
 };
@@ -20,6 +22,7 @@ use packs::{
     read_pack_database_chunk, remove_pack, supports_modular_packs, update_pack,
 };
 use scans::{check_scan_downloaded, delete_scan, download_scan_images, get_scan_image_data};
+use spreadsheet::read_spreadsheet;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -55,6 +58,9 @@ pub fn run() {
             // Scan commands
             check_scan_downloaded,
             get_scan_image_data,
+            lexicon_apply_import,
+            lexicon_export_xlsx,
+            read_spreadsheet,
             download_scan_images,
             delete_scan,
             // Pack commands

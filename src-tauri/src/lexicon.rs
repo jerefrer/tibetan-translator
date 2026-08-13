@@ -351,6 +351,93 @@ pub fn upsert_entry_in(
 /// Resolves the row's actual id rather than assuming 1 — packs installed from
 /// a third-party `.tibdict` via `install_custom_pack` may number their sole
 /// dictionary any way they like, unlike ones `create_lexicon` creates.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportOutcome {
+    pub inserted: usize,
+    pub updated: usize,
+}
+
+/// Apply every row, counting inserts and updates. Split out from the command so
+/// it can be tested against an in-memory database.
+pub fn apply_import_in(
+    conn: &Connection,
+    dictionary_id: i64,
+    entries: &[LexiconEntryInput],
+) -> rusqlite::Result<ImportOutcome> {
+    let mut outcome = ImportOutcome { inserted: 0, updated: 0 };
+    for entry in entries {
+        if upsert_entry_in(conn, dictionary_id, entry)?.created {
+            outcome.inserted += 1;
+        } else {
+            outcome.updated += 1;
+        }
+    }
+    Ok(outcome)
+}
+
+/// Write a whole import in one transaction: a failure mid-way rolls the lexicon
+/// back entirely rather than leaving it half-imported.
+#[tauri::command]
+pub async fn lexicon_apply_import(
+    app: AppHandle,
+    pack_id: String,
+    dictionary_id: i64,
+    entries: Vec<LexiconEntryInput>,
+) -> Result<ImportOutcome, LexiconError> {
+    // pack_dir carries the is_lexicon_pack_id guard that keeps official packs
+    // read-only, so there is no second check here.
+    let dir = pack_dir(&app, &pack_id)?;
+    let mut conn = open_db(&dir)?;
+
+    let transaction = conn
+        .transaction()
+        .map_err(|e| LexiconError::new("corrupt", format!("begin import: {e}")))?;
+    let outcome = apply_import_in(&transaction, dictionary_id, &entries)
+        .map_err(|e| LexiconError::new("corrupt", format!("write import: {e}")))?;
+    transaction
+        .commit()
+        .map_err(|e| LexiconError::new("corrupt", format!("commit import: {e}")))?;
+
+    touch_manifest(&dir, &conn)?;
+    Ok(outcome)
+}
+
+/// The two columns the spreadsheet export carries, ordered the way the list
+/// shows them. Split out so it can be tested without an AppHandle.
+pub fn export_rows_in(
+    conn: &Connection,
+    dictionary_id: i64,
+) -> rusqlite::Result<Vec<Vec<String>>> {
+    let mut stmt = conn.prepare(
+        "SELECT term, definition FROM entries WHERE dictionaryId = ? ORDER BY term",
+    )?;
+    let rows = stmt.query_map(params![dictionary_id], |row| {
+        Ok(vec![row.get::<_, String>(0)?, row.get::<_, String>(1)?])
+    })?;
+    rows.collect()
+}
+
+/// Export a dictionary as an xlsx workbook, in memory.
+///
+/// The header labels are the ones the importer auto-detects, so a file exported
+/// here can be edited in Excel and imported straight back.
+#[tauri::command]
+pub async fn lexicon_export_xlsx(
+    app: AppHandle,
+    pack_id: String,
+    dictionary_id: i64,
+) -> Result<Vec<u8>, LexiconError> {
+    let dir = pack_dir(&app, &pack_id)?;
+    let conn = open_db(&dir)?;
+    let rows = export_rows_in(&conn, dictionary_id)
+        .map_err(|e| LexiconError::new("corrupt", format!("read entries: {e}")))?;
+
+    let headers = vec!["Tibetan term".to_string(), "Definition".to_string()];
+    crate::spreadsheet::grid_to_xlsx(&headers, &rows, Some(0))
+        .map_err(|e| LexiconError::new("path", format!("write workbook: {e}")))
+}
+
 pub fn rename_sole_dictionary_in(conn: &Connection, name: &str) -> rusqlite::Result<bool> {
     let count: i64 = conn.query_row("SELECT COUNT(*) FROM dictionaries", [], |row| row.get(0))?;
     if count != 1 {
@@ -632,6 +719,109 @@ pub async fn lexicon_export(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn export_rows_are_ordered_by_term_and_carry_both_columns() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE entries (
+                id INTEGER PRIMARY KEY, dictionaryId INTEGER, term TEXT,
+                termPhoneticsStrict TEXT, termPhoneticsLoose TEXT, definition TEXT,
+                definitionPhoneticsWordsStrict TEXT, definitionPhoneticsWordsLoose TEXT
+            );",
+        )
+        .unwrap();
+        let entry = |term: &str, definition: &str| LexiconEntryInput {
+            term: term.into(),
+            term_phonetics_strict: String::new(),
+            term_phonetics_loose: String::new(),
+            definition: definition.into(),
+            definition_phonetics_words_strict: String::new(),
+            definition_phonetics_words_loose: String::new(),
+        };
+        upsert_entry_in(&conn, 1, &entry("\u{f56}\u{fb3}\u{f0b}\u{f58}\u{f0b}", "lama")).unwrap();
+        upsert_entry_in(&conn, 1, &entry("\u{f40}\u{f0b}", "ka")).unwrap();
+        // A different dictionary in the same pack must not leak into the export.
+        upsert_entry_in(&conn, 2, &entry("\u{f42}\u{f0b}", "other")).unwrap();
+
+        let rows = export_rows_in(&conn, 1).unwrap();
+
+        assert_eq!(rows.len(), 2);
+        assert_eq!(rows[0], vec!["\u{f40}\u{f0b}".to_string(), "ka".to_string()]);
+        assert_eq!(rows[1][1], "lama");
+    }
+
+    #[test]
+    fn apply_import_inserts_new_terms_and_updates_existing_ones() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE entries (
+                id INTEGER PRIMARY KEY, dictionaryId INTEGER, term TEXT,
+                termPhoneticsStrict TEXT, termPhoneticsLoose TEXT, definition TEXT,
+                definitionPhoneticsWordsStrict TEXT, definitionPhoneticsWordsLoose TEXT
+            );",
+        )
+        .unwrap();
+
+        let entry = |term: &str, definition: &str| LexiconEntryInput {
+            term: term.into(),
+            term_phonetics_strict: String::new(),
+            term_phonetics_loose: String::new(),
+            definition: definition.into(),
+            definition_phonetics_words_strict: String::new(),
+            definition_phonetics_words_loose: String::new(),
+        };
+
+        upsert_entry_in(&conn, 1, &entry("\u{f66}\u{f44}\u{f66}\u{f0b}", "buddha")).unwrap();
+
+        let outcome = apply_import_in(
+            &conn,
+            1,
+            &[
+                entry("\u{f66}\u{f44}\u{f66}\u{f0b}", "awakened one"),
+                entry("\u{f46}\u{f7c}\u{f66}\u{f0b}", "dharma"),
+            ],
+        )
+        .unwrap();
+
+        assert_eq!(outcome.inserted, 1);
+        assert_eq!(outcome.updated, 1);
+
+        let definition: String = conn
+            .query_row(
+                "SELECT definition FROM entries WHERE term = ?",
+                params!["\u{f66}\u{f44}\u{f66}\u{f0b}"],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(definition, "awakened one");
+    }
+
+    #[test]
+    fn apply_import_counts_a_repeat_of_the_same_term_as_an_update() {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE entries (
+                id INTEGER PRIMARY KEY, dictionaryId INTEGER, term TEXT,
+                termPhoneticsStrict TEXT, termPhoneticsLoose TEXT, definition TEXT,
+                definitionPhoneticsWordsStrict TEXT, definitionPhoneticsWordsLoose TEXT
+            );",
+        )
+        .unwrap();
+        let entry = |definition: &str| LexiconEntryInput {
+            term: "\u{f56}\u{fb3}\u{f0b}\u{f58}\u{f0b}".into(),
+            term_phonetics_strict: String::new(),
+            term_phonetics_loose: String::new(),
+            definition: definition.into(),
+            definition_phonetics_words_strict: String::new(),
+            definition_phonetics_words_loose: String::new(),
+        };
+
+        let outcome = apply_import_in(&conn, 1, &[entry("first"), entry("second")]).unwrap();
+
+        assert_eq!(outcome.inserted, 1);
+        assert_eq!(outcome.updated, 1);
+    }
 
     #[test]
     fn accepts_a_well_formed_custom_pack_id() {
