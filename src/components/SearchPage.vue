@@ -157,8 +157,18 @@ export default {
         .value();
     },
     visibleEntries() {
-      // Only return the entries we want to display - NO upfront decoration
-      return this.sortedEntries.slice(0, this.displayedCount);
+      // Decorate here, not in the template: a computed only re-runs when its
+      // dependencies change, whereas template method calls re-ran on every
+      // keystroke (searchQuery is a render dependency). This depends on the
+      // cached terms (frozen at search time), never on searchQuery.
+      return this.sortedEntries.slice(0, this.displayedCount).map((entry) => ({
+        ...entry,
+        decoratedTerm: this.highlightSearchTerms(entry.term),
+        // Scanned dictionaries show a page number instead of a definition
+        decoratedDefinition: this.isScannedDictionary(entry)
+          ? ''
+          : this.highlightSearchTerms(Decorator.decorate(entry)),
+      }));
     },
     totalNumberOfEntriesForEnabledDictionaries() {
       return this.entriesForEnabledDictionaries?.length || 0;
@@ -201,15 +211,6 @@ export default {
         .map((term) =>
           replaceTibetanGroups(term, (tibetan) => convert(tibetan) + ' ')
         );
-    },
-    decorateEntry(entry) {
-      var term = this.highlightSearchTerms(entry.term);
-      var definition = Decorator.decorate(entry);
-      definition = this.highlightSearchTerms(definition);
-      return { ...entry, term: term, definition: definition };
-    },
-    decorateEntries(entries) {
-      return entries.map((entry) => this.decorateEntry(entry));
     },
     wrapAllTibetanWithSpansAndAddTshekIfMissing(definition) {
       return Decorator.wrapAllTibetanWithSpansAndAddTshekIfMissing(definition);
@@ -701,7 +702,7 @@ export default {
             <v-col cols="12" sm="2">
               <div
                 class="term tibetan"
-                v-html="highlightSearchTerms(entry.term)"
+                v-html="entry.decoratedTerm"
               />
             </v-col>
             <v-col cols="12" sm="2" class="dictionary-label-col">
@@ -722,7 +723,7 @@ export default {
               <div
                 v-if="!isScannedDictionary(entry)"
                 class="definition"
-                v-html="highlightSearchTerms(decorateEntry(entry).definition)"
+                v-html="entry.decoratedDefinition"
               />
               <!-- Scanned dictionary: show page number and view button -->
               <div v-else class="scanned-entry d-flex align-center ga-3">
