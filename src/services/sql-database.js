@@ -70,7 +70,23 @@ async function getInvoke() {
 // ============================================
 
 const database = {
-  allTerms: [],
+  _allTerms: [],
+  // Mirror of _allTerms for O(1) membership checks: the decorator asks "is this
+  // Tibetan group a known term?" once per group per definition, and a linear
+  // scan over ~500k terms made every Search keystroke lag. Rebuilt by the
+  // allTerms setter so it can never drift from the array.
+  _allTermsSet: new Set(),
+  // Plain (non-reactive) array, assigned wholesale at each load site.
+  get allTerms() {
+    return this._allTerms;
+  },
+  set allTerms(terms) {
+    this._allTerms = terms;
+    this._allTermsSet = new Set(terms);
+  },
+  hasTerm(term) {
+    return this._allTermsSet.has(term);
+  },
   _initialized: false,
 
   async init() {

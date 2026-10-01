@@ -70,7 +70,7 @@ export default {
       text,
       (tibetan) => {
         var tibetanWithTrailingTshek = withTrailingTshek(tibetan);
-        var tibetanActuallyExistsInDictionary = SqlDatabase.allTerms.includes(tibetanWithTrailingTshek);
+        var tibetanActuallyExistsInDictionary = SqlDatabase.hasTerm(tibetanWithTrailingTshek);
         if (tibetanActuallyExistsInDictionary)
           return `<a href='/define/${tibetanWithTrailingTshek}'>${tibetan}</a>`;
         else
