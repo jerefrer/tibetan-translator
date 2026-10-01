@@ -40,7 +40,9 @@ Pure logic lives in `scripts/lib/changelog-core.js`, covered by `tests/changelog
 
 ### CI gotchas
 
-**The Linux build takes ~2 hours.** A `Build/release` run sitting in `in_progress` for an hour with only `ubuntu-22.04` outstanding is normal, not stuck. Do not conclude the job is hung.
+**`bundle.targets` lists every format explicitly, and leaves out `rpm`.** It used to be `"all"`, which made `ubuntu-22.04` run for 2h36 — 2h20 of it spent compressing the 184 MB `core.sqlite` resource into a `.rpm` that four releases of download counts say nobody installs. The AppImage already covers Fedora and openSUSE, and is what `latest.json` serves Linux under `linux-x86_64`. The list is global, not per-platform, so adding a format means adding it for every OS: the valid values are `deb`, `rpm`, `appimage`, `msi`, `nsis`, `app`, `dmg`, and dropping one silently removes that installer from the release — which is how Intel Macs went missing in v1.9.2. `app` is what produces the macOS `.app.tar.gz` the updater needs; it is not optional.
+
+**A failed matrix job cannot be re-run while the rest of the run is still going.** Both the button and `gh run rerun --failed` answer `403 — The workflow run containing this job is already running`. The whole run has to finish first.
 
 **Each matrix job merges its own entries into the release's `latest.json`.** A job that dies after uploading its binaries but before writing that entry leaves a release carrying every asset while the updater silently stops offering it to that platform — this happened to Intel Macs on v1.9.2. The `verify-updater-manifest` job now fails the run and names the missing platforms. The fix is to re-run the failed matrix job once the run completes; re-running merges, it does not overwrite.
 
