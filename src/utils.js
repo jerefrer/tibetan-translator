@@ -26,21 +26,52 @@ export const strictAndLoosePhoneticsFor = function (text) {
   ];
 }
 
-export const phoneticsStrictFor = function(text) {
-  var setting = Settings.find('english-semi-strict');
-  _.extend(setting.rules, {
-    drengbu: 'e',
-    aKikuI: 'e',
-    baAsWa: 'p'
-  })
-  return phoneticsFor(setting, text);
-}
-export const phoneticsLooseFor = function(text) {
-  return phoneticsFor('english-super-loose', text);
+// The strict setting never changes, so build it once instead of re-extending
+// the shared rules object on every call.
+const strictSetting = Settings.find('english-semi-strict');
+_.extend(strictSetting.rules, {
+  drengbu: 'e',
+  aKikuI: 'e',
+  baAsWa: 'p'
+})
+
+// Both functions are pure (hardcoded settings), and highlighting calls them
+// with the same few syllable groups over and over. The cap exists because the
+// DB build pipeline runs them over millions of entries: unbounded, the Maps
+// would exhaust memory during `pnpm build:packs`.
+const PHONETICS_CACHE_LIMIT = 20000;
+const strictCache = new Map();
+const looseCache = new Map();
+
+const memoized = function (cache, compute, text) {
+  if (cache.has(text)) return cache.get(text);
+  var result = compute(text);
+  if (cache.size >= PHONETICS_CACHE_LIMIT) cache.clear();
+  cache.set(text, result);
+  return result;
 }
 
+export const phoneticsStrictFor = function(text) {
+  return memoized(strictCache, (t) => phoneticsFor(strictSetting, t), text);
+}
+export const phoneticsLooseFor = function(text) {
+  return memoized(looseCache, (t) => phoneticsFor('english-super-loose', t), text);
+}
+
+// Constructing a converter is expensive (2.6x slower than reusing one), so
+// reuse it while the setting stays the same. Only the LAST one built may be
+// reused: tibetan-to-phonetics keeps its rules lookup in module-level state
+// that every `new TibetanToPhonetics` overwrites, so an older converter would
+// silently convert with the newest converter's setting.
+var lastSetting = null;
+var lastConverter = null;
+
 export const phoneticsFor = function(setting, text) {
-  var phonetics = new TibetanToPhonetics({ setting: setting });
+  if (!lastConverter || lastSetting !== setting) {
+    lastConverter = new TibetanToPhonetics({ setting: setting });
+    lastSetting = setting;
+  }
+  var phonetics = lastConverter;
   return syllablesFor(text).map(
     (syllable) => phonetics.convert(syllable)
   ).join(' ')

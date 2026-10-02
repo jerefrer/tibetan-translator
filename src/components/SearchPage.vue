@@ -252,8 +252,8 @@ export default {
         .join('');
     },
     highlightTibetanMatchingPhonetics(definition, term, convert) {
+      var numberOfSyllablesForTerm = term.split(' ').length;
       return replaceTibetanGroups(definition, (group) => {
-        var numberOfSyllablesForTerm = term.split(' ').length;
         var combinations = this.everySyllablesCombinationsOfGivenLengthFor(
           group,
           numberOfSyllablesForTerm
@@ -278,12 +278,9 @@ export default {
       var syllables = syllablesFor(source);
       var numberOfSyllables = syllables.length;
       var combinations = [];
-      for (var i = 0; i < numberOfSyllables; i++) {
-        for (var j = numberOfSyllables; j > 0; j--) {
-          var slice = syllables.slice(i, j);
-          if (slice.length == numberOfSyllablesForTerm)
-            combinations.push(slice.join('་') + '་');
-        }
+      for (var i = 0; i + numberOfSyllablesForTerm <= numberOfSyllables; i++) {
+        var slice = syllables.slice(i, i + numberOfSyllablesForTerm);
+        combinations.push(slice.join('་') + '་');
       }
       return _.chain(combinations).uniq().sortBy('length').value();
     },
