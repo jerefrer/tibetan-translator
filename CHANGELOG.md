@@ -5,10 +5,16 @@ All notable changes to Tibetan Translator are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.2](https://github.com/jerefrer/tibetan-translator/compare/v1.11.1...v1.11.2) - 2026-10-02
+
+### Fixed
+
+- Phonetic searches no longer freeze the app for up to half a minute
+
 ## [1.11.1](https://github.com/jerefrer/tibetan-translator/compare/v1.11.0...v1.11.1) - 2026-10-01
 
 ### Fixed
-- Typing in the search bar is no longer showing letter one at a time very slowly, using lots of resources.
+- Phonetic searches no longer freeze the app for up to half a minute
 
 ## [1.11.0](https://github.com/jerefrer/tibetan-translator/compare/v1.10.0...v1.11.0) - 2026-08-13
 

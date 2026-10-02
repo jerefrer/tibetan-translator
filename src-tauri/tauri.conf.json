@@ -1,6 +1,6 @@
 {
   "productName": "TibetanTranslator",
-  "version": "1.11.1",
+  "version": "1.11.2",
   "identifier": "com.jerefrer.TibetanTranslator",
   "build": {
     "frontendDist": "../dist",
@@ -45,7 +45,14 @@
   "bundle": {
     "createUpdaterArtifacts": true,
     "active": true,
-    "targets": ["app", "dmg", "msi", "nsis", "deb", "appimage"],
+    "targets": [
+      "app",
+      "dmg",
+      "msi",
+      "nsis",
+      "deb",
+      "appimage"
+    ],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
