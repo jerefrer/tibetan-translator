@@ -102,7 +102,6 @@
     "http-server": "^14.1.1",
     "progress": "^2.0.3",
     "replace": "^1.2.2",
-    "sass": "^1.69.5",
     "sql.js": "^1.8.0",
     "stylus": "^0.62.0",
     "tibetan-ewts-converter": "^1.0.1",
