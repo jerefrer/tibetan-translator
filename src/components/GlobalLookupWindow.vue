@@ -5,6 +5,7 @@ import { useTheme } from 'vuetify';
 import Entries from './Entries.vue';
 import TibetanTextField from './TibetanTextField.vue';
 import Storage from '../services/storage';
+import { applyDocumentTheme } from '../services/theme';
 import Decorator from '../services/decorator';
 import DictionariesDetailsMixin from './DictionariesDetailsMixin';
 import { convertWylieInText, tibetanLookupKey } from '../utils';
@@ -142,8 +143,7 @@ export default {
         actualTheme = preference;
       }
       this.theme.global.name.value = actualTheme;
-      document.documentElement.classList.remove('theme--dark', 'theme--light');
-      document.documentElement.classList.add(`theme--${actualTheme}`);
+      applyDocumentTheme(actualTheme);
     },
     cleanTibetanText(text) {
       if (!text) return '';

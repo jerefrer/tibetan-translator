@@ -1,0 +1,15 @@
+/*
+ * Bundled UI fonts (SIL Open Font License 1.1), so the interface looks the same
+ * offline. Latin + Latin Extended covers English UI text and the IAST
+ * diacritics found in Sanskrit definitions. DDC Uchen is declared in tibetan.css.
+ */
+@import "@fontsource/instrument-sans/latin-400.css";
+@import "@fontsource/instrument-sans/latin-500.css";
+@import "@fontsource/instrument-sans/latin-600.css";
+@import "@fontsource/instrument-sans/latin-ext-400.css";
+@import "@fontsource/instrument-sans/latin-ext-500.css";
+@import "@fontsource/instrument-sans/latin-ext-600.css";
+@import "@fontsource/source-serif-4/latin-400.css";
+@import "@fontsource/source-serif-4/latin-600.css";
+@import "@fontsource/source-serif-4/latin-ext-400.css";
+@import "@fontsource/source-serif-4/latin-ext-600.css";

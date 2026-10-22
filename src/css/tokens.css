@@ -1,0 +1,171 @@
+/*
+ * Design tokens for the redesigned interface.
+ *
+ * Source of truth: the "B" boards in docs/redesign/mockups. Colour names are the
+ * mockups' own so a board can be diffed against this file.
+ *
+ * The theme is selected by `data-theme="light" | "dark"` on <html>
+ * (see src/services/theme.js). Light is the default so nothing flashes before
+ * the script runs.
+ *
+ * Type sizes and control heights are in rem on purpose: the "Text size" setting
+ * scales the root font size, and everything built on these tokens follows it.
+ * Radii, borders and shadows stay in px.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces and text */
+  --bg: #FAF3E0;
+  --surface: #FFFDF8;
+  --ink: #2A1F1A;
+  --muted: #6A5B50;
+  --faint: #9C8D7E;
+  --line: #E6D9BC;
+  --line-strong: #D6C59F;
+  --soft: #F0E6CE;
+
+  /* Accent */
+  --accent: #A30000;
+  --accent-soft: #F7E3DD;
+  --accent-line: #E7BDB4;
+  --on-accent: #FFFFFF;
+  --rubric: #A30000;
+  --ring: #F7E3DD;
+
+  /* Notices (amber) */
+  --amber-bg: #FFF0BF;
+  --amber-ink: #4A3600;
+  --amber-line: #A87400;
+
+  /* Inverse surface (dark chips, tooltips) */
+  --dark: #2A1F1A;
+  --on-dark: #FFF8E8;
+
+  /* Status */
+  --danger: #B3261E;
+  --on-danger: #FFFFFF;
+  --danger-ink: #B3261E;
+  --danger-soft: #FBE4E1;
+  --danger-line: #E9B4AF;
+  --success-ink: #2E7D32;
+  --success-soft: #E3F1E4;
+  --success-line: #A9D2AC;
+
+  /* Navigation rail and bottom bar */
+  --rail-bg: #A30000;
+  --rail-line: #7C0000;
+  --rail-ink: #F9DAD4;
+  --rail-active-bg: #7C0000;
+  --rail-active-ink: #FFC107;
+  --logo-bg: #FFC107;
+  --logo-ink: #7C0000;
+
+  /* Overlays */
+  --scrim: rgba(42, 31, 26, 0.62);
+  --shadow-card: 0 1px 2px rgba(42, 31, 26, 0.05);
+  --shadow-pop: 0 8px 24px rgba(42, 31, 26, 0.18), 0 1px 3px rgba(42, 31, 26, 0.12);
+  --shadow-dialog: 0 24px 60px rgba(0, 0, 0, 0.35);
+
+  /* Fonts. DDC Uchen is declared in tibetan.css. */
+  --font-ui: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-serif: 'Source Serif 4', Georgia, serif;
+  --font-tibetan: 'DDC_Uchen', serif;
+
+  /* Type scale (rem; 1rem = 16px at the default Text size) */
+  --text-caption: 0.7188rem;  /* 11.5px: rail and tab labels */
+  --text-xs: 0.75rem;         /* 12px */
+  --text-chip: 0.7813rem;     /* 12.5px: chips, small meta */
+  --text-sm: 0.8125rem;       /* 13px */
+  --text-sm-plus: 0.8438rem;  /* 13.5px: buttons */
+  --text-base: 0.875rem;      /* 14px */
+  --text-body: 0.9063rem;     /* 14.5px: dialog and card body */
+  --text-md: 1rem;            /* 16px */
+  --text-entry: 1.0938rem;    /* 17.5px: definitions (serif) */
+  --text-title: 1.25rem;      /* 20px: dialog titles */
+  --text-heading: 1.5rem;     /* 24px: page titles */
+  --text-tibetan-sm: 1.375rem; /* 22px */
+  --text-tibetan-md: 1.5rem;   /* 24px */
+  --text-tibetan-lg: 1.625rem; /* 26px: search field */
+
+  /* Control heights */
+  --control-sm: 2.125rem;  /* 34px */
+  --control-md: 2.5rem;    /* 40px */
+  --control-lg: 3.75rem;   /* 60px: the main search field */
+
+  /* Radii */
+  --radius-xs: 4px;
+  --radius-sm: 6px;   /* chips */
+  --radius-md: 9px;
+  --radius-lg: 10px;  /* buttons, menus */
+  --radius-xl: 12px;
+  --radius-card: 14px;
+  --radius-dialog: 18px;
+  --radius-pill: 999px;
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+
+  /* Shell */
+  --rail-width: 88px;
+  --bottom-bar-height: 76px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: #1E1815;
+  --surface: #2A211D;
+  --ink: #F3E8D6;
+  --muted: #B8A998;
+  --faint: #7E7064;
+  --line: #3D312B;
+  --line-strong: #54453B;
+  --soft: #342A25;
+
+  --accent: #F0766A;
+  --accent-soft: #3F211D;
+  --accent-line: #6B2F28;
+  --on-accent: #1E0A08;
+  --rubric: #FF9A8D;
+  --ring: #4A2622;
+
+  --amber-bg: #3A2E10;
+  --amber-ink: #FFE3A0;
+  --amber-line: #A87400;
+
+  --dark: #F3E8D6;
+  --on-dark: #2A1F1A;
+
+  --danger: #C9372E;
+  --on-danger: #FFFFFF;
+  --danger-ink: #FF9A8D;
+  --danger-soft: #3F1B18;
+  --danger-line: #6B2F28;
+  --success-ink: #8FD694;
+  --success-soft: #1F3322;
+  --success-line: #386B3C;
+
+  --rail-bg: #5A0000;
+  --rail-line: #3F0000;
+  --rail-ink: #F1C9C2;
+  --rail-active-bg: #3F0000;
+  --rail-active-ink: #FFC107;
+  --logo-bg: #FFC107;
+  --logo-ink: #7C0000;
+
+  --scrim: rgba(0, 0, 0, 0.62);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-pop: 0 8px 24px rgba(0, 0, 0, 0.5), 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-dialog: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
