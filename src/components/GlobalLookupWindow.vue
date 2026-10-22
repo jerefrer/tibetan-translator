@@ -614,20 +614,22 @@ export default {
             <div
               ref="termsList"
               class="ql-terms__list"
-              role="listbox"
-              aria-label="Terms starting with the text"
               data-testid="ql-terms"
             >
-              <div
-                v-for="term in visibleTerms"
-                :key="term"
-                class="term-item"
-                :class="{ 'is-active': selectedTerm === term }"
-                role="option"
-                :aria-selected="selectedTerm === term ? 'true' : 'false'"
-                data-testid="ql-term"
-                @click="selectTerm(term)"
-              >{{ term }}</div>
+              <!-- The listbox holds only the options; "More" sits after it -->
+              <div role="listbox" aria-label="Terms starting with the text">
+                <div
+                  v-for="term in visibleTerms"
+                  :key="term"
+                  class="term-item"
+                  :class="{ 'is-active': selectedTerm === term }"
+                  role="option"
+                  :aria-selected="selectedTerm === term ? 'true' : 'false'"
+                  :title="term"
+                  data-testid="ql-term"
+                  @click="selectTerm(term)"
+                ><span class="term-item__text">{{ term }}</span></div>
+              </div>
               <div
                 v-if="hasMoreTerms"
                 v-intersect="loadMoreTerms"
@@ -919,8 +921,14 @@ html, body
   font-size 1.25rem
   white-space nowrap
   overflow hidden
-  text-overflow ellipsis
   cursor pointer
+
+// On the text itself: an ellipsis does not apply to the bare text of a flex
+// container, which cut long terms mid-letter
+.term-item__text
+  min-width 0
+  overflow hidden
+  text-overflow ellipsis
 
   &:hover
     background var(--soft)

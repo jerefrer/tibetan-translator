@@ -287,6 +287,23 @@ describe('Define', () => {
     expect(findAll('ql-term').map((t) => t.text())).toEqual(['ཡེ་ཤེས་', 'ཡེ་ཤེས་ཀྱི་', 'ཡེ་ཤེས་པ་'])
   })
 
+  it('D1: should give each term its full text as a tooltip, since a long one ends in an ellipsis', async () => {
+    await mountWindow()
+    expect(findAll('ql-term').map((t) => t.attributes('title'))).toEqual(['ཡེ་ཤེས་', 'ཡེ་ཤེས་ཀྱི་', 'ཡེ་ཤེས་པ་'])
+  })
+
+  it('D1: should keep only options in the terms listbox, "More" after it', async () => {
+    const many = Array.from({ length: 120 }, (_, i) => `ཀ་${String(i).padStart(3, '0')}`)
+    invoke.mockImplementation((cmd, args) =>
+      cmd === 'pack_get_all_terms' ? Promise.resolve(many) : defaultInvoke(cmd, args)
+    )
+    await mountWindow({ clipboard: 'ཀ་' })
+    const listbox = find('ql-terms').find('[role="listbox"]')
+    expect(listbox.findAll('[role="listbox"] > *').every((el) => el.attributes('role') === 'option')).toBe(true)
+    expect(listbox.find('[data-testid="ql-terms-more"]').exists()).toBe(false)
+    expect(find('ql-terms-more').exists()).toBe(true)
+  })
+
   it('D1: should show 50 terms, then 50 more', async () => {
     const many = Array.from({ length: 120 }, (_, i) => `ཀ་${String(i).padStart(3, '0')}`)
     invoke.mockImplementation((cmd, args) =>
