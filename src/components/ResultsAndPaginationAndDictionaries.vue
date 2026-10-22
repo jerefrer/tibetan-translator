@@ -98,6 +98,12 @@ export default {
     },
   },
   methods: {
+    // Room the menu keeps from the window's edges; on a phone the bottom bar
+    // covers the bottom of the window, so the menu stays above it too
+    collisionPadding() {
+      const bar = typeof document !== 'undefined' && document.querySelector('.app-nav--bar');
+      return { top: 16, right: 16, left: 16, bottom: 16 + (bar ? bar.offsetHeight : 0) };
+    },
     pluralize: pluralize,
     sumNumberOfEntriesFor(dictionaries) {
       return dictionaries.reduce(
@@ -279,7 +285,7 @@ export default {
           class="dictionaries-menu"
           :align="menuAlign"
           :side-offset="6"
-          :collision-padding="16"
+          :collision-padding="collisionPadding()"
           data-testid="dictionaries-menu"
           @open-auto-focus.prevent
           @close-auto-focus.prevent
@@ -395,7 +401,9 @@ export default {
   z-index 3000
   box-sizing border-box
   width unquote('min(28rem, calc(100vw - 32px))')
-  max-height unquote('min(34rem, calc(100dvh - 120px))')
+  // No taller than the room left under (or over) the button, so the end of
+  // the list never runs off the window; the list scrolls instead
+  max-height unquote('min(34rem, var(--reka-popover-content-available-height, calc(100dvh - 120px)))')
   display flex
   flex-direction column
   background var(--surface)
