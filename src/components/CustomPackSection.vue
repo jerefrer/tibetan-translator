@@ -252,7 +252,7 @@ export default {
       }
     },
     onManage(pack) {
-      this.$router.push(`/lexicon/${pack.id}`);
+      this.$router.push(`/glossary/${pack.id}`);
     },
     onCreate() {
       this.newName = '';
@@ -313,7 +313,7 @@ export default {
         this.pendingRows = [];
         this.importGrid = null;
         this.snackbar.open(message);
-        this.$router.push(`/lexicon/${pack.id}`);
+        this.$router.push(`/glossary/${pack.id}`);
       } catch (e) {
         console.error('[CustomPackSection] create failed:', e);
         this.createError = messageForError(e, 'Could not create this dictionary.');

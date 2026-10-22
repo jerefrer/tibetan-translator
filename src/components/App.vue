@@ -12,6 +12,8 @@ import UpdateService from "../services/update-service";
 import AudioPlayerService from "../services/audio-player-service";
 import ResizeService from "../services/resize-service";
 import { supportsModularPacks } from "../config/platform";
+import { shortcutPaths } from "../config/navigation";
+import { applyDocumentTheme } from "../services/theme";
 
 import TibdictInstaller from "../services/tibdict-installer";
 import { substituteLinksWithATags } from "../utils.js";
@@ -21,9 +23,12 @@ import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton.vue
 import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton.vue";
 import SplitPageHelpDialogWithButton from "./SplitPageHelpDialogWithButton.vue";
 import CustomPackConflictModal from "./CustomPackConflictModal.vue";
+import AppNav from "./AppNav.vue";
 
 import "@mdi/font/css/materialdesignicons.css";
 
+import "../css/tokens.css";
+import "../css/fonts.css";
 import "../css/layout.css";
 import "../css/tibetan.css";
 import "../css/scrollbar.css";
@@ -39,6 +44,7 @@ if (Storage.get("keepLongestOnly") == undefined)
 
 export default {
   components: {
+    AppNav,
     SelectedTibetanEntriesPopup,
     OnboardingScreen,
     DefinePageHelpDialogWithButton,
@@ -70,19 +76,8 @@ export default {
     tibdictInstallerState() {
       return TibdictInstaller.state;
     },
-    tabs() {
-      return [
-        { id: "define", name: "<u>D</u>efine", mobileName: "Define" },
-        { id: "search", name: "<u>S</u>earch", mobileName: "Search" },
-        { id: "segment", name: "Spli<u>t</u>", mobileName: "Split" },
-        { id: "settings", name: "Settin<u>g</u>s", mobileName: "", icon: "mdi-cog" },
-      ];
-    },
     currentTabId() {
       return _.compact(this.$route.path.split("/"))[0];
-    },
-    tabIndex() {
-      return this.tabs.findIndex((tab) => tab.id == this.currentTabId);
     },
     updateReady() {
       return UpdateService.state.updateReady;
@@ -145,10 +140,7 @@ export default {
       document.documentElement.style.fontSize = `${fontSize}%`;
     },
     updateHtmlThemeClass() {
-      $("html")
-        .removeClass("theme--dark")
-        .removeClass("theme--light")
-        .addClass("theme--" + (this.isDark ? "dark" : "light"));
+      applyDocumentTheme(this.isDark ? "dark" : "light");
     },
     openSnackbarWith(text) {
       var html = substituteLinksWithATags(text);
@@ -171,24 +163,17 @@ export default {
     },
     addListenersForKeyboardTabNavigation() {
       var vm = this;
+      const paths = shortcutPaths();
       EventHandlers.add({
         id: "tabs-shortcuts",
         type: "keydown",
         callback(event) {
           // Support both Ctrl (Windows/Linux) and Cmd (Mac)
           if (event.ctrlKey || event.metaKey) {
-            if (event.key.toLowerCase() == "d") {
+            const path = paths[event.key.toLowerCase()];
+            if (path) {
               event.preventDefault();
-              vm.$router.push("/define");
-            } else if (event.key.toLowerCase() == "s") {
-              event.preventDefault();
-              vm.$router.push("/search");
-            } else if (event.key.toLowerCase() == "t") {
-              event.preventDefault();
-              vm.$router.push("/segment");
-            } else if (event.key.toLowerCase() == "g") {
-              event.preventDefault();
-              vm.$router.push("/settings");
+              vm.$router.push(path);
             }
           }
         },
@@ -294,49 +279,18 @@ export default {
     </v-snackbar>
 
     <!-- Using div instead of v-main to avoid Vuetify's --v-layout-top magic that causes iOS layout shifts -->
-    <div v-if="!loading" class="app-layout">
-      <div class="main-navbar">
-        <v-tabs grow :model-value="tabIndex" height="63">
-          <v-tab
-            v-for="tab in tabs"
-            :key="tab.id"
-            :to="'/' + tab.id"
-            :value="tabs.indexOf(tab)"
-            :class="{ settings: tab.id == 'settings' }"
-          >
-            <div class="tab-content">
-              <!-- Mobile: show icon for settings, plain text for others -->
-              <template v-if="isMobile">
-                <v-badge
-                  v-if="tab.id === 'settings' && updateReady"
-                  dot
-                  color="error"
-                >
-                  <v-icon v-if="tab.icon">{{ tab.icon }}</v-icon>
-                </v-badge>
-                <template v-else>
-                  <v-icon v-if="tab.icon">{{ tab.icon }}</v-icon>
-                  <span v-else>{{ tab.mobileName }}</span>
-                </template>
-              </template>
-              <!-- Desktop: show name with underlined shortcut key -->
-              <v-badge
-                v-else-if="tab.id === 'settings' && updateReady"
-                dot
-                color="error"
-                inline
-              >
-                <span v-html="tab.name"></span>
-              </v-badge>
-              <span v-else v-html="tab.name"></span>
-              <DefinePageHelpDialogWithButton v-if="tab.id == 'define' && currentTabId == 'define'" />
-              <SearchPageHelpDialogWithButton v-if="tab.id == 'search' && currentTabId == 'search'" />
-              <SplitPageHelpDialogWithButton v-if="tab.id == 'segment' && currentTabId == 'segment'" />
-            </div>
-
-          </v-tab>
-        </v-tabs>
-      </div>
+    <div
+      v-if="!loading"
+      class="app-shell"
+      :class="isMobile ? 'app-shell--phone' : 'app-shell--desktop'"
+    >
+      <app-nav :is-mobile="isMobile" :update-ready="updateReady">
+        <template #help>
+          <DefinePageHelpDialogWithButton v-if="currentTabId == 'define'" />
+          <SearchPageHelpDialogWithButton v-if="currentTabId == 'search'" />
+          <SplitPageHelpDialogWithButton v-if="currentTabId == 'segment'" />
+        </template>
+      </app-nav>
 
       <div class="app-content">
         <router-view v-slot="{ Component }">

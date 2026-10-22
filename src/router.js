@@ -8,6 +8,7 @@ import SegmentPage from './components/SegmentPage.vue'
 import ConfigurePage from './components/ConfigurePage.vue'
 import TestsPage from './components/TestsPage.vue'
 import LexiconPage from './components/LexiconPage.vue'
+import DictionariesPage from './components/DictionariesPage.vue'
 
 const routes = [
   { path: '/', redirect: '/define' },
@@ -17,7 +18,18 @@ const routes = [
   { path: '/search/:query', component: SearchPage },
   { path: '/segment', component: SegmentPage },
   { path: '/settings', component: ConfigurePage },
-  { path: '/lexicon/:packId?/:dictionaryId?', component: LexiconPage },
+  // "My glossary": the user's own dictionaries (LexiconPage)
+  { path: '/glossary/:packId?/:dictionaryId?', component: LexiconPage },
+  { path: '/dictionaries', component: DictionariesPage },
+  // Former route of the glossary
+  {
+    path: '/lexicon/:packId?/:dictionaryId?',
+    redirect: (to) => ({
+      path: '/glossary' + to.path.slice('/lexicon'.length),
+      query: to.query,
+      hash: to.hash,
+    }),
+  },
   { path: '/tests', component: TestsPage },
 ]
 

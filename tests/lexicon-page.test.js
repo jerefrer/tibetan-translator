@@ -11,8 +11,8 @@
  *  - Critical 1 regression (round 2): the fix for the above — a
  *    '$route.params.packId' watcher writing into a separate `selectedKey`
  *    data field — only compared against the IMMEDIATELY PRECEDING watched
- *    value. Leaving /lexicon/A for /settings fired the watcher with
- *    `undefined` (harmlessly guarded); returning to /lexicon/A fired it
+ *    value. Leaving /glossary/A for /settings fired the watcher with
+ *    `undefined` (harmlessly guarded); returning to /glossary/A fired it
  *    again with 'A', indistinguishable from a fresh navigation, so it
  *    unconditionally clobbered a manual dropdown choice of B made earlier in
  *    the same session. This is why LexiconPage now derives `selected`
@@ -135,7 +135,7 @@ function makeRouter(initialPath) {
       { path: '/', component: { template: '<div />' } },
       { path: '/settings', component: { template: '<div class="settings-stub" />' } },
       // Matches src/router.js exactly.
-      { path: '/lexicon/:packId?/:dictionaryId?', component: LexiconPage },
+      { path: '/glossary/:packId?/:dictionaryId?', component: LexiconPage },
     ],
   })
   router.push(initialPath)
@@ -145,7 +145,7 @@ function makeRouter(initialPath) {
 // Mirrors App.vue:342-346 exactly: <router-view> handing its resolved
 // Component to a <keep-alive> keyed on the first path segment. This is what
 // makes LexiconPage genuinely activate/deactivate as the route moves in and
-// out of "/lexicon/...", instead of just being patched in place or torn down
+// out of "/glossary/...", instead of just being patched in place or torn down
 // — the real mechanics a bare mount() cannot exercise.
 const Shell = {
   name: 'Shell',
@@ -175,7 +175,7 @@ async function mountShell(initialPath, dictionaries) {
     },
   })
   // One tick for the initial render. If the initial route requires
-  // syncSelection() to fall back and navigate (e.g. bare /lexicon — scenario
+  // syncSelection() to fall back and navigate (e.g. bare /glossary — scenario
   // d), that navigation is fire-and-forget from activated()'s point of view
   // as far as this helper is concerned; callers that depend on its outcome
   // wait on the actual condition via vi.waitFor rather than assuming this
@@ -207,26 +207,26 @@ describe('LexiconPage', () => {
 
   describe('route-driven selection', () => {
     it('(a) follows a route change to a second pack while the page is already showing the first', async () => {
-      const { wrapper, router } = await mountShell('/lexicon/custom-a', [PACK_A, PACK_B])
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
 
-      // Mirrors CustomPackSection.vue's onManage(pack): router.push(`/lexicon/${pack.id}`).
+      // Mirrors CustomPackSection.vue's onManage(pack): router.push(`/glossary/${pack.id}`).
       // Directly awaited by the test, so the navigation itself is not the
       // uncertain part here — `selected` is a computed reading $route.params
       // and is live the instant the awaited push() resolves.
-      await router.push('/lexicon/custom-b')
+      await router.push('/glossary/custom-b')
 
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
     })
 
     it('(b) preserves a manual dropdown choice across a real deactivate/reactivate round trip through Settings', async () => {
-      const { wrapper, router } = await mountShell('/lexicon/custom-a', [PACK_A, PACK_B])
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
 
       // Manual choice via the dropdown navigates rather than mutating local
       // state, and the test awaits that navigation directly.
       await lexiconPage(wrapper).vm.onSelectDictionary('custom-b:1')
-      expect(router.currentRoute.value.path).toBe('/lexicon/custom-b/1')
+      expect(router.currentRoute.value.path).toBe('/glossary/custom-b/1')
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
 
       // Leave to Settings. This must be a REAL deactivation — the whole
@@ -242,7 +242,7 @@ describe('LexiconPage', () => {
       })
 
       // Come back to exactly the URL the dropdown pick left behind.
-      await router.push('/lexicon/custom-b/1')
+      await router.push('/glossary/custom-b/1')
       await vi.waitFor(() => {
         expect(lexiconPage(wrapper).exists()).toBe(true)
       })
@@ -251,7 +251,7 @@ describe('LexiconPage', () => {
     })
 
     it('(c) falls back to a remaining pack, and the route follows, when the selected dictionary is deleted', async () => {
-      const { wrapper, router } = await mountShell('/lexicon/custom-a', [PACK_A, PACK_B])
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
 
       // Pack A is removed elsewhere (e.g. from Settings); only B remains.
@@ -264,30 +264,30 @@ describe('LexiconPage', () => {
       window._triggerEvent('dictionaries-updated')
 
       await vi.waitFor(() => {
-        expect(router.currentRoute.value.path).toBe('/lexicon/custom-b/1')
+        expect(router.currentRoute.value.path).toBe('/glossary/custom-b/1')
       })
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
     })
 
-    it('(d) picks the first available dictionary, and navigates there, when arriving at bare /lexicon', async () => {
-      const { wrapper, router } = await mountShell('/lexicon', [PACK_A, PACK_B])
+    it('(d) picks the first available dictionary, and navigates there, when arriving at bare /glossary', async () => {
+      const { wrapper, router } = await mountShell('/glossary', [PACK_A, PACK_B])
 
       // The fix for this exact test's flakiness (round 4): syncSelection()'s
       // fallback navigation is fired from activated(), which the test never
       // calls or awaits itself — only vi.waitFor's retrying, not a fixed
       // tick count, reliably observes when it has actually settled.
       await vi.waitFor(() => {
-        expect(router.currentRoute.value.path).toBe('/lexicon/custom-a/1')
+        expect(router.currentRoute.value.path).toBe('/glossary/custom-a/1')
       })
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
     })
 
     it('(e) a multi-dictionary pack: selecting its second dictionary survives a deactivate/reactivate round trip', async () => {
-      const { wrapper, router } = await mountShell('/lexicon/custom-c/1', [PACK_C_D1, PACK_C_D2])
+      const { wrapper, router } = await mountShell('/glossary/custom-c/1', [PACK_C_D1, PACK_C_D2])
       expect(lexiconPage(wrapper).vm.selected?.dictionaryId).toBe(1)
 
       await lexiconPage(wrapper).vm.onSelectDictionary('custom-c:2')
-      expect(router.currentRoute.value.path).toBe('/lexicon/custom-c/2')
+      expect(router.currentRoute.value.path).toBe('/glossary/custom-c/2')
 
       await router.push('/settings')
       await vi.waitFor(() => {
@@ -295,7 +295,7 @@ describe('LexiconPage', () => {
       })
 
       // A packId-only route could not have distinguished this from volume 1.
-      await router.push('/lexicon/custom-c/2')
+      await router.push('/glossary/custom-c/2')
       await vi.waitFor(() => {
         expect(lexiconPage(wrapper).exists()).toBe(true)
       })
@@ -319,7 +319,7 @@ describe('LexiconPage', () => {
       })
       deleteEntryMock.mockResolvedValue(undefined)
 
-      const { wrapper } = await mountShell('/lexicon/custom-a', [PACK_A])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
       const page = lexiconPage(wrapper)
 
       // Simulate having been on page 2 of what was, before the delete, a
@@ -349,7 +349,7 @@ describe('LexiconPage', () => {
         total: 10,
         entries: [{ id: 1, term: 'a', definition: 'b' }],
       })
-      const { wrapper } = await mountShell('/lexicon/custom-a', [PACK_A, PACK_B])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       const page = lexiconPage(wrapper)
 
       page.vm.page = 3

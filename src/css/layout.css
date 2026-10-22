@@ -1,25 +1,22 @@
 html {
   overflow: hidden; /* No page-level scrollbar */
-  background: #fef5e7;
+  /* Legacy palette, still read by the screens that have not been redesigned.
+     New code uses the tokens in tokens.css. */
   --black-background: #001211;
   --deep-red: #A30000;
   --yellow: #FFC107;
   --orange: #FF9800;
   --paper: #FAF3E0;
-  --contentBackground: var(--paper);
-  --navbar-height: 63px;
-  --safe-area-top: env(safe-area-inset-top, 0px);
-  --navbar-total-height: calc(var(--navbar-height) + var(--safe-area-top));
+  --contentBackground: var(--bg);
   background: var(--contentBackground) !important;
 }
 
-/* iOS safe area - handled per-element, not on body */
 body {
   background: var(--contentBackground);
 }
 
 /* iOS gap fix: Force GPU layer to prevent layout shift on first interaction */
-.is-ios .main-navbar,
+.is-ios .app-nav,
 .is-ios .app-content {
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
@@ -34,163 +31,54 @@ input, textarea {
   spellcheck: false;
 }
 
-html.theme--dark {
-  --contentBackground: var(--black-background);
-  background: var(--black-background) !important;
-}
-
 .theme--light.v-application {
   background: var(--contentBackground);
-} 
+}
 
 .v-tabs-items,
 .theme--light.v-data-table {
   background: none !important;
 }
 
-/* App layout - replaces v-main to avoid Vuetify's dynamic --v-layout-top calculations */
-.app-layout {
+/* App shell: navigation rail + content on desktop, content above a bottom bar
+   on a phone. A plain div replaces v-main to avoid Vuetify's dynamic
+   --v-layout-top calculations. */
+.app-shell {
   display: flex;
-  flex-direction: column;
   height: 100vh;
   height: 100dvh; /* Dynamic viewport for mobile */
   overflow: hidden;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  background: var(--bg);
+  color: var(--ink);
+}
+.app-shell--phone {
+  flex-direction: column;
+}
+.app-shell--phone .app-nav {
+  order: 2;
 }
 
-/* Tab content wrapper for text + help button */
-.tab-content {
-  display: flex;
-  align-items: center;
-  position: relative;
-}
-.help-button {
-  position: absolute;
-  left: 100%;
-  margin-left: 4px;
-  z-index: 99;
-  opacity: 0.75;
-  transition: opacity 0.2s;
-}
-
-@media (max-width: 600px) {
-  .help-button {
-    margin-left: -10px;
-  }
-
-  .help-button.v-btn--size-large {
-    --v-btn-size: 0.875rem;
-    --v-btn-height: 32px;
-    min-width: 32px;
-    padding: 0 8px;
-  }
-
-  /* Reset overlay layout offset on mobile */
-  .v-overlay-container .v-overlay {
-    --v-layout-left: 0px !important;
-  }
-
-  /* Settings tab narrower on mobile - only needs icon */
-  .main-navbar .v-tab.settings {
-    flex: 0 0 auto !important;
-    min-width: 48px !important;
-    max-width: 56px !important;
-    padding: 0 12px !important;
-  }
-}
-.help-button:hover {
-  opacity: 1;
-}
-.help-button .v-icon {
-  margin: 0;
-}
-.theme--light .help-button .v-icon {
-  color: var(--yellow) !important;
-}
-
-.theme--light .main-navbar .v-input {
-  background: #fffcf4;
-}
-
-#settings-button {
-  position: fixed;
-  top: 10px;
-  left: 15px;
-  z-index: 999;
-}
-
-
-/* Vuetify 3: v-system-bar contains the tabs */
-/* Main navbar - extend into top safe area (notch) */
-.main-navbar {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  z-index: 1000 !important;
-  height: var(--navbar-total-height) !important;
-  padding-top: var(--safe-area-top);
-  background: var(--deep-red) !important;
-}
-/* Add margin to content to account for fixed navbar */
 .app-content {
-  margin-top: var(--navbar-total-height) !important;
-  padding: 0 !important;
   flex: 1;
-  overflow: hidden;
+  min-width: 0;
   min-height: 0; /* Important for flex children to shrink */
+  overflow: hidden;
+  /* Clear the notch. The rail and the bottom bar handle their own insets. */
+  padding-top: var(--safe-top) !important;
 }
-
-/* Android specific - status bar doesn't report via env() */
-.is-android .main-navbar {
-  height: calc(63px + 24px) !important;
-  padding-top: 24px;
-}
+/* Android - status bar doesn't report via env() */
 .is-android .app-content {
-  margin-top: calc(63px + 24px) !important;
+  padding-top: 24px !important;
 }
 .app-content > * {
   margin-top: 0 !important;
 }
-.main-navbar .v-tabs {
-  background: transparent !important;
-}
-.main-navbar .v-tab {
-  font-weight: bold;
-  color: #f8f8f8 !important;
-}
-.main-navbar .v-tab--selected {
-  color: var(--yellow) !important;
-}
-.main-navbar .v-slide-group__next,
-.main-navbar .v-slide-group__prev {
-  display: none !important;
-}
-.theme--light .main-navbar .v-tab.settings:not(.v-tab--selected) {
-  color: #cccccc !important;
-}
-/* Vuetify 3: tab indicator is .v-tab__slider */
-.main-navbar .v-tab__slider {
-  height: 4px !important;
-  bottom: 12px;
-  width: 21px;
-  left: 50% !important;
-  right: auto !important;
-  transform: translateX(-50%);
-  border-radius: 4px;
-  background: var(--yellow) !important;
-}
 
-.theme--dark .main-navbar {
-  background: black !important;
-}
-.theme--dark .main-navbar .v-tab:not(.v-tab--selected) {
-  font-weight: normal;
-  color: white !important;
-}
-.theme--dark .main-navbar .v-tab.settings:not(.v-tab--selected) {
-  font-weight: bold;
-  color: #616161 !important;
+@media (max-width: 600px) {
+  /* Reset overlay layout offset on mobile */
+  .v-overlay-container .v-overlay {
+    --v-layout-left: 0px !important;
+  }
 }
 
 /* Container height for app content */

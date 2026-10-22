@@ -208,7 +208,7 @@ export default {
     // mirroring the route into local state and reconciling the two with a
     // '$route.params.packId' watcher was unsound: the watcher only sees the
     // immediately preceding value, so a round trip through an unrelated
-    // route (e.g. /lexicon/A -> /settings -> /lexicon/A) looks identical,
+    // route (e.g. /glossary/A -> /settings -> /glossary/A) looks identical,
     // from that one watcher's perspective, to a fresh navigation back to A —
     // there is no way to tell "the user pressed back" apart from "the user
     // clicked Manage entries on A again" from route state alone. Deriving
@@ -300,7 +300,7 @@ export default {
       if (option) return this.navigateTo(option);
     },
     navigateTo(option) {
-      const path = `/lexicon/${option.packId}/${option.dictionaryId}`;
+      const path = `/glossary/${option.packId}/${option.dictionaryId}`;
       if (this.$route.path === path) return; // avoid a redundant-navigation warning
       return this.$router.replace(path);
     },
