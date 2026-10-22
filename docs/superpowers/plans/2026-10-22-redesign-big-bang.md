@@ -106,6 +106,8 @@ Done on `claude/remove-vuetify-p4840x`; see `docs/redesign/reports/vuetify-remov
 - Performance: long result lists, cold start, search.
 - Accessibility: keyboard, focus, contrast.
 
+Audit part done on `claude/redesign-hardening-audit-bqbiuz` (web dev server, Tauri mocked): clear defects fixed, open choices listed; see `docs/redesign/reports/hardening.md`. Tibetan rendering on each platform and the devices remain.
+
 ## Phase 6: release (1 session)
 
 - Version **2.0.0** (visible everywhere).
