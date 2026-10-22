@@ -633,7 +633,9 @@ export default {
 
 .entry-row
   display grid
-  grid-template-columns minmax(0, 18.75rem) minmax(0, 1fr) auto
+  // The term column stops at 30% of the row: at a fixed 18.75rem it kept
+  // 300px for the term between 600 and 1180px and squeezed the definition
+  grid-template-columns minmax(0, unquote('min(18.75rem, 30%)')) minmax(0, 1fr) auto
   gap 20px
   align-items center
   padding 12px 24px
