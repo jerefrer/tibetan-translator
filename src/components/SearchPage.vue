@@ -1286,7 +1286,9 @@ export default {
     box-shadow none
 
   .result
-    grid-template-columns auto minmax(0, 1fr)
+    // The dictionary leaves at least 5rem to the term: a long name ends in
+    // an ellipsis instead of squeezing the term to one letter per line
+    grid-template-columns fit-content(calc(100% - 5rem)) minmax(0, 1fr)
     grid-template-areas "dictionary term" "definition definition"
     gap 6px 10px
     align-items center
