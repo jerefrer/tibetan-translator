@@ -40,34 +40,64 @@ export default {
 </script>
 
 <template>
-  <div v-if="visible" class="uninstalled-notice">
-    <div class="notice-heading">{{ heading }}</div>
+  <section v-if="visible" class="uninstalled-notice" data-testid="uninstalled-notice">
+    <span class="notice-heading">{{ heading }}</span>
     <ul class="notice-packs">
       <li v-for="pack in uninstalledPacks" :key="pack.id">
         {{ pack.name }}, {{ pack.dictionaryCount }} dictionaries
       </li>
     </ul>
-    <v-btn size="small" variant="tonal" color="primary" @click="browse">
-      Browse and install
-    </v-btn>
-  </div>
+    <div>
+      <button type="button" class="notice-button" data-testid="uninstalled-notice-browse" @click="browse">
+        See packs
+      </button>
+    </div>
+  </section>
 </template>
 
 <style lang="stylus" scoped>
+// Board "B · Define": the amber notice under the terms list
 .uninstalled-notice
   flex-shrink 0
+  display flex
+  flex-direction column
+  gap 6px
   margin 12px 15px
-  padding 12px 14px
-  border 1px dashed unquote('rgb(var(--v-theme-warning))')
-  border-radius 8px
-  font-size 0.875rem
+  padding 12px 16px
+  border 1.5px dashed var(--amber-line)
+  border-radius var(--radius-xl)
+  background var(--amber-bg)
+  color var(--amber-ink)
+  font-family var(--font-ui)
 
   .notice-heading
-    font-weight 500
-    margin-bottom 4px
+    font-size var(--text-base)
+    font-weight 600
 
   .notice-packs
-    margin 0 0 10px
+    margin 0 0 4px
     padding-left 18px
-    opacity 0.85
+    font-size var(--text-sm)
+    line-height 1.5
+
+  .notice-button
+    height var(--control-sm)
+    padding 0 14px
+    border 0
+    border-radius var(--radius-md)
+    background var(--amber-ink)
+    color var(--on-dark)
+    font 600 var(--text-sm) var(--font-ui)
+    cursor pointer
+
+    &:hover
+      opacity 0.9
+
+    &:focus-visible
+      outline 2px solid var(--amber-ink)
+      outline-offset 2px
+
+@media (max-width: 600px)
+  .uninstalled-notice .notice-button
+    height 2.75rem
 </style>
