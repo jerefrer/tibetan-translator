@@ -35,6 +35,11 @@ import ScanViewer from './ScanViewer.vue';
 import SearchBuilder from './SearchBuilder.vue';
 import { getScanInfo } from '../services/scan-service';
 
+// tibetanGroups carries the g flag, so its test() resumes where the previous
+// call stopped and answers false every other time on the same text. A copy
+// without it gives the same answer each time.
+const TIBETAN = new RegExp(TibetanRegExps.tibetanGroups.source, 'iu');
+
 // Board "B · Search" (and its Empty, query builder, Dictionaries and Phone
 // variants): the query field on top, the query builder under it when shown,
 // then the results in one card, or the recent searches before any search.
@@ -226,7 +231,7 @@ export default {
   methods: {
     containsTibetan(text) {
       // Check if text contains any Tibetan Unicode characters
-      return TibetanRegExps.tibetanGroups.test(text);
+      return TIBETAN.test(text);
     },
     substituteWylieTerms(text) {
       return convertWylieInParentheses(text);
