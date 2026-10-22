@@ -5,6 +5,16 @@ All notable changes to Tibetan Translator are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0](https://github.com/jerefrer/tibetan-translator/compare/v1.11.3...v1.12.0) - 2026-10-22
+
+### Added
+- Searchable catalog of dictionaries in Settings, by name, subject (archaic terms, medicine, grammar…) or language
+- Notes on what each optional dictionary pack contains, shown when you first set up the app
+- Suggestions of dictionaries you haven't installed yet when a lookup turns up little
+
+### Changed
+- All dictionaries now follow Christian Steinert's latest version
+
 ## [1.11.3](https://github.com/jerefrer/tibetan-translator/compare/v1.11.2...v1.11.3) - 2026-10-20
 
 ### Security
