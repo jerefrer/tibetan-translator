@@ -25,8 +25,6 @@ import CustomPackConflictModal from "./CustomPackConflictModal.vue";
 import AppNav from "./AppNav.vue";
 import { UiSpinner, UiToast } from "../ui";
 
-import "@mdi/font/css/materialdesignicons.css";
-
 import "../css/tokens.css";
 import "../css/fonts.css";
 import "../css/layout.css";

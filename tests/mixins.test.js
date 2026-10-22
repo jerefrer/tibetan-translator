@@ -8,16 +8,7 @@
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import { defineComponent, h, nextTick } from 'vue'
-
-// Create Vuetify instance for tests
-const vuetify = createVuetify({
-  components,
-  directives,
-})
 
 // Import services to test
 import ResizeService from '../src/services/resize-service.js'
@@ -129,7 +120,6 @@ describe('MobileResponsiveMixin behavior', () => {
     window.innerWidth = 1024
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     expect(wrapper.vm.isMobile).toBe(false)
@@ -140,7 +130,6 @@ describe('MobileResponsiveMixin behavior', () => {
     window.innerWidth = 500
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     expect(wrapper.vm.isMobile).toBe(true)
@@ -150,7 +139,6 @@ describe('MobileResponsiveMixin behavior', () => {
     window.innerWidth = 1024
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     expect(wrapper.vm.isMobile).toBe(false)
@@ -166,7 +154,6 @@ describe('MobileResponsiveMixin behavior', () => {
     window.innerWidth = 500
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     expect(wrapper.vm.mobileShowDefinition).toBe(false)
@@ -182,7 +169,6 @@ describe('MobileResponsiveMixin behavior', () => {
     window.innerWidth = 500
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     wrapper.vm.setMobileShowDefinition(true)
@@ -196,7 +182,6 @@ describe('MobileResponsiveMixin behavior', () => {
     window.innerWidth = 500
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     wrapper.vm.setMobileShowDefinition(true)
@@ -208,7 +193,6 @@ describe('MobileResponsiveMixin behavior', () => {
     window.innerWidth = 1024
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     wrapper.vm.setMobileShowDefinition(true)
@@ -289,7 +273,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('initializes with hasMore = true when displayedCount < totalCount', () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     expect(wrapper.vm.hasMore).toBe(true)
@@ -298,7 +281,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('hasMore becomes false when displayedCount >= totalCount', () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     wrapper.vm.displayedCount = 100
@@ -308,7 +290,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('loadMore increases displayedCount', () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     expect(wrapper.vm.displayedCount).toBe(10)
@@ -319,7 +300,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('loadMore does nothing when loading is true', () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     wrapper.vm.loading = true
@@ -330,7 +310,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('loadMore does nothing when hasMore is false', () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     wrapper.vm.displayedCount = 100
@@ -341,7 +320,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('setupInfiniteScroll creates observer', async () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     await nextTick()
@@ -354,7 +332,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('teardownInfiniteScroll disconnects observer', async () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     await nextTick()
@@ -368,7 +345,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('observer triggers loadMore when intersecting', async () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     await nextTick()
@@ -383,7 +359,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('observer does not trigger loadMore when not intersecting', async () => {
     const TestComponent = createTestComponent()
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     await nextTick()
@@ -398,7 +373,6 @@ describe('InfiniteScrollMixin behavior', () => {
   it('observer respects custom rootMargin', async () => {
     const TestComponent = createTestComponent({ rootMargin: '500px' })
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     await nextTick()
@@ -430,7 +404,6 @@ describe('Component cleanup on unmount', () => {
     })
 
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     wrapper.unmount()
@@ -459,7 +432,6 @@ describe('Component cleanup on unmount', () => {
     })
 
     const wrapper = mount(TestComponent, {
-      global: { plugins: [vuetify] },
     })
 
     wrapper.unmount()

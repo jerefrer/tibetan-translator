@@ -14,11 +14,6 @@ export default defineConfig({
       reporter: ['text', 'json', 'html'],
       include: ['src/**/*.js', 'src/**/*.vue'],
     },
-    server: {
-      deps: {
-        inline: ['vuetify'], // Inline vuetify to avoid CSS import issues
-      },
-    },
   },
   resolve: {
     alias: {

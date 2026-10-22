@@ -1,5 +1,6 @@
 import { createApp, reactive } from "vue";
-import vuetify from "./plugins/vuetify";
+// First, so every component style comes after it
+import "./css/reset.css";
 import router from "./router";
 
 import App from "./components/App.vue";
@@ -33,6 +34,5 @@ const app = createApp(App);
 app.provide("snackbar", snackbar);
 
 app.use(router);
-app.use(vuetify);
 
 app.mount("#app");

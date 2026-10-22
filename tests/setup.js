@@ -138,10 +138,8 @@ class MockIntersectionObserver {
 
 window.IntersectionObserver = MockIntersectionObserver
 
-// Vuetify's VOverlay positions connected overlays (a v-select's menu, a
-// v-tooltip) against window.visualViewport, which happy-dom does not implement.
-// Without this, mounting any component containing a v-select inside a v-dialog
-// throws "visualViewport is not defined" before a single assertion runs.
+// happy-dom does not implement window.visualViewport; give positioning code
+// that reads it (floating-ui, behind Reka UI's popovers) the window's size.
 if (!window.visualViewport) {
   window.visualViewport = {
     width: window.innerWidth,

@@ -8,9 +8,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import { nextTick } from 'vue'
 
 let modular = true
@@ -47,7 +44,6 @@ import DictionaryCatalog from '../src/components/DictionaryCatalog.vue'
 import UninstalledPacksNotice from '../src/components/UninstalledPacksNotice.vue'
 import SearchInsteadHint from '../src/components/SearchInsteadHint.vue'
 
-const vuetify = createVuetify({ components, directives })
 const snackbar = { open: vi.fn() }
 
 beforeEach(() => {
@@ -439,7 +435,7 @@ describe('UninstalledPacksNotice', () => {
   const mountNotice = (resultCount) =>
     mount(UninstalledPacksNotice, {
       props: { resultCount },
-      global: { plugins: [vuetify], mocks: { $router: { push: vi.fn() } } },
+      global: { mocks: { $router: { push: vi.fn() } } },
     })
 
   it('should name the packs that were not searched when results are few', () => {
@@ -478,7 +474,7 @@ describe('UninstalledPacksNotice', () => {
     const push = vi.fn()
     const wrapper = mount(UninstalledPacksNotice, {
       props: { resultCount: 0 },
-      global: { plugins: [vuetify], mocks: { $router: { push } } },
+      global: { mocks: { $router: { push } } },
     })
 
     await wrapper.find('button').trigger('click')
@@ -492,7 +488,7 @@ describe('SearchInsteadHint', () => {
     const push = vi.fn()
     const wrapper = mount(SearchInsteadHint, {
       props: { text: 'kākiṇī' },
-      global: { plugins: [vuetify], mocks: { $router: { push } } },
+      global: { mocks: { $router: { push } } },
     })
 
     await wrapper.find('button').trigger('click')

@@ -83,8 +83,7 @@
     "uuid": "^9.0.1",
     "vue": "^3.4.0",
     "vue-router": "^4.2.0",
-    "vuedraggable": "^4.1.0",
-    "vuetify": "^3.4.0"
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "7zip-min": "^1.4.4",
@@ -92,7 +91,6 @@
     "@babel/node": "^7.22.19",
     "@babel/plugin-proposal-optional-chaining": "^7.21.0",
     "@babel/preset-env": "^7.23.3",
-    "@mdi/font": "^7.4.0",
     "@mongodb-js/zstd": "^2",
     "@tauri-apps/api": "^2.10.1",
     "@tauri-apps/cli": "^2.9.6",
@@ -110,7 +108,6 @@
     "stylus": "^0.62.0",
     "tibetan-ewts-converter": "^1.0.1",
     "vite": "^5.0.0",
-    "vite-plugin-vuetify": "^2.0.0",
     "vitest": "^4.0.16"
   },
   "license": "MIT",

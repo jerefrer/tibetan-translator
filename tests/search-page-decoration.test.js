@@ -10,9 +10,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import { nextTick } from 'vue'
 
 vi.mock('../src/services/sql-database', () => ({
@@ -30,8 +27,6 @@ vi.mock('../src/services/scan-service', () => ({
 import SearchPage from '../src/components/SearchPage.vue'
 import Decorator from '../src/services/decorator'
 import Storage from '../src/services/storage'
-
-const vuetify = createVuetify({ components, directives })
 
 const stub = (name) => ({ name, template: '<div />' })
 
@@ -52,14 +47,12 @@ async function mountPage() {
   ])
   const wrapper = mount(SearchPage, {
     global: {
-      plugins: [vuetify],
       mocks: {
         $route: { params: { query: 'ཀ' }, path: '/search/ཀ' },
         $router: { push: vi.fn(async () => {}), replace: vi.fn() },
       },
       provide: { snackbar: { open: vi.fn() } },
       stubs: {
-        VSystemBar: { template: '<div><slot /></div>' },
         SearchBuilder: stub('SearchBuilder'),
         ResultsAndPaginationAndDictionaries: stub('ResultsAndPaginationAndDictionaries'),
         ScanViewer: stub('ScanViewer'),

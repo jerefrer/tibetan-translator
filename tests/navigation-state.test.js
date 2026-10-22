@@ -8,16 +8,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createWebHistory, createMemoryHistory } from 'vue-router'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import Storage from '../src/services/storage.js'
-
-// Create Vuetify instance for tests
-const vuetify = createVuetify({
-  components,
-  directives,
-})
 
 describe('Navigation State Persistence', () => {
   // Ensure clean state before each test
