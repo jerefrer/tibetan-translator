@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import Storage from '../src/services/storage.js'
 import {
   resolveTheme,
   applyDocumentTheme,
   initDocumentTheme,
+  watchSystemTheme,
 } from '../src/services/theme.js'
 
 describe('theme service', () => {
@@ -53,5 +54,26 @@ describe('theme service', () => {
 
   it('should default to light when nothing is stored', () => {
     expect(initDocumentTheme()).toBe('light')
+  })
+
+  it('should re-apply "system" on an OS theme change, and stop when asked', () => {
+    const matchMedia = window.matchMedia
+    const media = { matches: false, listeners: new Set() }
+    media.addEventListener = (type, fn) => media.listeners.add(fn)
+    media.removeEventListener = (type, fn) => media.listeners.delete(fn)
+    window.matchMedia = vi.fn(() => media)
+    try {
+      Storage.set('themePreference', 'system')
+      initDocumentTheme()
+      const stop = watchSystemTheme()
+      media.matches = true
+      media.listeners.forEach((fn) => fn())
+      expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+
+      stop()
+      expect(media.listeners.size).toBe(0)
+    } finally {
+      window.matchMedia = matchMedia
+    }
   })
 })

@@ -159,6 +159,29 @@ describe('theme at start-up', () => {
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 
+  it('follows an OS theme change without Settings having been opened', async () => {
+    Storage.set('themePreference', 'system')
+    const media = { matches: false, listeners: [], addEventListener: vi.fn((type, fn) => media.listeners.push(fn)), removeEventListener: vi.fn() }
+    window.matchMedia = vi.fn(() => media)
+    await mountApp()
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+
+    media.matches = true
+    media.listeners.forEach((fn) => fn())
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+  })
+
+  it('ignores an OS theme change when a theme is chosen', async () => {
+    Storage.set('themePreference', 'light')
+    const media = { matches: false, listeners: [], addEventListener: vi.fn((type, fn) => media.listeners.push(fn)), removeEventListener: vi.fn() }
+    window.matchMedia = vi.fn(() => media)
+    await mountApp()
+
+    media.matches = true
+    media.listeners.forEach((fn) => fn())
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+  })
+
   it('applies the stored text size', async () => {
     Storage.set('fontSize', 115)
     await mountApp()

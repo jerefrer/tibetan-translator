@@ -12,7 +12,7 @@ import AudioPlayerService from "../services/audio-player-service";
 import ResizeService from "../services/resize-service";
 import { supportsModularPacks } from "../config/platform";
 import { shortcutPaths } from "../config/navigation";
-import { initDocumentTheme } from "../services/theme";
+import { initDocumentTheme, watchSystemTheme } from "../services/theme";
 
 import TibdictInstaller from "../services/tibdict-installer";
 import { substituteLinksWithATags } from "../utils.js";
@@ -112,8 +112,10 @@ export default {
     },
     initializeTheme() {
       // data-theme on <html> for the tokens, from the stored themePreference
-      // (light, dark or system). Settings' Appearance card applies changes.
+      // (light, dark or system). Settings' Appearance card applies changes;
+      // an OS theme change is followed here, whichever page is open.
       initDocumentTheme();
+      this._unwatchSystemTheme = watchSystemTheme();
     },
     initializeFontSize() {
       const fontSize = Storage.get('fontSize') || 100;
@@ -205,6 +207,7 @@ export default {
   },
   async unmounted() {
     EventHandlers.remove("tabs-shortcuts");
+    this._unwatchSystemTheme?.();
     ResizeService.unsubscribe('app');
     if (GlobalLookup.isSupported()) {
       await GlobalLookup.cleanup();

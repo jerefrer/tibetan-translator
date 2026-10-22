@@ -31,3 +31,18 @@ export function initDocumentTheme() {
   const theme = resolveTheme(Storage.get('themePreference'), systemPrefersDark());
   return applyDocumentTheme(theme);
 }
+
+/**
+ * Re-applies the stored preference whenever the OS theme changes, so "system"
+ * follows it from start-up. Returns a function that stops listening.
+ */
+export function watchSystemTheme() {
+  const media = typeof window !== 'undefined' && window.matchMedia
+    ? window.matchMedia('(prefers-color-scheme: dark)')
+    : null;
+  const onChange = () => {
+    if (Storage.get('themePreference') === 'system') initDocumentTheme();
+  };
+  media?.addEventListener?.('change', onChange);
+  return () => media?.removeEventListener?.('change', onChange);
+}

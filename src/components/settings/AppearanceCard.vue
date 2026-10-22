@@ -35,15 +35,8 @@ export default {
     },
   },
   created() {
+    // OS theme changes are followed by App.vue (watchSystemTheme)
     this.applyFontSize(this.fontSize);
-    this.mediaQuery = window.matchMedia?.('(prefers-color-scheme: dark)');
-    this.onSystemThemeChange = () => {
-      if (this.themePreference === 'system') this.applyTheme('system');
-    };
-    this.mediaQuery?.addEventListener?.('change', this.onSystemThemeChange);
-  },
-  unmounted() {
-    this.mediaQuery?.removeEventListener?.('change', this.onSystemThemeChange);
   },
   methods: {
     applyTheme(preference) {
