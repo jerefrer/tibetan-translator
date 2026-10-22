@@ -1,7 +1,5 @@
 <script>
-import $ from "jquery";
 import _ from "underscore";
-import { useTheme } from "vuetify";
 
 import { TERMS_BATCH_SIZE, DEBOUNCE_SEARCH_MS } from "../config/constants";
 import Storage from "../services/storage";
@@ -10,8 +8,9 @@ import CopyService from "../services/copy-service";
 import { getScanInfo } from "../services/scan-service";
 import { supportsModularPacks } from "../config/platform";
 import { hasLatinDiacritics } from "../services/non-wylie-input";
+import { initialTypedWylie, nextTypedWylie, typedWylieFor } from "../services/typed-wylie";
+import { UiButton, UiIcon, UiSpinner, UiTibetanField, UiTooltip } from "../ui";
 import Entries from "./Entries.vue";
-import TibetanTextField from "./TibetanTextField.vue";
 import QuickAddDialog from "./QuickAddDialog.vue";
 import SearchInsteadHint from "./SearchInsteadHint.vue";
 import UninstalledPacksNotice from "./UninstalledPacksNotice.vue";
@@ -19,20 +18,27 @@ import DictionariesMenuMixin from "./DictionariesMenuMixin";
 import MobileResponsiveMixin from "./mixins/MobileResponsiveMixin";
 import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries.vue";
 
+const TIBETAN = /[\u0F00-\u0FFF]/;
+
+// Board "B · Define" (and its Empty, Dark and Phone variants).
+// Desktop: the field on top, the terms starting with what was typed on the
+// left, the definitions of the selected term on the right.
+// Phone: the field and the terms; a tap shows the definitions, with a way
+// back to the terms.
 export default {
   mixins: [DictionariesMenuMixin, MobileResponsiveMixin],
   inject: ["snackbar"],
-  setup() {
-    const theme = useTheme();
-    return { theme };
-  },
   components: {
     Entries,
-    TibetanTextField,
     QuickAddDialog,
     SearchInsteadHint,
     UninstalledPacksNotice,
     ResultsAndPaginationAndDictionaries,
+    UiButton,
+    UiIcon,
+    UiSpinner,
+    UiTibetanField,
+    UiTooltip,
   },
   data() {
     return {
@@ -46,12 +52,19 @@ export default {
       // What the user typed when it looked like Sanskrit or another Latin-script
       // language. The field turns it into Tibetan, so it has to be kept as typed.
       searchInsteadText: "",
+      // The Wylie behind the Tibetan in the field ("typed ye shes")
+      typedWylieState: initialTypedWylie(),
     };
   },
   watch: {
     searchTerm(value) {
-      if (hasLatinDiacritics(value)) this.searchInsteadText = value;
+      // Kept as typed: once the field has converted part of it (kākiṇī ->
+      // ཀཱཀིṇī་), it is no longer what the user would search for. A paste
+      // arrives converted already, so that is all there is to keep then.
+      if (hasLatinDiacritics(value) && (!TIBETAN.test(value) || !this.searchInsteadText))
+        this.searchInsteadText = value;
       else if (!value) this.searchInsteadText = "";
+      this.typedWylieState = nextTypedWylie(this.typedWylieState, value || "");
       // Reset displayed count when search term changes
       this.displayedTermsCount = this.termsBatchSize;
       // Clear stale entries if selected term is no longer in filtered list
@@ -78,6 +91,7 @@ export default {
       if (this.selectedTermIndex >= this.displayedTermsCount) {
         this.displayedTermsCount = this.selectedTermIndex + this.termsBatchSize;
       }
+      this.$nextTick(() => this.scrollSelectedTermIntoView());
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -88,12 +102,9 @@ export default {
   beforeRouteUpdate(to, from, next) {
     next();
     Storage.set("selectedTerm", to.params.term);
-    $(window).scrollTop(0);
+    window.scrollTo(0, 0);
   },
   computed: {
-    isDark() {
-      return this.theme.global.current.value.dark;
-    },
     selectedTerm() {
       return this.$route.params.term;
     },
@@ -126,6 +137,18 @@ export default {
     canAddToLexicon() {
       return supportsModularPacks();
     },
+    showCopyAll() {
+      return !this.loading && this.copyableEntries.length > 0;
+    },
+    showAddDefinition() {
+      return !this.loading && this.canAddToLexicon && !!this.selectedTerm;
+    },
+    showingEntries() {
+      return this.isMobile && this.mobileShowDefinition;
+    },
+    typedWylie() {
+      return typedWylieFor(this.typedWylieState, this.searchTerm);
+    },
   },
   methods: {
     pushRoute(term) {
@@ -138,6 +161,7 @@ export default {
     clear() {
       Storage.delete("selectedTerm");
       this.entries = [];
+      this.searchTerm = "";
       this.pushRoute("");
     },
     async copyAll() {
@@ -187,7 +211,7 @@ export default {
         this.pushRoute(previousTerm);
       }
     },
-    selectNextTerm(event) {
+    selectNextTerm() {
       if (
         this.selectedTermIndex <
         this.termsStartingWithSearchTerm.length - 1
@@ -197,12 +221,25 @@ export default {
         this.pushRoute(nextTerm);
       }
     },
+    onFieldKeydown(event) {
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        this.selectPreviousTerm();
+      } else if (event.key === "ArrowDown") {
+        event.preventDefault();
+        this.selectNextTerm();
+      }
+    },
     focusInput() {
-      this.$refs.input.focus();
+      this.$refs.input?.focus();
     },
     selectTermMobile(term) {
       this.pushRoute(term);
       this.setMobileShowDefinition(true);
+    },
+    scrollSelectedTermIntoView() {
+      const active = this.$refs.termsList?.querySelector(".term-item.is-active");
+      active?.scrollIntoView?.({ block: "nearest" });
     },
     loadMoreTerms() {
       if (this.hasMoreTerms) {
@@ -258,39 +295,44 @@ export default {
   beforeUnmount() {
     window.removeEventListener('all-terms-updated', this._onAllTermsUpdated);
     this.teardownTermsInfiniteScroll();
-  },
-  updated() {
-    $("td.active").get(0)?.scrollIntoViewIfNeeded();
+    this.debouncedSetEntriesForSelectedTerm?.cancel();
+    this.debouncedSelectFirstTermOrClearEntries?.cancel();
   },
 };
 </script>
 
 <template>
-  <div class="define-page" :class="{ 'mobile-show-definition': isMobile && mobileShowDefinition }">
-    <div class="search-bar">
-      <TibetanTextField
-        density="compact"
-        variant="plain"
-        autofocus
-        clearable
-        hide-details
-        height="56"
+  <div
+    class="define-page"
+    :class="{ 'is-phone': isMobile, 'mobile-show-definition': showingEntries }"
+    data-testid="define-page"
+  >
+    <div v-show="!showingEntries" class="define-search">
+      <ui-tibetan-field
         ref="input"
         v-model="searchTerm"
+        class="define-field"
+        prepend-icon="search"
         placeholder="Type a Tibetan term"
-        :menu-props="{ maxHeight: '80vh' }"
-        @click:clear="clear"
-        @keydown.up="selectPreviousTerm"
-        @keydown.down="selectNextTerm"
+        aria-label="Term to define"
+        enterkeyhint="search"
+        autofocus
+        clearable
+        data-testid="define-field"
+        @clear="clear"
+        @keydown="onFieldKeydown"
         @focus="showTermsList"
-        class="flex-grow-1"
-      />
+      >
+        <template v-if="typedWylie && !isMobile" #append>
+          <span class="typed-wylie" data-testid="define-typed">typed <b>{{ typedWylie }}</b></span>
+        </template>
+      </ui-tibetan-field>
     </div>
 
-    <div class="define-content-area">
-      <div class="terms-drawer">
-        <div class="terms-header">
-          <span class="terms-count text-caption text-grey" v-if="numberOfTermsStartingWithSearchTerm">
+    <div class="define-body">
+      <section v-show="!showingEntries" class="terms-pane" aria-label="Terms">
+        <div v-if="numberOfTermsStartingWithSearchTerm" class="terms-header">
+          <span class="terms-count" data-testid="define-terms-count">
             Showing {{ visibleTerms.length }} of {{ numberOfTermsStartingWithSearchTerm }} terms
           </span>
           <ResultsAndPaginationAndDictionaries
@@ -300,95 +342,114 @@ export default {
             @close:dictionariesMenu="focusInput"
           />
         </div>
+
+        <div
+          v-if="termsStartingWithSearchTerm.length"
+          ref="termsList"
+          class="terms-list"
+          role="listbox"
+          aria-label="Terms starting with what you typed"
+          data-testid="define-terms"
+        >
+          <div
+            v-for="term in visibleTerms"
+            :key="term"
+            class="term-item"
+            :class="{ 'is-active': selectedTerm == term }"
+            role="option"
+            :aria-selected="selectedTerm == term ? 'true' : 'false'"
+            data-testid="define-term"
+            @click="selectTermMobile(term)"
+          >{{ term }}</div>
+
+          <!-- Sentinel for infinite scroll -->
+          <div ref="termsLoadMoreSentinel" class="terms-load-more-sentinel">
+            <ui-spinner v-if="hasMoreTerms" :size="20" label="Loading more terms" />
+          </div>
+        </div>
+        <div v-else-if="searchTerm" class="no-results" data-testid="define-no-results">
+          No results.
+        </div>
+
         <SearchInsteadHint
           v-if="searchInsteadText"
           :text="searchInsteadText"
         />
-        <div v-if="termsStartingWithSearchTerm.length" ref="termsList" class="terms-list">
-          <div
-            v-for="term in visibleTerms"
-            :key="term"
-            class="term-item tibetan"
-            :class="{
-              'active bg-primary': selectedTerm == term,
-              'text-white': selectedTerm == term && !isDark,
-              'bg-primary-darken-2': selectedTerm == term && isDark,
-            }"
-            @click="selectTermMobile(term)"
-          >
-            <span v-html="term" />
-          </div>
-
-          <!-- Sentinel for infinite scroll -->
-          <div ref="termsLoadMoreSentinel" class="terms-load-more-sentinel">
-            <v-progress-circular
-              v-if="hasMoreTerms"
-              indeterminate
-              size="20"
-              color="grey"
-            />
-          </div>
-        </div>
-        <div
-          v-else-if="searchTerm"
-          class="d-flex align-center mx-4 text-caption text-grey"
-          style="height: 48px"
-        >
-          No results.
-        </div>
         <UninstalledPacksNotice
           v-if="searchTerm"
           :result-count="numberOfTermsStartingWithSearchTerm"
         />
-      </div>
+      </section>
 
-      <div class="definitions-container">
-        <!-- Copy-all action (term itself is already shown in the search bar and sidebar) -->
-        <div
-          v-if="!loading && (copyableEntries.length || (canAddToLexicon && selectedTerm))"
-          class="definitions-header"
-        >
-          <v-btn
-            v-if="copyableEntries.length"
-            size="small"
-            variant="text"
-            prepend-icon="mdi-content-copy"
+      <section v-show="!isMobile || showingEntries" class="entries-pane" aria-label="Definitions">
+        <div class="entries-actions">
+          <button
+            v-if="isMobile"
+            type="button"
+            class="back-link"
+            data-testid="define-back"
+            @click="showTermsList"
+          >
+            <span class="back-link__icon"><ui-icon name="chevron-left" :size="22" :stroke-width="2.4" /></span>
+            Terms
+          </button>
+          <div class="ui-spacer" />
+          <ui-button
+            v-if="showCopyAll"
+            variant="ghost"
+            size="sm"
+            class="copy-all"
+            data-testid="define-copy-all"
             @click="copyAll"
           >
+            <ui-icon name="copy" :size="17" />
             Copy all
-          </v-btn>
-
-          <v-btn
-            v-if="canAddToLexicon && selectedTerm"
-            icon
-            variant="text"
-            size="small"
-            @click="quickAddOpen = true"
-          >
-            <v-icon>mdi-book-plus</v-icon>
-            <v-tooltip activator="parent" location="top">Add my definition</v-tooltip>
-          </v-btn>
+          </ui-button>
+          <ui-tooltip v-if="showAddDefinition" text="Add my definition">
+            <ui-button
+              variant="ghost"
+              size="sm"
+              icon
+              class="add-definition"
+              aria-label="Add my definition"
+              data-testid="define-add"
+              @click="quickAddOpen = true"
+            >
+              <ui-icon name="book-plus" :size="20" />
+            </ui-button>
+          </ui-tooltip>
         </div>
+
+        <div
+          v-if="isMobile && selectedTerm && !loading"
+          class="headword"
+          data-testid="define-headword"
+        >{{ selectedTerm }}</div>
 
         <!-- Loading state when fetching definitions -->
-        <div v-if="loading" class="loading-state">
-          <v-progress-circular indeterminate size="64" color="primary" />
-          <div class="mt-4 text-grey">Loading definitions...</div>
+        <div v-if="loading" class="loading-state" data-testid="define-loading">
+          <ui-spinner :size="40" />
+          <div>Loading definitions...</div>
         </div>
 
-        <v-fade-transition mode="out-in" appear v-else>
-          <div v-if="entriesForEnabledDictionaries.length">
+        <transition name="ui-fade" mode="out-in" appear>
+          <div
+            v-if="!loading && entriesForEnabledDictionaries.length"
+            class="entries-card"
+            data-testid="define-entries"
+          >
             <Entries
               :entries="entriesForEnabledDictionaries"
               :initialNumberOfEntries="25"
+              :cards="isMobile"
             />
           </div>
-        </v-fade-transition>
-      </div>
+        </transition>
+      </section>
     </div>
 
-    <!-- Mounted at page level (not inside .definitions-header) so it survives
-         that div's own v-if — e.g. loading=true on term change — while open,
+    <!-- Mounted at page level (not inside .entries-actions) so it survives
+         the loading state (e.g. loading=true on term change) while open,
          instead of being torn down and losing whatever the user typed. -->
     <QuickAddDialog
       v-model="quickAddOpen"
@@ -398,240 +459,265 @@ export default {
   </div>
 </template>
 
-<style lang="stylus">
+<style lang="stylus" scoped>
 .define-page
+  box-sizing border-box
+  height 100%
   display flex
   flex-direction column
-  height 100%  // Fill parent container
+  gap 18px
+  padding 28px 40px 0
   overflow hidden
+  background var(--bg)
+  color var(--ink)
+  font-family var(--font-ui)
+  font-size var(--text-base)
 
-  .search-bar
-    flex-shrink 0
-    height 63px
-    padding 0 15px
-    background #fffcf4
-    display flex
-    align-items center
-    border-bottom 2px solid rgba(0, 0, 0, 0.1)
-    z-index 10
+// The field: 60px, accent ring when focused (UiTextField does the focus)
+.define-search
+  flex none
+  display flex
 
-  .define-content-area
-    flex 1
-    display flex
-    overflow hidden
-    min-height 0
+.define-field
+  flex 1
+  max-width 55rem
 
-  .terms-drawer
-    width 400px
-    flex-shrink 0
-    background var(--paper, #FAF3E0)
-    border-right 2px solid rgba(0, 0, 0, 0.1)
-    display flex
-    flex-direction column
-    overflow hidden
+  :deep(.ui-field__control)
+    min-height var(--control-lg)
+    padding 0 12px 0 18px
+    border-radius var(--radius-card)
 
-    .terms-header
-      display flex
-      align-items center
-      justify-content space-between
-      padding 7px 15px
-      min-height 48px
-      background var(--paper, #FAF3E0)
-      border-bottom 2px solid rgba(0, 0, 0, 0.08)
-      flex-shrink 0
+  :deep(.ui-field__prepend)
+    color var(--ink)
 
-      .terms-count
-        white-space nowrap
+  :deep(.ui-field__input)
+    font-size var(--text-tibetan-lg)
+    padding-top 0.5rem
 
-    .terms-list
-      flex 1
-      overflow-y auto
-      min-height 0
+  :deep(.ui-field__input::placeholder)
+    font-family var(--font-ui)
+    font-size var(--text-md)
 
-    .term-item
-      min-height 48px
-      line-height 48px
-      font-size 1.3125rem
-      padding 0 16px
-      border-bottom thin solid rgba(0, 0, 0, 0.08)
-      transition background 0.2s ease
-      cursor pointer
+  // The "typed …" echo sits before the clear button, as on the board
+  :deep(.ui-field__clear)
+    order 1
 
-      &:hover
-        background rgba(0, 0, 0, 0.04)
+.typed-wylie
+  flex none
+  max-width 40%
+  overflow hidden
+  text-overflow ellipsis
+  white-space nowrap
+  font-size var(--text-sm)
+  color var(--muted)
 
-    .terms-load-more-sentinel
-      display flex
-      justify-content center
-      align-items center
-      padding 12px
-      min-height 44px
+  b
+    font-weight 600
+    color var(--ink)
 
-  .definitions-container
-    flex 1
-    overflow-y auto
-    padding 0
-    position relative
-    background white
+.define-body
+  flex 1
+  min-height 0
+  display flex
+  gap 28px
+  margin-top 4px
 
-    .definitions-header
-      position sticky
-      top 0
-      z-index 5
-      display flex
-      align-items center
-      justify-content flex-end
-      padding 4px 12px
-      background #fffcf4
-      border-bottom 1px solid rgba(0, 0, 0, 0.08)
+// Terms
+.terms-pane
+  width 22.5rem
+  flex none
+  min-height 0
+  display flex
+  flex-direction column
+  gap 14px
+  padding-bottom 28px
+  box-sizing border-box
 
-    .loading-state,
-    .empty-state
-      display flex
-      flex-direction column
-      align-items center
-      justify-content center
-      height 200px
-      text-align center
-
-// Input field styles - using flat CSS for proper specificity
-.define-page .v-input
-  background transparent !important
-
-.define-page .v-input .v-input__control
-  height 63px
-
-.define-page .v-input .v-field
-  padding 0
-  height 63px
-  background transparent !important
-  --v-field-padding-start 0
-  --v-field-padding-end 0
-
-.define-page .v-input .v-field__field
-  height 63px
-
-.define-page .v-input .v-field__input
-  padding 0 12px
-  height 63px !important
-  min-height 63px !important
-  font-size 1.625rem !important
-  font-family "DDC_Uchen" !important
-
-.define-page .v-input .v-field__input::placeholder
-  font-family "Segoe UI", "Roboto", sans-serif !important
-  font-size 1.125rem !important
-  opacity 0.5
-  color #666
-
-.define-page .v-input .v-field__append-inner,
-.define-page .v-input .v-field__clearable
-  height 63px
+.terms-header
+  flex none
   display flex
   align-items center
-  padding 0 8px
+  justify-content space-between
+  gap 10px
+  margin-bottom -4px
 
-.define-page .v-input .v-field__append-inner .v-icon,
-.define-page .v-input .v-field__clearable .v-icon
-  font-size 1.75rem
+.terms-count
+  font-size var(--text-sm)
+  color var(--muted)
+  white-space nowrap
 
-.define-page .v-input .v-field__outline
-  display none
+.card
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
 
-.define-page .v-input .v-field__overlay
-  display none
+.terms-list
+  @extend .card
+  flex 0 1 auto
+  min-height 0
+  overflow-y auto
+  overscroll-behavior contain
 
-// Remove any input borders to avoid conflict with container border
-.define-page .v-input,
-.define-page .v-input .v-field,
-.define-page .v-input .v-field__field,
-.define-page .v-input .v-field__input
-  border none !important
-  border-bottom none !important
-  box-shadow none !important
+.term-item
+  box-sizing border-box
+  height 3rem
+  padding 0.3rem 18px 0
+  display flex
+  align-items center
+  border-bottom 1px solid var(--soft)
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-sm)
+  white-space nowrap
+  overflow hidden
+  text-overflow ellipsis
+  cursor pointer
 
-// Dark theme input
-.v-theme--dark .define-page .v-input
-  background #1e1e1e !important
+  &:hover
+    background var(--soft)
 
-// Dark theme placeholder
-.v-theme--dark .define-page .v-input .v-field__input::placeholder
-  color #aaa
+  &.is-active
+    background var(--accent)
+    color var(--on-accent)
+    border-bottom-color transparent
 
-// Dark theme
-.v-theme--dark .define-page
-  .search-bar
-    background #1e1e1e
-    border-bottom-color rgba(255, 255, 255, 0.12)
-  .terms-drawer
-    background #1e1e1e
-    border-right-color rgba(255, 255, 255, 0.12)
-    .terms-header
-      background #1e1e1e
-      border-bottom-color rgba(255, 255, 255, 0.12)
-    .term-item
-      border-bottom-color rgba(255, 255, 255, 0.12)
-      &:hover
-        background rgba(255, 255, 255, 0.08)
-  .definitions-container
-    background #252525
-    .definitions-header
-      background #1e1e1e
-      border-bottom-color rgba(255, 255, 255, 0.12)
+.terms-load-more-sentinel
+  display flex
+  justify-content center
+  align-items center
+  min-height 2.75rem
+  color var(--muted)
 
-// Light theme hover
-.v-theme--light .define-page
-  .terms-drawer
-    .term-item:hover
-      background #ddd
+  &:empty
+    min-height 1px
 
-// Mobile styles
-@media (max-width: 600px)
-  .define-page
-    height 100%
+.no-results
+  @extend .card
+  flex none
+  padding 16px 18px
+  font-size var(--text-base)
+  color var(--muted)
 
-    .search-bar
-      padding 0 10px
+.terms-pane :deep(.uninstalled-notice)
+  margin 0
 
-    .define-content-area
-      flex-direction column
-      flex 1
-      min-height 0
+// Definitions
+.entries-pane
+  flex 1
+  min-width 0
+  min-height 0
+  display flex
+  flex-direction column
 
-    .terms-drawer
-      width 100%
-      flex 1
-      display flex
-      flex-direction column
-      overflow hidden
-      min-height 0
+.entries-actions
+  flex none
+  display flex
+  align-items center
+  justify-content flex-end
+  gap 6px
+  height var(--control-sm)
+  margin-bottom 10px
 
-      .terms-header
-        padding 7px 10px
-        flex-shrink 0
+.copy-all
+  padding 0 6px
 
-      .terms-list
-        flex 1
-        overflow-y auto
-        min-height 0
-        -webkit-overflow-scrolling touch
+.back-link
+  display flex
+  align-items center
+  height 2.75rem
+  padding 0 8px 0 0
+  border 0
+  background none
+  color var(--accent)
+  font 600 var(--text-md) var(--font-ui)
+  cursor pointer
 
-      .term-item
-        padding-left 10px
+.back-link__icon
+  display inline-flex
+  align-items center
+  justify-content center
+  width 2.75rem
+  height 2.75rem
 
-    .definitions-container
-      display none
-      padding 0 10px
+.entries-card
+  @extend .card
+  flex 0 1 auto
+  min-height 0
+  margin-bottom 28px
+  overflow-y auto
 
-    // When showing definition on mobile
-    &.mobile-show-definition
-      .terms-drawer
-        display none
+.loading-state
+  display flex
+  flex-direction column
+  align-items center
+  justify-content center
+  gap 16px
+  height 12.5rem
+  color var(--muted)
 
-      .definitions-container
-        display flex
-        flex-direction column
-        flex 1
-        overflow-y auto
-        min-height 0
+.headword
+  flex none
+  font-family var(--font-tibetan)
+  font-size 2.125rem
+  line-height 1.5
+  color var(--accent)
+  overflow-wrap anywhere
+
+// Phone (boards "B · Define on a phone" and "… entries")
+.define-page.is-phone
+  gap 14px
+  padding 16px 16px 0
+
+  .define-field
+    max-width none
+
+    :deep(.ui-field__control)
+      min-height 3.375rem
+      padding 0 8px 0 14px
+
+    :deep(.ui-field__input)
+      font-size var(--text-tibetan-md)
+
+  .define-body
+    flex-direction column
+    margin-top 0
+
+  .terms-pane
+    width auto
+    flex 1
+    padding-bottom 16px
+
+  .terms-header
+    margin-bottom 0
+
+  .term-item
+    height 3.25rem
+    font-size var(--text-tibetan-md)
+
+  .entries-pane
+    flex 1
+    overflow-y auto
+    -webkit-overflow-scrolling touch
+    gap 14px
+    padding-bottom 16px
+
+  .entries-actions
+    height auto
+    margin 0 -6px
+
+  .copy-all,
+  .add-definition
+    height 2.75rem
+
+  .add-definition
+    width 2.75rem
+
+  .entries-card
+    flex none
+    margin-bottom 0
+    overflow visible
+    background none
+    border 0
+    border-radius 0
+    box-shadow none
 </style>

@@ -9,9 +9,6 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import { nextTick } from 'vue'
 
 vi.mock('../src/config/platform.js', () => ({
@@ -37,21 +34,20 @@ vi.mock('../src/services/scan-service', () => ({
 import DefinePage from '../src/components/DefinePage.vue'
 import Storage from '../src/services/storage'
 
-const vuetify = createVuetify({ components, directives })
 const stub = (name) => ({ name, template: '<div />' })
 
 function mountPage() {
   Storage.set('dictionaries', [{ id: 1, position: 1, enabled: true, label: 'Tsepak Rigdzin' }])
+  Storage.delete('selectedTerm')
   return mount(DefinePage, {
     global: {
-      plugins: [vuetify],
       mocks: {
         $route: { params: {}, path: '/define' },
         $router: { push: vi.fn() },
       },
       provide: { snackbar: { open: vi.fn() } },
       stubs: {
-        TibetanTextField: stub('TibetanTextField'),
+        UiTibetanField: stub('UiTibetanField'),
         Entries: stub('Entries'),
         QuickAddDialog: stub('QuickAddDialog'),
         ResultsAndPaginationAndDictionaries: stub('ResultsAndPaginationAndDictionaries'),
@@ -89,6 +85,30 @@ describe('DefinePage — search instead hint', () => {
     await nextTick()
 
     expect(wrapper.find('.search-instead-hint').text()).toContain('kāka')
+
+    wrapper.unmount()
+  })
+
+  it('should keep the text as typed when the field could only convert part of it', async () => {
+    const wrapper = mountPage()
+
+    wrapper.vm.searchTerm = 'kākiṇī'
+    await nextTick()
+    wrapper.vm.searchTerm = 'ཀཱཀིṇī་'
+    await nextTick()
+
+    expect(wrapper.find('.search-instead-hint').text()).toContain('“kākiṇī”')
+
+    wrapper.unmount()
+  })
+
+  it('should still offer Search for a pasted word, which arrives converted', async () => {
+    const wrapper = mountPage()
+
+    wrapper.vm.searchTerm = 'ཀཱཀིṇī་'
+    await nextTick()
+
+    expect(wrapper.find('.search-instead-hint').exists()).toBe(true)
 
     wrapper.unmount()
   })
