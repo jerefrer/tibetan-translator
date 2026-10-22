@@ -39,6 +39,8 @@
   --amber-bg: #FFF0BF;
   --amber-ink: #4A3600;
   --amber-line: #A87400;
+  --amber-solid: #8F6200;     /* selected subject tags */
+  --on-amber-solid: #FFFFFF;
 
   /* Inverse surface (dark chips, tooltips) */
   --dark: #2A1F1A;
@@ -144,6 +146,8 @@
   --amber-bg: #3A2E10;
   --amber-ink: #FFE3A0;
   --amber-line: #A87400;
+  --amber-solid: #E0B04A;
+  --on-amber-solid: #2A1F1A;
 
   --dark: #F3E8D6;
   --on-dark: #2A1F1A;

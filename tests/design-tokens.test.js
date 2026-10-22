@@ -28,6 +28,7 @@ describe('design tokens', () => {
     expect(light['--accent']).toBe('#A30000')
     expect(light['--rail-bg']).toBe('#A30000')
     expect(light['--rail-active-ink']).toBe('#FFC107')
+    expect(light['--amber-solid']).toBe('#8F6200')
   })
 
   it('should take the dark palette from the dark mockup', () => {
