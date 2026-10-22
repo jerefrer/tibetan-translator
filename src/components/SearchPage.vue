@@ -201,14 +201,30 @@ export default {
       // dependencies change, whereas template method calls re-ran on every
       // keystroke (searchQuery is a render dependency). This depends on the
       // cached terms (frozen at search time), never on searchQuery.
-      return this.sortedEntries.slice(0, this.displayedCount).map((entry) => ({
-        ...entry,
-        decoratedTerm: this.highlightSearchTerms(entry.term),
-        // Scanned dictionaries show a page number instead of a definition
-        decoratedDefinition: this.isScannedDictionary(entry)
-          ? ''
-          : this.highlightSearchTerms(Decorator.decorate(entry)),
-      }));
+      //
+      // Each entry is decorated once per search: loading the next batch only
+      // decorates the new entries (decorating all of them again took up to
+      // 180 ms per batch once a few thousand were shown).
+      const terms = [this.cachedRegularTerms, this.cachedPhoneticsStrictTerms, this.cachedPhoneticsLooseTerms];
+      if (!this._decorated || terms.some((list, i) => list !== this._decoratedFor[i])) {
+        this._decorated = new WeakMap();
+        this._decoratedFor = terms;
+      }
+      return this.sortedEntries.slice(0, this.displayedCount).map((entry) => {
+        let decorated = this._decorated.get(entry);
+        if (!decorated) {
+          decorated = {
+            ...entry,
+            decoratedTerm: this.highlightSearchTerms(entry.term),
+            // Scanned dictionaries show a page number instead of a definition
+            decoratedDefinition: this.isScannedDictionary(entry)
+              ? ''
+              : this.highlightSearchTerms(Decorator.decorate(entry)),
+          };
+          this._decorated.set(entry, decorated);
+        }
+        return decorated;
+      });
     },
     totalNumberOfEntriesForEnabledDictionaries() {
       return this.entriesForEnabledDictionaries?.length || 0;

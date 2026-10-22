@@ -665,6 +665,25 @@ describe('Search — results', () => {
     expect(find('search-count').text().replace(/\s+/g, ' ')).toBe('Showing 120 of 120 results')
   })
 
+  it('should decorate each result once per search, not again with each new batch', async () => {
+    database.exec = vi.fn(async () =>
+      Array.from({ length: 120 }, (_, i) => ({
+        term: `ཀ${i}`, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: 0,
+      }))
+    )
+    await mountAt('/search/wakefulness')
+    const highlight = vi.spyOn(page().vm, 'highlightSearchTerms')
+
+    await vi.waitFor(() => expect(page().vm._infiniteScrollObserver).toBeTruthy())
+    page().vm._infiniteScrollObserver._trigger(true)
+    await nextTick()
+
+    expect(findAll('search-result')).toHaveLength(100)
+    // the 50 new results, term and definition: 100 calls, not 200
+    expect(highlight).toHaveBeenCalledTimes(100)
+    expect(find('search-result-definition').html()).toContain('<em>wakefulness</em>')
+  })
+
   it('should watch the results card on a desktop and the page on a phone (L8)', async () => {
     await mountAt('/search/wakefulness')
     await flushPromises()
