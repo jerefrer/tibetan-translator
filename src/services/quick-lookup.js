@@ -19,7 +19,7 @@ export function wylieToTibetan(text) {
 /** Sorted terms starting with `prefix`. */
 export function termsStartingWith(allTerms, prefix) {
   if (!prefix || !allTerms) return [];
-  return allTerms.filter((term) => term.indexOf(prefix) === 0).sort();
+  return allTerms.filter((term) => term.startsWith(prefix)).sort();
 }
 
 /**

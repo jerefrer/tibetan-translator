@@ -127,8 +127,11 @@ export default {
     termsStartingWithSearchTerm() {
       this.allTermsVersion; // reactive dependency — forces re-evaluation when allTerms changes
       if (!this.searchTerm) return [];
+      // Read the prefix once: through `this` inside the filter it was a
+      // tracked reactive read for each of the ~285,000 terms
+      const prefix = this.searchTerm;
       return SqlDatabase.allTerms
-        .filter((key) => key.indexOf(this.searchTerm) == 0)
+        .filter((key) => key.startsWith(prefix))
         .sort();
     },
     numberOfTermsStartingWithSearchTerm() {
