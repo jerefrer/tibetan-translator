@@ -15,9 +15,11 @@ import {
   deleteScan,
   isAppMode
 } from '../services/scan-service';
-import DictionaryCatalog from './DictionaryCatalog.vue';
 import PackManagerCard from './PackManagerCard.vue';
 import CustomPackSection from './CustomPackSection.vue';
+
+// Query keys the dictionary catalog used to read when it lived in Settings
+const CATALOG_QUERY_KEYS = ['find', 'status'];
 
 // Tauri event listener (lazy loaded)
 let listen = null;
@@ -41,7 +43,6 @@ async function getTauriListen() {
 export default {
   components: {
     draggable,
-    DictionaryCatalog,
     PackManagerCard,
     CustomPackSection,
   },
@@ -76,13 +77,6 @@ export default {
     };
   },
   computed: {
-    // Set when another page sends the user here to find a dictionary
-    catalogQuery() {
-      return String(this.$route.query.find || '');
-    },
-    catalogStatus() {
-      return String(this.$route.query.status || 'all');
-    },
     updateReady() {
       return UpdateService.state.updateReady;
     },
@@ -100,6 +94,20 @@ export default {
     },
   },
   watch: {
+    // The dictionary catalog moved to Dictionaries; links that still point at
+    // /settings?find=… or ?status=… are forwarded there.
+    '$route.query': {
+      immediate: true,
+      handler(query) {
+        if (this.$route.path !== '/settings') return;
+        if (!CATALOG_QUERY_KEYS.some((key) => query && query[key] !== undefined)) return;
+        const forwarded = {};
+        CATALOG_QUERY_KEYS.forEach((key) => {
+          if (query[key] !== undefined) forwarded[key] = query[key];
+        });
+        this.$router.replace({ path: '/dictionaries', query: forwarded });
+      },
+    },
     dictionaries: {
       deep: true,
       handler(newDictionaries) {
@@ -632,12 +640,6 @@ export default {
         </div>
       </v-card-text>
     </v-card>
-
-    <!-- Searchable list of every dictionary, installed or not -->
-    <dictionary-catalog
-      :initial-query="catalogQuery"
-      :initial-status="catalogStatus"
-    />
 
     <!-- Dictionary Packs Section (Tauri only) -->
     <pack-manager-card />
