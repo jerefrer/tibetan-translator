@@ -1183,6 +1183,16 @@ export default {
   cursor pointer
   pointer-events auto
 
+  // An invisible hit area 44px tall, and 30px wide so that it stops short
+  // of the buttons in the next lanes
+  &::before
+    content ''
+    position absolute
+    top -9.5px
+    bottom -9.5px
+    left -2.5px
+    right -2.5px
+
   &:hover
     background var(--accent)
     color var(--on-accent)

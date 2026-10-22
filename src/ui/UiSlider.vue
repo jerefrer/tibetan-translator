@@ -66,6 +66,7 @@ export default {
   background: var(--accent);
 }
 .ui-slider__thumb {
+  position: relative;
   display: block;
   width: 1.125rem;
   height: 1.125rem;
@@ -74,6 +75,12 @@ export default {
   border: 2px solid var(--accent);
   box-shadow: var(--shadow-card);
   cursor: grab;
+}
+/* An invisible hit area of 44px around the thumb */
+.ui-slider__thumb::before {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((1.125rem - 44px) / 2 - 2px));
 }
 .ui-slider__thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .ui-slider[data-disabled] { opacity: 0.5; }

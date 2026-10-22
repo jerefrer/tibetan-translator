@@ -175,6 +175,7 @@ export default {
   padding-top: 0.3rem;
 }
 .ui-field__clear {
+  position: relative;
   flex: none;
   display: inline-flex;
   align-items: center;
@@ -186,6 +187,12 @@ export default {
   color: var(--muted);
   cursor: pointer;
   border-radius: var(--radius-lg);
+}
+/* An invisible hit area of 44px, within the gaps around the button */
+.ui-field__clear::before {
+  content: '';
+  position: absolute;
+  inset: min(0px, calc((2.25rem - 44px) / 2));
 }
 .ui-field__clear:hover { color: var(--ink); }
 .ui-field__clear:focus-visible { outline: 2px solid var(--accent); }
