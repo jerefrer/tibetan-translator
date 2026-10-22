@@ -80,10 +80,10 @@ describe('SelectedTibetanEntriesPopup', () => {
     expect(getEntriesFor).not.toHaveBeenCalled()
   })
 
-  it('P2: should not open inside a field, old or rebuilt', async () => {
+  it('P2: should not open inside a field or an editable area', async () => {
     select('<div class="ui-field"><span data-select>ཡེ་ཤེས་</span></div>')
     await show()
-    select('<div class="v-input"><span data-select>ཡེ་ཤེས་</span></div>')
+    select('<div contenteditable="true"><span data-select>ཡེ་ཤེས་</span></div>')
     await show()
     expect(getEntriesFor).not.toHaveBeenCalled()
   })

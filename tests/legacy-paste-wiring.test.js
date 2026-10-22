@@ -1,5 +1,6 @@
 /**
- * TibetanTextField paste wiring.
+ * UiTibetanField paste wiring (it replaced TibetanTextField, a v-text-field,
+ * and keeps its paste behaviour).
  *
  * The service in src/services/legacy-to-unicode.js is covered on its own in
  * legacy-to-unicode.test.js. What this file pins is that the field actually
@@ -7,21 +8,13 @@
  * handler now calls preventDefault() unconditionally, awaits mid-way, and has
  * to read the caret before that await rather than after it.
  */
-import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import { createVuetify } from 'vuetify';
-import * as components from 'vuetify/components';
-import * as directives from 'vuetify/directives';
-import TibetanTextField from '../src/components/TibetanTextField.vue';
+import UiTibetanField from '../src/ui/UiTibetanField.vue';
 
 const CHOGYAL_SANGS_RGYAS = '<$<-{<-'; // སངས་རྒྱས་ in the TibetanChogyal encoding
 const escapeHtml = (text) =>
   text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-let vuetify;
-beforeEach(() => {
-  vuetify = createVuetify({ components, directives });
-});
 
 // The handler reaches the font tables through a dynamic import, and loading
 // them the first time takes longer than the microtasks a paste assertion waits
@@ -33,9 +26,8 @@ beforeAll(async () => {
 });
 
 const mountField = (modelValue = '') =>
-  mount(TibetanTextField, {
+  mount(UiTibetanField, {
     props: { modelValue },
-    global: { plugins: [vuetify] },
   });
 
 // happy-dom does not implement ClipboardEvent, and the handler only ever asks
@@ -61,7 +53,7 @@ async function paste(wrapper, clipboard) {
   return wrapper.emitted('update:modelValue')?.at(-1)?.[0];
 }
 
-describe('pasting into TibetanTextField', () => {
+describe('pasting into UiTibetanField', () => {
   it('repairs legacy text the clipboard markup identifies by font', async () => {
     const value = await paste(mountField(), {
       text: CHOGYAL_SANGS_RGYAS,

@@ -1,9 +1,9 @@
 /**
- * UiTibetanField: the Vuetify-free counterpart of TibetanTextField.
+ * UiTibetanField, which replaced TibetanTextField (a v-text-field).
  *
- * Pins the same behaviour as tests/legacy-paste-wiring.test.js does for the
- * old field (Wylie conversion, legacy paste repair, caret-aware insertion,
- * multi-line paste), plus the keyboard rules.
+ * Wylie conversion, legacy paste repair, caret-aware insertion, multi-line
+ * paste and the keyboard rules. tests/legacy-paste-wiring.test.js pins the
+ * paste paths in more detail.
  */
 import { describe, it, expect, beforeAll } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'

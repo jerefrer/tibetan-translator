@@ -13,8 +13,8 @@
   const WIDTH = 'min(90vw, 640px)';
   const HEIGHT = '45vh';
 
-  // Inputs of the old (Vuetify) and the rebuilt (src/ui) fields
-  const INPUT_SELECTOR = '.v-input, .ui-field, input, textarea, [contenteditable="true"]';
+  // Text fields: selecting text in one is not a lookup
+  const INPUT_SELECTOR = '.ui-field, input, textarea, [contenteditable="true"]';
   // Elements that show a whole term: selecting all of one is not a lookup
   const TERM_SELECTOR = '.term, .term-item, .result-term, .headword';
 

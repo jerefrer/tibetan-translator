@@ -367,7 +367,7 @@ describe('mayNeedLegacyRepair', () => {
 });
 
 describe('repairPasteInto', () => {
-  // The Search page cannot use TibetanTextField: its query has a syntax of its
+  // The Search page cannot use UiTibetanField: its query has a syntax of its
   // own, where Wylie is only converted inside parentheses. So it needs the
   // legacy repair WITHOUT the Wylie conversion that field applies, and it is far
   // too entangled with the database layer to mount in a test. This is that

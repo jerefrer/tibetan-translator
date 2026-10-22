@@ -185,7 +185,7 @@ export async function convertLegacyPaste(clipboard = {}) {
  *
  * For fields that want the repair and nothing else — the Search query has a
  * syntax of its own, in which Wylie is only converted inside parentheses, so
- * running TibetanTextField's blanket Wylie conversion over it would break
+ * running UiTibetanField's blanket Wylie conversion over it would break
  * queries like "(sangs rgyas)".
  *
  * @param {{text?: string, html?: string}} clipboard

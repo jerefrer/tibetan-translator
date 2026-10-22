@@ -2,9 +2,8 @@
 import { UiIcon } from '../ui';
 import { isMacOS } from '../config/platform';
 
-// How the Dictionaries menu works, for the Define help dialog. Same content
-// as DictionariesMenuHelpTab.vue (still used, with Vuetify, by the Search
-// and Split help until those screens are rebuilt).
+// How the Dictionaries menu works, for the Define, Search and Split help
+// dialogs.
 export default {
   name: 'DictionariesMenuHelp',
   components: { UiIcon },
