@@ -525,7 +525,10 @@ describe('Split — terms', () => {
     await mountPage()
     await typeAndWait('ཀ་ ཁ་ ཀ་', ['ཀ་', 'ཁ་', 'ཀ་'])
 
-    expect(wrapper.find('[data-testid="split-terms"]').attributes('role')).toBe('listbox')
+    const listbox = wrapper.find('[data-testid="split-terms"] [role="listbox"]')
+    expect(listbox.findAll('[role="option"]')).toHaveLength(3)
+    // only options inside the listbox: the merge buttons sit beside it
+    expect(listbox.findAll('button')).toHaveLength(0)
   })
 
   it('should select a clicked term and look it up by its canonical key (T4)', async () => {

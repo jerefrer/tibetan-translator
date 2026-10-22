@@ -822,32 +822,34 @@ export default {
           ref="termsList"
           class="terms-list"
           :style="{ '--merge-lanes': mergeLanes }"
-          role="listbox"
-          aria-label="Terms in the text"
           data-testid="split-terms"
         >
-          <div
-            v-for="(term, index) in termsList"
-            :key="index"
-            class="term-item"
-            :class="{
-              'is-active': selectedTermIndex === index,
-              'is-unknown': !hasDefinitions(term),
-            }"
-            role="option"
-            :aria-selected="selectedTermIndex === index ? 'true' : 'false'"
-            data-testid="split-term"
-            @click="selectTermByIndex(index)"
-          >
-            <span class="term-item__text">{{ term }}</span>
-            <ui-icon
-              v-if="!hasDefinitions(term)"
-              name="circle-help"
-              :size="16"
-              class="term-item__unknown"
-              label="No entry in your dictionaries"
-              data-testid="split-term-unknown"
-            />
+          <!-- The listbox holds only the options; the merge brackets sit
+               beside it, positioned over the rows they join -->
+          <div role="listbox" aria-label="Terms in the text">
+            <div
+              v-for="(term, index) in termsList"
+              :key="index"
+              class="term-item"
+              :class="{
+                'is-active': selectedTermIndex === index,
+                'is-unknown': !hasDefinitions(term),
+              }"
+              role="option"
+              :aria-selected="selectedTermIndex === index ? 'true' : 'false'"
+              data-testid="split-term"
+              @click="selectTermByIndex(index)"
+            >
+              <span class="term-item__text">{{ term }}</span>
+              <ui-icon
+                v-if="!hasDefinitions(term)"
+                name="circle-help"
+                :size="16"
+                class="term-item__unknown"
+                label="No entry in your dictionaries"
+                data-testid="split-term-unknown"
+              />
+            </div>
           </div>
 
           <!-- Merge buttons: a bracket over the terms that make a known word -->
