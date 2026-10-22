@@ -1,126 +1,172 @@
 <template>
-  <div class="lexicon-page-wrapper">
-    <v-container class="lexicon-page">
-      <div v-if="!isSupported" class="text-center text-grey py-8">
+  <div class="lexicon-page-wrapper" :class="{ 'is-phone': isPhone }" data-testid="lexicon-page">
+    <div class="lexicon-page">
+      <button
+        v-if="isPhone"
+        type="button"
+        class="back-link"
+        data-testid="lexicon-back"
+        @click="$router.push('/settings')"
+      >
+        <span class="back-link__icon"><ui-icon name="chevron-left" :size="22" :stroke-width="2.4" /></span>
+        Settings
+      </button>
+
+      <div v-if="!isSupported" class="unsupported" data-testid="lexicon-unsupported">
         Editing dictionaries is only available in the desktop and mobile apps.
       </div>
 
       <template v-else>
-        <v-card v-if="!dictionaryOptions.length" class="lexicon-card">
-          <v-card-text class="text-center text-grey py-10">
-            <v-icon size="48" color="grey-lighten-1" class="mb-3">mdi-notebook-outline</v-icon>
-            <p class="mb-1">You don't have a dictionary of your own yet.</p>
-            <p class="text-caption mb-0">
-              Create one from the Settings page to start collecting your words.
-            </p>
-          </v-card-text>
-        </v-card>
+        <span v-if="!isPhone" class="eyebrow">My glossary</span>
 
-        <v-card v-else class="lexicon-card">
-          <v-toolbar>
-            <v-icon size="x-large" color="grey">mdi-notebook-edit-outline</v-icon>
-            <v-toolbar-title>
-              {{ selected ? selected.name : 'My dictionary' }}
-              <div class="text-caption text-grey">{{ entriesLabel }}</div>
-            </v-toolbar-title>
+        <header class="page-header">
+          <h1 class="page-title">{{ selected ? selected.name : 'My glossary' }}</h1>
 
-            <v-select
-              v-if="dictionaryOptions.length > 1"
-              :model-value="selectedKey"
-              :items="dictionaryOptions"
-              item-title="label"
-              item-value="key"
-              density="compact"
-              variant="outlined"
-              hide-details
-              class="dictionary-switcher mr-4"
-              @update:model-value="onSelectDictionary"
-            />
-          </v-toolbar>
+          <ui-select
+            v-if="!isPhone && dictionaryOptions.length > 1"
+            :model-value="selectedKey || undefined"
+            :options="switcherOptions"
+            class="dictionary-switcher"
+            data-testid="lexicon-switcher"
+            @update:model-value="onSelectDictionary"
+          />
 
           <template v-if="selected">
-            <div class="actions-row">
-              <v-text-field
-                v-model="search"
-                placeholder="Search in this dictionary"
-                prepend-inner-icon="mdi-magnify"
-                density="compact"
-                variant="solo-filled"
-                flat
-                clearable
-                hide-details
-                class="search-field"
-                @update:model-value="onSearchInput"
-              />
-              <v-btn variant="tonal" color="primary" class="ml-3" @click="openAdd">
-                <v-icon start>mdi-plus</v-icon>
-                Add an entry
-              </v-btn>
-              <v-btn variant="text" class="ml-1" @click="importSpreadsheet">
-                <v-icon start>mdi-file-import-outline</v-icon>
-                Import
-              </v-btn>
-              <v-menu location="bottom end">
-                <template v-slot:activator="{ props }">
-                  <v-btn variant="text" class="ml-1" v-bind="props">
-                    <v-icon start>mdi-export-variant</v-icon>
-                    Export
-                  </v-btn>
-                </template>
-                <v-list density="compact">
-                  <v-list-item @click="exportLexicon">
-                    <v-list-item-title>Dictionary file</v-list-item-title>
-                    <v-list-item-subtitle>To share, or to reinstall later</v-list-item-subtitle>
-                  </v-list-item>
-                  <v-list-item @click="exportXlsx">
-                    <v-list-item-title>Spreadsheet</v-list-item-title>
-                    <v-list-item-subtitle>To edit in Excel and import back</v-list-item-subtitle>
-                  </v-list-item>
-                </v-list>
-              </v-menu>
+            <div class="ui-spacer" />
+            <ui-button
+              variant="outline"
+              :size="isPhone ? 'md' : 'sm'"
+              class="header-button"
+              data-testid="lexicon-import"
+              @click="importSpreadsheet"
+            >
+              Import
+            </ui-button>
+            <ui-menu :items="exportItems" align="end" @select="onExport">
+              <ui-button
+                variant="outline"
+                :size="isPhone ? 'md' : 'sm'"
+                class="header-button"
+                data-testid="lexicon-export"
+              >
+                Export
+                <ui-icon name="chevron-down" :size="12" :stroke-width="2.4" />
+              </ui-button>
+            </ui-menu>
+            <ui-button v-if="!isPhone" data-testid="lexicon-add" @click="openAdd">
+              Add an entry
+            </ui-button>
+          </template>
+        </header>
+
+        <ui-select
+          v-if="isPhone && dictionaryOptions.length > 1"
+          :model-value="selectedKey || undefined"
+          :options="switcherOptions"
+          class="dictionary-switcher dictionary-switcher--phone"
+          data-testid="lexicon-switcher"
+          @update:model-value="onSelectDictionary"
+        />
+
+        <template v-if="selected">
+          <ui-text-field
+            v-model="search"
+            placeholder="Search in this dictionary"
+            prepend-icon="search"
+            clearable
+            type="search"
+            enterkeyhint="search"
+            class="search-field"
+            data-testid="lexicon-search"
+            @update:model-value="onSearchInput"
+          />
+
+          <template v-if="entries.length">
+            <div v-if="isPhone" class="entry-cards" data-testid="lexicon-entries">
+              <button
+                v-for="row in entries"
+                :key="row.id"
+                type="button"
+                class="entry-card"
+                :aria-label="`Edit ${row.term}`"
+                data-testid="lexicon-entry"
+                @click="openEdit(row)"
+              >
+                <span class="entry-card__text">
+                  <span class="entry-term">{{ row.term }}</span>
+                  <span class="entry-definition">{{ row.definition }}</span>
+                </span>
+                <ui-icon name="chevron-right" :size="18" :stroke-width="2" class="entry-card__chevron" />
+              </button>
             </div>
 
-            <v-list v-if="entries.length" class="entry-list py-0">
-              <v-list-item v-for="row in entries" :key="row.id" class="entry-row">
-                <div class="entry-term tibetan">{{ row.term }}</div>
-                <div class="entry-definition text-medium-emphasis">{{ row.definition }}</div>
-
-                <template v-slot:append>
-                  <div class="entry-actions">
-                    <v-btn icon variant="text" size="small" @click="openEdit(row)">
-                      <v-icon size="20">mdi-pencil-outline</v-icon>
-                      <v-tooltip activator="parent" location="top">Edit</v-tooltip>
-                    </v-btn>
-                    <v-btn
+            <div v-else class="entry-table" data-testid="lexicon-entries">
+              <article
+                v-for="row in entries"
+                :key="row.id"
+                class="entry-row"
+                data-testid="lexicon-entry"
+              >
+                <span class="entry-term">{{ row.term }}</span>
+                <p class="entry-definition">{{ row.definition }}</p>
+                <span class="entry-actions">
+                  <ui-tooltip text="Edit">
+                    <ui-button
+                      variant="ghost"
+                      size="sm"
                       icon
-                      variant="text"
-                      size="small"
-                      class="delete-btn"
+                      aria-label="Edit"
+                      class="row-action"
+                      data-testid="lexicon-edit"
+                      @click="openEdit(row)"
+                    >
+                      <ui-icon name="pencil" :size="18" />
+                    </ui-button>
+                  </ui-tooltip>
+                  <ui-tooltip text="Delete">
+                    <ui-button
+                      variant="ghost"
+                      size="sm"
+                      icon
+                      aria-label="Delete"
+                      class="row-action row-action--delete"
+                      data-testid="lexicon-delete"
                       @click="promptRemove(row)"
                     >
-                      <v-icon size="20">mdi-delete-outline</v-icon>
-                      <v-tooltip activator="parent" location="top">Delete</v-tooltip>
-                    </v-btn>
-                  </div>
-                </template>
-              </v-list-item>
-            </v-list>
-
-            <v-card-text v-else class="text-center text-grey py-10">
-              {{ search ? 'No entry matches this search.' : 'This dictionary is empty — add your first word.' }}
-            </v-card-text>
-
-            <div v-if="pageCount > 1" class="pagination-row">
-              <v-pagination
-                v-model="page"
-                :length="pageCount"
-                density="comfortable"
-                :total-visible="7"
-                @update:model-value="load"
-              />
+                      <ui-icon name="trash-2" :size="18" />
+                    </ui-button>
+                  </ui-tooltip>
+                </span>
+              </article>
             </div>
           </template>
-        </v-card>
+
+          <div v-else class="entries-empty" data-testid="lexicon-empty-list">
+            {{ search ? 'No entry matches this search.' : 'This dictionary is empty — add your first word.' }}
+          </div>
+
+          <ui-pagination
+            v-if="pageCount > 1"
+            v-model="page"
+            :length="pageCount"
+            :visible="isPhone ? 5 : 7"
+            class="pagination"
+            @update:model-value="load"
+          />
+
+          <p class="page-note" data-testid="lexicon-count">
+            {{ entriesLabel }}. Your entries are searched along with the others and shown with
+            the name of this dictionary.
+          </p>
+        </template>
+
+        <CustomPackSection class="own-dictionaries" />
+
+        <div v-if="selected && isPhone" class="add-bar">
+          <ui-button block class="add-bar__button" data-testid="lexicon-add" @click="openAdd">
+            Add an entry
+          </ui-button>
+        </div>
 
         <LexiconEntryDialog
           v-if="selected"
@@ -128,7 +174,9 @@
           :pack-id="selected.packId"
           :dictionary-id="selected.dictionaryId"
           :entry="editing"
+          :deletable="isPhone"
           @saved="onSaved"
+          @delete="promptRemove"
         />
 
         <ImportPreviewDialog
@@ -141,22 +189,23 @@
           @imported="onImported"
         />
 
-        <v-dialog v-model="removeOpen" max-width="420">
-          <v-card v-if="removeTarget">
-            <v-card-title>Delete this entry?</v-card-title>
-            <v-card-text>
-              <p class="tibetan mb-1">{{ removeTarget.term }}</p>
-              <p class="text-body-2 text-grey mb-0">This cannot be undone.</p>
-            </v-card-text>
-            <v-card-actions>
-              <v-spacer />
-              <v-btn variant="text" @click="removeOpen = false">Cancel</v-btn>
-              <v-btn color="error" variant="elevated" @click="confirmRemove">Delete</v-btn>
-            </v-card-actions>
-          </v-card>
-        </v-dialog>
+        <ui-dialog v-model="removeOpen" title="Delete this entry?" :max-width="520">
+          <template v-if="removeTarget">
+            <p class="remove-entry">
+              <span class="remove-entry__term">{{ removeTarget.term }}</span>
+              <span class="remove-entry__definition">{{ removeTarget.definition }}</span>
+            </p>
+            <p class="remove-warning">This cannot be undone.</p>
+          </template>
+          <template #actions>
+            <ui-button variant="outline" @click="removeOpen = false">Cancel</ui-button>
+            <ui-button variant="danger" data-testid="lexicon-confirm-delete" @click="confirmRemove">
+              Delete
+            </ui-button>
+          </template>
+        </ui-dialog>
       </template>
-    </v-container>
+    </div>
   </div>
 </template>
 
@@ -166,13 +215,37 @@ import _ from 'underscore';
 import Lexicon, { messageForError } from '../services/lexicon';
 import LexiconEntryDialog from './LexiconEntryDialog.vue';
 import ImportPreviewDialog from './ImportPreviewDialog.vue';
+import CustomPackSection from './CustomPackSection.vue';
+import ResizeService from '../services/resize-service';
 import { isMobile, supportsModularPacks } from '../config/platform';
+import {
+  UiButton,
+  UiDialog,
+  UiIcon,
+  UiMenu,
+  UiPagination,
+  UiSelect,
+  UiTextField,
+  UiTooltip,
+} from '../ui';
 
 const PAGE_SIZE = 50;
 
 export default {
   name: 'LexiconPage',
-  components: { LexiconEntryDialog, ImportPreviewDialog },
+  components: {
+    LexiconEntryDialog,
+    ImportPreviewDialog,
+    CustomPackSection,
+    UiButton,
+    UiDialog,
+    UiIcon,
+    UiMenu,
+    UiPagination,
+    UiSelect,
+    UiTextField,
+    UiTooltip,
+  },
   inject: ['snackbar'],
   data() {
     return {
@@ -187,6 +260,12 @@ export default {
       importOpen: false,
       importGrid: null,
       unlistenDrop: null,
+      // Phone layout (the app-wide 600 px breakpoint), kept in sync on resize
+      isPhone: ResizeService.isMobile(),
+      exportItems: [
+        { key: 'tibdict', label: 'Dictionary file', description: 'To share, or to reinstall later' },
+        { key: 'xlsx', label: 'Spreadsheet', description: 'To edit in Excel and import back' },
+      ],
       // Assigned in created() so the template's @update:model-value="onSearchInput"
       // binding always resolves to the debounced call, even on the very first render.
       onSearchInput: null,
@@ -235,6 +314,9 @@ export default {
     selectedKey() {
       return this.selected ? this.selected.key : null;
     },
+    switcherOptions() {
+      return this.dictionaryOptions.map((option) => ({ value: option.key, label: option.label }));
+    },
     pageCount() {
       return Math.max(1, Math.ceil(this.total / PAGE_SIZE));
     },
@@ -272,10 +354,14 @@ export default {
     // on navigation), so a single add here can never double-register — same
     // pattern as DefinePage.vue's 'all-terms-updated' listener.
     window.addEventListener('dictionaries-updated', this.syncSelection);
+    ResizeService.subscribe('lexicon-page', () => {
+      this.isPhone = ResizeService.isMobile();
+    });
     this.listenForDroppedSpreadsheets();
   },
   beforeUnmount() {
     window.removeEventListener('dictionaries-updated', this.syncSelection);
+    ResizeService.unsubscribe('lexicon-page');
     this.unlistenDrop?.();
     this.unlistenDrop = null;
   },
@@ -393,6 +479,10 @@ export default {
       });
       if (path) await this.openImportFor(path);
     },
+    onExport(item) {
+      if (item.key === 'tibdict') return this.exportLexicon();
+      if (item.key === 'xlsx') return this.exportXlsx();
+    },
     async onImported({ inserted, updated }) {
       this.importOpen = false;
       await this.load();
@@ -463,88 +553,276 @@ export default {
 
 <style lang="stylus" scoped>
 .lexicon-page-wrapper
+  box-sizing border-box
   height 100%
   overflow-y auto
+  background var(--bg)
+  color var(--ink)
+  font-family var(--font-ui)
+  font-size var(--text-base)
 
 .lexicon-page
-  margin-top 30px
-  padding-bottom 20px
+  box-sizing border-box
+  min-height 100%
+  display flex
+  flex-direction column
+  gap 18px
+  padding 28px 40px 40px
 
-// Align the toolbar icon + title with the list rows below, the same way
-// ConfigurePage aligns its cards: 16px start padding on the toolbar content,
-// 16px right margin on the icon.
-.lexicon-card
-  :deep(.v-toolbar__content)
-    padding-inline-start 16px
+.eyebrow
+  font-size var(--text-xs)
+  font-weight 600
+  letter-spacing 0.08em
+  text-transform uppercase
+  color var(--muted)
 
-  :deep(.v-toolbar__content > .v-icon)
-    margin-inline 0 16px
-
-  :deep(.v-toolbar-title)
-    padding-inline-start 0
-    margin-inline-start 0
-
-  .v-toolbar__title, .v-toolbar__title .text-caption
-    line-height 1em
-
-  .v-toolbar__title .text-caption
-    margin-top 5px
-
-.dictionary-switcher
-  max-width 260px
-  flex 0 0 auto
-
-.actions-row
+.page-header
   display flex
   align-items center
-  padding 12px 16px
-  border-bottom thin solid rgba(128, 128, 128, 0.2)
+  flex-wrap wrap
+  gap 14px
+
+.page-title
+  margin 0
+  font-size 1.875rem
+  font-weight 600
+  letter-spacing -0.01em
+  line-height 1.2
+  min-width 0
+  overflow-wrap anywhere
+
+.dictionary-switcher
+  width 13.75rem
+
+  :deep(.ui-select__trigger)
+    min-height 2.25rem
+    border-radius 8px
+    font-weight 400
+    font-size var(--text-sm-plus)
+
+.unsupported
+  padding var(--space-8) 0
+  text-align center
+  color var(--muted)
+
+.search-field
+  width 100%
+  max-width 26.25rem
+
+  :deep(.ui-field__control)
+    min-height 2.75rem
+    padding-left 14px
+    border-radius var(--radius-lg)
+
+  :deep(.ui-field__input)
+    font-size var(--text-body)
+
+  // The clear button is ours; hide the browser's own on type="search"
+  :deep(.ui-field__input::-webkit-search-cancel-button)
+    display none
+
+// Desktop: one card, three columns per row
+.entry-table
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
+  overflow hidden
+
+.entry-row
+  display grid
+  grid-template-columns minmax(0, 18.75rem) minmax(0, 1fr) auto
+  gap 20px
+  align-items center
+  padding 12px 24px
+
+  & + .entry-row
+    border-top 1px solid var(--soft)
+
+.entry-term
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-md)
+  line-height 1.7
+  // DDC Uchen sits high in its line box; nudge it level with the definition
+  padding-top 0.25rem
+  color var(--rubric)
+  overflow-wrap anywhere
+
+// Definitions are often several lines long; keep the user's line breaks
+.entry-definition
+  margin 0
+  font-family var(--font-serif)
+  font-size var(--text-entry)
+  line-height 1.5
+  white-space pre-wrap
+  overflow-wrap anywhere
+
+.entry-actions
+  display flex
+  gap 4px
+
+.row-action
+  color var(--muted)
+
+  &:hover:not(:disabled)
+    color var(--ink)
+    background var(--soft)
+
+.row-action--delete:hover:not(:disabled)
+  color var(--danger-ink)
+  background var(--danger-soft)
+
+.entries-empty
+  padding var(--space-8) var(--space-4)
+  text-align center
+  color var(--muted)
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+
+.pagination
+  align-self center
+
+.page-note
+  margin 0
+  font-size var(--text-sm)
+  color var(--muted)
+
+.own-dictionaries
+  margin-top var(--space-4)
+
+.remove-entry
+  margin 0
+  display flex
+  flex-direction column
+
+.remove-entry__term
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-lg)
+  line-height 1.7
+  color var(--rubric)
+
+.remove-entry__definition
+  white-space pre-wrap
+
+.remove-warning
+  margin 14px 0 0
+  font-size var(--text-sm)
+  color var(--muted)
+
+// Phone: the GlossaryPhone board
+.back-link
+  display flex
+  align-items center
+  gap 6px
+  align-self flex-start
+  margin 0 -6px
+  padding 0 var(--space-2) 0 0
+  border 0
+  background none
+  color var(--accent)
+  font 600 0.9375rem var(--font-ui)
+  cursor pointer
+
+  &:focus-visible
+    outline 2px solid var(--accent)
+    border-radius var(--radius-lg)
+
+.back-link__icon
+  width 44px
+  height 44px
+  display flex
+  align-items center
+  justify-content center
+
+.is-phone
+  .lexicon-page
+    gap 14px
+    padding 16px 16px 0
+
+  .page-header
+    gap 8px
+
+  .page-title
+    font-size 1.625rem
+    flex 1 1 auto
+
+  .header-button
+    height 2.75rem
+    padding 0 14px
+    font-weight 500
+
+  .dictionary-switcher--phone
+    width 100%
 
   .search-field
-    flex 1 1 auto
-    min-width 0
+    max-width none
 
-.entry-list
-  .entry-row
-    min-height 64px
-    padding-top 10px
-    padding-bottom 10px
+    :deep(.ui-field__control)
+      min-height 3.125rem
+      border-radius var(--radius-xl)
 
-    & + .entry-row
-      border-top thin solid rgba(128, 128, 128, 0.16)
+    :deep(.ui-field__input)
+      font-size 0.9688rem
 
-    // The term is what the eye should land on first: it is the thing the
-    // user filed away, the definition is the payload.
-    .entry-term
-      font-size 1.35rem
-      line-height 1.5
-      margin-bottom 2px
+  .entry-term
+    font-size var(--text-tibetan-sm)
 
-    // Definitions are frequently multi-line; Vuetify's list subtitle would
-    // clamp them to one line and hide the rest behind an ellipsis.
-    // Colour comes from the .text-medium-emphasis utility so it follows the
-    // theme — Stylus cannot evaluate Vuetify's CSS custom properties.
-    .entry-definition
-      white-space pre-wrap
-      font-size 0.9rem
-      line-height 1.4
+  .entry-definition
+    font-size 1.0313rem
+    line-height 1.4
 
-    .entry-actions
-      display flex
-      gap 2px
-      align-self flex-start
-      opacity 0.55
-      transition opacity 0.15s ease
+  .page-note
+    margin-bottom var(--space-2)
 
-    &:hover .entry-actions
-      opacity 1
-
-    .delete-btn:hover
-      color unquote('rgb(var(--v-theme-error))')
-
-.pagination-row
+.entry-cards
   display flex
-  justify-content center
+  flex-direction column
+  gap 14px
+
+.entry-card
+  display flex
+  align-items center
+  gap 12px
+  width 100%
   padding 12px 16px
-  border-top thin solid rgba(128, 128, 128, 0.2)
+  text-align left
+  background var(--surface)
+  color var(--ink)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
+  font inherit
+  cursor pointer
+  -webkit-tap-highlight-color transparent
+
+  &:active
+    background var(--soft)
+
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 2px
+
+.entry-card__text
+  flex 1
+  min-width 0
+  display flex
+  flex-direction column
+  gap 2px
+
+.entry-card__chevron
+  color var(--faint)
+
+// Stays above the bottom bar while the list scrolls under it
+.add-bar
+  position sticky
+  bottom 0
+  margin-top auto
+  padding 8px 0 12px
+  background linear-gradient(to bottom, transparent, var(--bg) 10px)
+
+.add-bar__button
+  height 3.25rem
+  border-radius var(--radius-card)
+  font-size 0.9688rem
 </style>
