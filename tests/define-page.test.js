@@ -364,6 +364,11 @@ describe('Define — terms', () => {
       expect(wrapper.find('.terms-header [data-testid="dictionaries-menu-button"]').exists()).toBe(true)
     )
   })
+
+  it('should open the Dictionaries menu towards the definitions, not over the navigation', async () => {
+    await mountAt('/define/' + encodeURIComponent(KA))
+    expect(wrapper.findComponent({ name: 'ResultsAndPaginationAndDictionaries' }).props('menuAlign')).toBe('start')
+  })
 })
 
 describe('Define — definitions', () => {

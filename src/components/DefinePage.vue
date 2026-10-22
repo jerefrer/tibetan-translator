@@ -349,6 +349,7 @@ export default {
             :dictionaries="dictionariesForCurrentResults"
             :totalNumberOfEntries="numberOfTermsStartingWithSearchTerm"
             :hidePagination="true"
+            menuAlign="start"
             @close:dictionariesMenu="focusInput"
           />
         </div>
