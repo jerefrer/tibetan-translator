@@ -604,6 +604,7 @@ export default {
         ref="input"
         v-model="searchQuery"
         class="search-field"
+        :class="{ 'has-tibetan': containsTibetan(searchQuery || '') }"
         placeholder="Type your query"
         aria-label="Search query"
         enterkeyhint="search"
@@ -704,7 +705,7 @@ export default {
             <div class="ui-spacer" />
             <button
               type="button"
-              class="text-button"
+              class="link-button"
               data-testid="search-clear-history"
               @click="clearPreviousQueries"
             >
@@ -862,7 +863,7 @@ export default {
   border-radius var(--radius-card)
   box-shadow var(--shadow-card)
 
-.text-button
+.link-button
   border 0
   background none
   padding 8px
@@ -901,6 +902,10 @@ export default {
 
   :deep(.ui-field__input::placeholder)
     font-family var(--font-serif)
+
+  // DDC Uchen reads small at the Latin size
+  &.has-tibetan :deep(.ui-field__input)
+    font-size var(--text-tibetan-lg)
 
 .search-button
   flex none
@@ -1009,7 +1014,7 @@ export default {
   margin -8px 0
   color var(--muted)
 
-  .text-button
+  .link-button
     margin-right -8px
 
 .card-title
@@ -1216,8 +1221,20 @@ export default {
     :deep(.ui-field__input)
       font-size 1.25rem
 
+    &.has-tibetan :deep(.ui-field__input)
+      font-size var(--text-tibetan-md)
+
+  // The toggle goes under the field, which keeps the whole width
+  .search-top
+    flex-wrap wrap
+    gap 4px
+
+  .search-field
+    flex-basis 100%
+
   .builder-toggle
-    padding 8px 0
+    padding 6px 0
+    margin-bottom -6px
 
   .results-header
     gap 8px
