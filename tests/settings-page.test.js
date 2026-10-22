@@ -115,11 +115,6 @@ vi.mock('../src/services/scan-service', () => {
   return mocks.scans
 })
 
-// Owned by the Glossary screen; Settings only hosts it
-vi.mock('../src/components/CustomPackSection.vue', () => ({
-  default: { name: 'CustomPackSection', template: '<div data-testid="custom-pack-section" />' },
-}))
-
 import Storage from '../src/services/storage'
 import ConfigurePage from '../src/components/ConfigurePage.vue'
 import AppearanceCard from '../src/components/settings/AppearanceCard.vue'
@@ -238,7 +233,8 @@ describe('ConfigurePage', () => {
     expect(byTestId('global-lookup-card').exists()).toBe(true)
     expect(byTestId('about-card').exists()).toBe(true)
     expect(byTestId('pack-manager-card').exists()).toBe(true)
-    expect(byTestId('custom-pack-section').exists()).toBe(true)
+    // Managing your own dictionaries lives on the Glossary page
+    expect(wrapper.findComponent({ name: 'CustomPackSection' }).exists()).toBe(false)
   })
 
   it('forwards the old catalog links to Dictionaries', async () => {

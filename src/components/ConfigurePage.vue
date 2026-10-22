@@ -5,7 +5,6 @@ import ResizeService from '../services/resize-service';
 import { Lexicon } from '../services/lexicon';
 import { supportsModularPacks } from '../config/platform';
 import { UiIcon, UiList, UiListItem } from '../ui';
-import CustomPackSection from './CustomPackSection.vue';
 import AppearanceCard from './settings/AppearanceCard.vue';
 import GlobalLookupCard from './settings/GlobalLookupCard.vue';
 import AboutCard from './settings/AboutCard.vue';
@@ -27,7 +26,6 @@ export default {
     UiIcon,
     UiList,
     UiListItem,
-    CustomPackSection,
     AppearanceCard,
     GlobalLookupCard,
     AboutCard,
@@ -162,7 +160,6 @@ export default {
       </ui-list>
 
       <pack-manager-card />
-      <custom-pack-section class="settings-page__legacy-card" />
       <scanned-dictionaries-card />
     </template>
 
@@ -177,8 +174,7 @@ export default {
         </div>
         <div class="settings-page__column settings-page__column--side">
           <pack-manager-card />
-          <custom-pack-section class="settings-page__legacy-card" />
-          <dictionary-preferences-card />
+              <dictionary-preferences-card />
         </div>
       </div>
     </template>
@@ -237,13 +233,6 @@ export default {
   .settings-page__column--side {
     flex: 1;
   }
-}
-
-/* CustomPackSection is still a Vuetify card (owned by the Glossary screen);
-   drop its bottom margin so it follows the column gap. */
-.settings-page__legacy-card.v-card,
-.settings-page__legacy-card .v-card {
-  margin-bottom: 0 !important;
 }
 
 /* Phone board: 16px padding, 14px between blocks */
