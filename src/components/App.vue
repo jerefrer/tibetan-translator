@@ -23,6 +23,7 @@ import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton.vue
 import SplitPageHelpDialogWithButton from "./SplitPageHelpDialogWithButton.vue";
 import CustomPackConflictModal from "./CustomPackConflictModal.vue";
 import AppNav from "./AppNav.vue";
+import { UiSpinner, UiToast } from "../ui";
 
 import "@mdi/font/css/materialdesignicons.css";
 
@@ -50,6 +51,8 @@ export default {
     SearchPageHelpDialogWithButton,
     SplitPageHelpDialogWithButton,
     CustomPackConflictModal,
+    UiSpinner,
+    UiToast,
   },
   inject: ["snackbar"],
   data() {
@@ -218,28 +221,15 @@ export default {
 </script>
 
 <template>
-  <v-app>
-    <v-overlay
-      :model-value="loading"
-      persistent
-      class="align-center justify-center"
-      scrim="black"
-    >
-      <div class="d-flex flex-column align-center">
-        <v-img
-          src="/img/logo.png"
-          width="100"
-          class="mb-8"
-          style="filter: brightness(0.25)"
-        />
-        <v-progress-circular
-          indeterminate
-          :width="10"
-          :size="192"
-          style="position: absolute; top: -48px; filter: brightness(0.25)"
-        />
+  <div class="app">
+    <transition name="ui-fade">
+      <div v-if="loading" class="app-loading" data-testid="app-loading">
+        <div class="app-loading__mark">
+          <img src="/img/logo.png" width="100" height="100" alt="" class="app-loading__logo" />
+          <ui-spinner :size="243" class="app-loading__spinner" />
+        </div>
       </div>
-    </v-overlay>
+    </transition>
 
     <selected-tibetan-entries-popup />
 
@@ -248,18 +238,18 @@ export default {
       @complete="onOnboardingComplete"
     />
 
-    <v-snackbar v-model="snackbar.show">
+    <!-- Above the first-launch screen, so "Update ready" shows during onboarding -->
+    <ui-toast v-model="snackbar.show">
       <div v-html="snackbar.content" />
-      <template v-slot:actions>
-        <v-btn variant="text" @click="snackbar.close()"> Close </v-btn>
-      </template>
-    </v-snackbar>
+    </ui-toast>
 
-    <!-- Using div instead of v-main to avoid Vuetify's --v-layout-top magic that causes iOS layout shifts -->
+    <!-- inert while the first-launch screen covers it: no focus, no screen reader -->
     <div
       v-if="!loading"
       class="app-shell"
       :class="isMobile ? 'app-shell--phone' : 'app-shell--desktop'"
+      :inert="showOnboarding"
+      data-testid="app-shell"
     >
       <app-nav :is-mobile="isMobile" :update-ready="updateReady">
         <template #help>
@@ -287,9 +277,56 @@ export default {
       @confirm="onTibdictConfirmReplace"
       @cancel="onTibdictCancelReplace"
     />
-  </v-app>
+  </div>
 </template>
 
-<style lang="stylus">
-/* Entry styling now handled by EntriesEntry.vue scoped styles */
+<style>
+/* Start-up overlay while the database loads: the logo inside a large ring. */
+.app-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+}
+/* Vuetify's scrim (black at 32%) over the background, as before */
+[data-theme='dark'] .app-loading {
+  background: color-mix(in srgb, var(--bg) 68%, black);
+}
+.app-loading__mark {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin-bottom: 32px;
+}
+.app-loading__logo {
+  display: block;
+  width: 100px;
+  height: 100px;
+  filter: brightness(0.25);
+}
+/* A thin ring 192px across, centred 2px above the logo's centre */
+.app-loading__spinner.ui-spinner {
+  position: absolute;
+  left: 50%;
+  top: 48px;
+  width: 243px !important;
+  height: 243px !important;
+  margin: -121.5px 0 0 -121.5px;
+  color: var(--ink);
+  filter: brightness(0.25);
+}
+[data-theme='light'] .app-loading__spinner.ui-spinner {
+  color: var(--accent);
+}
+.app-loading__spinner circle,
+.app-loading__spinner path {
+  stroke-width: 0.99;
+}
+.app-loading__spinner circle {
+  stroke: var(--ink);
+  stroke-opacity: 0.12;
+}
 </style>

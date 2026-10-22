@@ -40,7 +40,7 @@ export default {
 <style>
 .ui-toast__viewport {
   position: fixed;
-  z-index: 4000;
+  z-index: 10000; /* above every overlay, the first-launch screen (9999) included */
   left: 50%;
   bottom: calc(var(--space-4) + var(--safe-bottom));
   transform: translateX(-50%);
