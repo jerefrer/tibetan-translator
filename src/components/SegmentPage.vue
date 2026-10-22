@@ -485,6 +485,12 @@ export default {
 
       // Recalculate merges only around the affected area
       await this.updateMergesAroundIndex(startIndex, count);
+
+      // The merge button went with its bracket: give the text area the
+      // focus rather than losing it
+      this.$nextTick(() => {
+        if (!document.activeElement || document.activeElement === document.body) this.focusTextarea();
+      });
     },
 
     hasDefinitions(term) {

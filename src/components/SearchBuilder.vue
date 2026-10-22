@@ -126,6 +126,13 @@ export default {
         // If last row, just clear it
         this.rows[0] = { term: '', mode: 'contains' };
       }
+      // Its remove button is gone: the focus goes to the row above
+      const target = Math.max(0, index - 1);
+      this.$nextTick(() => this.$refs.rowComponents?.[target]?.focus());
+    },
+
+    focusFirstRow() {
+      this.$refs.rowComponents?.[0]?.focus();
     },
 
     updateRowTerm(index, term) {

@@ -651,6 +651,20 @@ describe('Split — terms', () => {
     expect(page().vm.selectedTermIndex).toBe(2)
   })
 
+  it('should give the text area the focus after a merge, as its button goes with the bracket', async () => {
+    await mountPage()
+    await splitText()
+    const button = wrapper.findAll('[data-testid="split-merge-button"]')
+      .find((candidate) => candidate.attributes('aria-label').startsWith('Merge 2 terms: ' + BCOMLDANDAS))
+    button.element.focus()
+
+    await button.trigger('click')
+    await flushPromises()
+    await nextTick()
+
+    expect(document.activeElement).toBe(textarea().element)
+  })
+
   it('should move with Up/Down, from the first term when none is selected, without wrapping (T8)', async () => {
     await mountPage()
     await typeAndWait('ཀ་ ཁ་ ག་', ['ཀ་', 'ཁ་', 'ག་'])

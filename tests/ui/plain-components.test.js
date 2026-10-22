@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import UiIcon from '../../src/ui/UiIcon.vue'
 import UiButton from '../../src/ui/UiButton.vue'
 import UiCard from '../../src/ui/UiCard.vue'
@@ -76,6 +77,21 @@ describe('UiButton', () => {
     const wrapper = mount(UiButton, { props: { disabled: true } })
     await wrapper.trigger('click')
     expect(wrapper.emitted('click')).toBeUndefined()
+  })
+
+  it('should get the focus back when loading ends, since a disabled button loses it', async () => {
+    const wrapper = mount(UiButton, { props: { loading: false }, attachTo: document.body })
+    wrapper.element.focus()
+    await wrapper.setProps({ loading: true })
+    // What the browser does to a focused button that gets disabled (happy-dom
+    // does not blur a disabled element, so enable it for the blur)
+    wrapper.element.disabled = false
+    wrapper.element.blur()
+    expect(document.activeElement).not.toBe(wrapper.element)
+    await wrapper.setProps({ loading: false })
+    await nextTick()
+    expect(document.activeElement).toBe(wrapper.element)
+    wrapper.unmount()
   })
 
   it('should be busy and unclickable while loading', () => {

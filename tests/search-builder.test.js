@@ -430,6 +430,14 @@ describe('SearchBuilder Component', () => {
       expect(wrapper.emitted('update:modelValue').at(-1)).toEqual(['dharma'])
     })
 
+    it('gives the focus to the row above once a condition is removed', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'buddha & dharma & sangha' })
+      await wrapper.findAll('[data-testid="search-builder-remove"]')[2].trigger('click')
+      await nextTick()
+      await nextTick()
+      expect(document.activeElement).toBe(terms(wrapper)[1].element)
+    })
+
     it('hides with its Hide button', async () => {
       const wrapper = mountSearchBuilder({ modelValue: '' })
       await wrapper.find('[data-testid="search-builder-hide"]').trigger('click')

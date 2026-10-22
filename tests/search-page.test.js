@@ -470,6 +470,18 @@ describe('Search — before any search (board "B · Search, empty")', () => {
     expect(findAll('search-result')).toHaveLength(3)
   })
 
+  it('should give the field the focus after a recent search, not lose it with the button', async () => {
+    Storage.set('previousQueries', ['dharma', 'wakefulness'])
+    await mountAt('/search')
+    const button = findAll('search-recent-query')[1]
+    button.element.focus()
+
+    await button.trigger('click')
+    await flushPromises()
+
+    expect(document.activeElement).toBe(find('search-field').find('input').element)
+  })
+
   it('should clear the history and give the field the focus (H4)', async () => {
     Storage.set('previousQueries', ['dharma'])
     await mountAt('/search')
@@ -509,6 +521,21 @@ describe('Search — query builder', () => {
     await find('search-builder-show').trigger('click')
     expect(find('search-builder').exists()).toBe(true)
     expect(Storage.get('searchBuilderVisible')).toBe(true)
+  })
+
+  it('should hand the focus between Hide and "Query builder", which each disappear when pressed', async () => {
+    await mountAt('/search')
+    find('search-builder-hide').element.focus()
+
+    await find('search-builder-hide').trigger('click')
+    await nextTick()
+    expect(document.activeElement).toBe(find('search-builder-show').element)
+
+    find('search-builder-show').element.focus()
+    await find('search-builder-show').trigger('click')
+    await nextTick()
+    await nextTick()
+    expect(document.activeElement).toBe(find('search-builder-term').element)
   })
 
   it('should follow the field, and the field the rows (B2)', async () => {

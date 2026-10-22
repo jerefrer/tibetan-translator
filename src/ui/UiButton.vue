@@ -20,6 +20,20 @@ export default {
     block: { type: Boolean, default: false },
     type: { type: String, default: 'button' },
   },
+  watch: {
+    // A loading button is disabled, and the browser drops the focus of a
+    // disabled button: give it back once loading ends (Split words, Search)
+    loading(isLoading) {
+      if (isLoading) {
+        this.hadFocus = document.activeElement === this.$el;
+      } else if (this.hadFocus) {
+        this.hadFocus = false;
+        this.$nextTick(() => {
+          if (!document.activeElement || document.activeElement === document.body) this.$el?.focus?.();
+        });
+      }
+    },
+  },
 };
 </script>
 

@@ -100,6 +100,17 @@ export default {
     builderVisible(value) {
       // The help promises the choice is remembered
       Storage.set('searchBuilderVisible', value);
+      // Hide and "Query builder" each disappear when pressed: carry the
+      // focus over to the other one's side instead of losing it
+      this.$nextTick(() => {
+        const active = document.activeElement;
+        const lost = !active || active === document.body;
+        if (value) {
+          if (lost) this.$refs.builder?.focusFirstRow();
+        } else if (lost || active.closest?.('[data-testid="search-builder"]')) {
+          this.$refs.builderToggle?.focus();
+        }
+      });
     },
     displayedCount() {
       // A new observer reports at once if the sentinel is still in view
@@ -395,6 +406,12 @@ export default {
       this.previousQueries = [];
       this.focusInput();
     },
+    // The recent searches give way to the results: the focus goes to the
+    // field rather than being lost with the button
+    searchRecent(query) {
+      this.performSearch({ query });
+      this.focusInput();
+    },
     onLexiconEntrySaved() {
       // Re-run the current search so the new definition shows immediately.
       if (this.searchQuery) this.performSearch({ query: this.searchQuery, fromNavigation: true });
@@ -653,6 +670,7 @@ export default {
 
       <button
         v-if="!builderVisible"
+        ref="builderToggle"
         type="button"
         class="builder-toggle"
         data-testid="search-builder-show"
@@ -664,6 +682,7 @@ export default {
     </div>
 
     <SearchBuilder
+      ref="builder"
       v-model="searchQuery"
       v-model:visible="builderVisible"
       @submit="performSearch()"
@@ -736,7 +755,7 @@ export default {
               type="button"
               class="recent-query"
               data-testid="search-recent-query"
-              @click="performSearch({ query: query })"
+              @click="searchRecent(query)"
               v-html="wrapAllTibetanWithSpansAndAddTshekIfMissing(query)"
             />
           </transition-group>
