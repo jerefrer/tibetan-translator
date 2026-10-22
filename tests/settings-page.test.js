@@ -296,7 +296,7 @@ describe('ConfigurePage', () => {
       expect(byTestId('appearance-card').exists()).toBe(true)
     })
 
-    it('lists the version and the update check as rows in the app', async () => {
+    it('lists What’s new and the update check as rows in the app', async () => {
       env.tauri = true
       await mountWith(ConfigurePage)
       expect(byTestId('about-whats-new-row').text()).toContain('Tibetan Translator 1.12.0')
@@ -416,10 +416,14 @@ describe('AboutCard', () => {
     expect(byTestId('about-card').exists()).toBe(false)
   })
 
-  it('shows the version', async () => {
+  it('shows the version and this version’s notes under What’s new', async () => {
     await mountWith(AboutCard)
     expect(byTestId('about-card').text()).toContain('Tibetan Translator 1.12.0')
-    expect(byTestId('about-whats-new').exists()).toBe(false)
+    await byTestId('about-whats-new').trigger('click')
+    await nextTick()
+    expect(inBody('ui-dialog').textContent).toContain('What’s new in v1.12.0')
+    expect(inBody('release-notes')).not.toBeNull()
+    expect(inBody('notes-close')).not.toBeNull()
   })
 
   it('says when the app is up to date', async () => {

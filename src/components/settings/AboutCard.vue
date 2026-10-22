@@ -1,6 +1,7 @@
 <script>
+import changelog from '../../../CHANGELOG.md?raw';
 import UpdateService from '../../services/update-service';
-import { renderReleaseNotes } from '../../services/release-notes-markdown';
+import { renderReleaseNotes, releaseNotesFor } from '../../services/release-notes-markdown';
 import { isTauri } from '../../config/platform';
 import { UiButton, UiDialog, UiIcon, UiListItem, UiSpinner } from '../../ui';
 import SettingsCard from './SettingsCard.vue';
@@ -37,12 +38,16 @@ export default {
     updateProgress() {
       return UpdateService.state.downloadProgress;
     },
-    // Notes of the update waiting for a restart
+    // The downloaded update's notes when one waits for a restart, otherwise
+    // this version's section of CHANGELOG.md.
     notesVersion() {
-      return this.updateVersion;
+      return this.updateReady ? this.updateVersion : this.appVersion;
     },
     notesHtml() {
-      return renderReleaseNotes(UpdateService.state.notes);
+      const markdown = this.updateReady
+        ? UpdateService.state.notes
+        : releaseNotesFor(changelog, this.appVersion);
+      return renderReleaseNotes(markdown);
     },
     versionLine() {
       if (this.updateReady) return `Version ${this.appVersion} → v${this.updateVersion} ready`;
@@ -90,14 +95,14 @@ export default {
   <template v-if="appVersion">
     <template v-if="rows">
       <ui-list-item
-        :title="updateReady ? 'What’s new in v' + updateVersion : 'About'"
+        :title="updateReady ? 'What’s new in v' + updateVersion : 'What’s new'"
         :subtitle="versionLine"
-        :clickable="updateReady"
+        clickable
         class="settings-row"
         data-testid="about-whats-new-row"
         @click="openNotes"
       >
-        <template v-if="updateReady" #append><ui-icon name="chevron-right" :size="18" class="settings-row__chevron" /></template>
+        <template #append><ui-icon name="chevron-right" :size="18" class="settings-row__chevron" /></template>
       </ui-list-item>
       <ui-list-item
         v-if="updateReady"
@@ -132,7 +137,7 @@ export default {
 
     <settings-card v-else title="About" :subtitle="versionLine" class="about-card" data-testid="about-card">
       <div class="about-card__actions">
-        <ui-button v-if="updateReady" variant="outline" data-testid="about-whats-new" @click="openNotes">What’s new</ui-button>
+        <ui-button variant="outline" data-testid="about-whats-new" @click="openNotes">What’s new</ui-button>
         <ui-button v-if="updateReady" data-testid="about-restart" @click="openNotes">
           <ui-icon name="rotate-cw" :size="16" />
           Restart to update
