@@ -809,6 +809,7 @@ export default {
             :dictionaries="dictionariesForCurrentResults"
             :totalNumberOfEntries="entries.length"
             :hidePagination="true"
+            menuAlign="start"
             @close:dictionariesMenu="focusTextarea"
           />
         </div>

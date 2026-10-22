@@ -37,6 +37,9 @@ export default {
     numberOfEntriesPerPage: Number,
     totalNumberOfEntries: Number,
     hidePagination: Boolean,
+    // Which edge of the button the menu lines up with; Split's button sits
+    // beside the navigation rail, so it opens towards the definitions
+    menuAlign: { type: String, default: 'end' },
   },
   emits: ['change:page', 'close:dictionariesMenu'],
   data() {
@@ -274,7 +277,7 @@ export default {
       <popover-portal>
         <popover-content
           class="dictionaries-menu"
-          align="end"
+          :align="menuAlign"
           :side-offset="6"
           :collision-padding="16"
           data-testid="dictionaries-menu"

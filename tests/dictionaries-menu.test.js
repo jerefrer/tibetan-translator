@@ -320,3 +320,20 @@ describe('DictionariesMenuMixin', () => {
     host.unmount()
   })
 })
+
+describe('Menu alignment', () => {
+  // The rendered data-align attribute reflects collision handling, so check what is asked of the popover
+  const requestedAlignment = () => wrapper.findComponent({ name: 'PopoverContent' }).props('align')
+
+  it('should line up with the right edge of the button by default', async () => {
+    mountMenu()
+    await openMenu()
+    expect(requestedAlignment()).toBe('end')
+  })
+
+  it('should line up with the left edge of the button when asked to', async () => {
+    mountMenu({ menuAlign: 'start' })
+    await openMenu()
+    expect(requestedAlignment()).toBe('start')
+  })
+})
