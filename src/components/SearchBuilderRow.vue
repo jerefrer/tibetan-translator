@@ -155,7 +155,7 @@ export default {
   font-size 1.125rem
 
   &::placeholder
-    color var(--faint)
+    color var(--muted)
 
 .builder-row__remove
   flex none

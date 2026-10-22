@@ -449,7 +449,7 @@ export default {
       background var(--soft)
 
     &.is-disabled .dictionary-row__label
-      color var(--faint)
+      color var(--muted)
 
     b
       color var(--accent)

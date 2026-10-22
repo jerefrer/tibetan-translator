@@ -107,7 +107,7 @@ export default {
   font: 500 var(--text-base) var(--font-ui);
   cursor: pointer;
 }
-.ui-select__trigger[data-placeholder] { color: var(--faint); }
+.ui-select__trigger[data-placeholder] { color: var(--muted); }
 .ui-select__trigger:focus-visible,
 .ui-select__trigger[data-state='open'] {
   outline: none;

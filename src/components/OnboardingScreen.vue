@@ -557,7 +557,7 @@ export default {
 }
 .onboarding-pack__meta {
   font-size: var(--text-chip);
-  color: var(--faint);
+  color: var(--muted);
 }
 
 /* Quick lookup: the board's three steps, with the old demo video beside them */

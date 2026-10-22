@@ -1128,9 +1128,9 @@ export default {
     color var(--on-accent)
     border-bottom-color transparent
 
-  // No entry for this term: faint, with a marker
+  // No entry for this term: muted, with a marker (--faint is under 4.5:1)
   &.is-unknown:not(.is-active)
-    color var(--faint)
+    color var(--muted)
 
 .term-item__text
   min-width 0

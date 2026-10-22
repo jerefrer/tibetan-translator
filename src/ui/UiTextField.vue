@@ -165,7 +165,7 @@ export default {
   font: var(--text-md) var(--font-ui);
   padding: 0;
 }
-.ui-field__input::placeholder { color: var(--faint); }
+.ui-field__input::placeholder { color: var(--muted); }
 .ui-field--multiline .ui-field__control { align-items: flex-start; padding-top: var(--space-3); padding-bottom: var(--space-3); }
 .ui-field--multiline .ui-field__input { resize: vertical; line-height: 1.5; }
 .ui-field--tibetan .ui-field__input {
