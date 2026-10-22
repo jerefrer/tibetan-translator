@@ -1,8 +1,6 @@
 <script>
-import { useTheme } from 'vuetify';
-
 import Storage from '../../services/storage';
-import { resolveTheme, systemPrefersDark } from '../../services/theme';
+import { applyDocumentTheme, resolveTheme, systemPrefersDark } from '../../services/theme';
 import { UiButton, UiIcon, UiSlider } from '../../ui';
 import SettingsCard from './SettingsCard.vue';
 
@@ -18,12 +16,6 @@ export const DEFAULT_FONT_SIZE = 100;
 export default {
   name: 'AppearanceCard',
   components: { SettingsCard, UiButton, UiIcon, UiSlider },
-  setup() {
-    // Vuetify still themes the screens not yet rebuilt; App.vue mirrors its
-    // theme onto <html data-theme>, which the new tokens read. Drop this
-    // together with Vuetify.
-    return { theme: useTheme() };
-  },
   data() {
     return {
       themeOptions: THEME_OPTIONS,
@@ -55,9 +47,7 @@ export default {
   },
   methods: {
     applyTheme(preference) {
-      const actualTheme = resolveTheme(preference, systemPrefersDark());
-      this.theme.global.name.value = actualTheme;
-      Storage.set('darkTheme', actualTheme === 'dark');
+      applyDocumentTheme(resolveTheme(preference, systemPrefersDark()));
     },
     applyFontSize(size) {
       document.documentElement.style.setProperty('--app-font-size', `${size}%`);

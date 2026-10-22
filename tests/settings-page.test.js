@@ -12,16 +12,11 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 const env = vi.hoisted(() => ({ tauri: false, mobile: false }))
 
 const mocks = vi.hoisted(() => ({
-  themeName: { value: 'light' },
   globalLookup: null,
   update: null,
   packs: null,
   db: null,
   scans: null,
-}))
-
-vi.mock('vuetify', () => ({
-  useTheme: () => ({ global: { name: mocks.themeName } }),
 }))
 
 vi.mock('../src/config/platform', () => ({
@@ -307,8 +302,7 @@ describe('AppearanceCard', () => {
     await mountWith(AppearanceCard)
     await byTestId('theme-dark').trigger('click')
     expect(Storage.get('themePreference')).toBe('dark')
-    expect(mocks.themeName.value).toBe('dark')
-    expect(Storage.get('darkTheme')).toBe(true)
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
     expect(byTestId('theme-dark').attributes('aria-pressed')).toBe('true')
   })
 
@@ -316,7 +310,15 @@ describe('AppearanceCard', () => {
     window.matchMedia = vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
     await mountWith(AppearanceCard)
     await byTestId('theme-system').trigger('click')
-    expect(mocks.themeName.value).toBe('dark')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+  })
+
+  it('switches back to light', async () => {
+    await mountWith(AppearanceCard)
+    await byTestId('theme-dark').trigger('click')
+    await byTestId('theme-light').trigger('click')
+    expect(Storage.get('themePreference')).toBe('light')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 
   it('offers a reset only when the text size is not the default', async () => {

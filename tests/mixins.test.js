@@ -4,7 +4,6 @@
  * Tests the shared mixins used across components:
  * - MobileResponsiveMixin
  * - InfiniteScrollMixin
- * - ThemeMixin
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'

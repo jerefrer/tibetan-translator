@@ -1,7 +1,6 @@
 <script>
 import $ from "jquery";
 import _ from "underscore";
-import { useTheme } from "vuetify";
 
 import db from "../services/sql-database";
 import Storage from "../services/storage";
@@ -13,7 +12,7 @@ import AudioPlayerService from "../services/audio-player-service";
 import ResizeService from "../services/resize-service";
 import { supportsModularPacks } from "../config/platform";
 import { shortcutPaths } from "../config/navigation";
-import { applyDocumentTheme } from "../services/theme";
+import { initDocumentTheme } from "../services/theme";
 
 import TibdictInstaller from "../services/tibdict-installer";
 import { substituteLinksWithATags } from "../utils.js";
@@ -53,15 +52,6 @@ export default {
     CustomPackConflictModal,
   },
   inject: ["snackbar"],
-  setup() {
-    const theme = useTheme();
-    return { theme };
-  },
-  watch: {
-    'theme.global.current.value.dark'(value) {
-      this.updateHtmlThemeClass();
-    },
-  },
   data() {
     return {
       loading: true,
@@ -70,9 +60,6 @@ export default {
     };
   },
   computed: {
-    isDark() {
-      return this.theme.global.current.value.dark;
-    },
     tibdictInstallerState() {
       return TibdictInstaller.state;
     },
@@ -124,23 +111,14 @@ export default {
       await db.setAllTermsVariable();
     },
     initializeTheme() {
-      const preference = Storage.get('themePreference');
-      let actualTheme;
-      if (preference === 'system') {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        actualTheme = prefersDark ? 'dark' : 'light';
-      } else {
-        actualTheme = preference;
-      }
-      this.theme.global.name.value = actualTheme;
+      // data-theme on <html> for the tokens, from the stored themePreference
+      // (light, dark or system). Settings' Appearance card applies changes.
+      initDocumentTheme();
     },
     initializeFontSize() {
       const fontSize = Storage.get('fontSize') || 100;
       document.documentElement.style.setProperty('--app-font-size', `${fontSize}%`);
       document.documentElement.style.fontSize = `${fontSize}%`;
-    },
-    updateHtmlThemeClass() {
-      applyDocumentTheme(this.isDark ? "dark" : "light");
     },
     openSnackbarWith(text) {
       var html = substituteLinksWithATags(text);
@@ -186,7 +164,6 @@ export default {
   async created() {
     this.initializeTheme();
     this.initializeFontSize();
-    this.updateHtmlThemeClass();
     window.SqlDatabase = db;
 
     // Route installer snackbar messages through the app-level snackbar.
