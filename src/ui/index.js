@@ -28,6 +28,7 @@ export { default as UiSwitch } from './UiSwitch.vue';
 export { default as UiTable } from './UiTable.vue';
 export { default as UiTabs } from './UiTabs.vue';
 export { default as UiTextField } from './UiTextField.vue';
+export { default as UiTibetanField } from './UiTibetanField.vue';
 export { default as UiToast } from './UiToast.vue';
 export { default as UiToolbar } from './UiToolbar.vue';
 export { default as UiTooltip } from './UiTooltip.vue';

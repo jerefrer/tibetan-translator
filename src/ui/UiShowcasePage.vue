@@ -26,6 +26,7 @@ import {
   UiTable,
   UiTabs,
   UiTextField,
+  UiTibetanField,
   UiToast,
   UiToolbar,
   UiTooltip,
@@ -58,6 +59,7 @@ export default {
     UiTable,
     UiTabs,
     UiTextField,
+    UiTibetanField,
     UiToast,
     UiToolbar,
     UiTooltip,
@@ -72,6 +74,7 @@ export default {
       state: {
         text: 'ye shes',
         tibetan: 'ཡེ་ཤེས་',
+        wylie: 'snying rje',
         multiline: 'A free-form note',
         selectValue: 'core',
         tab: 'one',
@@ -193,6 +196,7 @@ export default {
           <ui-text-field v-model="state.text" label="With an error" error="This field is required" />
           <ui-text-field v-model="state.multiline" label="Multiline" multiline :rows="2" />
           <ui-text-field model-value="Disabled" disabled />
+          <ui-tibetan-field v-model="state.wylie" label="Tibetan term (type Wylie, then a space)" />
         </div>
 
         <h3>Select, menu, tooltip</h3>
