@@ -15,9 +15,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import { nextTick } from 'vue'
 
 vi.mock('../src/config/platform.js', () => ({
@@ -54,7 +51,6 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
 
 import CustomPackSection from '../src/components/CustomPackSection.vue'
 
-const vuetify = createVuetify({ components, directives })
 const snackbar = { open: vi.fn() }
 
 const PACK = {
@@ -82,17 +78,14 @@ describe('CustomPackSection', () => {
   })
 
   afterEach(() => {
-    // v-dialog teleports into document.body and its leave transition isn't
-    // guaranteed to finish (and thus detach its DOM) by the time
-    // wrapper.unmount() returns, which otherwise leaks a previous test's
-    // dialog markup into the next test's document.body queries.
+    // UiDialog teleports into document.body; clear it so a previous test's
+    // dialog markup never leaks into the next test's document.body queries.
     document.body.innerHTML = ''
   })
 
   const mountSection = () =>
     mount(CustomPackSection, {
       global: {
-        plugins: [vuetify],
         provide: { snackbar },
         mocks: { $router: { push: vi.fn() } },
       },
@@ -219,7 +212,6 @@ describe('CustomPackSection — create from a spreadsheet', () => {
   const mountSection = () =>
     mount(CustomPackSection, {
       global: {
-        plugins: [vuetify],
         provide: { snackbar },
         mocks: { $router: { push: vi.fn() } },
       },
@@ -283,5 +275,69 @@ describe('CustomPackSection — create from a spreadsheet', () => {
     await wrapper.vm.confirmCreate()
     expect(applyImportMock).not.toHaveBeenCalled()
     expect(snackbar.open).toHaveBeenCalledWith('Plain created')
+  })
+})
+
+describe('CustomPackSection — list and empty state', () => {
+  afterEach(() => {
+    document.body.innerHTML = ''
+  })
+
+  const mountSection = (router = { push: vi.fn() }) =>
+    mount(CustomPackSection, {
+      global: { provide: { snackbar }, mocks: { $router: router } },
+      attachTo: document.body,
+    })
+
+  it('lists each pack with its version and opens its entries from Manage entries', async () => {
+    customPacks = [PACK]
+    const router = { push: vi.fn() }
+    const wrapper = mountSection(router)
+
+    const row = wrapper.get('[data-testid="custom-pack"]')
+    expect(row.text()).toContain('My Lexicon')
+    expect(row.text()).toContain('v1.0.0')
+
+    await wrapper.get('[data-testid="custom-pack-manage"]').trigger('click')
+    expect(router.push).toHaveBeenCalledWith('/glossary/custom-mine')
+    wrapper.unmount()
+  })
+
+  it('still offers all three ways in when there is no dictionary yet', () => {
+    customPacks = []
+    const wrapper = mountSection()
+    expect(wrapper.text()).toContain("You don't have a dictionary of your own yet.")
+    for (const testid of ['custom-pack-new', 'custom-pack-from-sheet', 'custom-pack-import']) {
+      expect(wrapper.find(`[data-testid="${testid}"]`).exists(), testid).toBe(true)
+    }
+    wrapper.unmount()
+  })
+
+  it('creates the dictionary when Enter is pressed in the name field', async () => {
+    customPacks = []
+    createMock.mockReset().mockResolvedValue({ id: 'custom-enter', manifest: { name: 'Enter' } })
+    const wrapper = mountSection()
+    wrapper.vm.onCreate()
+    await flushPromises()
+
+    const input = document.body.querySelector('[data-testid="custom-pack-name"] input')
+    input.value = 'Enter'
+    input.dispatchEvent(new Event('input'))
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    await flushPromises()
+
+    expect(createMock).toHaveBeenCalledWith('Enter', '')
+    wrapper.unmount()
+  })
+
+  it('shows the missing-name error in the dialog', async () => {
+    customPacks = []
+    const wrapper = mountSection()
+    wrapper.vm.onCreate()
+    await flushPromises()
+    await wrapper.vm.confirmCreate()
+    await flushPromises()
+    expect(document.body.textContent).toContain('A name is required.')
+    wrapper.unmount()
   })
 })
