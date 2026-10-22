@@ -295,6 +295,17 @@ describe('DictionariesMenuMixin', () => {
     host.unmount()
   })
 
+  it('should count each dictionary\'s entries and list only those with some, whatever the id type', async () => {
+    const host = mount(Host)
+    host.vm.entries = [{ dictionaryId: 1 }, { dictionaryId: '1' }, { dictionaryId: 3 }]
+    host.vm.resetDictionariesToDefaultAndSetNumberOfEntries()
+    await nextTick()
+
+    expect(host.vm.dictionaries.map((d) => d.numberOfEntries)).toEqual([2, 0, 1])
+    expect(host.vm.dictionariesForCurrentResults.map((d) => d.id)).toEqual([1, 3])
+    host.unmount()
+  })
+
   it('should reset a choice made in the menu on the next lookup', async () => {
     const host = mount(Host)
     host.vm.entries = [{ dictionaryId: 1 }, { dictionaryId: 2 }]

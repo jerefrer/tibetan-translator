@@ -12,11 +12,10 @@ export default {
   },
   computed: {
     dictionariesForCurrentResults() {
-      return this.dictionaries.filter((dictionary) => {
-        return this.entries?.find(
-          (entry) => entry.dictionaryId == dictionary.id
-        );
-      });
+      // One pass over the entries, not one per dictionary (35 x 3,000
+      // reactive reads for a long Search)
+      const ids = new Set((this.entries || []).map((entry) => String(entry.dictionaryId)));
+      return this.dictionaries.filter((dictionary) => ids.has(String(dictionary.id)));
     },
     enabledDictionariesIds() {
       return this.dictionariesForCurrentResults
@@ -44,12 +43,14 @@ export default {
   },
   methods: {
     resetDictionariesToDefaultAndSetNumberOfEntries() {
+      const counts = {};
+      this.entries.forEach((entry) => {
+        counts[entry.dictionaryId] = (counts[entry.dictionaryId] || 0) + 1;
+      });
       this.dictionaries.forEach((dictionary) => {
         dictionary.shortLabel = this.shortLabelFor(dictionary);
         dictionary.enabled = dictionary.enabledInPreferences;
-        dictionary.numberOfEntries = this.entries.filter(
-          (entry) => entry.dictionaryId == dictionary.id
-        ).length;
+        dictionary.numberOfEntries = counts[dictionary.id] || 0;
       });
     },
   },
