@@ -34,6 +34,8 @@ export default {
     modelValue: { type: String, default: undefined },
     options: { type: Array, required: true },
     label: { type: String, default: '' },
+    // Names the trigger when there is no visible label
+    ariaLabel: { type: String, default: undefined },
     placeholder: { type: String, default: 'Select' },
     disabled: { type: Boolean, default: false },
     open: { type: Boolean, default: undefined },
@@ -61,7 +63,7 @@ export default {
       :open="open"
       @update:model-value="$emit('update:modelValue', $event)"
     >
-      <select-trigger :id="id" class="ui-select__trigger" data-testid="ui-select-trigger">
+      <select-trigger :id="id" :aria-label="label ? undefined : ariaLabel" class="ui-select__trigger" data-testid="ui-select-trigger">
         <select-value :placeholder="placeholder">{{ selectedLabel ?? placeholder }}</select-value>
         <ui-icon name="chevron-down" :size="16" />
       </select-trigger>

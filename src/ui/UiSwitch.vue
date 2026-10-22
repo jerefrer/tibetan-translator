@@ -3,13 +3,15 @@ import { SwitchRoot, SwitchThumb } from 'reka-ui';
 
 let uid = 0;
 
-// Replaces <v-switch>. The label is the default slot or the `label` prop.
+// Replaces <v-switch>. The label is the default slot or the `label` prop;
+// without a visible label, `aria-label` names the control itself.
 export default {
   name: 'UiSwitch',
   components: { SwitchRoot, SwitchThumb },
   props: {
     modelValue: { type: Boolean, default: false },
     label: { type: String, default: '' },
+    ariaLabel: { type: String, default: undefined },
     disabled: { type: Boolean, default: false },
   },
   emits: ['update:modelValue'],
@@ -26,6 +28,7 @@ export default {
       class="ui-switch__root"
       :model-value="modelValue"
       :disabled="disabled"
+      :aria-label="ariaLabel"
       data-testid="ui-switch-control"
       @update:model-value="$emit('update:modelValue', $event)"
     >

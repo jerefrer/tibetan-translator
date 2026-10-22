@@ -626,6 +626,13 @@ describe('DictionaryPreferencesCard', () => {
     expect(rows[2].classes()).toContain('is-disabled')
   })
 
+  it('names each switch after its dictionary', async () => {
+    seedDictionaries()
+    await mountWith(DictionaryPreferencesCard)
+    const control = wrapper.findAll('[data-testid="dictionary-pref-switch"]')[0].find('button')
+    expect(control.attributes('aria-label')).toContain('Rangjung')
+  })
+
   it('saves a dictionary switched off, with positions', async () => {
     seedDictionaries()
     await mountWith(DictionaryPreferencesCard)

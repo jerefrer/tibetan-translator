@@ -61,6 +61,7 @@ export default {
         class="builder-row__mode"
         :model-value="mode"
         :options="modes"
+        aria-label="How to match"
         data-testid="search-builder-mode"
         @update:model-value="$emit('update:mode', $event)"
       />

@@ -105,7 +105,7 @@ export default {
     data-testid="global-lookup-card"
   >
     <template #aside>
-      <ui-switch v-model="enabled" data-testid="global-lookup-switch" />
+      <ui-switch v-model="enabled" aria-label="Global lookup" data-testid="global-lookup-switch" />
     </template>
 
     <ui-alert

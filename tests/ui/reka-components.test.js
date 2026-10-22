@@ -177,6 +177,12 @@ describe('UiSelect', () => {
     expect(body('ui-select-option-tibetan')).not.toBeNull()
   })
 
+  it('should name the trigger with aria-label when it has no visible label', () => {
+    mountAttached(UiSelect, { props: { options, modelValue: 'core' }, attrs: { 'aria-label': 'Pack' } })
+    expect(body('ui-select-trigger').getAttribute('aria-label')).toBe('Pack')
+    expect(body('ui-select').hasAttribute('aria-label')).toBe(false)
+  })
+
   it('should be disabled when asked', () => {
     mountAttached(UiSelect, { props: { options, disabled: true } })
     expect(body('ui-select-trigger').hasAttribute('disabled')).toBe(true)
@@ -188,6 +194,12 @@ describe('UiSwitch', () => {
     mountAttached(UiSwitch, { props: { modelValue: true, label: 'Global lookup' } })
     expect(body('ui-switch-control').getAttribute('aria-checked')).toBe('true')
     expect(body('ui-switch').textContent).toContain('Global lookup')
+  })
+
+  it('should put aria-label on the switch itself, not on its wrapper', () => {
+    mountAttached(UiSwitch, { props: { modelValue: true }, attrs: { 'aria-label': 'Hopkins 2015' } })
+    expect(body('ui-switch-control').getAttribute('aria-label')).toBe('Hopkins 2015')
+    expect(body('ui-switch').hasAttribute('aria-label')).toBe(false)
   })
 
   it('should emit the new state when toggled', async () => {

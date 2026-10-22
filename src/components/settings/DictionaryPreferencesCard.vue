@@ -141,6 +141,7 @@ export default {
           </ui-button>
           <ui-switch
             v-model="dictionary.enabled"
+            :aria-label="label(dictionary)"
             class="dictionary-pref__switch"
             data-testid="dictionary-pref-switch"
           />
