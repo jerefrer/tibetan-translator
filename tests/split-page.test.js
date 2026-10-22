@@ -790,10 +790,10 @@ describe('Split — definitions', () => {
 })
 
 describe('Split — dividers', () => {
-  it('should start from 20 % for the text and 27 % for the terms when nothing is stored (R1, R2)', async () => {
+  it('should start from 24 % for the text and 27 % for the terms when nothing is stored (R1, R2)', async () => {
     await mountPage()
 
-    expect(page().find('.split-input').element.style.height).toBe('20%')
+    expect(page().find('.split-input').element.style.height).toBe('24%')
     await typeAndWait('ཀ་', ['ཀ་'])
     expect(page().find('.terms-pane').element.style.width).toBe('27%')
   })

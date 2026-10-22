@@ -62,7 +62,7 @@ export default {
       updatingTextarea: false, // Flag to prevent recursive updates
       lastSelectedTerm: null, // Track last selected term content to avoid unnecessary refreshes
       // Divider positions (percentages)
-      topHeight: Storage.get("segment.topHeight", 20),
+      topHeight: Storage.get("segment.topHeight", 24),
       leftWidth: Storage.get("segment.leftWidth", 27),
     };
   },
@@ -89,7 +89,8 @@ export default {
       if (this.isMobile) return {};
       return {
         height: `${this.topHeight}%`,
-        minHeight: "100px",
+        // Room for the header and at least one line of text
+        minHeight: "9rem",
       };
     },
     leftStyle() {
