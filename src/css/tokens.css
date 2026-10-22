@@ -42,6 +42,10 @@
   --amber-solid: #8F6200;     /* selected subject tags */
   --on-amber-solid: #FFFFFF;
 
+  /* Search hits: the logo yellow in light */
+  --hit-bg: #FFC107;
+  --on-hit-bg: #2A1F1A;
+
   /* Inverse surface (dark chips, tooltips) */
   --dark: #2A1F1A;
   --on-dark: #FFF8E8;
@@ -148,6 +152,10 @@
   --amber-line: #A87400;
   --amber-solid: #E0B04A;
   --on-amber-solid: #2A1F1A;
+
+  /* Search hits: the amber of notices, the logo yellow is loud on the dark page */
+  --hit-bg: var(--amber-solid);
+  --on-hit-bg: var(--on-amber-solid);
 
   --dark: #F3E8D6;
   --on-dark: #2A1F1A;

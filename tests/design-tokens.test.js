@@ -38,6 +38,19 @@ describe('design tokens', () => {
     expect(dark['--rail-bg']).toBe('#5A0000')
   })
 
+  it('should highlight Search hits in the logo yellow in light and in the amber of notices in dark', () => {
+    expect(light['--hit-bg']).toBe('#FFC107')
+    expect(light['--on-hit-bg']).toBe('#2A1F1A')
+    expect(dark['--hit-bg']).toBe('var(--amber-solid)')
+    expect(dark['--on-hit-bg']).toBe('var(--on-amber-solid)')
+  })
+
+  it('should draw the Search hits with those tokens', () => {
+    const search = fs.readFileSync(path.resolve(__dirname, '../src/components/SearchPage.vue'), 'utf8')
+    expect(search).toContain('background var(--hit-bg)\n  color var(--on-hit-bg)')
+    expect(search).not.toContain('--logo-bg')
+  })
+
   it('should override only tokens that exist in the light theme', () => {
     const unknown = Object.keys(dark).filter((name) => !(name in light))
     expect(unknown).toEqual([])

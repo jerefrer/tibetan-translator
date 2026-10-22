@@ -1214,18 +1214,18 @@ export default {
     color var(--rubric)
     text-decoration none
 
-// The hits: Latin on yellow, Tibetan underlined in yellow
+// The hits: Latin on yellow, Tibetan underlined in yellow (amber in dark)
 .result :deep(em)
   font-style normal
-  background var(--logo-bg)
-  color #2A1F1A
+  background var(--hit-bg)
+  color var(--on-hit-bg)
   border-radius 2px
 
 .result-term :deep(em),
 .result :deep(.tibetan em)
   background none
   color inherit
-  text-decoration underline var(--logo-bg) 3px
+  text-decoration underline var(--hit-bg) 3px
   text-underline-offset 4px
 
 .scanned-entry
