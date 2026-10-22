@@ -7,14 +7,11 @@
  * keep it out of the payload.
  *
  * Follows the mounting idiom quick-add-dialog.test.js established — attachTo,
- * an injected snackbar, and lookups through document.body, since v-dialog
+ * an injected snackbar, and lookups through document.body, since UiDialog
  * teleports its content out of the wrapper's own subtree.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, flushPromises } from '@vue/test-utils';
-import { createVuetify } from 'vuetify';
-import * as components from 'vuetify/components';
-import * as directives from 'vuetify/directives';
 
 const entriesMock = vi.fn();
 const applyImportMock = vi.fn();
@@ -33,7 +30,6 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
 
 import ImportPreviewDialog from '../src/components/ImportPreviewDialog.vue';
 
-const vuetify = createVuetify({ components, directives });
 const snackbar = { open: vi.fn() };
 
 const GRID = {
@@ -71,7 +67,7 @@ describe('ImportPreviewDialog', () => {
         dictionaryName: 'My notes',
         ...props,
       },
-      global: { plugins: [vuetify], provide: { snackbar } },
+      global: { provide: { snackbar } },
       attachTo: document.body,
     });
 
@@ -161,6 +157,16 @@ describe('ImportPreviewDialog', () => {
     expect(findButton('Continue').disabled).toBe(true);
   });
 
+  it('maps a column picked in the select back to its index', async () => {
+    const wrapper = mountDialog({ grid: { sheetName: 'S', headers: ['A'], rows: [['one'], ['two']] } });
+    await flushPromises();
+    expect(wrapper.vm.termColumnValue).toBeUndefined();
+    wrapper.vm.termColumnValue = '0';
+    await flushPromises();
+    expect(wrapper.vm.termColumn).toBe(0);
+    expect(findButton('Continue').disabled).toBe(false);
+  });
+
   it('treats every row as new when there is no dictionary to diff against', async () => {
     // The "create a dictionary from this file" flow: no packId yet, so there is
     // nothing to conflict with and no lookup to make.
@@ -196,7 +202,7 @@ describe('the recap in create mode', () => {
         dictionaryId: 1,
         dictionaryName: '',
       },
-      global: { plugins: [vuetify], provide: { snackbar } },
+      global: { provide: { snackbar } },
       attachTo: document.body,
     });
     await flushPromises();

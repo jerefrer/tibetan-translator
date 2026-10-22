@@ -3,8 +3,7 @@
  *
  * Covers two review findings on Task 7:
  *  - the term field's validation/error messages must actually reach the
- *    rendered DOM (TibetanTextField hardcodes `hide-details` on its inner
- *    v-text-field; the dialog must override it so error-messages render)
+ *    rendered DOM (the old TibetanTextField swallowed them by default)
  *  - Lexicon.saveEntry() returning null (unusable input) must not be treated
  *    as a successful save: no 'saved' emit, dialog stays open, error shown
  *
@@ -20,22 +19,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import { nextTick } from 'vue'
-
-// happy-dom does not implement window.visualViewport, which Vuetify's
-// VOverlay location strategy reads unconditionally once a v-dialog actually
-// opens. Without this the dialog throws on mount instead of rendering.
-if (typeof window.visualViewport === 'undefined') {
-  window.visualViewport = {
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }
-}
 
 const saveEntryMock = vi.fn()
 const deleteEntryMock = vi.fn()
@@ -58,8 +42,6 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
 
 import LexiconEntryDialog from '../src/components/LexiconEntryDialog.vue'
 
-const vuetify = createVuetify({ components, directives })
-
 describe('LexiconEntryDialog', () => {
   beforeEach(() => {
     saveEntryMock.mockReset()
@@ -69,10 +51,8 @@ describe('LexiconEntryDialog', () => {
   })
 
   afterEach(() => {
-    // v-dialog teleports into document.body and its leave transition isn't
-    // guaranteed to finish (and thus detach its DOM) by the time
-    // wrapper.unmount() returns, which otherwise leaks a previous test's
-    // dialog markup into the next test's document.body queries.
+    // UiDialog teleports into document.body; clear it so a previous test's
+    // dialog markup never leaks into the next test's document.body queries.
     document.body.innerHTML = ''
   })
 
@@ -86,11 +66,10 @@ describe('LexiconEntryDialog', () => {
         initialTerm: '',
         ...props,
       },
-      global: { plugins: [vuetify] },
       attachTo: document.body,
     })
 
-  // v-dialog teleports its content to document.body, outside the mounted
+  // UiDialog teleports its content to document.body, outside the mounted
   // wrapper's own DOM subtree, so buttons must be located via the real DOM
   // rather than wrapper.find()/findAll().
   const findButton = (text) =>
@@ -99,6 +78,8 @@ describe('LexiconEntryDialog', () => {
     )
 
   const clickSave = async () => {
+    // The dialog portal renders on the tick after mount.
+    await nextTick()
     findButton('Save').click()
     await flushPromises()
   }
@@ -108,9 +89,8 @@ describe('LexiconEntryDialog', () => {
 
     await clickSave()
 
-    // Regression check for the review finding: TibetanTextField hardcodes a
-    // bare `hide-details` on its inner v-text-field, which swallows
-    // error-messages entirely unless the caller overrides it. Asserting
+    // Regression check for the review finding: the old TibetanTextField
+    // hid its messages unless the caller overrode `hide-details`. Asserting
     // against the component's own data would pass even with that bug present
     // — the message must be verified in the actual rendered DOM.
     expect(wrapper.vm.termError).toBe('A Tibetan term is required.')
@@ -409,5 +389,42 @@ describe('LexiconEntryDialog', () => {
     resolveSave({ id: 1, created: true })
     await flushPromises()
     wrapper.unmount()
+  })
+
+  describe('deleting from the dialog', () => {
+    const entry = { id: 5, term: 'ཀ་', definition: 'the letter ka' }
+
+    it('offers Delete only when editing and asked to', async () => {
+      const adding = mountDialog({ deletable: true })
+      await nextTick()
+      expect(document.body.querySelector('[data-testid="entry-delete"]')).toBeNull()
+      adding.unmount()
+      document.body.innerHTML = ''
+
+      const plain = mountDialog({ entry })
+      await nextTick()
+      expect(document.body.querySelector('[data-testid="entry-delete"]')).toBeNull()
+      plain.unmount()
+      document.body.innerHTML = ''
+
+      const deletable = mountDialog({ entry, deletable: true })
+      await nextTick()
+      expect(document.body.querySelector('[data-testid="entry-delete"]')).not.toBeNull()
+      deletable.unmount()
+    })
+
+    it('hands the entry to the parent and closes, deleting nothing itself', async () => {
+      const wrapper = mountDialog({ entry, deletable: true })
+      await nextTick()
+
+      findButton('Delete').click()
+      await flushPromises()
+
+      expect(wrapper.emitted('delete')).toEqual([[entry]])
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+      expect(deleteEntryMock).not.toHaveBeenCalled()
+
+      wrapper.unmount()
+    })
   })
 })

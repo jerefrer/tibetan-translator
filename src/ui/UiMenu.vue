@@ -10,8 +10,9 @@ import {
 import UiIcon from './UiIcon.vue';
 
 // Replaces <v-menu> + <v-list> for action menus. The default slot is the
-// trigger (a single element). items: [{ key, label, icon?, danger?,
-// disabled? }] or { separator: true }. Emits `select` with the item.
+// trigger (a single element). items: [{ key, label, description?, icon?,
+// danger?, disabled? }] or { separator: true }. Emits `select` with the item.
+// An item with a `description` shows it under its label, on a second line.
 export default {
   name: 'UiMenu',
   components: {
@@ -29,6 +30,11 @@ export default {
     open: { type: Boolean, default: undefined },
   },
   emits: ['select', 'update:open'],
+  computed: {
+    described() {
+      return this.items.some((item) => item.description);
+    },
+  },
 };
 </script>
 
@@ -38,6 +44,7 @@ export default {
     <dropdown-menu-portal>
       <dropdown-menu-content
         class="ui-menu"
+        :class="{ 'ui-menu--described': described }"
         :align="align"
         :side-offset="6"
         data-testid="ui-menu"
@@ -47,13 +54,20 @@ export default {
           <dropdown-menu-item
             v-else
             class="ui-menu__item"
-            :class="{ 'ui-menu__item--danger': item.danger }"
+            :class="{
+              'ui-menu__item--danger': item.danger,
+              'ui-menu__item--described': item.description,
+            }"
             :disabled="item.disabled"
             :data-testid="'ui-menu-item-' + item.key"
             @select="$emit('select', item)"
           >
             <ui-icon v-if="item.icon" :name="item.icon" :size="18" />
-            {{ item.label }}
+            <span v-if="item.description" class="ui-menu__text">
+              <span class="ui-menu__label">{{ item.label }}</span>
+              <span class="ui-menu__description">{{ item.description }}</span>
+            </span>
+            <template v-else>{{ item.label }}</template>
           </dropdown-menu-item>
         </template>
       </dropdown-menu-content>
@@ -88,5 +102,14 @@ export default {
 .ui-menu__item[data-highlighted] { background: var(--soft); }
 .ui-menu__item[data-disabled] { opacity: 0.45; cursor: not-allowed; }
 .ui-menu__item--danger { color: var(--danger-ink); }
+.ui-menu--described { min-width: 20rem; }
+.ui-menu__item--described {
+  align-items: flex-start;
+  padding: 10px 14px;
+}
+.ui-menu__item--described .ui-icon { margin-top: 2px; }
+.ui-menu__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ui-menu__label { font-size: var(--text-body); font-weight: 600; }
+.ui-menu__description { font-size: var(--text-chip); color: var(--muted); }
 .ui-menu__separator { height: 1px; margin: var(--space-1) 0; background: var(--line); }
 </style>

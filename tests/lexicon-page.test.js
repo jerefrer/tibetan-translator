@@ -50,31 +50,20 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
-import { ref } from 'vue'
-
-// happy-dom does not implement window.visualViewport, which Vuetify's
-// VOverlay location strategy reads unconditionally once a v-dialog actually
-// opens. Without this the dialog throws on mount instead of rendering. The
-// delete-confirmation dialog (BLOCKING 2) is the first thing in this file to
-// actually open one — earlier tests only ever read/write component state,
-// never toggled dialogOpen/removeOpen to true.
-if (typeof window.visualViewport === 'undefined') {
-  window.visualViewport = {
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }
-}
+import { ref, nextTick } from 'vue'
 
 // LexiconPage is gated entirely behind supportsModularPacks(); force it on
 // so the real page renders instead of the "desktop/mobile only" message.
+// isMobile() decides whether to listen for dropped spreadsheets.
 vi.mock('../src/config/platform.js', () => ({
   isTauri: () => true,
+  isMobile: () => false,
   supportsModularPacks: () => true,
+}))
+
+// The page also hosts the list of the user's own dictionaries.
+vi.mock('../src/services/pack-manager', () => ({
+  default: { customPacks: [], removeCustomPack: vi.fn() },
 }))
 
 // Backed by a real Vue ref rather than a plain array: the real
@@ -104,9 +93,14 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
   }
 })
 
+const saveDialogMock = vi.fn()
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+  open: vi.fn(),
+  save: (...args) => saveDialogMock(...args),
+}))
+
 import LexiconPage from '../src/components/LexiconPage.vue'
 
-const vuetify = createVuetify({ components, directives })
 const snackbar = { open: vi.fn() }
 
 const PACK_A = { packId: 'custom-a', dictionaryId: 1, packName: 'A', name: 'A', entriesCount: 1 }
@@ -163,17 +157,23 @@ const Shell = {
   },
 }
 
+// Every shell mounted by a test, unmounted after it: the page's dialogs and
+// tooltips keep Teleport anchors in document.body, and clearing the body
+// under a still-mounted shell breaks its next re-render.
+const mountedShells = []
+
 async function mountShell(initialPath, dictionaries) {
   dictionariesRef.value = dictionaries
   const router = makeRouter(initialPath)
   await router.isReady()
   const wrapper = mount(Shell, {
     global: {
-      plugins: [vuetify, router],
+      plugins: [router],
       stubs: { LexiconEntryDialog: true },
       provide: { snackbar },
     },
   })
+  mountedShells.push(wrapper)
   // One tick for the initial render. If the initial route requires
   // syncSelection() to fall back and navigate (e.g. bare /glossary — scenario
   // d), that navigation is fire-and-forget from activated()'s point of view
@@ -202,6 +202,7 @@ describe('LexiconPage', () => {
   })
 
   afterEach(() => {
+    mountedShells.splice(0).forEach((wrapper) => wrapper.unmount())
     document.body.innerHTML = ''
   })
 
@@ -361,6 +362,114 @@ describe('LexiconPage', () => {
       await vi.waitFor(() => {
         expect(page.vm.page).toBe(1)
       })
+    })
+  })
+
+  describe('the redrawn page', () => {
+    const ROWS = [
+      { id: 1, term: 'ཡེ་ཤེས་', definition: 'wisdom' },
+      { id: 2, term: 'སྙིང་རྗེ་', definition: 'compassion\nsecond line' },
+    ]
+    const testid = (wrapper, id) => wrapper.find(`[data-testid="${id}"]`)
+
+    afterEach(() => {
+      window.innerWidth = 1024
+    })
+
+    it('lists the entries with the dictionary name and the count', async () => {
+      entriesMock.mockResolvedValue({ total: 2, entries: ROWS })
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      await vi.waitFor(() => expect(wrapper.findAll('[data-testid="lexicon-entry"]')).toHaveLength(2))
+
+      expect(wrapper.find('.page-title').text()).toBe('A')
+      expect(wrapper.text()).toContain('ཡེ་ཤེས་')
+      expect(wrapper.text()).toContain('compassion')
+      expect(testid(wrapper, 'lexicon-count').text()).toContain('2 entries.')
+      // A single dictionary needs no switcher
+      expect(testid(wrapper, 'lexicon-switcher').exists()).toBe(false)
+    })
+
+    it('offers the switcher once there is more than one dictionary', async () => {
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
+      expect(testid(wrapper, 'lexicon-switcher').exists()).toBe(true)
+    })
+
+    it('says why the list is empty', async () => {
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      expect(testid(wrapper, 'lexicon-empty-list').text()).toContain('This dictionary is empty')
+
+      lexiconPage(wrapper).vm.search = 'zzz'
+      await nextTick()
+      expect(testid(wrapper, 'lexicon-empty-list').text()).toBe('No entry matches this search.')
+      expect(testid(wrapper, 'lexicon-count').text()).toContain('0 entries matching')
+    })
+
+    it('opens the entry dialog on a row from its Edit button', async () => {
+      entriesMock.mockResolvedValue({ total: 2, entries: ROWS })
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      await vi.waitFor(() => expect(wrapper.findAll('[data-testid="lexicon-edit"]')).toHaveLength(2))
+
+      await wrapper.findAll('[data-testid="lexicon-edit"]')[1].trigger('click')
+      const dialog = wrapper.findComponent({ name: 'LexiconEntryDialog' })
+      expect(dialog.props('modelValue')).toBe(true)
+      expect(dialog.props('entry')).toEqual(ROWS[1])
+      expect(dialog.props('deletable')).toBe(false)
+    })
+
+    it('asks before deleting a row, then deletes it', async () => {
+      entriesMock.mockResolvedValue({ total: 2, entries: ROWS })
+      deleteEntryMock.mockResolvedValue(undefined)
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      await vi.waitFor(() => expect(wrapper.findAll('[data-testid="lexicon-delete"]')).toHaveLength(2))
+
+      await wrapper.findAll('[data-testid="lexicon-delete"]')[0].trigger('click')
+      await flushPromises()
+      expect(deleteEntryMock).not.toHaveBeenCalled()
+      expect(document.body.textContent).toContain('Delete this entry?')
+      expect(document.body.textContent).toContain('This cannot be undone.')
+
+      document.body.querySelector('[data-testid="lexicon-confirm-delete"]').click()
+      await flushPromises()
+      expect(deleteEntryMock).toHaveBeenCalledWith('custom-a', 1)
+      expect(snackbar.open).toHaveBeenCalledWith('Entry removed')
+    })
+
+    it('exports in the format picked from the Export menu', async () => {
+      saveDialogMock.mockResolvedValue(null)
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      const page = lexiconPage(wrapper)
+
+      await page.vm.onExport({ key: 'xlsx' })
+      expect(saveDialogMock.mock.calls.at(-1)[0].defaultPath).toBe('A.xlsx')
+
+      await page.vm.onExport({ key: 'tibdict' })
+      expect(saveDialogMock.mock.calls.at(-1)[0].defaultPath).toBe('A.tibdict')
+    })
+
+    it('hosts the list of the user\'s own dictionaries', async () => {
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      expect(testid(wrapper, 'custom-pack-section').exists()).toBe(true)
+    })
+
+    it('on a phone, shows rows as cards that open the entry, with Delete in the dialog', async () => {
+      window.innerWidth = 390
+      entriesMock.mockResolvedValue({ total: 2, entries: ROWS })
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A])
+      await vi.waitFor(() => expect(wrapper.findAll('[data-testid="lexicon-entry"]')).toHaveLength(2))
+
+      expect(testid(wrapper, 'lexicon-edit').exists()).toBe(false)
+      await wrapper.findAll('[data-testid="lexicon-entry"]')[0].trigger('click')
+      const dialog = wrapper.findComponent({ name: 'LexiconEntryDialog' })
+      expect(dialog.props('entry')).toEqual(ROWS[0])
+      expect(dialog.props('deletable')).toBe(true)
+
+      dialog.vm.$emit('delete', ROWS[0])
+      await flushPromises()
+      expect(lexiconPage(wrapper).vm.removeTarget).toEqual(ROWS[0])
+      expect(lexiconPage(wrapper).vm.removeOpen).toBe(true)
+
+      await testid(wrapper, 'lexicon-back').trigger('click')
+      await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/settings'))
     })
   })
 })

@@ -1,39 +1,32 @@
 <template>
-  <v-dialog v-model="visible" max-width="460" persistent>
-    <v-card>
-      <v-toolbar color="error" density="compact">
-        <v-icon class="ms-3 me-2">mdi-file-replace-outline</v-icon>
-        <v-toolbar-title class="text-subtitle-1 font-weight-medium">
-          Replace dictionary?
-        </v-toolbar-title>
-      </v-toolbar>
-
-      <v-card-text class="pt-5">
-        <p>
-          <strong>{{ displayName }}</strong>
-          <span v-if="existingVersion"> ({{ existingVersion }})</span>
-          is already installed.
-        </p>
-        <p v-if="newVersion && existingVersion && newVersion !== existingVersion" class="mt-2">
-          The new file is version {{ newVersion }}.
-        </p>
-        <v-alert v-if="hasLocalEdits" type="warning" variant="tonal" density="compact" class="mt-3">
-          You have modified this dictionary. Replacing it will discard your changes.
-        </v-alert>
-      </v-card-text>
-
-      <v-card-actions>
-        <v-spacer />
-        <v-btn variant="text" @click="onCancel">Cancel</v-btn>
-        <v-btn color="error" variant="elevated" @click="onConfirm">Replace</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+  <ui-dialog v-model="visible" title="Replace dictionary?" :max-width="460" persistent>
+    <p class="conflict-text">
+      <strong>{{ displayName }}</strong>
+      <span v-if="existingVersion"> ({{ existingVersion }})</span>
+      is already installed.
+    </p>
+    <p
+      v-if="newVersion && existingVersion && newVersion !== existingVersion"
+      class="conflict-text conflict-text--version"
+    >
+      The new file is version {{ newVersion }}.
+    </p>
+    <ui-alert v-if="hasLocalEdits" type="warning" class="conflict-warning">
+      You have modified this dictionary. Replacing it will discard your changes.
+    </ui-alert>
+    <template #actions>
+      <ui-button variant="outline" @click="onCancel">Cancel</ui-button>
+      <ui-button variant="danger" data-testid="conflict-replace" @click="onConfirm">Replace</ui-button>
+    </template>
+  </ui-dialog>
 </template>
 
 <script>
+import { UiAlert, UiButton, UiDialog } from '../ui';
+
 export default {
   name: 'CustomPackConflictModal',
+  components: { UiAlert, UiButton, UiDialog },
   props: {
     modelValue: { type: Boolean, default: false },
     existingManifest: { type: Object, default: null },
@@ -76,3 +69,15 @@ export default {
   },
 };
 </script>
+
+<style lang="stylus" scoped>
+.conflict-text
+  margin 0
+
+.conflict-text--version
+  margin-top 8px
+  color var(--muted)
+
+.conflict-warning
+  margin-top 14px
+</style>

@@ -7,7 +7,7 @@ const COMPONENTS = [
   'UiAccordion', 'UiAlert', 'UiBadge', 'UiButton', 'UiCard', 'UiCheckbox', 'UiChip',
   'UiDialog', 'UiDivider', 'UiIcon', 'UiList', 'UiListItem', 'UiMenu', 'UiPagination',
   'UiProgress', 'UiSelect', 'UiSlider', 'UiSpinner', 'UiSwitch', 'UiTable', 'UiTabs',
-  'UiTextField', 'UiToast', 'UiToolbar', 'UiTooltip',
+  'UiTextField', 'UiTibetanField', 'UiToast', 'UiToolbar', 'UiTooltip',
 ]
 
 describe('src/ui index', () => {
@@ -27,7 +27,7 @@ describe('UiShowcasePage', () => {
         'ui-button', 'ui-chip', 'ui-alert', 'ui-spinner', 'ui-progress', 'ui-badge',
         'ui-text-field', 'ui-select', 'ui-switch', 'ui-checkbox', 'ui-slider', 'ui-tabs',
         'ui-card', 'ui-toolbar', 'ui-list', 'ui-divider', 'ui-table', 'ui-pagination',
-        'ui-accordion', 'ui-icon',
+        'ui-accordion', 'ui-icon', 'ui-tibetan-field',
       ]) {
         expect(pane.find(`[data-testid="${testid}"]`).exists(), testid).toBe(true)
       }

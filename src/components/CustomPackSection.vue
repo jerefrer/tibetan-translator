@@ -1,93 +1,77 @@
 <template>
-  <v-card v-if="isSupported" class="custom-pack-card mb-4">
-    <v-toolbar>
-      <v-icon size="x-large" color="grey">mdi-book-plus-outline</v-icon>
-      <v-toolbar-title>
-        Custom Dictionaries
-        <div class="text-caption text-grey">
-          {{ packs.length }} installed
-        </div>
-      </v-toolbar-title>
-    </v-toolbar>
+  <section v-if="isSupported" class="custom-packs" data-testid="custom-pack-section">
+    <header class="custom-packs__header">
+      <div>
+        <h2 class="custom-packs__title">Your dictionaries</h2>
+        <p class="custom-packs__subtitle">{{ packs.length }} installed</p>
+      </div>
+    </header>
 
-    <v-list v-if="packs.length">
-      <v-list-item v-for="pack in packs" :key="pack.id" class="pack-item">
-        <template v-slot:prepend>
-          <v-icon :icon="packIcon(pack)" color="primary" />
-        </template>
-
-        <v-list-item-title>{{ pack.manifest.name }}</v-list-item-title>
-        <v-list-item-subtitle v-if="packSubtitle(pack)">
-          {{ packSubtitle(pack) }}
-        </v-list-item-subtitle>
-
-        <template v-slot:append>
-          <v-btn
-            icon
-            variant="text"
-            size="small"
-            @click="onManage(pack)"
-          >
-            <v-icon>mdi-playlist-edit</v-icon>
-            <v-tooltip activator="parent" location="top">Manage entries</v-tooltip>
-          </v-btn>
-          <v-btn
-            icon
-            variant="text"
-            size="small"
-            color="error"
-            @click="onRemove(pack)"
-          >
-            <v-icon>mdi-delete</v-icon>
-            <v-tooltip activator="parent" location="top">Remove dictionary</v-tooltip>
-          </v-btn>
-        </template>
-      </v-list-item>
-    </v-list>
-
-    <v-card-actions v-if="packs.length" class="import-actions">
-      <v-btn
-        variant="tonal"
-        color="primary"
-        size="small"
-        @click="onImportClick"
+    <ui-list v-if="packs.length" class="custom-packs__list">
+      <ui-list-item
+        v-for="pack in packs"
+        :key="pack.id"
+        :title="pack.manifest.name"
+        :subtitle="packSubtitle(pack)"
+        class="pack-item"
+        data-testid="custom-pack"
       >
-        <v-icon start>mdi-file-upload</v-icon>
-        Import a dictionary…
-      </v-btn>
-      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreate">
-        <v-icon start>mdi-plus</v-icon>
-        New dictionary
-      </v-btn>
-      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreateFromSpreadsheet">
-        <v-icon start>mdi-file-table-outline</v-icon>
-        From a spreadsheet…
-      </v-btn>
-    </v-card-actions>
+        <template #prepend>
+          <ui-icon :name="packIcon(pack)" :size="22" class="pack-item__icon" />
+        </template>
+        <template #append>
+          <ui-tooltip text="Manage entries">
+            <ui-button
+              variant="ghost"
+              size="sm"
+              icon
+              aria-label="Manage entries"
+              class="pack-action"
+              data-testid="custom-pack-manage"
+              @click="onManage(pack)"
+            >
+              <ui-icon name="notebook-pen" :size="18" />
+            </ui-button>
+          </ui-tooltip>
+          <ui-tooltip text="Remove dictionary">
+            <ui-button
+              variant="ghost"
+              size="sm"
+              icon
+              aria-label="Remove dictionary"
+              class="pack-action pack-action--remove"
+              data-testid="custom-pack-remove"
+              @click="onRemove(pack)"
+            >
+              <ui-icon name="trash-2" :size="18" />
+            </ui-button>
+          </ui-tooltip>
+        </template>
+      </ui-list-item>
+    </ui-list>
 
-    <v-card-text v-else class="empty-state text-center py-6">
-      <p class="mb-4">
-        No custom dictionary yet. Drag a <code>.tibdict</code> file onto the window
-        or use the button below.
+    <div v-else class="custom-packs__empty">
+      <ui-icon name="notebook" :size="40" class="custom-packs__empty-icon" />
+      <p>You don't have a dictionary of your own yet.</p>
+      <p class="custom-packs__empty-hint">
+        Create one, start from a spreadsheet, or drag a <code>.tibdict</code> file onto the window.
       </p>
-      <v-btn
-        variant="tonal"
-        color="primary"
-        size="small"
-        @click="onImportClick"
-      >
-        <v-icon start>mdi-file-upload</v-icon>
-        Import a dictionary…
-      </v-btn>
-      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreate">
-        <v-icon start>mdi-plus</v-icon>
+    </div>
+
+    <div class="custom-packs__actions">
+      <ui-button variant="outline" size="sm" data-testid="custom-pack-new" @click="onCreate">
+        <ui-icon name="plus" :size="16" />
         New dictionary
-      </v-btn>
-      <v-btn variant="tonal" color="primary" size="small" class="ml-2" @click="onCreateFromSpreadsheet">
-        <v-icon start>mdi-file-table-outline</v-icon>
+      </ui-button>
+      <ui-button variant="outline" size="sm" data-testid="custom-pack-from-sheet" @click="onCreateFromSpreadsheet">
+        <ui-icon name="file-spreadsheet" :size="16" />
         From a spreadsheet…
-      </v-btn>
-    </v-card-text>
+      </ui-button>
+      <ui-button variant="outline" size="sm" data-testid="custom-pack-import" @click="onImportClick">
+        <ui-icon name="file-up" :size="16" />
+        Import a dictionary…
+      </ui-button>
+    </div>
 
     <ImportPreviewDialog
       v-if="importGrid"
@@ -97,65 +81,48 @@
       @create-requested="onCreateRequested"
     />
 
-    <v-dialog v-model="createOpen" max-width="460">
-      <v-card>
-        <v-card-title>New dictionary</v-card-title>
-        <v-card-text>
-          <v-text-field
-            v-model="newName"
-            label="Name"
-            density="comfortable"
-            autofocus
-            :error-messages="createError ? [createError] : []"
-            @keyup.enter="confirmCreate"
-          />
-          <v-textarea
-            v-model="newDescription"
-            label="Description (optional)"
-            rows="2"
-            auto-grow
-            density="comfortable"
-          />
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="createOpen = false">Cancel</v-btn>
-          <v-btn color="primary" variant="tonal" :loading="creating" @click="confirmCreate">
-            Create
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+    <ui-dialog v-model="createOpen" title="New dictionary" :max-width="460">
+      <div class="create-form">
+        <ui-text-field
+          v-model="newName"
+          label="Name"
+          :error="createError"
+          data-testid="custom-pack-name"
+          @keydown.enter.prevent="confirmCreate"
+        />
+        <ui-text-field
+          v-model="newDescription"
+          label="Description (optional)"
+          multiline
+          :rows="2"
+          data-testid="custom-pack-description"
+        />
+      </div>
+      <template #actions>
+        <ui-button variant="outline" @click="createOpen = false">Cancel</ui-button>
+        <ui-button :loading="creating" data-testid="custom-pack-create" @click="confirmCreate">
+          Create
+        </ui-button>
+      </template>
+    </ui-dialog>
 
-    <v-dialog v-model="removeOpen" max-width="460">
-      <v-card v-if="removeTarget">
-        <v-card-title>Remove dictionary?</v-card-title>
-        <v-card-text>
-          <p>
-            <strong>{{ removeTarget.manifest.name }}</strong> will be permanently deleted from
-            this device. This cannot be undone.
-          </p>
-          <v-alert
-            v-if="removeHasLocalEdits"
-            type="warning"
-            variant="tonal"
-            density="compact"
-            class="mt-3"
-          >
-            This dictionary has entries you added or edited here, nowhere else. Consider
-            exporting it first if you want to keep a copy.
-          </v-alert>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
-          <v-btn variant="text" @click="removeOpen = false">Cancel</v-btn>
-          <v-btn color="error" variant="elevated" :loading="removing" @click="confirmRemove">
-            Remove
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
-  </v-card>
+    <ui-dialog v-model="removeOpen" title="Remove dictionary?" :max-width="520">
+      <template v-if="removeTarget">
+        <p class="remove-text">
+          <strong>{{ removeTarget.manifest.name }}</strong> will be permanently deleted from
+          this device. This cannot be undone.
+        </p>
+        <ui-alert v-if="removeHasLocalEdits" type="warning" class="remove-warning">
+          This dictionary has entries you added or edited here, nowhere else. Consider
+          exporting it first if you want to keep a copy.
+        </ui-alert>
+      </template>
+      <template #actions>
+        <ui-button variant="outline" @click="removeOpen = false">Cancel</ui-button>
+        <ui-button variant="danger" :loading="removing" @click="confirmRemove">Remove</ui-button>
+      </template>
+    </ui-dialog>
+  </section>
 </template>
 
 <script>
@@ -165,11 +132,32 @@ import TibdictInstaller from '../services/tibdict-installer';
 import Lexicon, { messageForError } from '../services/lexicon';
 import ImportPreviewDialog from './ImportPreviewDialog.vue';
 import { supportsModularPacks } from '../config/platform';
+import {
+  UiAlert,
+  UiButton,
+  UiDialog,
+  UiIcon,
+  UiList,
+  UiListItem,
+  UiTextField,
+  UiTooltip,
+} from '../ui';
+import { resolveIcon } from '../ui/icons';
 
 export default {
   name: 'CustomPackSection',
   inject: ['snackbar'],
-  components: { ImportPreviewDialog },
+  components: {
+    ImportPreviewDialog,
+    UiAlert,
+    UiButton,
+    UiDialog,
+    UiIcon,
+    UiList,
+    UiListItem,
+    UiTextField,
+    UiTooltip,
+  },
   data() {
     return {
       createOpen: false,
@@ -205,8 +193,10 @@ export default {
     },
   },
   methods: {
+    // Manifests name an `mdi-*` icon; fall back when there is no Lucide match.
     packIcon(pack) {
-      return pack.manifest.icon || 'mdi-book-plus-outline';
+      const icon = pack.manifest.icon;
+      return icon && resolveIcon(icon) ? icon : 'book-plus';
     },
     packSubtitle(pack) {
       const parts = [];
@@ -325,53 +315,106 @@ export default {
 };
 </script>
 
-<style lang="sass" scoped>
-.custom-pack-card
-  width: 100%
+<style lang="stylus" scoped>
+.custom-packs
+  box-sizing border-box
+  width 100%
+  background var(--surface)
+  color var(--ink)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
+  font-family var(--font-ui)
+  overflow hidden
 
-  // Same icon + title spacing as PackManagerCard, aligned with the v-list-item
-  // prepend below. :deep is required because Vuetify renders its own DOM
-  // that scoped selectors can't target.
-  :deep(.v-toolbar__content)
-    padding-inline-start: 16px
+.custom-packs__header
+  display flex
+  align-items center
+  gap var(--space-3)
+  padding var(--space-4) var(--space-5) var(--space-3)
 
-  :deep(.v-toolbar__content > .v-icon)
-    margin-inline: 0 16px
+.custom-packs__title
+  margin 0
+  font-size var(--text-md)
+  font-weight 600
 
-  :deep(.v-toolbar-title)
-    padding-inline-start: 0
-    margin-inline-start: 0
+.custom-packs__subtitle
+  margin 2px 0 0
+  font-size var(--text-sm)
+  color var(--muted)
 
-  .v-toolbar__title, .v-toolbar__title .text-caption
-    line-height: 1em
+.custom-packs__list
+  border 0
+  border-top 1px solid var(--soft)
+  border-bottom 1px solid var(--soft)
+  border-radius 0
 
-  .v-toolbar__title .text-caption
-    margin-top: 5px
+.pack-item
+  :deep(.ui-list-item__row)
+    min-height 4rem
+    padding var(--space-2) var(--space-3) var(--space-2) var(--space-5)
 
-  .import-actions
-    padding: 8px 16px
+  :deep(.ui-list-item__title)
+    font-weight 600
 
-  .pack-item
-    border-bottom: thin solid rgba(0, 0, 0, 0.08)
-    min-height: 64px
+.pack-item__icon
+  color var(--accent)
 
-    // Match PackManagerCard's prepend sizing so the item text lines up
-    // identically across Dictionary Packs and Custom Dictionaries.
-    :deep(.v-list-item__prepend)
-      width: 24px
-      min-width: 24px
-      margin-right: 12px
+.pack-action
+  color var(--muted)
 
-    :deep(.v-list-item__content)
-      padding-left: 0
+  &:hover:not(:disabled)
+    color var(--ink)
+    background var(--soft)
 
-  .empty-state
-    font-size: 0.9em
-    color: rgba(0, 0, 0, 0.6)
+.pack-action--remove:hover:not(:disabled)
+  color var(--danger-ink)
+  background var(--danger-soft)
 
-    code
-      background: rgba(0, 0, 0, 0.05)
-      padding: 0.1em 0.3em
-      border-radius: 3px
-      font-size: 0.95em
+.custom-packs__empty
+  display flex
+  flex-direction column
+  align-items center
+  gap var(--space-1)
+  padding var(--space-5) var(--space-5) var(--space-2)
+  text-align center
+  font-size var(--text-body)
+
+  p
+    margin 0
+
+.custom-packs__empty-icon
+  color var(--faint)
+  margin-bottom var(--space-2)
+
+.custom-packs__empty-hint
+  font-size var(--text-sm)
+  color var(--muted)
+
+  code
+    padding 0.1em 0.35em
+    border-radius var(--radius-xs)
+    background var(--soft)
+    font-size 0.95em
+
+.custom-packs__actions
+  display flex
+  flex-wrap wrap
+  gap var(--space-2)
+  padding var(--space-4) var(--space-5)
+
+.custom-packs__empty + .custom-packs__actions
+  justify-content center
+  padding-bottom var(--space-5)
+
+.create-form
+  display flex
+  flex-direction column
+  gap var(--space-4)
+
+.remove-text
+  margin 0
+
+.remove-warning
+  margin-top 14px
 </style>

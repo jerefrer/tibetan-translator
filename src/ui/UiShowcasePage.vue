@@ -26,6 +26,7 @@ import {
   UiTable,
   UiTabs,
   UiTextField,
+  UiTibetanField,
   UiToast,
   UiToolbar,
   UiTooltip,
@@ -58,6 +59,7 @@ export default {
     UiTable,
     UiTabs,
     UiTextField,
+    UiTibetanField,
     UiToast,
     UiToolbar,
     UiTooltip,
@@ -72,6 +74,7 @@ export default {
       state: {
         text: 'ye shes',
         tibetan: 'ཡེ་ཤེས་',
+        wylie: 'snying rje',
         multiline: 'A free-form note',
         selectValue: 'core',
         tab: 'one',
@@ -99,6 +102,10 @@ export default {
         { key: 'edit', label: 'Edit', icon: 'pencil' },
         { separator: true },
         { key: 'delete', label: 'Delete', icon: 'trash-2', danger: true },
+      ],
+      describedMenuItems: [
+        { key: 'tibdict', label: 'Dictionary file', description: 'To share, or to reinstall later' },
+        { key: 'xlsx', label: 'Spreadsheet', description: 'To edit in Excel and import back' },
       ],
       accordionItems: [{ value: 'a', title: '3 rows ignored' }],
       iconNames: Object.keys(ICONS),
@@ -212,6 +219,7 @@ export default {
           <ui-text-field v-model="state.text" label="With an error" error="This field is required" />
           <ui-text-field v-model="state.multiline" label="Multiline" multiline :rows="2" />
           <ui-text-field model-value="Disabled" disabled />
+          <ui-tibetan-field v-model="state.wylie" label="Tibetan term (type Wylie, then a space)" />
         </div>
 
         <h3>Select, menu, tooltip</h3>
@@ -219,6 +227,9 @@ export default {
           <div class="grow"><ui-select v-model="state.selectValue" :options="selectOptions" label="Pack" /></div>
           <ui-menu :items="menuItems">
             <ui-button variant="outline">Menu <ui-icon name="chevron-down" :size="16" /></ui-button>
+          </ui-menu>
+          <ui-menu :items="describedMenuItems" align="end">
+            <ui-button variant="outline">Export <ui-icon name="chevron-down" :size="16" /></ui-button>
           </ui-menu>
           <ui-tooltip text="A tooltip">
             <ui-button variant="ghost">Hover me</ui-button>

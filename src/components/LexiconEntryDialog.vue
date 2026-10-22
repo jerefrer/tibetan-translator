@@ -1,118 +1,108 @@
 <template>
-  <v-dialog
+  <!-- One dialog, two states. Stacking a second dialog on top of this one
+       leaves the form's buttons peeking out below the decision, which reads
+       as an accident rather than a deliberate step. -->
+  <ui-dialog
     :model-value="modelValue"
+    :title="dialogTitle"
     :persistent="conflictOpen"
-    max-width="560"
+    :max-width="560"
     @update:model-value="close"
   >
-    <!-- One dialog, two states. Stacking a second v-dialog on top of this one
-         leaves the form's buttons peeking out below the decision, which reads
-         as an accident rather than a deliberate step. -->
-    <v-card v-if="conflictOpen && existing">
-      <v-card-title>This term already exists</v-card-title>
-      <v-card-text>
-        <p class="tibetan collision-term mb-4">{{ existing.term }}</p>
+    <div v-if="conflictOpen && existing" class="collision" data-testid="entry-conflict">
+      <p class="tibetan collision-term">{{ existing.term }}</p>
 
-        <div class="collision-block">
-          <div class="collision-label">Already saved</div>
-          <div class="collision-text">{{ existing.definition }}</div>
-        </div>
+      <div class="collision-block">
+        <div class="collision-label">Already saved</div>
+        <div class="collision-text">{{ existing.definition }}</div>
+      </div>
 
-        <div class="collision-block">
-          <div class="collision-label">What you just wrote</div>
-          <div class="collision-text">{{ definition }}</div>
-        </div>
-      </v-card-text>
+      <div class="collision-block">
+        <div class="collision-label">What you just wrote</div>
+        <div class="collision-text">{{ definition }}</div>
+      </div>
+    </div>
 
-      <v-card-actions class="collision-actions">
-        <v-btn variant="text" @click="conflictOpen = false">Back</v-btn>
-        <v-spacer />
+    <div v-else class="entry-form" data-testid="entry-form">
+      <ui-tibetan-field
+        v-model="term"
+        label="Tibetan term"
+        :error="termError"
+        enterkeyhint="next"
+        data-testid="entry-term"
+        @update:model-value="onTermInput"
+      />
+      <ui-text-field
+        v-model="definition"
+        label="Definition"
+        multiline
+        :rows="4"
+        :error="definitionError"
+        class="entry-definition"
+        data-testid="entry-definition"
+      />
+
+      <ui-alert v-if="existing" type="info" data-testid="entry-collision-notice">
+        This term is already in this dictionary. You'll be asked what to do
+        with the existing definition when you save.
+      </ui-alert>
+    </div>
+
+    <template #actions>
+      <template v-if="conflictOpen && existing">
+        <ui-button variant="ghost" @click="conflictOpen = false">Back</ui-button>
+        <div class="ui-spacer" />
         <!-- Keeping both is the recoverable choice, so it carries the visual
              weight; replacing discards the user's earlier work and is offered
              without encouragement. -->
-        <v-btn
-          color="error"
-          variant="text"
+        <ui-button
+          variant="outline"
+          class="replace-button"
           :loading="saving"
           @click="resolveConflict('replace')"
         >
           Replace it
-        </v-btn>
-        <v-btn
-          color="primary"
-          variant="flat"
-          :loading="saving"
-          @click="resolveConflict('merge')"
+        </ui-button>
+        <ui-button :loading="saving" @click="resolveConflict('merge')">Keep both</ui-button>
+      </template>
+      <template v-else>
+        <ui-button
+          v-if="deletable && isEditing"
+          variant="ghost"
+          class="delete-button"
+          data-testid="entry-delete"
+          @click="requestDelete"
         >
-          Keep both
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-
-    <v-card v-else>
-      <v-card-title>{{ isEditing ? 'Edit entry' : 'Add an entry' }}</v-card-title>
-
-      <v-card-text class="entry-form">
-        <TibetanTextField
-          v-model="term"
-          label="Tibetan term"
-          variant="outlined"
-          color="primary"
-          density="comfortable"
-          :error-messages="termError ? [termError] : []"
-          hide-details="auto"
-          autofocus
-          @update:model-value="onTermInput"
-        />
-        <v-textarea
-          v-model="definition"
-          label="Definition"
-          variant="outlined"
-          color="primary"
-          density="comfortable"
-          rows="4"
-          auto-grow
-          hide-details="auto"
-          :error-messages="definitionError ? [definitionError] : []"
-        />
-
-        <v-alert
-          v-if="existing"
-          type="info"
-          variant="tonal"
-          density="compact"
-          class="collision-notice"
-        >
-          This term is already in this dictionary. You'll be asked what to do
-          with the existing definition when you save.
-        </v-alert>
-      </v-card-text>
-
-      <v-card-actions>
-        <v-spacer />
-        <v-btn variant="text" @click="close(false)">Cancel</v-btn>
-        <v-btn color="primary" variant="flat" :loading="saving" @click="save">Save</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+          <ui-icon name="trash-2" :size="18" />
+          Delete
+        </ui-button>
+        <div class="ui-spacer" />
+        <ui-button variant="outline" @click="close(false)">Cancel</ui-button>
+        <ui-button :loading="saving" data-testid="entry-save" @click="save">Save</ui-button>
+      </template>
+    </template>
+  </ui-dialog>
 </template>
 
 <script>
 import _ from 'underscore';
-import TibetanTextField from './TibetanTextField.vue';
+import { UiAlert, UiButton, UiDialog, UiIcon, UiTextField, UiTibetanField } from '../ui';
 import Lexicon, { normalizeTerm, messageForError } from '../services/lexicon';
 
 export default {
   name: 'LexiconEntryDialog',
-  components: { TibetanTextField },
+  components: { UiAlert, UiButton, UiDialog, UiIcon, UiTextField, UiTibetanField },
   props: {
     modelValue: { type: Boolean, default: false },
     packId: { type: String, required: true },
     dictionaryId: { type: Number, required: true },
     entry: { type: Object, default: null },
     initialTerm: { type: String, default: '' },
+    // Offer a Delete button when editing. On a phone the list has no per-row
+    // delete button, so this is the only way to remove an entry there.
+    deletable: { type: Boolean, default: false },
   },
-  emits: ['update:modelValue', 'saved'],
+  emits: ['update:modelValue', 'saved', 'delete'],
   data() {
     return {
       term: '',
@@ -129,6 +119,10 @@ export default {
   computed: {
     isEditing() {
       return !!(this.entry && this.entry.id);
+    },
+    dialogTitle() {
+      if (this.conflictOpen && this.existing) return 'This term already exists';
+      return this.isEditing ? 'Edit entry' : 'Add an entry';
     },
   },
   watch: {
@@ -150,6 +144,11 @@ export default {
   methods: {
     close(value = false) {
       this.$emit('update:modelValue', value);
+    },
+    /** Hand the entry to the parent, which asks for confirmation. */
+    requestDelete() {
+      this.$emit('delete', this.entry);
+      this.close(false);
     },
     /**
      * Look up the typed term by exact match, so the user is told BEFORE saving
@@ -262,30 +261,39 @@ export default {
   display flex
   flex-direction column
   gap 16px
-  padding-top 8px
-
-.collision-notice
-  margin 0
 
 .collision-term
-  font-size 1.5rem
-  line-height 1.6
+  margin 0 0 4px
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-lg)
+  line-height 1.7
+  color var(--rubric)
 
 .collision-block
   & + .collision-block
     margin-top 14px
 
   .collision-label
-    font-size 0.75rem
-    letter-spacing 0.04em
+    font-size var(--text-xs)
+    font-weight 600
+    letter-spacing 0.08em
     text-transform uppercase
-    opacity 0.6
+    color var(--muted)
     margin-bottom 2px
 
   .collision-text
+    font-family var(--font-serif)
+    font-size var(--text-md)
     white-space pre-wrap
-    line-height 1.45
+    line-height 1.5
 
-.collision-actions
-  gap 8px
+.replace-button
+  color var(--danger-ink)
+
+.delete-button
+  color var(--danger-ink)
+  padding-left 8px
+
+  &:hover:not(:disabled)
+    background var(--danger-soft)
 </style>
