@@ -68,7 +68,6 @@
     "filedrop": "^2.1.0",
     "fuzzysort": "^2.0.4",
     "jquery": "^3.7.1",
-    "jsdiff": "^1.1.1",
     "lucide-vue-next": "^1.0.0",
     "moment": "^2.29.4",
     "pluralize": "^8.0.0",

@@ -26,26 +26,38 @@
 <template>
   <tr
     class="results-group"
-    :class="allPassed ? 'text-green' : 'text-red'"
+    :class="allPassed ? 'results-group--passed' : 'results-group--failed'"
+    data-testid="tests-group"
   >
     <td class="header" @click="opened = !opened">
       {{name}}
     </td>
     <td class="count">{{passedCount}}/{{total}}</td>
-    <td class="result">
-      <v-icon
-        :color="allPassed ? 'green' : 'red'"
-        v-text="allPassed ? 'mdi-check-bold' : 'mdi-close-thick'"
-      />
-    </td>
+    <td class="result">{{ allPassed ? '✓' : '✗' }}</td>
     <td>
-      <TestsPageGroupResult
-        v-if="!opened"
-        v-for="(test, index) in tests"
-        :sentence="sentences"
-        :test="test"
-        :key="index"
-      />
+      <template v-if="!opened">
+        <TestsPageGroupResult
+          v-for="(test, index) in tests"
+          :key="index"
+          :sentence="sentences"
+          :test="test"
+        />
+      </template>
     </td>
   </tr>
 </template>
+
+<style>
+.results-group .header {
+  cursor: pointer;
+}
+.results-group .result {
+  font-weight: bold;
+}
+.results-group--passed {
+  color: #21ba45;
+}
+.results-group--failed {
+  color: #db2828;
+}
+</style>

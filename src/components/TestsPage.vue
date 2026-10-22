@@ -1,5 +1,4 @@
 <script>
-import $ from 'jquery';
 import _ from 'underscore';
 
 import PhoneticSearchPrepareTermForLooseMatchingTests from '../../tests/phonetic-search/prepare-term-for-loose-matching.js';
@@ -11,26 +10,27 @@ var testGroups = [
   PhoneticSearchSplitSyllablesTests,
 ];
 
+// Developer page (/tests): runs the phonetic search examples in the browser.
 export default {
   components: {
     TestsPageGroup,
   },
   data() {
+    var startedAt = new Date().getTime();
     var passedCount = 0;
     var ranTests = testGroups.map(function (testGroup) {
       _(testGroup.tests).each(function (test) {
         test.runTest = function () {
           var method = test.method || testGroup.method;
           test.value = method(test.input);
-          return _.isEqual(test.value, test.expected);
+          test.pass = _.isEqual(test.value, test.expected);
+          return test.pass;
         };
-        test.pass = test.runTest();
-        if (test.pass) passedCount++;
+        if (test.runTest()) passedCount++;
       });
       return testGroup;
     });
-    this.processTime = new Date().getTime() - this.startedAt;
-    var total = _(testGroups).pluck('tests').flatten().length;
+    var total = _.flatten(_.pluck(testGroups, 'tests')).length;
     var percentage = ((passedCount / total) * 100).toPrecision(3);
     document.title = `Tests / ${percentage}% (${passedCount}/${total})`;
     return {
@@ -38,6 +38,7 @@ export default {
       passedCount: passedCount,
       total: total,
       percentage: percentage,
+      processTime: new Date().getTime() - startedAt,
     };
   },
   computed: {
@@ -47,27 +48,21 @@ export default {
       };
     },
   },
-  beforeCreate() {
-    this.startedAt = new Date().getTime();
-  },
-  mounted() {
-    $(this.$refs.time).text(this.processTime);
-  },
 };
 </script>
 
 <template>
-  <div>
-    <v-table>
-      <thead style="background: #fff1">
+  <div class="tests-page">
+    <table class="tests-page__table">
+      <thead>
         <tr>
-          <td class="ui header" colspan="10">
+          <td colspan="10" data-testid="tests-total">
             Total:
             <span :style="style">
               {{ percentage }}% ({{ passedCount }}/{{ total }})
             </span>
             — Ran in:
-            <span ref="time"></span>
+            <span>{{ processTime }}</span>
             ms
           </td>
         </tr>
@@ -81,12 +76,28 @@ export default {
           :tests="test.tests"
         />
       </tbody>
-    </v-table>
+    </table>
   </div>
 </template>
 
 <style>
-.diff {
+.tests-page {
+  height: 100%;
+  overflow: auto;
+  padding: 16px;
+  font: 14px/1.5 var(--font-ui);
+  color: var(--ink);
+}
+.tests-page__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.tests-page__table td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.tests-page__table .diff {
   margin: 0 -9px 0 10px;
   padding: 4px 10px;
   font-size: 1.2em;

@@ -8,33 +8,20 @@
     props: {
       test: Object,
       sentence: Boolean
-    },
-    computed: {
-      expected: function() {
-        return this.test.transliteration;
-      },
-      actual: function() {
-        return this.test.transliterated;
-      }
     }
   }
 </script>
 
 <template>
-  <v-chip
-    variant="flat"
-    class="test ma-1"
-    :style="{
-      display: sentence ? 'block' : 'inline-block',
-      height: 'auto',
-      backgroundColor: test.pass ? '#1b5e20!important' : '#740505!important'
-    }"
+  <button
+    type="button"
+    class="test"
+    :class="test.pass ? 'test--passed' : 'test--failed'"
+    :style="{ display: sentence ? 'block' : 'inline-block' }"
+    data-testid="tests-result"
     @click="test.runTest()"
   >
-    <v-icon
-      :color="test.pass ? 'green' : 'red'"
-      :icon="test.pass ? 'mdi-check-bold' : 'mdi-close-thick'"
-    />
+    {{ test.pass ? '✓' : '✗' }}
     <template v-if="!test.pass && test.value">
       <TestsPageGroupResultDiff
         v-if="typeof(test.value) == 'string'"
@@ -44,9 +31,34 @@
       <div
         v-else
       >
-        <div class="text-blue">{{test.expected}}</div>
-        <div class="text-red">{{test.value}}</div>
+        <div class="test__expected">{{test.expected}}</div>
+        <div class="test__actual">{{test.value}}</div>
       </div>
     </template>
-  </v-chip>
+  </button>
 </template>
+
+<style>
+.test {
+  margin: 4px;
+  padding: 2px 10px;
+  border: 0;
+  border-radius: 12px;
+  color: white;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.test--passed {
+  background: #1b5e20;
+}
+.test--failed {
+  background: #740505;
+}
+.test__expected {
+  color: #64b5f6;
+}
+.test__actual {
+  color: #ef9a9a;
+}
+</style>
