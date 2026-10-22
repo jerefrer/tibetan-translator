@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Lookup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+@font-face{font-family:'DDC_Uchen';src:url(/_blob/f5823bcabc5271bfb889c5add594853f) format('woff');font-display:swap}
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; overflow: hidden; background: var(--bg); color: var(--ink); font-family: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; {{vars}}">
+
+<!-- Rail -->
+<nav aria-label="Main" style="width: 88px; flex: none; box-sizing: border-box; background: var(--rail-bg); border-right: 1px solid var(--rail-line); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 6px">
+<div style="width: 44px; height: 44px; border-radius: 12px; background: var(--logo-bg); color: var(--logo-ink); display: flex; align-items: center; justify-content: center; margin-bottom: 22px"><span style="font-family: 'DDC_Uchen', serif; font-size: 30px; line-height: 1; margin-top: 6px">ཀ</span></div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+<sc-if value="{{n.active}}" hint-placeholder-val="{{ false }}">
+<button type="button" aria-current="page" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: var(--rail-active-bg); color: var(--rail-active-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.path}}"/></svg>
+{{n.label}}
+</button>
+</sc-if>
+<sc-if value="{{n.idle}}" hint-placeholder-val="{{ true }}">
+<button type="button" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: transparent; color: var(--rail-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; font-weight: 500; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.path}}"/></svg>
+{{n.label}}
+</button>
+</sc-if>
+</sc-for>
+<div style="flex: 1"></div>
+<button type="button" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: transparent; color: var(--rail-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; font-weight: 500; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+Settings
+</button>
+</nav>
+
+<!-- Main -->
+<main style="flex: 1; min-width: 0; box-sizing: border-box; padding: 28px 40px 0; display: flex; flex-direction: column; gap: 22px">
+
+<!-- One field for everything -->
+<div style="display: flex; align-items: center; gap: 16px">
+<label for="lookup" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Look up a word</label>
+<div style="flex: 1; max-width: 880px; height: 60px; box-sizing: border-box; background: var(--surface); border: 1.5px solid var(--accent); border-radius: 14px; box-shadow: 0 0 0 4px var(--ring); display: flex; align-items: center; gap: 12px; padding: 0 12px 0 18px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+<input id="lookup" type="text" value="ཡེ་ཤེས་" readonly style="flex: 1; min-width: 0; height: 100%; box-sizing: border-box; border: 0; outline: 0; background: transparent; font-family: 'DDC_Uchen', serif; font-size: 26px; line-height: 1.5; color: var(--ink); padding: 8px 0 0">
+<span style="font-size: 13px; color: var(--muted)">typed <b style="font-weight: 600; color: var(--ink)">ye shes</b></span>
+<button type="button" aria-label="Change the detected language" style="height: 36px; border: 1px solid var(--accent-line); background: var(--accent-soft); color: var(--accent); border-radius: 10px; padding: 0 12px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer">
+Tibetan, from Wylie
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+</button>
+</div>
+<span style="font-size: 13px; color: var(--muted); line-height: 1.4">Type in Wylie, Tibetan,<br>Sanskrit or English.</span>
+</div>
+
+<!-- Headword -->
+<section style="display: flex; align-items: flex-end; gap: 28px; padding-top: 6px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Tibetan · 29 entries, 17 searched</span>
+<div style="display: flex; align-items: center; gap: 22px; margin-top: 10px">
+<h1 style="margin: 0; font-family: 'DDC_Uchen', serif; font-weight: 400; font-size: 54px; line-height: 1.55; color: var(--rubric)">ཡེ་ཤེས་</h1>
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; color: var(--muted)">ye shes · yeshé</span>
+<button type="button" aria-label="Play the pronunciation" style="width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
+</button>
+</div>
+</div>
+</div>
+<div style="flex: 1"></div>
+<div style="display: flex; gap: 10px; padding-bottom: 20px">
+<button type="button" style="height: 40px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); padding: 0 16px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; cursor: pointer">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12v17l-6-4-6 4z"/></svg>
+Collect
+</button>
+<button type="button" style="height: 40px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer">Copy all</button>
+<button type="button" style="height: 40px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer">Add my definition</button>
+</div>
+</section>
+
+<div style="display: flex; gap: 32px; min-height: 0; flex: 1">
+
+<!-- Results -->
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+
+<!-- At a glance -->
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-right: 4px">Most often rendered as</span>
+<sc-for list="{{glance}}" as="g" hint-placeholder-count="5">
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 32px; box-sizing: border-box; padding: 0 6px 0 12px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-family: 'Source Serif 4', Georgia, serif; font-size: 16px">
+{{g.word}}
+<span style="min-width: 20px; height: 20px; box-sizing: border-box; padding: 0 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-family: 'Instrument Sans', Arial, sans-serif; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{g.count}}</span>
+</span>
+</sc-for>
+</div>
+
+<!-- Filters by purpose -->
+<div role="tablist" aria-label="Kind of dictionary" style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap">
+<button type="button" role="tab" aria-selected="true" style="height: 36px; border: 0; border-radius: 10px; background: var(--dark); color: var(--on-dark); padding: 0 14px; font-size: 13.5px; font-weight: 600; cursor: pointer">All · 17</button>
+<button type="button" role="tab" aria-selected="false" style="height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 14px; font-size: 13.5px; font-weight: 500; cursor: pointer">Translations · 9</button>
+<button type="button" role="tab" aria-selected="false" style="height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 14px; font-size: 13.5px; font-weight: 500; cursor: pointer">Definitions · 5</button>
+<button type="button" role="tab" aria-selected="false" style="height: 36px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 14px; font-size: 13.5px; font-weight: 500; cursor: pointer">Sanskrit · 3</button>
+<button type="button" role="tab" aria-selected="false" style="height: 36px; border: 1.5px dashed var(--amber-line); border-radius: 10px; background: var(--amber-bg); color: var(--amber-ink); padding: 0 14px; font-size: 13.5px; font-weight: 600; cursor: pointer">In Tibetan · 8 not installed</button>
+</div>
+
+<!-- Entries -->
+<div style="position: relative; flex: 1; min-height: 0; overflow: hidden; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 1px 2px rgba(26, 30, 43, 0.04)">
+<sc-for list="{{entries}}" as="e" hint-placeholder-count="6">
+<article style="display: grid; grid-template-columns: 188px minmax(0, 1fr); gap: 20px; padding: 18px 22px; border-bottom: 1px solid var(--soft)">
+<div style="display: flex; flex-direction: column; gap: 6px; align-items: flex-start">
+<span style="font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 3px 9px">{{e.dictionary}}</span>
+<span style="font-size: 12px; color: var(--muted)">{{e.kind}}</span>
+</div>
+<p style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 17.5px; line-height: 1.55; color: var(--ink)">{{e.text}}</p>
+</article>
+</sc-for>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 72px; background: linear-gradient(to bottom, rgba(255,255,255,0), var(--surface))"></div>
+</div>
+</div>
+
+<!-- Side column -->
+<aside style="width: 360px; flex: none; display: flex; flex-direction: column; gap: 18px">
+
+<section style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 2px rgba(26, 30, 43, 0.04)">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Sanskrit</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-style: italic; font-size: 30px; line-height: 1.2">jñāna</span>
+<span style="font-size: 13px; color: var(--muted)">Given by Rangjung Yeshe and the Sanskrit &amp; Academic pack.</span>
+</section>
+
+<section style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(26, 30, 43, 0.04)">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Collection · 3</span>
+<button type="button" style="border: 0; background: none; color: var(--accent); font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px">Export</button>
+</div>
+<sc-for list="{{collection}}" as="c" hint-placeholder-count="3">
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr); align-items: center; gap: 12px; min-height: 40px">
+<span style="font-family: 'DDC_Uchen', serif; font-size: 22px; line-height: 1.6; color: var(--rubric)">{{c.term}}</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; color: var(--muted)">{{c.gloss}}</span>
+</div>
+</sc-for>
+</section>
+
+<section style="border: 1.5px dashed var(--amber-line); background: var(--amber-bg); border-radius: 14px; padding: 18px 20px; display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 16px; font-weight: 600; color: var(--amber-ink)">12 more entries in packs you have not installed</span>
+<p style="margin: 0; font-family: 'DDC_Uchen', serif; font-size: 17px; line-height: 1.7; color: var(--amber-ink); max-height: 58px; overflow: hidden">ཡེ་ནས་གནས་པའི་ཤེས་པ་སྟེ་སེམས་ཅན་ཐམས་ཅད་ཀྱི་རྒྱུད་ལ་རང་བཞིན་གྱིས་གནས་པའི་སྟོང་གསལ་གྱི་རིག་པ།</p>
+<span style="font-size: 12.5px; color: var(--amber-ink)">Tibetan Monolingual · 8 · Sanskrit &amp; Academic · 4</span>
+<button type="button" style="align-self: flex-start; height: 38px; border: 0; border-radius: 10px; background: var(--amber-ink); color: var(--on-dark); padding: 0 16px; font-size: 13.5px; font-weight: 600; cursor: pointer">Install Tibetan Monolingual · 65 MB</button>
+</section>
+
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const palettes = {
+heritage: {
+'bg': '#FAF3E0', 'surface': '#FFFDF8', 'ink': '#2A1F1A', 'muted': '#6A5B50',
+'line': '#E6D9BC', 'line-strong': '#D6C59F', 'soft': '#F0E6CE',
+'accent': '#A30000', 'accent-soft': '#F7E3DD', 'accent-line': '#E7BDB4', 'on-accent': '#FFFFFF',
+'rubric': '#A30000', 'ring': '#F7E3DD',
+'amber-bg': '#FFF0BF', 'amber-ink': '#4A3600', 'amber-line': '#A87400', 'amber-solid': '#8F6200',
+'ok': '#2E7D32', 'dark': '#2A1F1A', 'on-dark': '#FFF8E8',
+'rail-bg': '#A30000', 'rail-line': '#7C0000', 'rail-ink': '#F9DAD4',
+'rail-active-bg': '#7C0000', 'rail-active-ink': '#FFC107',
+'logo-bg': '#FFC107', 'logo-ink': '#7C0000'
+}
+};
+const palette = palettes.heritage;
+return {
+vars: Object.keys(palette).map((key) => '--' + key + ': ' + palette[key]).join('; '),
+nav: [
+{ label: 'Lookup', path: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5', active: true, idle: false },
+{ label: 'Reading', path: 'M4 5h16M4 10h10M4 15h16M4 20h8', active: false, idle: true },
+{ label: 'Library', path: 'M5 4h4v16H5zM11 4h4v16h-4zM17.5 5l3 .8-3.6 14.4-3-.8z', active: false, idle: true },
+{ label: 'Collection', path: 'M6 4h12v17l-6-4-6 4z', active: false, idle: true }
+],
+glance: [
+{ word: 'wisdom', count: 5 },
+{ word: 'awareness', count: 3 },
+{ word: 'wakefulness', count: 3 },
+{ word: 'gnosis', count: 2 },
+{ word: 'knowledge', count: 2 }
+],
+collection: [
+{ term: 'སྙིང་པོ་', gloss: 'essence; heart' },
+{ term: 'ཤེས་རབ་', gloss: 'wisdom; prajna' },
+{ term: 'བཅོམ་ལྡན་འདས་', gloss: 'Blessed One' }
+],
+entries: [
+{ dictionary: 'Hopkins 2015', kind: 'Translation', text: 'pristine wisdom; exalted wisdom; wisdom' },
+{ dictionary: 'Rangjung Yeshe', kind: 'Translation', text: 'knowledge, original wakefulness, gnosis, cognition, wisdom, primal awareness, pristine awareness, Primordial Awareness, [jnana]; pristine cognition.' },
+{ dictionary: 'Rangjung Yeshe', kind: 'Definition', text: 'wisdom, original wakefulness. Basic cognizance independent of intellectual constructs. There are also the five wisdoms, aspects of how the cognitive …' },
+{ dictionary: '84000 Glossary', kind: 'Translation', text: 'awareness, gnosis, knowledge, primordial wisdom, transcendental knowledge, wakefulness, wisdom' },
+{ dictionary: 'Berzin', kind: 'Translation', text: 'deep awareness' },
+{ dictionary: 'James Valby', kind: 'Translation', text: 'wisdom; jnana, (exalted, primordial) wisdom, (primal, transcending, original, unitary, authentic, pure, absolute, a priori, genuine, spiritual, …' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

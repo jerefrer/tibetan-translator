@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dialogs</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+@font-face{font-family:'DDC_Uchen';src:url(/_blob/f5823bcabc5271bfb889c5add594853f) format('woff');font-display:swap}
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: grid; grid-template-columns: 520px 520px; gap: 40px; align-items: start; align-content: center; justify-content: center; background: rgba(42, 31, 26, 0.62); color: var(--ink); font-family: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; {{vars}}"><div style="width: 520px; box-sizing: border-box; background: var(--surface); border-radius: 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); padding: 28px 30px 22px; display: flex; flex-direction: column; gap: 14px"><h2 style="margin: 0; font-size: 20px; font-weight: 600">What’s new in v1.12.0</h2><ul style="margin: 0; padding-left: 20px; font-size: 14.5px; line-height: 1.5"><li style="margin-bottom: 6px">Searchable catalog of dictionaries in Settings, by name, subject (archaic terms, medicine, grammar…) or language</li><li style="margin-bottom: 6px">Notes on what each optional dictionary pack contains, shown when you first set up the app</li><li style="margin-bottom: 6px">Suggestions of dictionaries you have not installed yet when a lookup turns up little</li><li style="margin-bottom: 6px">All dictionaries now follow Christian Steinert’s latest version</li></ul><div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px"><button type="button" style="height: 40px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer; ">Later</button><button type="button" style="height: 40px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer; ">Restart now</button></div></div><div style="width: 520px; box-sizing: border-box; background: var(--surface); border-radius: 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); padding: 28px 30px 22px; display: flex; flex-direction: column; gap: 14px"><h2 style="margin: 0; font-size: 20px; font-weight: 600">Remove pack?</h2><p style="margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--muted)">Tibetan Monolingual and its 21 dictionaries will be removed from this device. You can download it again at any time.</p><div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px"><button type="button" style="height: 40px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer; ">Cancel</button><button type="button" style="height: 40px; border: 0; border-radius: 10px; background: #B3261E; color: #fff; padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer">Remove</button></div></div><div style="width: 520px; box-sizing: border-box; background: var(--surface); border-radius: 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); padding: 28px 30px 22px; display: flex; flex-direction: column; gap: 14px"><h2 style="margin: 0; font-size: 20px; font-weight: 600">Delete this entry?</h2><p style="margin: 0; font-size: 14.5px; line-height: 1.55"><span style="font-family: 'DDC_Uchen', serif; font-size: 26px; line-height: 1.7; color: var(--rubric)">སྙིང་རྗེ་</span><br>compassion; the heartfelt wish that others be free of suffering</p><p style="margin: 0; font-size: 13px; color: var(--muted)">This cannot be undone.</p><div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px"><button type="button" style="height: 40px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer; ">Cancel</button><button type="button" style="height: 40px; border: 0; border-radius: 10px; background: #B3261E; color: #fff; padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer">Delete</button></div></div><div style="width: 520px; box-sizing: border-box; background: var(--surface); border-radius: 18px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35); padding: 28px 30px 22px; display: flex; flex-direction: column; gap: 14px"><h2 style="margin: 0; font-size: 20px; font-weight: 600">Rangjung Yeshe Dictionary</h2><p style="margin: 0; font-size: 14.5px; line-height: 1.55">Rangjung Yeshe Tibetan-English Dharma Dictionary 3.0 by Erik Pema Kunsang (2003)</p><div style="display: flex; gap: 8px"><span style="justify-self: start; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 3px 9px">Tibetan ⇄ English</span><span style="justify-self: start; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 3px 9px">comprehensive</span><span style="justify-self: start; white-space: nowrap; font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 3px 9px">Dharma terms</span></div><a href="#" style="font-size: 14px; color: var(--accent)">rywiki.tsadra.org</a><div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 6px"><button type="button" style="height: 40px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer; ">Close</button></div></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const palette = {
+'bg': '#FAF3E0', 'surface': '#FFFDF8', 'ink': '#2A1F1A', 'muted': '#6A5B50', 'faint': '#9C8D7E',
+'line': '#E6D9BC', 'line-strong': '#D6C59F', 'soft': '#F0E6CE',
+'accent': '#A30000', 'accent-soft': '#F7E3DD', 'accent-line': '#E7BDB4', 'on-accent': '#FFFFFF',
+'rubric': '#A30000', 'ring': '#F7E3DD',
+'amber-bg': '#FFF0BF', 'amber-ink': '#4A3600', 'amber-line': '#A87400',
+'dark': '#2A1F1A', 'on-dark': '#FFF8E8',
+'rail-bg': '#A30000', 'rail-line': '#7C0000', 'rail-ink': '#F9DAD4',
+'rail-active-bg': '#7C0000', 'rail-active-ink': '#FFC107',
+'logo-bg': '#FFC107', 'logo-ink': '#7C0000'
+};
+
+return {
+vars: Object.keys(palette).map((key) => '--' + key + ': ' + palette[key]).join('; '),
+nav: [
+{ label: 'Define', path: 'M5 4.5h6.5a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H5zM19 4.5h-6.5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2H19z', active: false, idle: true },
+{ label: 'Search', path: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5', active: false, idle: true },
+{ label: 'Split', path: 'M4 8h5M15 8h5M4 16h5M15 16h5M12 4v16', active: false, idle: true }
+],
+
+};
+}
+}
+</script>
+</body>
+</html>

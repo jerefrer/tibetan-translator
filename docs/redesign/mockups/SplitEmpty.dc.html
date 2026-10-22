@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Split, empty</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+@font-face{font-family:'DDC_Uchen';src:url(/_blob/f5823bcabc5271bfb889c5add594853f) format('woff');font-display:swap}
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; overflow: hidden; background: var(--bg); color: var(--ink); font-family: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; {{vars}}">
+<nav aria-label="Main" style="width: 88px; flex: none; box-sizing: border-box; background: var(--rail-bg); border-right: 1px solid var(--rail-line); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 6px">
+<div style="width: 44px; height: 44px; border-radius: 12px; background: var(--logo-bg); color: var(--logo-ink); display: flex; align-items: center; justify-content: center; margin-bottom: 22px"><span style="font-family: 'DDC_Uchen', serif; font-size: 30px; line-height: 1; margin-top: 6px">ཀ</span></div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="3">
+<sc-if value="{{n.active}}" hint-placeholder-val="{{ false }}">
+<button type="button" aria-current="page" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: var(--rail-active-bg); color: var(--rail-active-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.path}}"/></svg>
+{{n.label}}
+</button>
+</sc-if>
+<sc-if value="{{n.idle}}" hint-placeholder-val="{{ true }}">
+<button type="button" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: transparent; color: var(--rail-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; font-weight: 500; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.path}}"/></svg>
+{{n.label}}
+</button>
+</sc-if>
+</sc-for>
+<div style="width: 36px; height: 1px; background: var(--rail-line); margin: 10px 0 8px"></div>
+<button type="button" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: transparent; color: var(--rail-ink); font-weight: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18H6zM9 3v18M12 8h3M12 12h3"/></svg>My glossary</button>
+<button type="button" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: transparent; color: var(--rail-ink); font-weight: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4v16H5zM11 4h4v16h-4zM17.5 5l3 .8-3.6 14.4-3-.8z"/></svg>Dictionaries</button>
+<div style="flex: 1"></div>
+<button type="button" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: transparent; color: var(--rail-ink); font-weight: 500; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>Settings</button>
+</nav><main style="flex: 1; min-width: 0; box-sizing: border-box; padding: 28px 40px 0; display: flex; flex-direction: column; gap: 18px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Split</span><div style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 1px 2px rgba(42, 31, 26, 0.05); padding: 14px 22px 16px; display: flex; flex-direction: column; gap: 10px"><textarea readonly placeholder="Paste or type Tibetan text" aria-label="Tibetan text" style="width: 100%; height: 96px; box-sizing: border-box; resize: none; border: 1.5px solid var(--accent); box-shadow: 0 0 0 4px var(--ring); border-radius: 10px; background: var(--surface); padding: 10px 16px; outline: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; color: var(--ink)"></textarea></div><div style="display: flex; gap: 28px; flex: 1; min-height: 0"><div style="width: 340px; flex: none; display: flex; flex-direction: column"><div style="font-size: 13px; color: var(--muted); padding: 8px 0">No terms</div><div style="font-size: 14px; color: var(--muted); padding: 10px 0">Paste text above to begin</div></div></div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const palette = {
+'bg': '#FAF3E0', 'surface': '#FFFDF8', 'ink': '#2A1F1A', 'muted': '#6A5B50', 'faint': '#9C8D7E',
+'line': '#E6D9BC', 'line-strong': '#D6C59F', 'soft': '#F0E6CE',
+'accent': '#A30000', 'accent-soft': '#F7E3DD', 'accent-line': '#E7BDB4', 'on-accent': '#FFFFFF',
+'rubric': '#A30000', 'ring': '#F7E3DD',
+'amber-bg': '#FFF0BF', 'amber-ink': '#4A3600', 'amber-line': '#A87400',
+'dark': '#2A1F1A', 'on-dark': '#FFF8E8',
+'rail-bg': '#A30000', 'rail-line': '#7C0000', 'rail-ink': '#F9DAD4',
+'rail-active-bg': '#7C0000', 'rail-active-ink': '#FFC107',
+'logo-bg': '#FFC107', 'logo-ink': '#7C0000'
+};
+
+return {
+vars: Object.keys(palette).map((key) => '--' + key + ': ' + palette[key]).join('; '),
+nav: [
+{ label: 'Define', path: 'M5 4.5h6.5a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H5zM19 4.5h-6.5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2H19z', active: false, idle: true },
+{ label: 'Search', path: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5', active: false, idle: true },
+{ label: 'Split', path: 'M4 8h5M15 8h5M4 16h5M15 16h5M12 4v16', active: true, idle: false }
+],
+
+};
+}
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,265 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-10-22T09:00:00Z"
+  },
+  "title": "Tibetan Translator Redesign",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Lookup"
+    },
+    "Reading.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 900,
+      "title": "Reading"
+    },
+    "Library.dc.html": {
+      "x": 0,
+      "y": 1020,
+      "w": 1440,
+      "h": 900,
+      "title": "Library"
+    },
+    "Phone.dc.html": {
+      "x": 1520,
+      "y": 1020,
+      "w": 390,
+      "h": 844,
+      "title": "Phone"
+    },
+    "Popup.dc.html": {
+      "x": 1990,
+      "y": 1020,
+      "w": 560,
+      "h": 480,
+      "title": "Quick lookup"
+    },
+    "Define.dc.html": {
+      "x": 0,
+      "y": 2400,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Define"
+    },
+    "Search.dc.html": {
+      "x": 1520,
+      "y": 2400,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Search"
+    },
+    "Split.dc.html": {
+      "x": 0,
+      "y": 3420,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Split"
+    },
+    "DefinePhone.dc.html": {
+      "x": 940,
+      "y": 8520,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Define on a phone"
+    },
+    "SearchEmpty.dc.html": {
+      "x": 0,
+      "y": 4440,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Search, empty"
+    },
+    "SearchBuilder.dc.html": {
+      "x": 1520,
+      "y": 4440,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Search, query builder open"
+    },
+    "SearchDictionaries.dc.html": {
+      "x": 3040,
+      "y": 4440,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Search, dictionaries menu"
+    },
+    "DefineEmpty.dc.html": {
+      "x": 0,
+      "y": 5460,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Define, no results"
+    },
+    "SplitEmpty.dc.html": {
+      "x": 1520,
+      "y": 5460,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Split, empty"
+    },
+    "Lexicon.dc.html": {
+      "x": 3040,
+      "y": 5460,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 My glossary"
+    },
+    "Settings.dc.html": {
+      "x": 0,
+      "y": 6480,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Settings"
+    },
+    "SettingsCatalog.dc.html": {
+      "x": 1520,
+      "y": 6480,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Dictionaries"
+    },
+    "Onboarding.dc.html": {
+      "x": 3040,
+      "y": 6480,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 First launch"
+    },
+    "DefineDark.dc.html": {
+      "x": 0,
+      "y": 7500,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Define, dark theme"
+    },
+    "Dialogs.dc.html": {
+      "x": 1520,
+      "y": 7500,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Dialogs"
+    },
+    "PopupB.dc.html": {
+      "x": 3040,
+      "y": 7500,
+      "w": 560,
+      "h": 480,
+      "title": "B \u00b7 Quick lookup"
+    },
+    "SearchPhone.dc.html": {
+      "x": 0,
+      "y": 8520,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Search on a phone"
+    },
+    "SplitPhone.dc.html": {
+      "x": 470,
+      "y": 8520,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Split on a phone"
+    },
+    "SettingsPhone.dc.html": {
+      "x": 0,
+      "y": 9540,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Settings on a phone"
+    },
+    "DictionariesPhone.dc.html": {
+      "x": 470,
+      "y": 9540,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Dictionaries on a phone"
+    },
+    "GlossaryPhone.dc.html": {
+      "x": 940,
+      "y": 9540,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 My glossary on a phone"
+    },
+    "DefinePhoneEntries.dc.html": {
+      "x": 1410,
+      "y": 8520,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Define on a phone, entries"
+    },
+    "SplitPhoneEntries.dc.html": {
+      "x": 1410,
+      "y": 9540,
+      "w": 390,
+      "h": 844,
+      "title": "B \u00b7 Split on a phone, entries"
+    },
+    "ScanViewer.dc.html": {
+      "x": 3040,
+      "y": 7980,
+      "w": 1440,
+      "h": 900,
+      "title": "B \u00b7 Scan viewer"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Reading.dc.html",
+    "Library.dc.html",
+    "Phone.dc.html",
+    "Popup.dc.html",
+    "Define.dc.html",
+    "Search.dc.html",
+    "Split.dc.html",
+    "DefinePhone.dc.html",
+    "SearchEmpty.dc.html",
+    "SearchBuilder.dc.html",
+    "SearchDictionaries.dc.html",
+    "DefineEmpty.dc.html",
+    "SplitEmpty.dc.html",
+    "Lexicon.dc.html",
+    "Settings.dc.html",
+    "SettingsCatalog.dc.html",
+    "Onboarding.dc.html",
+    "DefineDark.dc.html",
+    "Dialogs.dc.html",
+    "PopupB.dc.html",
+    "SearchPhone.dc.html",
+    "SplitPhone.dc.html",
+    "SettingsPhone.dc.html",
+    "DictionariesPhone.dc.html",
+    "GlossaryPhone.dc.html",
+    "DefinePhoneEntries.dc.html",
+    "SplitPhoneEntries.dc.html",
+    "ScanViewer.dc.html"
+  ],
+  "notes": {
+    "title": {
+      "x": 0,
+      "y": -300,
+      "text": "A \u00b7 Merged Lookup and Reading",
+      "kind": "title1",
+      "maxW": 2960
+    },
+    "titleB": {
+      "x": 0,
+      "y": 2100,
+      "text": "B \u00b7 The same screens as today, refined",
+      "kind": "title1",
+      "maxW": 4480
+    }
+  },
+  "designSystems": []
+}

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Scan viewer</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+@font-face{font-family:'DDC_Uchen';src:url(/_blob/f5823bcabc5271bfb889c5add594853f) format('woff');font-display:swap}
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; flex-direction: column; background: #1b1512; color: #F3E8D6; font-family: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; {{vars}}"><div style="height: 64px; flex: none; display: flex; align-items: center; gap: 14px; padding: 0 20px; border-bottom: 1px solid #3D312B"><button type="button" aria-label="Close" style="width: 44px; height: 44px; border: 0; background: none; color: inherit; cursor: pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button><span style="font-size: 16px; font-weight: 600">Jäschke · Page 479</span><span style="font-size: 13px; color: #B8A998">approximate</span><span style="flex: 1"></span><button type="button" aria-label="Zoom out" style="width: 44px; height: 44px; border: 1.5px solid #54453B; border-radius: 10px; background: none; color: inherit; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><span style="width: 56px; text-align: center; font-size: 13.5px">100%</span><button type="button" aria-label="Zoom in" style="width: 44px; height: 44px; border: 1.5px solid #54453B; border-radius: 10px; background: none; color: inherit; cursor: pointer"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div><div style="flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; gap: 28px"><button type="button" style="height: 48px; border: 1.5px solid #54453B; border-radius: 12px; background: none; color: inherit; padding: 0 18px; font-size: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>Previous</button><div role="img" aria-label="Placeholder for the scanned page" style="width: 560px; height: 700px; background: repeating-linear-gradient(135deg, #2A211D 0 14px, #241C18 14px 28px); border: 1px solid #3D312B; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #7E7064; font-size: 14px">Scanned page appears here</div><button type="button" style="height: 48px; border: 1.5px solid #54453B; border-radius: 12px; background: none; color: inherit; padding: 0 18px; font-size: 14px; display: flex; align-items: center; gap: 8px; cursor: pointer">Next<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const palette = {
+'bg': '#FAF3E0', 'surface': '#FFFDF8', 'ink': '#2A1F1A', 'muted': '#6A5B50', 'faint': '#9C8D7E',
+'line': '#E6D9BC', 'line-strong': '#D6C59F', 'soft': '#F0E6CE',
+'accent': '#A30000', 'accent-soft': '#F7E3DD', 'accent-line': '#E7BDB4', 'on-accent': '#FFFFFF',
+'rubric': '#A30000', 'ring': '#F7E3DD',
+'amber-bg': '#FFF0BF', 'amber-ink': '#4A3600', 'amber-line': '#A87400',
+'dark': '#2A1F1A', 'on-dark': '#FFF8E8',
+'rail-bg': '#A30000', 'rail-line': '#7C0000', 'rail-ink': '#F9DAD4',
+'rail-active-bg': '#7C0000', 'rail-active-ink': '#FFC107',
+'logo-bg': '#FFC107', 'logo-ink': '#7C0000'
+};
+
+return {
+vars: Object.keys(palette).map((key) => '--' + key + ': ' + palette[key]).join('; '),
+nav: [
+{ label: 'Define', path: 'M5 4.5h6.5a2 2 0 0 1 2 2V20a2 2 0 0 0-2-2H5zM19 4.5h-6.5a2 2 0 0 0-2 2V20a2 2 0 0 1 2-2H19z', active: false, idle: true },
+{ label: 'Search', path: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5', active: false, idle: true },
+{ label: 'Split', path: 'M4 8h5M15 8h5M4 16h5M15 16h5M12 4v16', active: false, idle: true }
+],
+
+};
+}
+}
+</script>
+</body>
+</html>

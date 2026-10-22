@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quick lookup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+@font-face{font-family:'DDC_Uchen';src:url(/_blob/f5823bcabc5271bfb889c5add594853f) format('woff');font-display:swap}
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 560px; height: 480px; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; background: var(--surface); color: var(--ink); font-family: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; {{vars}}">
+
+<!-- Bar -->
+<header style="flex: none; height: 52px; box-sizing: border-box; padding: 0 14px 0 18px; display: flex; align-items: center; gap: 12px; background: var(--bg); border-bottom: 1px solid var(--line)">
+<div style="width: 28px; height: 28px; border-radius: 8px; background: var(--logo-bg); color: var(--logo-ink); display: flex; align-items: center; justify-content: center"><span style="font-family: 'DDC_Uchen', serif; font-size: 18px; line-height: 1; margin-top: 4px">ཀ</span></div>
+<span style="font-size: 13.5px; font-weight: 600">From your clipboard</span>
+<span style="flex: 1"></span>
+<span style="font-size: 12.5px; color: var(--muted)">Close with</span>
+<kbd style="font-family: 'Instrument Sans', Arial, sans-serif; font-size: 12px; font-weight: 600; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px">Esc</kbd>
+</header>
+
+<div style="flex: 1; min-height: 0; box-sizing: border-box; padding: 14px 22px 0; display: flex; flex-direction: column; gap: 12px">
+
+<section style="display: flex; align-items: center; gap: 18px">
+<h1 style="margin: 0; font-family: 'DDC_Uchen', serif; font-weight: 400; font-size: 44px; line-height: 1.55; color: var(--rubric)">ཡེ་ཤེས་</h1>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--muted)">ye shes · yeshé</span>
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Tibetan · 17 entries</span>
+</div>
+<span style="flex: 1"></span>
+<button type="button" aria-label="Play the pronunciation" style="width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--accent); background: var(--surface); color: var(--accent); display: flex; align-items: center; justify-content: center; cursor: pointer">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
+</button>
+</section>
+
+<div style="display: flex; gap: 8px; flex-wrap: wrap">
+<sc-for list="{{glance}}" as="g" hint-placeholder-count="3">
+<span style="display: inline-flex; align-items: center; gap: 8px; height: 30px; box-sizing: border-box; padding: 0 6px 0 12px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-family: 'Source Serif 4', Georgia, serif; font-size: 15.5px">
+{{g.word}}
+<span style="min-width: 20px; height: 20px; box-sizing: border-box; padding: 0 6px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-family: 'Instrument Sans', Arial, sans-serif; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center">{{g.count}}</span>
+</span>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-direction: column">
+<sc-for list="{{entries}}" as="e" hint-placeholder-count="3">
+<article style="display: grid; grid-template-columns: 124px minmax(0, 1fr); gap: 14px; padding: 12px 0; border-top: 1px solid var(--soft)">
+<span style="font-size: 12.5px; font-weight: 600; color: var(--accent); align-self: start; justify-self: start; background: var(--accent-soft); border-radius: 6px; padding: 3px 9px">{{e.dictionary}}</span>
+<p style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 16px; line-height: 1.5">{{e.text}}</p>
+</article>
+</sc-for>
+</div>
+</div>
+
+<footer style="flex: none; height: 68px; box-sizing: border-box; padding: 0 18px 0 22px; display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--line); background: var(--bg)">
+<span style="flex: 1; font-size: 13px; color: var(--muted); line-height: 1.4">12 more entries in packs you have not installed.</span>
+<button type="button" style="height: 40px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 14px; font-size: 14px; font-weight: 500; cursor: pointer">Collect</button>
+<button type="button" style="height: 40px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer">Open in Lookup</button>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":560,"height":480}}'>
+class Component extends DCLogic {
+renderVals() {
+const palettes = {
+heritage: {
+'bg': '#FAF3E0', 'surface': '#FFFDF8', 'ink': '#2A1F1A', 'muted': '#6A5B50',
+'line': '#E6D9BC', 'line-strong': '#D6C59F', 'soft': '#F0E6CE',
+'accent': '#A30000', 'accent-soft': '#F7E3DD', 'accent-line': '#E7BDB4', 'on-accent': '#FFFFFF',
+'rubric': '#A30000', 'ring': '#F7E3DD',
+'amber-bg': '#FFF0BF', 'amber-ink': '#4A3600', 'amber-line': '#A87400', 'amber-solid': '#8F6200',
+'ok': '#2E7D32', 'dark': '#2A1F1A', 'on-dark': '#FFF8E8',
+'rail-bg': '#A30000', 'rail-line': '#7C0000', 'rail-ink': '#F9DAD4',
+'rail-active-bg': '#7C0000', 'rail-active-ink': '#FFC107',
+'logo-bg': '#FFC107', 'logo-ink': '#7C0000'
+}
+};
+const palette = palettes.heritage;
+return {
+vars: Object.keys(palette).map((key) => '--' + key + ': ' + palette[key]).join('; '),
+glance: [
+{ word: 'wisdom', count: 5 },
+{ word: 'awareness', count: 3 },
+{ word: 'wakefulness', count: 3 }
+],
+entries: [
+{ dictionary: 'Hopkins 2015', text: 'pristine wisdom; exalted wisdom; wisdom' },
+{ dictionary: 'Rangjung Yeshe', text: 'knowledge, original wakefulness, gnosis, cognition, wisdom, primal awareness, …' },
+{ dictionary: '84000 Glossary', text: 'awareness, gnosis, knowledge, primordial wisdom, transcendental knowledge, …' },
+{ dictionary: 'Berzin', text: 'deep awareness' }
+]
+};
+}
+}
+</script>
+</body>
+</html>

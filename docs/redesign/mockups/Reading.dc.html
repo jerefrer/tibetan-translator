@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Reading</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+@font-face{font-family:'DDC_Uchen';src:url(/_blob/f5823bcabc5271bfb889c5add594853f) format('woff');font-display:swap}
+body{margin:0}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; box-sizing: border-box; display: flex; overflow: hidden; background: var(--bg); color: var(--ink); font-family: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif; font-size: 14px; {{vars}}">
+
+<!-- Rail -->
+<nav aria-label="Main" style="width: 88px; flex: none; box-sizing: border-box; background: var(--rail-bg); border-right: 1px solid var(--rail-line); display: flex; flex-direction: column; align-items: center; padding: 20px 0; gap: 6px">
+<div style="width: 44px; height: 44px; border-radius: 12px; background: var(--logo-bg); color: var(--logo-ink); display: flex; align-items: center; justify-content: center; margin-bottom: 22px"><span style="font-family: 'DDC_Uchen', serif; font-size: 30px; line-height: 1; margin-top: 6px">ཀ</span></div>
+<sc-for list="{{nav}}" as="n" hint-placeholder-count="4">
+<sc-if value="{{n.active}}" hint-placeholder-val="{{ false }}">
+<button type="button" aria-current="page" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: var(--rail-active-bg); color: var(--rail-active-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; font-weight: 600; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.path}}"/></svg>
+{{n.label}}
+</button>
+</sc-if>
+<sc-if value="{{n.idle}}" hint-placeholder-val="{{ true }}">
+<button type="button" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: transparent; color: var(--rail-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; font-weight: 500; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{n.path}}"/></svg>
+{{n.label}}
+</button>
+</sc-if>
+</sc-for>
+<div style="flex: 1"></div>
+<button type="button" style="width: 68px; height: 62px; border: 0; border-radius: 12px; background: transparent; color: var(--rail-ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 11.5px; font-weight: 500; cursor: pointer">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+Settings
+</button>
+</nav>
+
+<main style="flex: 1; min-width: 0; box-sizing: border-box; padding: 28px 40px 0; display: flex; flex-direction: column; gap: 24px">
+
+<header style="display: flex; align-items: flex-end; gap: 24px">
+<div style="display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Reading · 4 terms found, 3 particles</span>
+<h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.01em">Heart of the Perfection of Wisdom</h1>
+</div>
+<div style="flex: 1"></div>
+<div style="display: flex; gap: 10px">
+<button type="button" style="height: 40px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer">Paste new text</button>
+<button type="button" style="height: 40px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--surface); color: var(--ink); padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer">Copy glossary</button>
+<button type="button" style="height: 40px; border: 0; border-radius: 10px; background: var(--accent); color: var(--on-accent); padding: 0 16px; font-size: 14px; font-weight: 600; cursor: pointer">Export as spreadsheet</button>
+</div>
+</header>
+
+<div style="display: flex; gap: 32px; flex: 1; min-height: 0">
+
+<!-- Passage -->
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+
+<section aria-label="Passage" style="background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 36px 40px 28px; display: flex; flex-direction: column; gap: 26px; box-shadow: 0 1px 2px rgba(26, 30, 43, 0.04)">
+<p style="margin: 0; font-family: 'DDC_Uchen', serif; font-size: 36px; line-height: 1.5; color: var(--ink); display: flex; flex-wrap: wrap; align-items: baseline; gap: 14px 4px">
+<button type="button" style="border: 0; background: transparent; padding: 4px 6px 10px; font: inherit; color: inherit; border-bottom: 3px solid var(--accent); cursor: pointer">བཅོམ་ལྡན་འདས་</button>
+<span style="color: var(--faint); padding: 4px 2px 10px">མ་</span>
+<button type="button" aria-pressed="true" style="border: 0; background: var(--accent-soft); border-radius: 8px 8px 0 0; padding: 4px 6px 10px; font: inherit; color: var(--rubric); border-bottom: 3px solid var(--rubric); cursor: pointer">ཤེས་རབ་</button>
+<span style="color: var(--faint); padding: 4px 2px 10px">ཀྱི་</span>
+<button type="button" style="border: 0; background: transparent; padding: 4px 6px 10px; font: inherit; color: inherit; border-bottom: 3px solid var(--accent); cursor: pointer">ཕ་རོལ་ཏུ་ཕྱིན་པ</button>
+<span style="color: var(--faint); padding: 4px 2px 10px">འི་</span>
+<button type="button" style="border: 0; background: transparent; padding: 4px 6px 10px; font: inherit; color: inherit; border-bottom: 3px solid var(--accent); cursor: pointer">སྙིང་པོ།</button>
+</p>
+<p style="margin: 0; font-size: 13px; line-height: 1.5; color: var(--muted)">Words underlined have entries. Grey particles are grammar. Click a word to read it below, press <b style="font-weight: 600; color: var(--ink)">P</b> to pin a rendering.</p>
+</section>
+
+<!-- Open word -->
+<section aria-label="Selected word" style="background: var(--surface); border: 1.5px solid var(--rubric); border-radius: 14px; padding: 20px 26px 22px; display: flex; flex-direction: column; gap: 14px; box-shadow: 0 1px 2px rgba(26, 30, 43, 0.04)">
+<div style="display: flex; align-items: center; gap: 16px">
+<span style="font-family: 'DDC_Uchen', serif; font-size: 32px; line-height: 1.6; color: var(--rubric)">ཤེས་རབ་</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; color: var(--muted)">shes rab · prajñā</span>
+<span style="flex: 1"></span>
+<span style="font-size: 13px; color: var(--muted)">33 entries</span>
+</div>
+<sc-for list="{{senses}}" as="s" hint-placeholder-count="3">
+<div style="display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 16px; align-items: baseline">
+<span style="font-size: 12.5px; font-weight: 600; color: var(--accent); background: var(--accent-soft); border-radius: 6px; padding: 3px 9px; justify-self: start">{{s.dictionary}}</span>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 17.5px; line-height: 1.5">{{s.text}}</span>
+<button type="button" style="height: 32px; border: 1.5px solid var(--line-strong); border-radius: 8px; background: var(--surface); color: var(--ink); padding: 0 12px; font-size: 13px; font-weight: 500; cursor: pointer">Pin “{{s.pin}}”</button>
+</div>
+</sc-for>
+</section>
+
+<!-- Draft -->
+<section aria-label="Your draft" style="flex: 1; min-height: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 24px 20px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 2px rgba(26, 30, 43, 0.04)">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<label for="draft" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Your draft</label>
+<span style="font-size: 12.5px; color: var(--muted)">Built from your pinned renderings</span>
+</div>
+<textarea id="draft" readonly style="flex: 1; min-height: 0; resize: none; border: 0; outline: 0; background: transparent; padding: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 24px; line-height: 1.45; color: var(--ink)">The Heart of the Perfection of Wisdom</textarea>
+<div style="display: flex; align-items: center; gap: 10px; padding-top: 14px; border-top: 1px solid var(--soft)">
+<span style="font-size: 12.5px; color: var(--muted)">Insert a pinned rendering</span>
+<button type="button" style="height: 30px; border: 0; border-radius: 8px; background: var(--accent-soft); color: var(--accent); padding: 0 12px; font-family: 'Source Serif 4', Georgia, serif; font-size: 15px; cursor: pointer">wisdom</button>
+<span style="font-size: 12.5px; color: var(--muted)">Pin more words to insert them here.</span>
+</div>
+</section>
+</div>
+
+<!-- Glossary -->
+<aside style="width: 380px; flex: none; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted)">Glossary of this passage</span>
+<span style="font-size: 13px; color: var(--muted)">1 of 4 pinned</span>
+</div>
+<sc-for list="{{glossary}}" as="g" hint-placeholder-count="4">
+<div style="background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 18px 14px; display: flex; flex-direction: column; gap: 2px; box-shadow: 0 1px 2px rgba(26, 30, 43, 0.04)">
+<div style="display: flex; align-items: center; justify-content: space-between; gap: 12px">
+<span style="font-family: 'DDC_Uchen', serif; font-size: 22px; line-height: 1.6; color: var(--rubric)">{{g.term}}</span>
+<span style="font-size: 12.5px; color: var(--muted)">{{g.state}}</span>
+</div>
+<span style="font-family: 'Source Serif 4', Georgia, serif; font-size: 16px; line-height: 1.45; color: var(--ink)">{{g.gloss}}</span>
+</div>
+</sc-for>
+<p style="margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--muted)">Pinned renderings stay with this text, and can be reused when the same term comes up in another passage.</p>
+</aside>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+renderVals() {
+const palettes = {
+heritage: {
+'bg': '#FAF3E0', 'surface': '#FFFDF8', 'ink': '#2A1F1A', 'muted': '#6A5B50', 'faint': '#9C8D7E',
+'line': '#E6D9BC', 'line-strong': '#D6C59F', 'soft': '#F0E6CE',
+'accent': '#A30000', 'accent-soft': '#F7E3DD', 'accent-line': '#E7BDB4', 'on-accent': '#FFFFFF',
+'rubric': '#A30000', 'ring': '#F7E3DD',
+'amber-bg': '#FFF0BF', 'amber-ink': '#4A3600', 'amber-line': '#A87400', 'amber-solid': '#8F6200',
+'ok': '#2E7D32', 'dark': '#2A1F1A', 'on-dark': '#FFF8E8',
+'rail-bg': '#A30000', 'rail-line': '#7C0000', 'rail-ink': '#F9DAD4',
+'rail-active-bg': '#7C0000', 'rail-active-ink': '#FFC107',
+'logo-bg': '#FFC107', 'logo-ink': '#7C0000'
+}
+};
+const palette = palettes.heritage;
+return {
+vars: Object.keys(palette).map((key) => '--' + key + ': ' + palette[key]).join('; '),
+nav: [
+{ label: 'Lookup', path: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14zM20 20l-3.5-3.5', active: false, idle: true },
+{ label: 'Reading', path: 'M4 5h16M4 10h10M4 15h16M4 20h8', active: true, idle: false },
+{ label: 'Library', path: 'M5 4h4v16H5zM11 4h4v16h-4zM17.5 5l3 .8-3.6 14.4-3-.8z', active: false, idle: true },
+{ label: 'Collection', path: 'M6 4h12v17l-6-4-6 4z', active: false, idle: true }
+],
+senses: [
+{ dictionary: 'Hopkins 2015', text: '[know-highest]; wisdom', pin: 'wisdom' },
+{ dictionary: 'Rangjung Yeshe', text: 'prajna, intelligence, knowledge, discrimination, [wisdom]. insight', pin: 'prajna' },
+{ dictionary: 'Rangjung Yeshe', text: 'discriminating knowledge', pin: 'discriminating knowledge' }
+],
+glossary: [
+{ term: 'བཅོམ་ལྡན་འདས་', state: 'Not pinned', gloss: 'Supramundane Victor; Blessed One; Buddha; victorious' },
+{ term: 'ཤེས་རབ་', state: 'Pinned', gloss: 'wisdom' },
+{ term: 'ཕ་རོལ་ཏུ་ཕྱིན་པ་', state: 'Not pinned', gloss: 'perfection; that which has gone beyond' },
+{ term: 'སྙིང་པོ་', state: 'Not pinned', gloss: 'essence; (T) matrix' }
+]
+};
+}
+}
+</script>
+</body>
+</html>
