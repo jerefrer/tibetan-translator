@@ -80,6 +80,12 @@ export default {
       this.$nextTick(() => this.setupTermsInfiniteScroll());
     },
     selectedTerm(newTerm, oldTerm) {
+      // While another page is open the route has no term; the cached page
+      // ignores that, and coming back to the term it already shows, so
+      // what was typed, the list and its scroll stay as they were
+      if (!this.$route.path.startsWith("/define")) return;
+      if (newTerm === this.shownTerm) return;
+      this.shownTerm = newTerm;
       this.setSearchTerm();
       // Clear entries and show loading immediately when term changes
       if (newTerm !== oldTerm && newTerm) {
@@ -275,6 +281,7 @@ export default {
     },
   },
   mounted() {
+    this.shownTerm = this.selectedTerm;
     this.setSearchTerm();
     this.setEntriesForSelectedTerm();
     this.debouncedSetEntriesForSelectedTerm = _.debounce(

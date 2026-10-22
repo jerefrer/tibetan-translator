@@ -178,6 +178,37 @@ describe('Define — route and lifecycle', () => {
     expect(document.activeElement).toBe(field().element)
   })
 
+  it('should keep what was typed, and the list, when coming back to the same term (keep-alive)', async () => {
+    database.allTerms = [KA, KAKA, 'ཀ་ར་', KHA]
+    await mountAt('/define')
+    await typeInField(KA)
+    await vi.waitFor(() => expect(router.currentRoute.value.params.term).toBe(KA), { timeout: 2000 })
+    await wrapper.findAll('[data-testid="define-term"]')[1].trigger('click')
+    await waitForRoute('/define/' + encodeURIComponent(KAKA))
+    await flushPromises()
+    database.getEntriesFor.mockClear()
+
+    await router.push('/settings')
+    await flushPromises()
+    await router.push('/define/' + encodeURIComponent(KAKA))
+    await flushPromises()
+
+    expect(field().element.value).toBe(KA)
+    expect(terms()).toEqual([KA, KAKA, 'ཀ་ར་'])
+    expect(database.getEntriesFor).not.toHaveBeenCalled()
+  })
+
+  it('should still follow a link to another term from another page', async () => {
+    await mountAt('/define/' + encodeURIComponent(KA))
+    await router.push('/search/x')
+    await flushPromises()
+    await router.push('/define/' + encodeURIComponent(KHA))
+    await flushPromises()
+
+    expect(field().element.value).toBe(KHA)
+    await vi.waitFor(() => expect(database.getEntriesFor).toHaveBeenLastCalledWith(KHA))
+  })
+
   it('should list new terms once a pack is installed (all-terms-updated)', async () => {
     await mountAt('/define/' + encodeURIComponent(KA))
     expect(terms()).toEqual([KA, KAKA])
