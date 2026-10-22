@@ -75,6 +75,13 @@ export const PACK_DEFINITIONS = {
     required: false,
     icon: 'tibetan-ka', // Special icon - Tibetan letter KA
     estimatedSize: '65 MB download, 285 MB installed',
+    // Shown in onboarding, so the pack says what it is rather than only its name
+    highlights: [
+      'tshig-mdzod-chen-mo-Tib',
+      'brda_dkrol_gser_gyi_me_long',
+      'sgom_sde_tshig_mdzod_chen_mo',
+      'dag_tshig_gsar_bsgrigs-Tib',
+    ],
     dictionaries: [
       'tshig-mdzod-chen-mo-Tib',
       'dung-dkar-tshig-mdzod-chen-mo-Tib',
@@ -107,6 +114,12 @@ export const PACK_DEFINITIONS = {
     required: false,
     icon: 'mdi-school',
     estimatedSize: '26 MB download, 109 MB installed',
+    highlights: [
+      'Mahavyutpatti-Skt',
+      'LokeshChandraSkt',
+      'NegiSkt',
+      'Yoghacharabhumi-glossary',
+    ],
     dictionaries: [
       'Hopkins-Skt1992',
       'Hopkins-Skt2015',

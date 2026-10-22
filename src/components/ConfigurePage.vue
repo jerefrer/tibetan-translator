@@ -15,6 +15,7 @@ import {
   deleteScan,
   isAppMode
 } from '../services/scan-service';
+import DictionaryCatalog from './DictionaryCatalog.vue';
 import PackManagerCard from './PackManagerCard.vue';
 import CustomPackSection from './CustomPackSection.vue';
 
@@ -40,6 +41,7 @@ async function getTauriListen() {
 export default {
   components: {
     draggable,
+    DictionaryCatalog,
     PackManagerCard,
     CustomPackSection,
   },
@@ -74,6 +76,13 @@ export default {
     };
   },
   computed: {
+    // Set when another page sends the user here to find a dictionary
+    catalogQuery() {
+      return String(this.$route.query.find || '');
+    },
+    catalogStatus() {
+      return String(this.$route.query.status || 'all');
+    },
     updateReady() {
       return UpdateService.state.updateReady;
     },
@@ -623,6 +632,12 @@ export default {
         </div>
       </v-card-text>
     </v-card>
+
+    <!-- Searchable list of every dictionary, installed or not -->
+    <dictionary-catalog
+      :initial-query="catalogQuery"
+      :initial-status="catalogStatus"
+    />
 
     <!-- Dictionary Packs Section (Tauri only) -->
     <pack-manager-card />
