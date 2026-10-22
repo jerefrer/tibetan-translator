@@ -1,59 +1,48 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="720" @update:model-value="close">
-    <v-card>
-      <v-card-item>
-        <v-card-title>{{ dictionaryName ? `Import into ${dictionaryName}` : 'Import a spreadsheet' }}</v-card-title>
-        <v-card-subtitle>{{ grid.sheetName }}</v-card-subtitle>
-      </v-card-item>
+  <ui-dialog
+    :model-value="modelValue"
+    :title="dictionaryName ? `Import into ${dictionaryName}` : 'Import a spreadsheet'"
+    :description="grid.sheetName || ''"
+    :max-width="720"
+    @update:model-value="close"
+  >
+    <div v-if="step === 'mapping'" data-test="mapping-step" class="import-form">
+      <p v-if="termColumn === null" class="import-hint">
+        We couldn't tell which column holds the Tibetan. Pick it below.
+      </p>
+      <ui-select
+        v-model="termColumnValue"
+        :options="columnOptions"
+        label="Tibetan term"
+        placeholder="Pick a column"
+        data-test="term-column"
+      />
+      <ui-select
+        v-model="definitionColumnValue"
+        :options="columnOptions"
+        label="Definition"
+        placeholder="Pick a column"
+        data-test="definition-column"
+      />
+      <ui-checkbox v-model="hasHeaderRow" label="The first row is a header" />
+    </div>
 
-      <v-card-text v-if="step === 'mapping'" data-test="mapping-step" class="import-form">
-        <p v-if="termColumn === null" class="import-hint">
-          We couldn't tell which column holds the Tibetan. Pick it below.
+    <div v-else class="import-form">
+      <p class="import-recap">{{ recap }}</p>
+
+      <template v-if="diff.modified.length">
+        <p class="import-section">
+          These already exist. Unchecked ones keep the definition they have.
         </p>
-        <v-select
-          v-model="termColumn"
-          :items="columnItems"
-          label="Tibetan term"
-          variant="outlined"
-          color="primary"
-          density="comfortable"
-          hide-details
-        />
-        <v-select
-          v-model="definitionColumn"
-          :items="columnItems"
-          label="Definition"
-          variant="outlined"
-          color="primary"
-          density="comfortable"
-          hide-details
-        />
-        <v-checkbox
-          v-model="hasHeaderRow"
-          color="primary"
-          label="The first row is a header"
-          hide-details
-        />
-      </v-card-text>
-
-      <v-card-text v-else class="import-form">
-        <p class="import-recap">{{ recap }}</p>
-
-        <template v-if="diff.modified.length">
-          <p class="import-section">
-            These already exist. Unchecked ones keep the definition they have.
-          </p>
+        <div class="modified-list">
           <div
             v-for="entry in diff.modified"
             :key="entry.row"
             class="modified"
             data-test="modified-entry"
           >
-            <v-checkbox
+            <ui-checkbox
               :model-value="!unchecked.includes(entry.row)"
-              color="primary"
-              density="compact"
-              hide-details
               data-test="modified-checkbox"
               @update:model-value="toggle(entry.row, $event)"
             />
@@ -63,68 +52,58 @@
               <div class="modified-now">{{ entry.definition }}</div>
             </div>
           </div>
+        </div>
+      </template>
+
+      <p v-if="ignoredColumns.length" class="import-note" data-test="ignored-columns">
+        {{ ignoredColumnsSentence }}
+      </p>
+
+      <!-- The least important thing in the dialog: a plain collapsed row. -->
+      <ui-accordion
+        v-if="diff.ignored.length"
+        :items="[{ value: 'ignored', title: `${pluralize(diff.ignored.length, 'row', 'rows')} ignored` }]"
+        class="import-ignored"
+      >
+        <template #item-ignored>
+          <div v-for="entry in diff.ignored" :key="entry.row" class="ignored-row">
+            Row {{ entry.row }} — {{ reasonLabel(entry.reason) }}
+          </div>
         </template>
+      </ui-accordion>
+    </div>
 
-        <p v-if="ignoredColumns.length" class="import-note" data-test="ignored-columns">
-          {{ ignoredColumnsSentence }}
-        </p>
-
-        <!-- Flat: this is the least important thing in the dialog, and the
-             default elevated panel outweighed the diff above it. -->
-        <v-expansion-panels
-          v-if="diff.ignored.length"
-          variant="accordion"
-          flat
-          class="import-ignored"
-        >
-          <v-expansion-panel>
-            <v-expansion-panel-title>
-              {{ pluralize(diff.ignored.length, 'row', 'rows') }} ignored
-            </v-expansion-panel-title>
-            <v-expansion-panel-text>
-              <div v-for="entry in diff.ignored" :key="entry.row" class="ignored-row">
-                Row {{ entry.row }} — {{ reasonLabel(entry.reason) }}
-              </div>
-            </v-expansion-panel-text>
-          </v-expansion-panel>
-        </v-expansion-panels>
-      </v-card-text>
-
-      <v-card-actions>
-        <v-btn v-if="step === 'recap'" variant="text" @click="step = 'mapping'">
-          Change columns
-        </v-btn>
-        <v-spacer />
-        <v-btn variant="text" @click="close(false)">Cancel</v-btn>
-        <v-btn
-          v-if="step === 'mapping'"
-          color="primary"
-          variant="flat"
-          :disabled="termColumn === null"
-          data-test="continue-mapping"
-          @click="step = 'recap'"
-        >
-          Continue
-        </v-btn>
-        <v-btn
-          v-else
-          color="primary"
-          variant="flat"
-          :loading="importing"
-          :disabled="!willWrite"
-          data-test="confirm-import"
-          @click="confirm"
-        >
-          Import
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <template #actions>
+      <ui-button v-if="step === 'recap'" variant="ghost" @click="step = 'mapping'">
+        Change columns
+      </ui-button>
+      <div class="ui-spacer" />
+      <ui-button variant="outline" @click="close(false)">Cancel</ui-button>
+      <ui-button
+        v-if="step === 'mapping'"
+        :disabled="termColumn === null"
+        data-test="continue-mapping"
+        @click="step = 'recap'"
+      >
+        Continue
+      </ui-button>
+      <ui-button
+        v-else
+        :loading="importing"
+        :disabled="!willWrite"
+        data-test="confirm-import"
+        @click="confirm"
+      >
+        Import
+      </ui-button>
+    </template>
+  </ui-dialog>
 </template>
 
 <script>
 import { detectLayout, diffRows } from '../services/lexicon-import';
 import Lexicon, { messageForError } from '../services/lexicon';
+import { UiAccordion, UiButton, UiCheckbox, UiDialog, UiSelect } from '../ui';
 
 const REASONS = {
   noTerm: 'no Tibetan in the term column',
@@ -134,6 +113,7 @@ const REASONS = {
 
 export default {
   name: 'ImportPreviewDialog',
+  components: { UiAccordion, UiButton, UiCheckbox, UiDialog, UiSelect },
   inject: ['snackbar'],
   props: {
     modelValue: { type: Boolean, default: false },
@@ -158,8 +138,25 @@ export default {
     };
   },
   computed: {
-    columnItems() {
-      return this.labels.map((title, value) => ({ title, value }));
+    // UiSelect only takes non-empty string values, the columns are indexes.
+    columnOptions() {
+      return this.labels.map((label, index) => ({ label, value: String(index) }));
+    },
+    termColumnValue: {
+      get() {
+        return this.termColumn === null ? undefined : String(this.termColumn);
+      },
+      set(value) {
+        this.termColumn = Number(value);
+      },
+    },
+    definitionColumnValue: {
+      get() {
+        return this.definitionColumn === null ? undefined : String(this.definitionColumn);
+      },
+      set(value) {
+        this.definitionColumn = Number(value);
+      },
     },
     dataRows() {
       const rows = this.grid.rows || [];
@@ -286,37 +283,56 @@ export default {
   gap 16px
 
 .import-recap
-  font-size 1.0625rem
-  font-weight 500
+  margin 0
+  font-size var(--text-md)
+  font-weight 600
 
 .import-hint, .import-section, .import-note
-  font-size 0.875rem
-  opacity 0.75
   margin 0
+  font-size var(--text-base)
+  color var(--muted)
 
 .import-form > .import-section
   margin-bottom -8px
 
+.modified-list
+  border 1px solid var(--line)
+  border-radius var(--radius-xl)
+  overflow hidden
+
 .modified
   display flex
   align-items flex-start
-  gap 4px
+  gap 12px
+  padding 10px 16px
+
+  & + .modified
+    border-top 1px solid var(--soft)
+
+  .ui-checkbox
+    margin-top 10px
 
 .modified-body
-  padding-top 6px
   min-width 0
 
 .modified-term
-  font-size 1.0625rem
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-sm)
+  line-height 1.7
+  color var(--rubric)
 
 .modified-was
-  opacity 0.6
+  font-family var(--font-serif)
+  color var(--muted)
   text-decoration line-through
+  white-space pre-wrap
 
 .modified-now
-  font-weight 500
+  font-family var(--font-serif)
+  font-weight 600
+  white-space pre-wrap
 
 .ignored-row
-  font-size 0.875rem
-  opacity 0.75
+  font-size var(--text-base)
+  color var(--muted)
 </style>
