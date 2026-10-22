@@ -1,17 +1,28 @@
 <script>
   import DictionariesDetailsMixin from './DictionariesDetailsMixin'
   import ScanViewer from './ScanViewer.vue'
+  import { UiButton, UiIcon, vIntersect } from '../ui'
   import { getScanInfo } from '../services/scan-service'
   import CopyService from '../services/copy-service'
 
+  // One definition: the dictionary chip (opens the dictionary's "about"), a
+  // copy button, and the decorated definition. A scanned dictionary holds a
+  // page number instead, with a button that opens the scan viewer.
+  //
+  // The definition keeps the `definition` class: App.vue listens on it for
+  // abbreviations and in-app /define/ links, and the decorator's audio
+  // players are styled from layout.css.
   export default {
     mixins: [DictionariesDetailsMixin],
-    components: { ScanViewer },
-    inject: ['snackbar'],
+    components: { ScanViewer, UiButton, UiIcon },
+    directives: { intersect: vIntersect },
+    // The quick lookup popup mounts entries without a snackbar
+    inject: { snackbar: { default: null } },
     props: {
       entry: Object,
       isLastEntry: Boolean
     },
+    emits: ['intersect', 'show-about'],
     data() {
       return {
         showScanViewer: false,
@@ -32,17 +43,17 @@
         const page = parseInt(pageStr, 10);
         return isNaN(page) ? null : page;
       },
-      scanButtonText() {
-        return this.scanInfo?.linkText || 'View scanned page';
+      isApproximatePage() {
+        return !!this.entry.definition?.includes('?');
       }
     },
     methods: {
-      intersect(entries, observer) {
-        if (this.isLastEntry)
+      intersect(isIntersecting) {
+        if (isIntersecting && this.isLastEntry)
           this.$emit('intersect');
       },
       showDictionaryAbout() {
-        this.snackbar.open(this.dictionaryAboutFor(this.entry.dictionary));
+        this.$emit('show-about', this.entry.dictionary);
       },
       openScanViewer() {
         this.showScanViewer = true;
@@ -51,11 +62,11 @@
         try {
           await CopyService.writeToClipboard(CopyService.entryToText(this.entry));
           this.copied = true;
-          this.snackbar.open('Copied');
+          this.snackbar?.open('Copied');
           clearTimeout(this._copiedTimer);
           this._copiedTimer = setTimeout(() => { this.copied = false; }, 1200);
         } catch (err) {
-          this.snackbar.open('Copy failed');
+          this.snackbar?.open('Copy failed');
         }
       }
     },
@@ -66,33 +77,33 @@
 </script>
 
 <template>
-  <div
+  <article
     class="entry-row"
+    data-testid="entry"
     v-intersect.quiet="intersect"
   >
     <div class="entry-header">
-      <v-chip
-        variant="flat"
-        size="small"
+      <button
+        type="button"
         class="dictionary-label"
-        color="grey-darken-2"
+        title="About this dictionary"
+        data-testid="entry-dictionary"
         @click="showDictionaryAbout"
-      >
-        <span v-html="dictionaryLabelFor(entry.dictionary, { short: true })" />
-      </v-chip>
+        v-html="dictionaryLabelFor(entry.dictionary, { short: true })"
+      />
 
-      <v-btn
+      <button
         v-if="!isScannedDictionary"
+        type="button"
         class="copy-button"
-        variant="text"
-        size="small"
-        icon
-        :color="copied ? 'success' : undefined"
+        :class="{ 'is-copied': copied }"
+        :aria-label="copied ? 'Copied' : 'Copy definition'"
         :title="copied ? 'Copied' : 'Copy definition'"
+        data-testid="entry-copy"
         @click="copyEntry"
       >
-        <v-icon size="small">{{ copied ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
-      </v-btn>
+        <ui-icon :name="copied ? 'check' : 'copy'" :size="17" />
+      </button>
     </div>
 
     <!-- Regular definition display -->
@@ -102,102 +113,144 @@
       v-html="entry.definition"
     />
 
-    <!-- Scanned dictionary: show page number and view button -->
-    <div v-else class="scanned-entry">
-      <div class="page-info">
+    <!-- Scanned dictionary: page number and a button to the scan -->
+    <div v-else class="scanned-entry" data-testid="entry-scan">
+      <span class="page-info">
         Page {{ scanPageNumber }}
-        <span v-if="entry.definition?.includes('?')" class="uncertain">(approximate)</span>
-      </div>
+        <span v-if="isApproximatePage" class="uncertain">(approximate)</span>
+      </span>
 
-      <v-btn
-        color="primary"
-        variant="outlined"
-        size="small"
-        class="mt-2"
+      <ui-button
+        variant="outline"
+        size="sm"
+        class="view-scan-button"
+        data-testid="entry-view-scan"
         @click="openScanViewer"
       >
-        <v-icon start size="small">mdi-book-open-page-variant</v-icon>
-        View Scan
-      </v-btn>
+        <ui-icon name="book-open-text" :size="16" />
+        View scan
+      </ui-button>
     </div>
 
-    <!-- Scan Viewer Modal -->
     <ScanViewer
       v-if="isScannedDictionary"
       v-model="showScanViewer"
       :dictionary-id="entry.dictionary"
       :initial-page="scanPageNumber"
+      :approximate="isApproximatePage"
     />
-
-  </div>
+  </article>
 </template>
 
 <style scoped>
+/* Board "B · Define": rows inside one card. `.entries--cards` (Entries.vue)
+   turns each row into a card of its own, as on the phone board. */
 .entry-row {
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  background: white;
-}
-
-.v-theme--dark .entry-row {
-  background: #252525;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 22px 14px;
+  border-bottom: 1px solid var(--soft);
+  color: var(--ink);
+  font-family: var(--font-ui);
 }
 
 .entry-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 8px;
-  margin-bottom: 8px;
-}
-
-.copy-button {
-  flex-shrink: 0;
-  opacity: 0.6;
-}
-
-.copy-button:hover {
-  opacity: 1;
+  min-height: 2rem;
 }
 
 .dictionary-label {
+  min-width: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  padding: 3px 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 600 var(--text-chip) / 1.35 var(--font-ui);
+  text-align: left;
+  overflow-wrap: anywhere;
   cursor: pointer;
-  height: auto;
-  white-space: break-spaces;
-  padding-bottom: 1px;
+}
+.dictionary-label:hover {
+  background: var(--accent-line);
+}
+.dictionary-label:focus-visible,
+.copy-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+/* Tibetan inside a label (wrapped in spans by the decorator) */
+.dictionary-label :deep(.tibetan) {
+  font-size: 1.15em;
+  line-height: 1;
 }
 
-.dictionary-label:hover {
-  opacity: 0.85;
+.copy-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.copy-button:hover {
+  color: var(--ink);
+  background: var(--soft);
+}
+.copy-button.is-copied {
+  color: var(--success-ink);
 }
 
 .definition {
-  line-height: 1.6;
-  text-align: justify;
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--text-entry);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+/* Tibetan in a definition links to its own lookup */
+.definition :deep(a[href]) {
+  color: var(--rubric);
+  text-decoration: none;
 }
 
 .scanned-entry {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 2px 0;
 }
 
 .page-info {
-  font-size: 0.95em;
-  color: var(--v-theme-on-surface);
+  font-size: var(--text-body);
 }
 
 .uncertain {
-  font-size: 0.85em;
-  color: #888;
-  margin-left: 4px;
+  color: var(--muted);
 }
 
-/* Mobile */
+.view-scan-button {
+  color: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+
+/* Phone: the definition one step smaller, as on the phone board */
 @media (max-width: 600px) {
-  .entry-row {
-    padding: 10px 12px;
+  .definition {
+    font-size: 1.0313rem;
+    line-height: 1.45;
   }
 }
 </style>
