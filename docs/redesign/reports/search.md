@@ -1,5 +1,33 @@
 # Search screen: redesign report
 
+- **Branch:** `claude/redesign-search-w2a0o4`, from `redesign` at `0aed9b4`. Nothing was pushed to `main` or `redesign`. No PR opened.
+- **Status:** done, ready for review.
+
+## Commits
+
+| Commit | Subject |
+| --- | --- |
+| `c49e9bc` | docs(search): lists every behaviour of the old Search screen before its rebuild |
+| `b47402c` | feat(search): redraws the query builder as a card, and puts the caret in a condition when it is added |
+| `0ed4738` | feat(search): rebuilds the Search screen in the new design, with a phone layout |
+| `2c6dd5a` | fix(search): finds Tibetan queries every time, where every other search said "No entries" |
+| `0adb0a0` | fix(search): runs each search once instead of twice |
+| `e4d89b6` | fix(search): shows Tibetan larger in the query field and puts Query builder under the field on a phone |
+| `df53d7c` | test(search): covers every behaviour of the Search screen on the page itself |
+| `8894786` | feat(search): redraws the Search help in the new style |
+| (this file) | docs(search): reports on the Search rebuild |
+
+Every commit ends with `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+
+## Test results
+
+`pnpm test` before the push: **1,090 passed, 1 failed** (59 files). The failure is `tests/apkg-reader.test.js`, which needs the local `INALCO_L1_voca.apkg` that is not in this checkout. The baseline of this checkout (`redesign` with the Define work) was 1,018 passed and the same 1 failed; your brief's 908 predates the Define tests. `pnpm build` succeeds. No test was skipped or deleted.
+
+- `tests/search-page.test.js` (new, 51 tests): mounts the page the way `App.vue` does (real router, `<keep-alive>` around `<router-view>`), one block per group below: route, guards, keep-alive and focus, the field, Wylie in parentheses, Enter and the button, the spinner, clear, legacy paste (real repair tables), the SQL built for Tibetan, English and phonetic parts, recent searches (order, limit of 100, click, Clear history), the builder (default, remembered, two-way sync, Enter, add/remove), results (count, sort, Settings choice per query, highlighting, `definition` class, About dialog, scanned rows and the viewer, infinite scroll and "All N results loaded", "No entries", packs notice), Add my definition (term, re-search, absent on web), phone layout.
+- `tests/search-builder.test.js` (rewritten off Vuetify, 15 tests added, 50 in all): the parsing and generation tests are unchanged; new ones drive the markup (mode labels and options, typing, Enter, placeholders, no Wylie conversion, add with focus, remove buttons, Hide, phone).
+- `tests/search-help.test.js` (new, 7): button only on Search, tabs, the links between tabs, phonetics, Dictionaries filter, Navigation (not on a phone), Close.
+- `tests/search-page-decoration.test.js`: unchanged tests; its router mock now returns a promise, as the real `push` does.
+
 ## Behaviours of the old screen
 
 Written before any code changed, by reading `SearchPage.vue`, `SearchBuilder.vue`, `SearchBuilderRow.vue`, `SearchPageHelpDialogWithButton.vue` and what they use (`DictionariesMenuMixin`, `InfiniteScrollMixin`, `ResultsAndPaginationAndDictionaries.vue`, `UninstalledPacksNotice.vue`, `QuickAddDialog.vue`, `ScanViewer.vue`, `App.vue`, `config/navigation.js`). The outcome of each one is in the checklist further down.
@@ -77,3 +105,100 @@ Written before any code changed, by reading `SearchPage.vue`, `SearchBuilder.vue
 ### Dead code noticed
 
 - `isDark`/`useTheme`, `changePage`/`paginationLoading`/`resultsPage` (no paginator is shown), `.mobile-controls` and `.v-table` styles: not used by anything visible.
+
+## Checklist: kept, changed, dropped
+
+Legend: ✅ kept as it was · 🔄 kept, with a difference explained · ➕ added · ❌ dropped (none).
+
+### Route and lifecycle
+- ✅ R1 Route `/search/:query?`.
+- ✅ R2 Both guards unchanged.
+- 🔄 R3 Same handling of route changes. Difference: a search started on the page (field, button, builder, recent search) pushes its route and **no longer runs a second time** when the route watcher sees that push (`0adb0a0`). Navigation from elsewhere (Back, links, other pages) still runs the query.
+- ✅ R4 Mount runs the query from the route.
+- ✅ R5 Keep-alive keeps query and results; `activated()` focuses the field (tested with a real `<keep-alive>`).
+- ✅ R6 Cmd/Ctrl+S (App level, untouched).
+
+### Query field (now `UiTextField`)
+- 🔄 F1 Same placeholder, `autofocus`, spelling help off; added `aria-label="Search query"` and `enterkeyhint="search"`. Font: Source Serif 4 as on the boards, with DDC Uchen for Tibetan, set larger (26 px, 24 px on a phone) as soon as the query contains Tibetan.
+- ✅ F2 No conversion while typing; Wylie in parentheses is converted when the query runs. See decision 1 about `UiTibetanField`.
+- ✅ F3 Enter and the search button (now the accent square inside the field, as on the board), disabled while blank.
+- 🔄 F4 Spinner while the query runs: now `UiTextField`'s own spinner, inside the field before the clear button.
+- ✅ F5 Clear button: same effects.
+- ✅ F6 Legacy-font paste repaired at the caret; other pastes left to the browser.
+- ✅ F7 A blank query clears.
+
+### Running a search
+- ✅ S1 `&`, `(…)`, `[…]`, `{…}` unchanged.
+- 🔄 S2 Same SQL. Bug fixed (`2c6dd5a`): the Tibetan test used `tibetanGroups`, a regexp with the `g` flag, whose `test()` answers false every other call. A Tibetan query could then be sent as neither Tibetan nor English and come back "No entries"; opening `/search/<Tibetan>` directly always failed (the first render had already called the test once). This was in the old screen too.
+- ✅ S3 Recent searches: front, no duplicates, at most 100; route pushed.
+- ✅ S4 Highlights frozen at search time (existing decoration tests still pass).
+- ✅ S5 Each query resets the Dictionaries menu to Settings; `activated()` reloads Settings.
+- ✅ S6 Same sort.
+- ✅ S7 Lists hidden while loading; the results header stays.
+
+### Recent searches (board "B · Search, empty")
+- ✅ H1 Same conditions.
+- 🔄 H2 A card: history icon, "RECENT SEARCHES" label, the queries as bordered buttons (Tibetan in DDC Uchen, Latin in Source Serif), Tibetan still wrapped with a tsheg added.
+- ✅ H3 A click runs the query.
+- 🔄 H4 "Clear history" is now a text link at the right of the card header (board); same effect, focuses the field.
+- ➕ A "What you can search" card under it (board): Tibetan or Wylie, English words, How it sounds. Shown before any search, with or without recent searches. Wording: see decision 3.
+
+### Query builder (board "B · Search, query builder open")
+- 🔄 B1 Shown by default as before, **now remembered** when hidden or shown (`searchBuilderVisible`), as the help always promised. The toggle reads "Query builder" (was "Show Query Builder") and sits beside the field, under it on a phone.
+- ✅ B2 Two-way sync unchanged; editing a row does not run the query.
+- 🔄 B3 Same four modes and placeholders; the mode is a `UiSelect` sharing one box with the term.
+- ✅ B4 Add condition. ➕ The caret goes into the new condition.
+- ✅ B5 Remove buttons from two rows on (circle-minus, "Remove this condition").
+- ✅ B6 Enter in a row runs the query.
+- ✅ B7 No Wylie conversion in rows.
+- ✅ B8 Phone: mode above the term (board).
+- ➕ The note "An entry must match every condition." ("Match every condition" on a phone).
+
+### Results
+- 🔄 L1 "Showing **X** of **Y** results", numbers in bold (board).
+- 🔄 L2 Add my definition: same conditions, term and re-search. A text button "Add my definition" beside Dictionaries on a desktop (board), the book-plus icon with a tooltip on a phone.
+- ✅ L3 Dictionaries menu (the one rebuilt with Define); closing it focuses the field; Ctrl/Cmd+B.
+- ✅ L4 Term, chip, decorated definition in an element with class `definition`.
+- 🔄 L5 Same highlighting rules. Colours: Latin hits on the brand yellow (`--logo-bg`) with dark ink in both themes, Tibetan hits underlined in that yellow.
+- 🔄 L6 The chip opens the **About dialog** (`DictionaryAboutDialog`, as on Define) instead of the snackbar.
+- 🔄 L7 "Page N (approximate)" and "View scan" as on Define; the viewer now receives `approximate`, so its title says "approximate" like on Define (it did not on Search).
+- 🔄 L8 50 then 50 more, spinner, "All N results loaded". Difference: the observer is rooted on the element that scrolls (the results card on a desktop, the page on a phone), so the 200 px look-ahead now applies (it was rooted on the viewport, where the card's clipping made it fire only when the sentinel showed), and it re-arms after each batch, so a short batch that leaves the sentinel in view keeps loading.
+- ✅ L9 "No entries" (now a card).
+- ✅ L10 Uninstalled-packs notice: same component, same trigger (Define's redraw).
+
+### Help
+- 🔄 Q1 Same tabs and text, on `UiDialog`/`UiTabs`, with `UiAlert` for the callouts; tables restyled; the "(See Phonetic search)" links are buttons. The Dictionaries filter tab uses the Vuetify-free `DictionariesMenuHelp`.
+
+### Everywhere
+- ✅ X1 Light and dark: every colour from the tokens (checked on screen, see below).
+- ✅ X2 Text size: sizes in rem; checked at 125 %.
+- 🔄 X3 Phone (board "B · Search on a phone"): the whole page scrolls; each result is a card, the dictionary chip at the left and the term at the right, the definition under them.
+- Dead code removed: `useTheme`/`isDark`, `changePage`/`paginationLoading`/`resultsPage`, `toggleBuilder`/`hideBuilder`, the unused `snackbar` injection, all Vuetify overrides.
+
+## Decisions for you to check
+
+1. **No `UiTibetanField` on Search.** Your brief says it replaces `TibetanTextField` here, but the old Search screen never used `TibetanTextField`: its field is a plain `v-text-field` on purpose, because a query is often English, Sanskrit or phonetics (`seven limbs`, `[chomdende]`), and `UiTibetanField` turns any Wylie-looking text into Tibetan on each space (`seven limbs` would become Tibetan). Search's Wylie support is the `(…)` syntax and the "contains (Wylie)" mode, both kept. The field is a `UiTextField` and does only the legacy-font repair, as before. The builder rows stay plain inputs for the same reason.
+2. **The query builder opens by default**, as before; the main Search board draws it closed. Now that the choice is remembered, people who hide it once keep it hidden. Say if you prefer it closed by default.
+3. **"What you can search" wording.** The board says "Tibetan or Wylie: find entries where a headword or a definition contains it". Bare Wylie is searched as English, so I added "Put Wylie in parentheses: (ye shes)." The other two blurbs are the board's.
+4. **The field shows the real query syntax.** The builder board shows "ye shes wakefulness" in the field; the real field shows `(ye shes) & wakefulness`, since field and builder stay in sync.
+5. **Packs notice.** The Search board shows "Searching 35 of 65 dictionaries. Two optional packs are not installed…" under a full result list. I kept Define's component (shown only with fewer than 3 results, heading "N packs were not searched", "See packs"), since the app cannot count what missing packs would add. Showing it on every search would need a change in `UninstalledPacksNotice.vue` (Define's).
+6. **Highlight colours** are not drawn on the boards; I kept the old yellow (see L5).
+7. **No bottom fade** on the results card (same reason as on Define: it would hide the last row).
+8. **Phone result card**: chip left, term right, as on the board; a long term wraps, right-aligned.
+9. **Long dictionary names** are cut with an ellipsis in the 150 px chip column (the board has them on one line); on a phone the chip shows in full.
+10. **Each search runs once** (R3). Worth a try in the desktop app: a search from the field, then Back and Forward.
+
+## What I checked, and what I could not
+
+- **Web dev server, real data:** no dictionary database was in the checkout, so I extracted `public/packs/core.7z` (read only) to `public/TibetanTranslator.sqlite`, which `.gitignore` excludes; nothing under `public/packs/` changed. Core pack only (35 dictionaries). I did not run `pnpm build:packs` or `pnpm build:database`.
+- **Looked at in Chromium (screenshots):** desktop 1440×900 in light and dark: empty state with recent searches and the tips card, query builder open with two conditions, English, Tibetan, Wylie `(snying rje)` and phonetic `[chomdende]` results, the Dictionaries menu, the About dialog, a scanned Jäschke row and the scan viewer it opens, the infinite scroll to "All 147 results loaded", the help (three tabs, light and dark); 1280×800 at 125 % text size; phone 390×844 in light and dark: builder, results, Dictionaries menu, empty state, scanned row, the builder toggle under the field, the help.
+- **Dark theme at load:** in headless Chromium a stored or system dark preference did not switch the page to dark at load (`data-theme` stayed `light`; the console shows Vuetify's deprecation warning for `theme.global.name.value` in `App.vue`'s `initializeTheme`). I set `data-theme="dark"` by hand to check the screen. This is App-level code I did not touch; worth checking in the app.
+- **Not checked on screen:** Add my definition and the uninstalled-packs notice (Tauri only: they need modular packs; covered by tests); Add my definition with real lexicons; the Tauri desktop app, iOS and Android; real touch input; legacy-font paste in a real browser (tested with the real repair tables in happy-dom); Cmd/Ctrl+S and Cmd/Ctrl+B in the browser (App-level and Define's menu, unchanged).
+
+## Changes outside the files I own
+
+- **Nothing edited** in the Define components (`Entries`, `EntriesEntry`, `ScanViewer`, `ResultsAndPaginationAndDictionaries`, `QuickAddDialog`, `UninstalledPacksNotice`, `DictionaryAboutDialog`, `DictionariesMenuHelp`), `SegmentPage.vue`, `TibetanTextField.vue`, `App.vue`, `AppNav.vue`, `src/ui/` or the tokens.
+- **Reused, not copied:** the Search help button and panels carry Define's classes (`define-help-button`, `define-help-content`) so both helps look the same. Whoever owns the Define help may want to rename them to shared names (`page-help-…`) once Split's help is rebuilt too.
+- **For the shell owner:** `AppNav.vue`'s `.help-button .v-icon` rules now only serve Split's help. `DictionariesMenuHelpTab.vue` is now used by Split's help only.
+- **For whoever owns `App.vue`:** the dark-at-load observation above.
+- **The `tibetanGroups` pitfall** (a `g` regexp used with `test()`): I found no other `tibetanGroups.test(` in `src/`, so nothing else is affected today.
