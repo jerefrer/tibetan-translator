@@ -5,31 +5,30 @@
  * between the text input and the query builder rows.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
+import { describe, it, expect, afterEach } from 'vitest'
+import { mount } from '@vue/test-utils'
+import { nextTick } from 'vue'
 import SearchBuilder from '../src/components/SearchBuilder.vue'
-
-// Create Vuetify instance for tests
-const vuetify = createVuetify({
-  components,
-  directives,
-})
+import SearchBuilderRow from '../src/components/SearchBuilderRow.vue'
+import UiSelect from '../src/ui/UiSelect.vue'
 
 describe('SearchBuilder Component', () => {
+  const mounted = []
+  afterEach(() => {
+    mounted.splice(0).forEach((wrapper) => wrapper.unmount())
+  })
+
   const mountSearchBuilder = (props = {}) => {
-    return mount(SearchBuilder, {
+    const wrapper = mount(SearchBuilder, {
       props: {
         modelValue: '',
         visible: true,
         ...props,
       },
-      global: {
-        plugins: [vuetify],
-      },
+      attachTo: document.body,
     })
+    mounted.push(wrapper)
+    return wrapper
   }
 
   describe('Query parsing (text -> rows)', () => {
@@ -325,6 +324,125 @@ describe('SearchBuilder Component', () => {
       ])
 
       expect(wrapper.vm.rowsToQuery()).toBe(mixedQuery)
+    })
+  })
+
+  describe('Markup (board "B · Search, query builder open")', () => {
+    const rows = (wrapper) => wrapper.findAll('[data-testid="search-builder-row"]')
+    const terms = (wrapper) => wrapper.findAll('[data-testid="search-builder-term"]')
+
+    it('renders nothing while hidden', () => {
+      const wrapper = mountSearchBuilder({ visible: false })
+      expect(wrapper.find('[data-testid="search-builder"]').exists()).toBe(false)
+    })
+
+    it('shows its title, one row per condition and the AND note', () => {
+      const wrapper = mountSearchBuilder({ modelValue: '(ye shes) & wakefulness' })
+      expect(wrapper.text()).toContain('Query builder')
+      expect(rows(wrapper)).toHaveLength(2)
+      expect(terms(wrapper).map((input) => input.element.value)).toEqual(['ye shes', 'wakefulness'])
+      expect(wrapper.text()).toContain('An entry must match every condition.')
+    })
+
+    it('shows the mode of each row by its label', () => {
+      const wrapper = mountSearchBuilder({ modelValue: '(ye shes) & wakefulness & [sangye] & {cho}' })
+      const labels = wrapper
+        .findAll('[data-testid="ui-select-trigger"]')
+        .map((trigger) => trigger.text())
+      expect(labels).toEqual([
+        'contains (Wylie)',
+        'contains',
+        'sounds precisely like',
+        'sounds more or less like',
+      ])
+    })
+
+    it('offers the four modes', () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'x' })
+      const select = wrapper.findComponent(UiSelect)
+      expect(select.props('options').map((option) => option.label)).toEqual([
+        'contains',
+        'contains (Wylie)',
+        'sounds precisely like',
+        'sounds more or less like',
+      ])
+    })
+
+    it('rewrites the query when a mode is picked', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'ye shes' })
+      wrapper.findComponent(UiSelect).vm.$emit('update:modelValue', 'wylie')
+      await nextTick()
+      expect(wrapper.emitted('update:modelValue').at(-1)).toEqual(['(ye shes)'])
+    })
+
+    it('rewrites the query as a row is typed in, without running it', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: '' })
+      await terms(wrapper)[0].setValue('wakefulness')
+      expect(wrapper.emitted('update:modelValue').at(-1)).toEqual(['wakefulness'])
+      expect(wrapper.emitted('submit')).toBeFalsy()
+    })
+
+    it('keeps Wylie typed in a row as typed (no conversion)', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: '' })
+      await terms(wrapper)[0].setValue('sangs rgyas ')
+      await terms(wrapper)[0].trigger('keyup', { key: ' ' })
+      expect(terms(wrapper)[0].element.value).toBe('sangs rgyas ')
+    })
+
+    it('runs the search on Enter in a row', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'buddha' })
+      await terms(wrapper)[0].trigger('keyup', { key: 'Enter' })
+      expect(wrapper.emitted('submit')).toHaveLength(1)
+    })
+
+    it('uses a placeholder that suits the mode', () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'x & (y) & [z] & {w}' })
+      expect(terms(wrapper).map((input) => input.attributes('placeholder'))).toEqual([
+        'བོད་ཡིག་ or text',
+        'sangs rgyas',
+        'sangye',
+        'sangye',
+      ])
+    })
+
+    it('adds a condition and puts the caret in it', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'buddha' })
+      await wrapper.find('[data-testid="search-builder-add"]').trigger('click')
+      await nextTick()
+      expect(rows(wrapper)).toHaveLength(2)
+      expect(document.activeElement).toBe(terms(wrapper)[1].element)
+    })
+
+    it('shows a remove button on each row only when there are two rows or more', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'buddha' })
+      expect(wrapper.findAll('[data-testid="search-builder-remove"]')).toHaveLength(0)
+      await wrapper.setProps({ modelValue: 'buddha & dharma' })
+      const removes = wrapper.findAll('[data-testid="search-builder-remove"]')
+      expect(removes).toHaveLength(2)
+      expect(removes[0].attributes('aria-label')).toBe('Remove this condition')
+    })
+
+    it('removes a condition and rewrites the query', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'buddha & dharma' })
+      await wrapper.findAll('[data-testid="search-builder-remove"]')[0].trigger('click')
+      await nextTick()
+      expect(rows(wrapper)).toHaveLength(1)
+      expect(wrapper.emitted('update:modelValue').at(-1)).toEqual(['dharma'])
+    })
+
+    it('hides with its Hide button', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: '' })
+      await wrapper.find('[data-testid="search-builder-hide"]').trigger('click')
+      expect(wrapper.emitted('update:visible')).toEqual([[false]])
+    })
+
+    it('stacks each row and shortens the note on a phone', async () => {
+      window.innerWidth = 390
+      const wrapper = mountSearchBuilder({ modelValue: 'a & b' })
+      expect(wrapper.find('[data-testid="search-builder"]').classes()).toContain('is-phone')
+      expect(wrapper.findComponent(SearchBuilderRow).classes()).toContain('is-phone')
+      expect(wrapper.text()).toContain('Match every condition')
+      expect(wrapper.text()).not.toContain('An entry must match every condition.')
     })
   })
 })

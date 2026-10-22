@@ -1,5 +1,15 @@
 <script>
+import { UiIcon, UiSelect } from '../ui';
+import MobileResponsiveMixin from './mixins/MobileResponsiveMixin';
+
+// One condition of the query builder: how to match (the mode) and what.
+// Board "B · Search, query builder open": the mode and the term share one
+// box, the mode on the left; on a phone the mode sits above the term.
+// The term is typed as is: no Wylie conversion here, the mode decides how
+// the query reads it.
 export default {
+  components: { UiIcon, UiSelect },
+  mixins: [MobileResponsiveMixin],
   props: {
     term: {
       type: String,
@@ -23,19 +33,10 @@ export default {
         { value: 'wylie', label: 'contains (Wylie)' },
         { value: 'phonetic-strict', label: 'sounds precisely like' },
         { value: 'phonetic-loose', label: 'sounds more or less like' }
-      ],
-      isMobile: window.innerWidth <= 600
+      ]
     };
   },
   computed: {
-    localTerm: {
-      get() { return this.term; },
-      set(value) { this.$emit('update:term', value); }
-    },
-    localMode: {
-      get() { return this.mode; },
-      set(value) { this.$emit('update:mode', value); }
-    },
     inputPlaceholder() {
       switch (this.mode) {
         case 'wylie': return 'sangs rgyas';
@@ -46,169 +47,157 @@ export default {
     }
   },
   methods: {
-    handleResize() {
-      this.isMobile = window.innerWidth <= 600;
+    focus() {
+      this.$refs.input?.focus();
     }
-  },
-  mounted() {
-    window.addEventListener('resize', this.handleResize);
-  },
-  beforeUnmount() {
-    window.removeEventListener('resize', this.handleResize);
   }
 };
 </script>
 
 <template>
-  <div class="search-builder-row" :class="{ 'mobile': isMobile }">
-    <div class="row-fields">
-      <select v-model="localMode" class="mode-select">
-        <option v-for="m in modes" :key="m.value" :value="m.value">{{ m.label }}</option>
-      </select>
-      <div class="field-divider" />
+  <div class="builder-row" :class="{ 'is-phone': isMobile }" data-testid="search-builder-row">
+    <div class="builder-row__fields">
+      <ui-select
+        class="builder-row__mode"
+        :model-value="mode"
+        :options="modes"
+        data-testid="search-builder-mode"
+        @update:model-value="$emit('update:mode', $event)"
+      />
       <input
-        v-model="localTerm"
+        ref="input"
+        :value="term"
         type="text"
         :placeholder="inputPlaceholder"
-        class="term-input tibetan"
+        aria-label="Search for"
+        class="builder-row__term"
         spellcheck="false"
         autocomplete="off"
+        autocapitalize="off"
+        autocorrect="off"
+        enterkeyhint="search"
+        data-testid="search-builder-term"
+        @input="$emit('update:term', $event.target.value)"
         @keyup.enter="$emit('submit')"
       />
     </div>
-    <v-btn
+    <button
       v-if="canRemove"
-      icon
-      variant="text"
-      size="small"
-      color="grey"
-      class="remove-btn"
+      type="button"
+      class="builder-row__remove"
+      aria-label="Remove this condition"
+      title="Remove this condition"
+      data-testid="search-builder-remove"
       @click="$emit('remove')"
     >
-      <v-icon size="small">mdi-minus-circle-outline</v-icon>
-    </v-btn>
+      <ui-icon name="circle-minus" :size="18" />
+    </button>
   </div>
 </template>
 
-<style scoped>
-.search-builder-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
+<style lang="stylus" scoped>
+.builder-row
+  display flex
+  align-items center
+  gap 10px
 
-.search-builder-row .row-fields {
-  display: flex;
-  align-items: center;
-  flex: 1;
-  background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 4px;
-}
+// The mode and the term in one 44px box
+.builder-row__fields
+  flex 1
+  min-width 0
+  display flex
+  align-items stretch
+  height 2.75rem
+  box-sizing border-box
+  border 1.5px solid var(--line-strong)
+  border-radius var(--radius-lg)
+  background var(--surface)
+  overflow hidden
 
-.v-theme--dark .search-builder-row .row-fields {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.12);
-}
+  &:focus-within
+    border-color var(--accent)
+    box-shadow 0 0 0 3px var(--ring)
 
-.search-builder-row .row-fields:focus-within {
-  border-color: rgba(0, 0, 0, 0.3);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
-}
+.builder-row__mode
+  flex none
+  width 13.75rem
+  gap 0
 
-.v-theme--dark .search-builder-row .row-fields:focus-within {
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
-}
+  :deep(.ui-select__trigger)
+    width 100%
+    height 100%
+    min-height 0
+    padding 0 14px
+    border 0
+    border-right 1px solid var(--line)
+    border-radius 0
+    background var(--soft)
+    font-weight 400
+    font-size var(--text-base)
+    box-shadow none
 
-.search-builder-row .mode-select {
-  flex: 0 0 auto;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  background: transparent;
-  font-size: 0.875rem;
-  cursor: pointer;
-  outline: none;
-  color: inherit;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23666' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 4px center;
-  padding-right: 24px;
-}
+  :deep(.ui-select__trigger:focus-visible)
+    outline 2px solid var(--accent)
+    outline-offset -2px
 
-.v-theme--dark .search-builder-row .mode-select {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23aaa' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-}
+.builder-row__term
+  flex 1
+  min-width 0
+  box-sizing border-box
+  padding 0 14px
+  border 0
+  outline 0
+  background transparent
+  color var(--ink)
+  // Tibetan falls through Source Serif to DDC Uchen
+  font-family 'Source Serif 4', var(--font-tibetan)
+  font-size 1.125rem
 
-.search-builder-row .term-input {
-  flex: 1;
-  min-width: 100px;
-  padding: 0.5rem 0.75rem;
-  border: none;
-  background: transparent;
-  font-size: 0.875rem;
-  outline: none;
-  color: inherit;
-}
+  &::placeholder
+    color var(--faint)
 
-.search-builder-row .term-input::placeholder {
-  color: #999;
-  opacity: 1;
-}
+.builder-row__remove
+  flex none
+  display inline-flex
+  align-items center
+  justify-content center
+  width 2.25rem
+  height 2.25rem
+  border 0
+  border-radius var(--radius-md)
+  background none
+  color var(--muted)
+  cursor pointer
 
-.v-theme--dark .search-builder-row .term-input::placeholder {
-  color: #666;
-}
+  &:hover
+    color var(--ink)
+    background var(--soft)
 
-.search-builder-row .field-divider {
-  width: 1px;
-  height: 24px;
-  background: rgba(0, 0, 0, 0.12);
-  flex-shrink: 0;
-}
+  &:focus-visible
+    outline 2px solid var(--accent)
 
-.v-theme--dark .search-builder-row .field-divider {
-  background: rgba(255, 255, 255, 0.12);
-}
+// Phone (board "B · Search on a phone"): mode on top, term below
+.builder-row.is-phone
+  gap 8px
 
-.search-builder-row .remove-btn {
-  flex: 0 0 auto;
-}
+  .builder-row__fields
+    flex-direction column
+    height auto
 
-/* Mobile: stack vertically */
-.search-builder-row.mobile {
-  padding-bottom: 12px;
-  margin-bottom: 12px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
-  position: relative;
-}
+  .builder-row__mode
+    width auto
 
-.search-builder-row.mobile .row-fields {
-  flex-direction: column;
-  align-items: stretch;
-}
+    :deep(.ui-select__trigger)
+      height 2.5rem
+      border-right 0
+      border-bottom 1px solid var(--line)
+      padding 0 12px
 
-.search-builder-row.mobile .mode-select {
-  width: 100%;
-}
+  .builder-row__term
+    height 2.75rem
+    padding 0 12px
 
-.search-builder-row.mobile .field-divider {
-  width: 100%;
-  height: 1px;
-}
-
-.search-builder-row.mobile .term-input {
-  width: 100%;
-  min-width: auto;
-}
-
-.search-builder-row.mobile .remove-btn {
-  position: absolute;
-  right: 0;
-  top: 0;
-}
+  .builder-row__remove
+    width 2.75rem
+    height 2.75rem
 </style>

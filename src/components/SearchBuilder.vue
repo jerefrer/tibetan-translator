@@ -1,4 +1,6 @@
 <script>
+import { UiIcon } from '../ui';
+import MobileResponsiveMixin from './mixins/MobileResponsiveMixin';
 import SearchBuilderRow from './SearchBuilderRow.vue';
 
 // Syntax definitions for each mode
@@ -9,10 +11,14 @@ const MODE_SYNTAX = {
   'phonetic-loose': { prefix: '{', suffix: '}' }
 };
 
+// The query builder (board "B · Search, query builder open"): one row per
+// condition, kept in sync both ways with the query in the search field.
 export default {
   components: {
-    SearchBuilderRow
+    SearchBuilderRow,
+    UiIcon
   },
+  mixins: [MobileResponsiveMixin],
   props: {
     modelValue: {
       type: String,
@@ -110,6 +116,7 @@ export default {
 
     addRow() {
       this.rows.push({ term: '', mode: 'contains' });
+      this.$nextTick(() => this.$refs.rowComponents?.at(-1)?.focus());
     },
 
     removeRow(index) {
@@ -141,24 +148,31 @@ export default {
 </script>
 
 <template>
-  <v-expand-transition>
-    <div v-if="visible" class="search-builder">
-      <div class="search-builder-header">
-        <span class="search-builder-title">Query Builder</span>
-        <v-btn
-          variant="text"
-          size="small"
-          color="grey"
+  <transition name="ui-fade">
+    <section
+      v-if="visible"
+      class="search-builder"
+      :class="{ 'is-phone': isMobile }"
+      aria-label="Query builder"
+      data-testid="search-builder"
+    >
+      <div class="search-builder__header">
+        <span class="search-builder__title">Query builder</span>
+        <button
+          type="button"
+          class="search-builder__link"
+          data-testid="search-builder-hide"
           @click="hide"
         >
           Hide
-        </v-btn>
+        </button>
       </div>
 
-      <div class="search-builder-rows">
+      <div class="search-builder__rows">
         <SearchBuilderRow
           v-for="(row, index) in rows"
           :key="index"
+          ref="rowComponents"
           :term="row.term"
           :mode="row.mode"
           :can-remove="rows.length > 1"
@@ -169,68 +183,116 @@ export default {
         />
       </div>
 
-      <div class="search-builder-actions">
-        <v-btn
-          variant="tonal"
-          size="small"
-          color="primary"
+      <div class="search-builder__footer">
+        <button
+          type="button"
+          class="search-builder__add"
+          data-testid="search-builder-add"
           @click="addRow"
         >
-          <v-icon start size="small">mdi-plus</v-icon>
+          <ui-icon name="plus" :size="14" :stroke-width="2" />
           Add condition
-        </v-btn>
+        </button>
+        <span class="search-builder__note">
+          {{ isMobile ? 'Match every condition' : 'An entry must match every condition.' }}
+        </span>
       </div>
-    </div>
-  </v-expand-transition>
+    </section>
+  </transition>
 </template>
 
-<style scoped>
-.search-builder {
-  background: #f0f0f0;
-  border-bottom: 1px solid #ddd;
-  padding: 10px 16px;
-  margin: 0;
-  will-change: height;
-  overflow: hidden;
-}
+<style lang="stylus" scoped>
+.search-builder
+  flex none
+  box-sizing border-box
+  padding 16px 22px 18px
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
+  font-family var(--font-ui)
+  color var(--ink)
 
-.v-theme--dark .search-builder {
-  background: #2a2a2a;
-  border-bottom-color: #444;
-}
+.search-builder__header
+  display flex
+  align-items center
+  justify-content space-between
+  margin -8px 0 -8px
 
-.search-builder-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
+.search-builder__title
+  font-size var(--text-xs)
+  font-weight 600
+  letter-spacing 0.08em
+  text-transform uppercase
+  color var(--muted)
 
-.search-builder-title {
-  font-size: 0.75rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #888;
-}
+.search-builder__link
+  border 0
+  background none
+  padding 8px
+  margin-right -8px
+  color var(--accent)
+  font 600 var(--text-sm-plus) var(--font-ui)
+  cursor pointer
 
-.v-theme--dark .search-builder-title {
-  color: #999;
-}
+  &:hover
+    text-decoration underline
 
-.search-builder-rows {
-  margin-bottom: 8px;
-}
+  &:focus-visible
+    outline 2px solid var(--accent)
+    border-radius var(--radius-sm)
 
-.search-builder-actions {
-  display: flex;
-  justify-content: flex-end;
-}
+.search-builder__rows
+  display flex
+  flex-direction column
+  gap 10px
+  margin-top 12px
+  max-width 55rem
 
-/* Mobile adjustments */
-@media (max-width: 600px) {
-  .search-builder {
-    padding: 12px;
-  }
-}
+.search-builder__footer
+  display flex
+  align-items center
+  gap 14px
+  margin-top 14px
+
+.search-builder__add
+  display inline-flex
+  align-items center
+  gap 6px
+  height 2.25rem
+  padding 0 14px
+  border 0
+  border-radius var(--radius-lg)
+  background var(--accent-soft)
+  color var(--accent)
+  font 600 var(--text-sm-plus) var(--font-ui)
+  cursor pointer
+
+  &:hover
+    background var(--accent-line)
+
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 2px
+
+.search-builder__note
+  font-size var(--text-sm)
+  color var(--muted)
+
+// Phone (board "B · Search on a phone")
+.search-builder.is-phone
+  padding 12px 14px
+
+  .search-builder__rows
+    margin-top 10px
+
+  .search-builder__footer
+    justify-content space-between
+    margin-top 10px
+
+  .search-builder__add
+    height 2.75rem
+
+  .search-builder__note
+    font-size var(--text-chip)
 </style>
