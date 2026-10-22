@@ -362,8 +362,9 @@ export default {
             @click="selectTermMobile(term)"
           >{{ term }}</div>
 
-          <!-- Sentinel for infinite scroll -->
-          <div ref="termsLoadMoreSentinel" class="terms-load-more-sentinel">
+          <!-- Sentinel for infinite scroll. Hidden from assistive technology:
+               a listbox may only contain options. -->
+          <div ref="termsLoadMoreSentinel" class="terms-load-more-sentinel" aria-hidden="true">
             <ui-spinner v-if="hasMoreTerms" :size="20" label="Loading more terms" />
           </div>
         </div>

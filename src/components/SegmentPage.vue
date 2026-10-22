@@ -792,6 +792,9 @@ export default {
       v-if="!isMobile"
       direction="horizontal"
       label="Resize the text area"
+      :value="topHeight"
+      :min="15"
+      :max="70"
       @resize="onHorizontalResize"
     />
 
@@ -887,6 +890,9 @@ export default {
         v-if="!isMobile && termsList.length"
         direction="vertical"
         label="Resize the terms"
+        :value="leftWidth"
+        :min="20"
+        :max="60"
         @resize="onVerticalResize"
       />
 

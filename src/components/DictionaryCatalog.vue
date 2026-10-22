@@ -371,7 +371,7 @@ export default {
             data-testid="catalog-card"
           >
             <div class="catalog-card__titles">
-              <h3 class="catalog-card__title">{{ entry.label }}</h3>
+              <h2 class="catalog-card__title">{{ entry.label }}</h2>
               <span v-if="subtitleOf(entry)" class="catalog-card__subtitle">
                 {{ subtitleOf(entry) }}
               </span>

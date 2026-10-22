@@ -19,6 +19,13 @@ function mouse(type, x, y) {
 }
 
 describe('ResizableDivider', () => {
+  it('should expose its position, as a focusable separator must', () => {
+    wrapper = mount(ResizableDivider, { props: { value: 24.6, min: 15, max: 70 } })
+    expect(wrapper.attributes('aria-valuenow')).toBe('25')
+    expect(wrapper.attributes('aria-valuemin')).toBe('15')
+    expect(wrapper.attributes('aria-valuemax')).toBe('70')
+  })
+
   it('should emit the vertical distance dragged by a horizontal bar, step by step', async () => {
     wrapper = mount(ResizableDivider, { props: { direction: 'horizontal' } })
 

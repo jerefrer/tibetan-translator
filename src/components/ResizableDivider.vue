@@ -6,6 +6,9 @@
     tabindex="0"
     :aria-orientation="direction"
     :aria-label="label"
+    :aria-valuenow="Math.round(value)"
+    :aria-valuemin="min"
+    :aria-valuemax="max"
     data-testid="resizable-divider"
     @mousedown="startDrag"
     @touchstart.prevent="startDrag"
@@ -30,7 +33,12 @@ export default {
       default: 'horizontal',
       validator: (v) => ['horizontal', 'vertical'].includes(v)
     },
-    label: { type: String, default: 'Resize' }
+    label: { type: String, default: 'Resize' },
+    // Position of the divider, as a percentage, for assistive technology
+    // (a focusable separator must expose its value)
+    value: { type: Number, default: 50 },
+    min: { type: Number, default: 0 },
+    max: { type: Number, default: 100 }
   },
 
   emits: ['resize'],

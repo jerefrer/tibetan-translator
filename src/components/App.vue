@@ -259,13 +259,13 @@ export default {
         </template>
       </app-nav>
 
-      <div class="app-content">
+      <main class="app-content">
         <router-view v-slot="{ Component }">
           <keep-alive>
             <component :is="Component" :key="currentTabId" />
           </keep-alive>
         </router-view>
-      </div>
+      </main>
     </div>
 
     <!-- Rendered at the app level so drag-drop confirmation works on every page -->
