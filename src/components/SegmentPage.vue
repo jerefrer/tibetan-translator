@@ -1091,9 +1091,9 @@ export default {
   margin-bottom 10px
 
 .terms-count
+  // Wraps rather than running under the Dictionaries button at a large Text size
   font-size var(--text-sm)
   color var(--muted)
-  white-space nowrap
 
 .terms-list
   @extend .card

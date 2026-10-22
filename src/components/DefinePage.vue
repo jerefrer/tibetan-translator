@@ -543,9 +543,9 @@ export default {
   margin-bottom -4px
 
 .terms-count
+  // Wraps rather than running under the Dictionaries button at a large Text size
   font-size var(--text-sm)
   color var(--muted)
-  white-space nowrap
 
 .card
   background var(--surface)
