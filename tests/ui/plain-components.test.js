@@ -41,6 +41,12 @@ describe('UiIcon', () => {
     expect(wrapper.attributes('aria-label')).toBe('Search')
   })
 
+  it('should have the two-bar drag handle used by reorderable lists', () => {
+    const wrapper = mount(UiIcon, { props: { name: 'equal' } })
+    expect(wrapper.find('svg').exists()).toBe(true)
+    expect(wrapper.attributes('data-missing-icon')).toBeUndefined()
+  })
+
   it('should mark an unknown icon instead of throwing', () => {
     const wrapper = mount(UiIcon, { props: { name: 'nope' } })
     expect(wrapper.attributes('data-missing-icon')).toBe('nope')

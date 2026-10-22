@@ -69,4 +69,33 @@ export const renderReleaseNotes = (markdown) => {
   return html.join('');
 };
 
+/**
+ * The Markdown body of one version's section in CHANGELOG.md, or '' when the
+ * file has no section for it. Sections open with `## [1.12.0](…) - date` (or
+ * `## 1.12.0`); the body runs to the next `## ` heading.
+ *
+ * @param {string} changelog Contents of CHANGELOG.md.
+ * @param {string} version   Version without a leading "v".
+ * @returns {string}
+ */
+export const releaseNotesFor = (changelog, version) => {
+  if (!version) return '';
+  const wanted = String(version).replace(/^v/, '');
+  const lines = String(changelog || '').split('\n');
+  const body = [];
+  let inSection = false;
+
+  for (const line of lines) {
+    const section = line.match(/^##\s+\[?v?([^\]\s]+)\]?/);
+    if (section && !line.startsWith('###')) {
+      if (inSection) break;
+      inSection = section[1] === wanted;
+      continue;
+    }
+    if (inSection) body.push(line);
+  }
+
+  return body.join('\n').trim();
+};
+
 export default renderReleaseNotes;
