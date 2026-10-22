@@ -695,12 +695,17 @@ export default {
     min-height 3.25rem
     font-size var(--text-tibetan-md)
 
+  // Room for the floating help button after the last term (the pane
+  // already leaves 16px under the list)
+  .terms-list
+    padding-bottom calc(var(--phone-help-clearance) - 16px)
+
   .entries-pane
     flex 1
     overflow-y auto
     -webkit-overflow-scrolling touch
     gap 14px
-    padding-bottom 16px
+    padding-bottom var(--phone-help-clearance)
 
   .entries-actions
     height auto

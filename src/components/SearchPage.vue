@@ -1207,7 +1207,8 @@ export default {
 // definition under them.
 .search-page.is-phone
   gap 14px
-  padding 16px 16px 0
+  // Room for the floating help button after the last result
+  padding 16px 16px var(--phone-help-clearance)
   overflow-y auto
   -webkit-overflow-scrolling touch
 

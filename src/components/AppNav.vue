@@ -299,6 +299,12 @@ export default {
   opacity: 1;
 }
 
+/* On a phone the button floats just above the bar. Lists that end above
+   the bar keep this much room after their last row, so it can scroll clear
+   of the button (2.75rem tall, 6px above the bar, plus 8px). */
+:root {
+  --phone-help-clearance: calc(2.75rem + 14px);
+}
 /* On a phone the button floats just above the bar. */
 .app-nav--bar .app-nav__help {
   position: absolute;

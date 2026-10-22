@@ -1297,6 +1297,11 @@ export default {
     flex 1
     padding-bottom 16px
 
+  // Room for the floating help button after the last term (the pane
+  // already leaves 16px under the list)
+  .terms-list
+    padding-bottom calc(var(--phone-help-clearance) - 16px)
+
   .terms-header
     min-height 0
     margin-bottom 14px
@@ -1305,7 +1310,7 @@ export default {
     flex 1
     padding-top 0
     gap 14px
-    padding-bottom 16px
+    padding-bottom var(--phone-help-clearance)
     overflow-y auto
     -webkit-overflow-scrolling touch
 
