@@ -1,7 +1,5 @@
 <script>
 import _ from "underscore";
-import TibetanRegExps from "tibetan-regexps";
-import { useTheme } from "vuetify";
 
 import {
   MAX_MERGE_TERM_COUNT,
@@ -12,22 +10,36 @@ import { convertWylieInText, tibetanLookupKey, withTrailingTshek } from "../util
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
 import { mayNeedLegacyRepair } from "../services/legacy-to-unicode";
+import { UiButton, UiIcon, UiSpinner, UiTextField, UiTooltip } from "../ui";
 import Entries from "./Entries.vue";
 import ResizableDivider from "./ResizableDivider.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
 import MobileResponsiveMixin from "./mixins/MobileResponsiveMixin";
 import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries.vue";
 
+// Merge brackets sit in lanes from the right edge of the terms list, so that
+// brackets covering the same rows do not draw over each other.
+const MERGE_LANE_WIDTH = 30;
+
+// Boards "B · Split" (and its Empty and Phone variants).
+// Desktop: the text on top; below, the terms found in it on the left and the
+// definitions of the selected term on the right, with dividers to resize.
+// Phone: the text and the terms; a tap shows the definitions, with a way back.
+//
+// The text area is a <UiTextField multiline> with this page's own Wylie and
+// space handling rather than <UiTibetanField>: that one turns spaces into
+// tshegs and drops trailing spaces, and here the spaces are the word breaks.
 export default {
   mixins: [DictionariesMenuMixin, MobileResponsiveMixin],
-  setup() {
-    const theme = useTheme();
-    return { theme };
-  },
   components: {
     Entries,
     ResizableDivider,
     ResultsAndPaginationAndDictionaries,
+    UiButton,
+    UiIcon,
+    UiSpinner,
+    UiTextField,
+    UiTooltip,
   },
   data() {
     return {
@@ -49,46 +61,67 @@ export default {
       hasBeenSegmented: false,
       updatingTextarea: false, // Flag to prevent recursive updates
       lastSelectedTerm: null, // Track last selected term content to avoid unnecessary refreshes
-      // Refs for term elements (for calculating merge button positions)
-      termRefs: {},
       // Divider positions (percentages)
-      topHeight: Storage.get("segment.topHeight", 33),
-      leftWidth: Storage.get("segment.leftWidth", 35),
+      topHeight: Storage.get("segment.topHeight", 20),
+      leftWidth: Storage.get("segment.leftWidth", 27),
     };
   },
   computed: {
-    isDark() {
-      return this.theme.global.current.value.dark;
-    },
     selectedTerm() {
       if (this.selectedTermIndex !== null && this.selectedTermIndex < this.termsList.length) {
         return this.termsList[this.selectedTermIndex];
       }
       return null;
     },
+    hasText() {
+      return !!this.inputText.trim();
+    },
+    showingEntries() {
+      return this.isMobile && this.mobileShowDefinition;
+    },
+    termsCountLabel() {
+      if (this.termsList.length)
+        return this.termsList.length + (this.termsList.length === 1 ? " term" : " terms");
+      if (this.segmenting) return "Segmenting...";
+      return "No terms";
+    },
     topStyle() {
+      if (this.isMobile) return {};
       return {
         height: `${this.topHeight}%`,
         minHeight: "100px",
       };
     },
-    bottomStyle() {
-      return {
-        height: `${100 - this.topHeight}%`,
-        minHeight: "200px",
-      };
-    },
     leftStyle() {
+      if (this.isMobile) return {};
       return {
-        width: this.isMobile ? "100%" : `${this.leftWidth}%`,
-        minWidth: this.isMobile ? "auto" : "200px",
+        width: `${this.leftWidth}%`,
+        minWidth: "200px",
       };
     },
-    rightStyle() {
-      return {
-        width: this.isMobile ? "100%" : `${100 - this.leftWidth}%`,
-        minWidth: this.isMobile ? "auto" : "300px",
-      };
+    // [{ start, count, term, lane }], one per merge button
+    mergeBrackets() {
+      const brackets = [];
+      Object.keys(this.possibleMerges)
+        .map(Number)
+        .sort((a, b) => a - b)
+        .forEach((start) => {
+          // Longest first, so that it takes the outer lane
+          [...this.possibleMerges[start]]
+            .sort((a, b) => b.count - a.count)
+            .forEach(({ count, term }) => brackets.push({ start, count, term }));
+        });
+      const laneEnds = [];
+      brackets.forEach((bracket) => {
+        let lane = laneEnds.findIndex((end) => end <= bracket.start);
+        if (lane === -1) lane = laneEnds.length;
+        laneEnds[lane] = bracket.start + bracket.count;
+        bracket.lane = lane;
+      });
+      return brackets;
+    },
+    mergeLanes() {
+      return this.mergeBrackets.reduce((lanes, bracket) => Math.max(lanes, bracket.lane + 1), 0);
     },
   },
   watch: {
@@ -98,9 +131,8 @@ export default {
         this.debouncedUpdateFromTextarea();
       }
     },
-    termsList() {
-      // Clear refs when terms list changes
-      this.termRefs = {};
+    selectedTermIndex() {
+      this.$nextTick(() => this.scrollSelectedTermIntoView());
     },
     // Note: definition loading is handled directly in selectTermByIndex()
     // to avoid race conditions with lastSelectedTerm
@@ -336,11 +368,6 @@ export default {
       for (let i = 0; i < this.termsList.length - 1; i++) {
         await this.checkMergesAtIndex(i);
       }
-
-      // Force re-render to recalculate button positions after DOM updates
-      this.$nextTick(() => {
-        this.$forceUpdate();
-      });
     },
 
     async checkMergesAtIndex(i) {
@@ -400,11 +427,6 @@ export default {
       for (let i = startCheck; i <= endCheck; i++) {
         await this.checkMergesAtIndex(i);
       }
-
-      // Force re-render
-      this.$nextTick(() => {
-        this.$forceUpdate();
-      });
     },
 
     async mergeTerms(startIndex, count) {
@@ -473,37 +495,13 @@ export default {
       return this.termsWithDefinitions.has(term);
     },
 
-    getMergeOptions(index) {
-      return this.possibleMerges[index] || [];
-    },
-
-    getMergeButtonStyle(startIndex, count) {
-      // Calculate position and height to overlay the terms being merged
-      const firstEl = this.termRefs[startIndex];
-      const lastEl = this.termRefs[startIndex + count - 1];
-      const listEl = this.$refs.termsList;
-
-      if (!firstEl || !lastEl || !listEl) {
-        return { display: 'none' };
-      }
-
-      const listRect = listEl.getBoundingClientRect();
-      const firstRect = firstEl.getBoundingClientRect();
-      const lastRect = lastEl.getBoundingClientRect();
-
-      const top = firstRect.top - listRect.top + listEl.scrollTop;
-      const height = lastRect.bottom - firstRect.top;
-
-      // Offset for multiple merge options at same position (stack horizontally)
-      const options = this.possibleMerges[startIndex] || [];
-      const optionIndex = options.findIndex(o => o.count === count);
-      const rightOffset = optionIndex * 34; // 34px per button width (32px + 2px gap)
-
+    mergeBracketStyle(bracket) {
+      // Rows have a fixed height (--split-row), so the bracket is placed from
+      // the indexes alone, inset 7px at each end as on the board.
       return {
-        position: 'absolute',
-        top: `${top}px`,
-        height: `${height}px`,
-        right: `${rightOffset}px`,
+        top: `calc(var(--split-row) * ${bracket.start} + 7px)`,
+        height: `calc(var(--split-row) * ${bracket.count} - 14px)`,
+        right: `${14 + bracket.lane * MERGE_LANE_WIDTH}px`,
       };
     },
 
@@ -563,7 +561,7 @@ export default {
       // Space without shift → insert tshegs instead
       if (event.key === " " && !event.shiftKey) {
         event.preventDefault();
-        const textarea = this.$refs.textarea;
+        const textarea = event.target;
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const text = this.inputText || "";
@@ -578,7 +576,7 @@ export default {
 
     onKeyup(event) {
       // Convert Wylie on space or tsek
-      if (event.key.match(/[་ ]/)) {
+      if (event.key && event.key.match(/[་ ]/)) {
         this.inputText = this.convertWylie(this.inputText);
       }
     },
@@ -646,6 +644,11 @@ export default {
       }
     },
 
+    scrollSelectedTermIntoView() {
+      const active = this.$refs.termsList?.querySelector(".term-item.is-active");
+      active?.scrollIntoView?.({ block: "nearest" });
+    },
+
     focusTextarea() {
       this.$refs.textarea?.focus();
     },
@@ -667,14 +670,30 @@ export default {
     },
 
     handleKeydown(event) {
-      // Arrow key navigation for terms (works globally on this page)
-      if (event.key === "ArrowUp") {
-        event.preventDefault();
-        this.selectPreviousTerm();
-      } else if (event.key === "ArrowDown") {
-        event.preventDefault();
-        this.selectNextTerm();
-      }
+      // Arrow key navigation for terms (works anywhere on this page), except
+      // where another control already uses the arrows: the Dictionaries menu,
+      // a dialog, a divider or another field.
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      if (event.defaultPrevented) return;
+      const target = event.target;
+      if (target?.closest?.(".dictionaries-menu, [role='dialog'], [role='separator']")) return;
+      if (target?.matches?.("input, select, textarea") && target !== this.textareaElement()) return;
+      event.preventDefault();
+      if (event.key === "ArrowUp") this.selectPreviousTerm();
+      else this.selectNextTerm();
+    },
+
+    textareaElement() {
+      return this.$refs.textarea?.$refs.input;
+    },
+
+    // Only while the page is shown: <keep-alive> keeps it mounted elsewhere
+    listenToArrows() {
+      window.removeEventListener("keydown", this.handleKeydown);
+      window.addEventListener("keydown", this.handleKeydown);
+    },
+    stopListeningToArrows() {
+      window.removeEventListener("keydown", this.handleKeydown);
     },
   },
   mounted() {
@@ -686,87 +705,104 @@ export default {
       this.updateFromTextarea,
       DEBOUNCE_TEXTAREA_MS
     );
-    window.addEventListener("keydown", this.handleKeydown);
+    this.listenToArrows();
   },
   activated() {
+    this.listenToArrows();
     this.$nextTick(() => this.focusTextarea());
   },
+  deactivated() {
+    this.stopListeningToArrows();
+  },
   beforeUnmount() {
-    window.removeEventListener("keydown", this.handleKeydown);
+    this.stopListeningToArrows();
+    this.debouncedUpdateFromTextarea?.cancel();
   },
 };
 </script>
 
 <template>
   <div
-    class="segment-page"
-    :class="{ 'mobile-show-definition': isMobile && mobileShowDefinition }"
     ref="container"
+    class="segment-page"
+    :class="{ 'is-phone': isMobile, 'mobile-show-definition': showingEntries }"
+    data-testid="split-page"
   >
-    <!-- Top: Input area -->
-    <div class="input-area" :style="topStyle">
-      <div class="input-header" v-if="inputText.trim()">
-        <span class="input-hint"></span>
-        <div class="input-actions">
-          <v-btn
-            size="small"
-            color="primary"
-            variant="flat"
-            :loading="segmenting"
-            @click="resegmentText"
-          >
-            <v-icon start>mdi-content-cut</v-icon>
-            Split words
-          </v-btn>
-          <v-btn
-            size="small"
-            variant="text"
-            @click="clearTextarea"
-          >
-            <v-icon start>mdi-close</v-icon>
-            Clear
-          </v-btn>
-        </div>
+    <!-- Board "Empty": the title sits above the text area until there is text -->
+    <span v-if="!hasText && !showingEntries" class="split-eyebrow" data-testid="split-title">Split</span>
+
+    <section
+      v-show="!showingEntries"
+      class="split-input"
+      :style="topStyle"
+      aria-label="Text to split"
+    >
+      <div v-if="hasText" class="split-input__header" data-testid="split-header">
+        <span class="split-eyebrow">Split</span>
+        <span v-if="!isMobile" class="split-hint">Add or remove spaces to change where words are split.</span>
+        <ui-button
+          size="sm"
+          class="split-words"
+          :loading="segmenting"
+          data-testid="split-words"
+          @click="resegmentText"
+        >
+          <ui-icon v-if="!isMobile && !segmenting" name="scissors" :size="16" :stroke-width="2" />
+          Split words
+        </ui-button>
+        <ui-button
+          variant="ghost"
+          size="sm"
+          class="split-clear"
+          data-testid="split-clear"
+          @click="clearTextarea"
+        >
+          <ui-icon v-if="!isMobile" name="x" :size="16" :stroke-width="2" />
+          Clear
+        </ui-button>
       </div>
-      <textarea
+
+      <ui-text-field
         ref="textarea"
         v-model="inputText"
-        class="tibetan-textarea"
+        multiline
+        tibetan
+        class="split-field"
+        :rows="2"
         placeholder="Paste or type Tibetan text"
+        aria-label="Tibetan text"
         spellcheck="false"
         autocomplete="off"
         autocapitalize="off"
         autocorrect="off"
+        data-testid="split-text"
         @paste="onPaste"
         @keydown="onKeydown"
         @keyup="onKeyup"
-      ></textarea>
-      <div v-if="tokenizerError" class="tokenizer-error text-caption text-error">
-        <v-icon size="small" color="error">mdi-alert</v-icon>
+      />
+
+      <div v-if="tokenizerError" class="tokenizer-error" role="alert" data-testid="split-tokenizer-error">
+        <ui-icon name="triangle-alert" :size="16" />
         {{ tokenizerError }}
       </div>
-    </div>
+    </section>
 
     <ResizableDivider
       v-if="!isMobile"
       direction="horizontal"
+      label="Resize the text area"
       @resize="onHorizontalResize"
     />
 
-    <!-- Bottom: Terms and definitions -->
-    <div class="bottom-area" :style="bottomStyle" ref="bottomContainer">
-      <!-- Terms list -->
-      <div class="terms-drawer" :style="leftStyle">
+    <div ref="bottomContainer" class="split-body">
+      <section
+        v-show="!showingEntries"
+        class="terms-pane"
+        :style="leftStyle"
+        aria-label="Terms"
+      >
         <div class="terms-header">
-          <span class="terms-count text-caption text-grey" v-if="termsList.length">
-            {{ termsList.length }} terms
-          </span>
-          <span class="terms-count text-caption text-grey" v-else-if="segmenting">
-            Segmenting...
-          </span>
-          <span class="terms-count text-caption text-grey" v-else>
-            No terms
-          </span>
+          <span class="terms-count" data-testid="split-terms-count">{{ termsCountLabel }}</span>
           <ResultsAndPaginationAndDictionaries
             v-if="entries.length"
             :dictionaries="dictionariesForCurrentResults"
@@ -775,374 +811,510 @@ export default {
             @close:dictionariesMenu="focusTextarea"
           />
         </div>
-        <div v-if="termsList.length" class="terms-list" ref="termsList">
+
+        <div
+          v-if="termsList.length"
+          ref="termsList"
+          class="terms-list"
+          :style="{ '--merge-lanes': mergeLanes }"
+          role="listbox"
+          aria-label="Terms in the text"
+          data-testid="split-terms"
+        >
           <div
             v-for="(term, index) in termsList"
             :key="index"
-            :ref="el => termRefs[index] = el"
-            class="term-item tibetan"
+            class="term-item"
             :class="{
-              'active bg-primary': selectedTermIndex === index,
-              'text-white': selectedTermIndex === index && !isDark,
-              'bg-primary-darken-2': selectedTermIndex === index && isDark,
-              'unknown-term': !hasDefinitions(term),
+              'is-active': selectedTermIndex === index,
+              'is-unknown': !hasDefinitions(term),
             }"
+            role="option"
+            :aria-selected="selectedTermIndex === index ? 'true' : 'false'"
+            data-testid="split-term"
             @click="selectTermByIndex(index)"
           >
-            <span>{{ term }}</span>
-            <v-icon
+            <span class="term-item__text">{{ term }}</span>
+            <ui-icon
               v-if="!hasDefinitions(term)"
-              size="x-small"
-              class="unknown-icon"
-              :color="selectedTermIndex === index ? 'white' : 'grey'"
-            >mdi-help-circle-outline</v-icon>
+              name="circle-help"
+              :size="16"
+              class="term-item__unknown"
+              label="No entry in your dictionaries"
+              data-testid="split-term-unknown"
+            />
           </div>
-          <!-- Merge overlay buttons -->
-          <template v-for="(options, startIndex) in possibleMerges" :key="'merge-' + startIndex">
-            <button
-              v-for="option in options"
-              :key="option.count"
-              class="merge-overlay-btn"
-              :style="getMergeButtonStyle(parseInt(startIndex), option.count)"
-              @click.stop="mergeTerms(parseInt(startIndex), option.count)"
-              :title="'Merge ' + option.count + ' terms: ' + option.term"
-            >
-              <v-icon size="x-small">mdi-format-vertical-align-center</v-icon>
-            </button>
-          </template>
+
+          <!-- Merge buttons: a bracket over the terms that make a known word -->
+          <span
+            v-for="bracket in mergeBrackets"
+            :key="bracket.start + '-' + bracket.count"
+            class="merge-bracket"
+            :style="mergeBracketStyle(bracket)"
+            data-testid="split-merge"
+          >
+            <ui-tooltip side="right">
+              <button
+                type="button"
+                class="merge-button"
+                :aria-label="'Merge ' + bracket.count + ' terms: ' + bracket.term"
+                data-testid="split-merge-button"
+                @click.stop="mergeTerms(bracket.start, bracket.count)"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v6m0 0-3-3m3 3 3-3M12 21v-6m0 0-3 3m3-3 3 3" /></svg>
+              </button>
+              <template #content>
+                <span class="merge-tip__term">{{ bracket.term }}</span> · Merge {{ bracket.count }} terms
+              </template>
+            </ui-tooltip>
+          </span>
         </div>
         <div
-          v-else-if="!segmenting && inputText.trim() && !termsList.length"
-          class="d-flex align-center mx-4 text-caption text-grey"
-          style="height: 48px"
+          v-else-if="!segmenting && hasText"
+          class="terms-empty"
+          data-testid="split-terms-empty"
         >
           Add spaces between words or click "Split words"
         </div>
-        <div
-          v-else-if="!inputText.trim()"
-          class="d-flex align-center mx-4 text-caption text-grey"
-          style="height: 48px"
-        >
+        <div v-else-if="!hasText" class="terms-empty" data-testid="split-terms-empty">
           Paste text above to begin
         </div>
-      </div>
+      </section>
 
       <ResizableDivider
         v-if="!isMobile && termsList.length"
         direction="vertical"
+        label="Resize the terms"
         @resize="onVerticalResize"
       />
 
-      <!-- Definitions -->
-      <div class="definitions-container" :style="rightStyle">
-        <!-- Back button for mobile -->
-        <div v-if="isMobile && mobileShowDefinition" class="mobile-back">
-          <v-btn variant="text" size="small" @click="showTermsList">
-            <v-icon start>mdi-arrow-left</v-icon>
+      <section
+        v-show="!isMobile || showingEntries"
+        class="entries-pane"
+        aria-label="Definitions"
+      >
+        <template v-if="isMobile">
+          <button
+            type="button"
+            class="back-link"
+            data-testid="split-back"
+            @click="showTermsList"
+          >
+            <span class="back-link__icon"><ui-icon name="chevron-left" :size="22" :stroke-width="2.4" /></span>
             Back to terms
-          </v-btn>
-        </div>
+          </button>
+          <div
+            v-if="selectedTerm && !loading"
+            class="headword"
+            data-testid="split-headword"
+          >{{ selectedTerm }}</div>
+        </template>
 
         <!-- Loading state -->
-        <div v-if="loading" class="loading-state">
-          <v-progress-circular indeterminate size="48" color="primary" />
-          <div class="mt-3 text-grey text-caption">Loading definitions...</div>
+        <div v-if="loading" class="loading-state" data-testid="split-loading">
+          <ui-spinner :size="40" />
+          <div>Loading definitions...</div>
         </div>
 
         <!-- No term selected -->
-        <div v-else-if="selectedTermIndex === null && termsList.length" class="empty-state">
-          <v-icon size="48" color="grey-lighten-1">mdi-book-open-variant</v-icon>
-          <div class="mt-3 text-grey text-caption">Select a term to see definitions</div>
+        <div
+          v-else-if="selectedTermIndex === null && termsList.length"
+          class="pane-message"
+          data-testid="split-select-term"
+        >
+          <ui-icon name="book-open" :size="20" />
+          Select a term to see definitions
         </div>
 
         <!-- No definitions found -->
-        <div v-else-if="selectedTerm && !entriesForEnabledDictionaries.length && !loading" class="empty-state">
-          <v-icon size="48" color="grey-lighten-1">mdi-book-off</v-icon>
-          <div class="mt-3 text-grey text-caption">No definitions found for "{{ selectedTerm }}"</div>
+        <div
+          v-else-if="selectedTerm && !entriesForEnabledDictionaries.length"
+          class="pane-message"
+          data-testid="split-no-definitions"
+        >
+          <ui-icon name="book-x" :size="20" />
+          <span>No definitions found for "<span class="pane-message__term">{{ selectedTerm }}</span>"</span>
         </div>
 
         <!-- Definitions -->
-        <v-fade-transition mode="out-in" appear v-else>
-          <div v-if="entriesForEnabledDictionaries.length">
+        <transition v-else name="ui-fade" mode="out-in" appear>
+          <div
+            v-if="entriesForEnabledDictionaries.length"
+            class="entries-card"
+            data-testid="split-entries"
+          >
             <Entries
               :entries="entriesForEnabledDictionaries"
               :initialNumberOfEntries="25"
+              :cards="isMobile"
             />
           </div>
-        </v-fade-transition>
-      </div>
+        </transition>
+      </section>
     </div>
   </div>
 </template>
 
-<style lang="stylus">
+<style lang="stylus" scoped>
 .segment-page
+  // One term row; merge brackets are placed in multiples of it
+  --split-row 3.25rem
+  box-sizing border-box
+  height 100%
   display flex
   flex-direction column
-  height 100%
+  gap 18px
+  padding 28px 40px 0
   overflow hidden
+  background var(--bg)
+  color var(--ink)
+  font-family var(--font-ui)
+  font-size var(--text-base)
 
-  .input-area
-    display flex
-    flex-direction column
-    background #fffcf4
-    border-bottom 2px solid rgba(0, 0, 0, 0.1)
-    overflow hidden
+// The text: a card with the title, the hint, Split words and Clear above the field
+.card
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
 
-    .input-header
-      display flex
-      align-items center
-      justify-content space-between
-      padding 0 15px
-      flex-shrink 0
-      min-height 48px
-      border-bottom 1px solid rgba(0, 0, 0, 0.06)
+.split-eyebrow
+  flex none
+  font-size var(--text-xs)
+  font-weight 600
+  letter-spacing 0.08em
+  text-transform uppercase
+  color var(--muted)
 
-      .input-hint
-        font-size 1em
-        color rgba(0, 0, 0, 0.5)
+.split-input
+  @extend .card
+  flex none
+  box-sizing border-box
+  min-height 0
+  display flex
+  flex-direction column
+  gap 10px
+  padding 14px 22px 16px
 
-      .input-actions
-        display flex
-        gap 8px
+.split-input__header
+  flex none
+  display flex
+  align-items center
+  gap 10px
 
-    .tibetan-textarea
-      flex 1
-      width 100%
-      min-height 80px
-      padding 12px 15px
-      font-family "DDC_Uchen", serif
-      font-size 1.625rem
-      line-height 1.6
-      border none
-      border-radius 0
-      background transparent
-      resize none
-      outline none
+.split-hint
+  flex 1
+  min-width 0
+  padding-left 10px
+  font-size var(--text-chip)
+  color var(--muted)
+  white-space nowrap
+  overflow hidden
+  text-overflow ellipsis
 
-      &:focus
-        outline none
-        box-shadow none
+.split-words
+  gap 8px
 
-      &::placeholder
-        font-family "Segoe UI", "Roboto", sans-serif
-        font-size 1.125rem
-        opacity 0.5
-        color #666
+.split-clear
+  gap 6px
+  padding 0 10px
+  color var(--muted)
+  font-weight 500
 
-    .tokenizer-error
-      margin 0 15px 8px
-      display flex
-      align-items center
-      gap 4px
+  &:hover:not(:disabled)
+    background var(--soft)
+    color var(--ink)
 
-  .bottom-area
+.split-field
+  flex 1
+  min-height 0
+
+  :deep(.ui-field__control)
     flex 1
-    display flex
-    overflow hidden
     min-height 0
+    align-items stretch
+    padding 10px 16px
+    border-radius var(--radius-lg)
 
-  .terms-drawer
-    flex-shrink 0
-    background var(--paper, #FAF3E0)
-    border-right 2px solid rgba(0, 0, 0, 0.1)
-    display flex
-    flex-direction column
-    overflow hidden
-
-    .terms-header
-      display flex
-      align-items center
-      justify-content space-between
-      padding 7px 15px
-      min-height 48px
-      background var(--paper, #FAF3E0)
-      border-bottom 2px solid rgba(0, 0, 0, 0.08)
-      flex-shrink 0
-
-      .terms-count
-        white-space nowrap
-
-    .terms-list
-      flex 1
-      overflow-y auto
-      min-height 0
-      position relative
-
-    .term-item
-      min-height 44px
-      line-height 44px
-      font-size 1.25rem
-      padding 0 16px
-      border-bottom thin solid rgba(0, 0, 0, 0.08)
-      transition background 0.2s ease
-      cursor pointer
-      display flex
-      align-items center
-      justify-content space-between
-
-      &:hover
-        background rgba(0, 0, 0, 0.04)
-
-      &.unknown-term:not(.active)
-        opacity 0.6
-        font-style italic
-
-      .unknown-icon
-        margin-left 8px
-
-    .merge-overlay-btn
-      width 32px
-      border none
-      background rgba(211, 47, 47, 0.15)
-      border-left 3px solid rgba(211, 47, 47, 0.5)
-      cursor pointer
-      display flex
-      flex-direction column
-      align-items center
-      justify-content center
-      gap 2px
-      transition all 0.15s ease
-      z-index 5
-
-      &:hover
-        background rgb(211, 47, 47)
-        border-left-color rgb(211, 47, 47)
-
-        .v-icon
-          color white
-
-      .v-icon
-        font-size 1.125rem
-        color rgba(211, 47, 47, 0.85)
-
-  .definitions-container
-    flex 1
-    overflow-y auto
+  :deep(.ui-field__input)
+    height 100%
+    min-height 3rem
+    resize none
     padding 0
-    position relative
-    background white
+    font-size 1.875rem
+    line-height 1.6
 
-    .mobile-back
+  :deep(.ui-field__input::placeholder)
+    font-family var(--font-serif)
+    font-size 1.25rem
+    line-height 1.9
+
+.tokenizer-error
+  flex none
+  display flex
+  align-items center
+  gap 6px
+  font-size var(--text-sm)
+  color var(--danger-ink)
+
+// Below: terms | definitions
+.split-body
+  flex 1
+  min-height 0
+  display flex
+
+// Terms
+.terms-pane
+  flex none
+  box-sizing border-box
+  min-height 0
+  display flex
+  flex-direction column
+  padding-bottom 28px
+
+.terms-header
+  flex none
+  box-sizing border-box
+  display flex
+  align-items center
+  justify-content space-between
+  gap 10px
+  min-height 2.25rem
+  margin-bottom 10px
+
+.terms-count
+  font-size var(--text-sm)
+  color var(--muted)
+  white-space nowrap
+
+.terms-list
+  @extend .card
+  position relative
+  flex 0 1 auto
+  min-height 0
+  overflow-y auto
+  overscroll-behavior contain
+
+.term-item
+  box-sizing border-box
+  height var(--split-row)
+  padding 0 18px
+  padding-right calc(18px + var(--merge-lanes, 0) * 30px)
+  display flex
+  align-items center
+  gap 8px
+  border-bottom 1px solid var(--soft)
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-md)
+  white-space nowrap
+  cursor pointer
+
+  &:last-of-type
+    border-bottom-color transparent
+
+  &:hover
+    background var(--soft)
+
+  &.is-active
+    background var(--accent)
+    color var(--on-accent)
+    border-bottom-color transparent
+
+  // No entry for this term: faint, with a marker
+  &.is-unknown:not(.is-active)
+    color var(--faint)
+
+.term-item__text
+  min-width 0
+  overflow hidden
+  text-overflow ellipsis
+  padding-top 0.3rem
+
+.term-item__unknown
+  flex none
+  opacity 0.9
+
+// A "]" over the merged rows, its button on the right edge
+.merge-bracket
+  position absolute
+  width 16px
+  box-sizing border-box
+  border 2px solid var(--accent-line)
+  border-left 0
+  border-radius 0 9px 9px 0
+  pointer-events none
+
+.merge-button
+  position absolute
+  right -14px
+  top 50%
+  transform translateY(-50%)
+  width 28px
+  height 28px
+  box-sizing border-box
+  padding 0
+  display flex
+  align-items center
+  justify-content center
+  border 1.5px solid var(--accent)
+  border-radius 50%
+  background var(--surface)
+  color var(--accent)
+  cursor pointer
+  pointer-events auto
+
+  &:hover
+    background var(--accent)
+    color var(--on-accent)
+
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 2px
+
+.terms-empty
+  font-size var(--text-base)
+  color var(--muted)
+  padding 10px 0
+
+// Definitions
+.entries-pane
+  flex 1
+  min-width 0
+  min-height 0
+  display flex
+  flex-direction column
+  // Level with the terms list, below the terms header
+  padding-top calc(2.25rem + 10px)
+  box-sizing border-box
+
+.entries-card
+  @extend .card
+  flex 0 1 auto
+  min-height 0
+  margin-bottom 28px
+  overflow-y auto
+
+.pane-message
+  @extend .card
+  flex none
+  display flex
+  align-items center
+  gap 10px
+  padding 16px 18px
+  color var(--muted)
+
+.pane-message__term
+  font-family var(--font-tibetan)
+  font-size var(--text-md)
+  color var(--ink)
+
+.loading-state
+  display flex
+  flex-direction column
+  align-items center
+  justify-content center
+  gap 16px
+  height 12.5rem
+  color var(--muted)
+
+.back-link
+  flex none
+  display flex
+  align-items center
+  height 2.75rem
+  margin 0 -6px
+  padding 0 8px 0 0
+  border 0
+  background none
+  color var(--accent)
+  font 600 0.9375rem var(--font-ui)
+  cursor pointer
+
+.back-link__icon
+  display inline-flex
+  align-items center
+  justify-content center
+  width 2.75rem
+  height 2.75rem
+
+.headword
+  flex none
+  font-family var(--font-tibetan)
+  font-size 2.125rem
+  line-height 1.5
+  color var(--accent)
+  overflow-wrap anywhere
+
+// Phone (boards "B · Split on a phone" and "… entries")
+.segment-page.is-phone
+  gap 14px
+  padding 16px 16px 0
+
+  .split-input
+    padding 10px 12px 12px
+    gap 8px
+
+  .split-input__header
+    gap 8px
+
+    .split-eyebrow
+      flex 1
+
+  .split-words,
+  .split-clear
+    height 2.75rem
+    font-size var(--text-base)
+
+  .split-words
+    border-radius var(--radius-lg)
+
+  .split-clear
+    padding 0 8px
+
+  .split-field
+    flex none
+
+    :deep(.ui-field__control)
       padding 8px 12px
-      border-bottom 1px solid rgba(0, 0, 0, 0.08)
 
-    .loading-state,
-    .empty-state
-      display flex
-      flex-direction column
-      align-items center
-      justify-content center
-      height 200px
-      text-align center
+    :deep(.ui-field__input)
+      height 4.5rem
+      min-height 0
+      font-size var(--text-tibetan-md)
 
-// Dark theme
-.v-theme--dark .segment-page
-  .input-area
-    background #1e1e1e
-    border-bottom-color rgba(255, 255, 255, 0.12)
+  .split-body
+    flex-direction column
 
-    .input-header
-      border-bottom-color rgba(255, 255, 255, 0.08)
+  .terms-pane
+    flex 1
+    padding-bottom 16px
 
-    .input-hint
-      color rgba(255, 255, 255, 0.5)
+  .terms-header
+    min-height 0
+    margin-bottom 14px
 
-    .tibetan-textarea
-      background transparent
-      color white
+  .entries-pane
+    flex 1
+    padding-top 0
+    gap 14px
+    padding-bottom 16px
+    overflow-y auto
+    -webkit-overflow-scrolling touch
 
-      &::placeholder
-        color #aaa
+  .entries-card
+    flex none
+    margin-bottom 0
+    overflow visible
+    background none
+    border 0
+    border-radius 0
+    box-shadow none
+</style>
 
-  .terms-drawer
-    background #1e1e1e
-    border-right-color rgba(255, 255, 255, 0.12)
-
-    .terms-header
-      background #1e1e1e
-      border-bottom-color rgba(255, 255, 255, 0.12)
-
-    .term-item
-      border-bottom-color rgba(255, 255, 255, 0.12)
-
-      &:hover
-        background rgba(255, 255, 255, 0.08)
-
-    .merge-overlay-btn
-      background rgba(239, 83, 80, 0.2)
-      border-left-color rgba(239, 83, 80, 0.5)
-
-      &:hover
-        background rgb(239, 83, 80)
-        border-left-color rgb(239, 83, 80)
-
-        .v-icon
-          color #1e1e1e
-
-      .v-icon
-        color rgba(239, 83, 80, 0.95)
-
-  .definitions-container
-    background #252525
-
-    .mobile-back
-      border-bottom-color rgba(255, 255, 255, 0.12)
-
-// Light theme hover
-.v-theme--light .segment-page
-  .terms-drawer
-    .term-item:hover
-      background #ddd
-
-// Mobile styles
-@media (max-width: 600px)
-  .segment-page
-    .input-area
-      height auto !important
-      min-height 120px
-      max-height 40%
-
-      .input-header
-        padding 0 10px
-        min-height 40px
-
-      .tibetan-textarea
-        min-height 60px
-        padding 10px
-        font-size 1.375rem
-
-    .bottom-area
-      flex-direction column
-      height auto !important
-      flex 1
-
-    .terms-drawer
-      width 100% !important
-      flex 1
-      border-right none
-      border-bottom 2px solid rgba(0, 0, 0, 0.1)
-
-      .terms-header
-        padding 7px 10px
-
-      .term-item
-        padding-left 10px
-
-    .definitions-container
-      display none
-      width 100% !important
-
-    &.mobile-show-definition
-      .input-area
-        display none
-
-      .terms-drawer
-        display none
-
-      .definitions-container
-        display flex
-        flex-direction column
-        flex 1
-        overflow-y auto
+<style>
+/* The merge tooltip is rendered outside the page */
+.merge-tip__term {
+  font-family: var(--font-tibetan);
+  font-size: 0.9375rem;
+}
 </style>
