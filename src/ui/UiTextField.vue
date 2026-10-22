@@ -56,8 +56,8 @@ export default {
       this.$emit('clear');
       this.focus();
     },
-    focus() {
-      this.$refs.input?.focus();
+    focus(options) {
+      this.$refs.input?.focus(options);
     },
   },
 };

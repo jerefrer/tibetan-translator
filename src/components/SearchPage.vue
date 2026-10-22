@@ -92,6 +92,9 @@ export default {
       const pushedQuery = this.pushedQuery;
       this.pushedQuery = null;
       if (value && value === pushedQuery) return;
+      // Back from another page to the query already shown: its results, and
+      // their scroll, stay as they were unless they are out of date
+      if (value && value === this.shownQuery && !this.shownResultsAreStale()) return;
       if (value) this.performSearch({ query: value, fromNavigation: true });
     },
     previousQueries(value) {
@@ -393,7 +396,24 @@ export default {
       this.searchQuery = result.value;
       this.$nextTick(() => input.setSelectionRange(result.caret, result.caret));
     },
+    // The enabled dictionaries in Settings, to tell whether they changed
+    // since the results shown were searched
+    enabledDictionariesInSettings() {
+      return (Storage.get('dictionaries') || [])
+        .filter((dictionary) => dictionary.enabled)
+        .map((dictionary) => dictionary.id)
+        .sort()
+        .join(',');
+    },
+    shownResultsAreStale() {
+      return (
+        this.entries == undefined ||
+        this.packsChangedSinceSearch ||
+        this.shownDictionaries !== this.enabledDictionariesInSettings()
+      );
+    },
     clear() {
+      this.shownQuery = null;
       this.searchQuery = '';
       Storage.delete('searchQuery');
       this.pushRoute();
@@ -416,8 +436,8 @@ export default {
       // Re-run the current search so the new definition shows immediately.
       if (this.searchQuery) this.performSearch({ query: this.searchQuery, fromNavigation: true });
     },
-    focusInput() {
-      this.$refs.input?.focus();
+    focusInput(options) {
+      this.$refs.input?.focus(options);
     },
 
     prepareTerm(term) {
@@ -449,6 +469,9 @@ export default {
       this.searchQuery = options.query || this.searchQuery;
       if (this.searchQuery?.trim()) {
         this.loading = true;
+        this.shownQuery = this.searchQuery;
+        this.shownDictionaries = this.enabledDictionariesInSettings();
+        this.packsChangedSinceSearch = false;
         if (!options.fromNavigation) {
           this.storeQuery();
           this.pushRoute({ searched: true });
@@ -616,10 +639,21 @@ export default {
     },
   },
   mounted() {
+    this._onPacksChanged = () => { this.packsChangedSinceSearch = true; };
+    window.addEventListener('all-terms-updated', this._onPacksChanged);
+    window.addEventListener('dictionaries-updated', this._onPacksChanged);
     if (this.searchQuery) this.performSearch();
   },
   activated() {
-    this.$nextTick(() => this.focusInput());
+    // The Dictionaries menu was just read again from Settings, without the
+    // counts of the results kept from before
+    if (this.entries && !this.loading) this.resetDictionariesToDefaultAndSetNumberOfEntries();
+    // Without scrolling: on a phone the field scrolls with the results kept
+    this.$nextTick(() => this.focusInput({ preventScroll: true }));
+  },
+  beforeUnmount() {
+    window.removeEventListener('all-terms-updated', this._onPacksChanged);
+    window.removeEventListener('dictionaries-updated', this._onPacksChanged);
   },
 };
 </script>

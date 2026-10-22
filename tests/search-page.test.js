@@ -232,6 +232,108 @@ describe('Search — route and lifecycle', () => {
   })
 })
 
+describe('Search — coming back to the page', () => {
+  const MANY_ROWS = Array.from({ length: 120 }, (_, i) => ({
+    term: `ཀ${i}`, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: 0,
+  }))
+  const leaveAndComeBackTo = async (path) => {
+    await router.push('/define/' + encodeURIComponent(KA))
+    await flushPromises()
+    await router.push(path)
+    await flushPromises()
+  }
+
+  it('should not run the query shown again, keeping its results, how many are shown and the menu counts', async () => {
+    database.exec = vi.fn(async () => MANY_ROWS.map((row) => ({ ...row })))
+    await mountAt('/search/wakefulness')
+    await vi.waitFor(() => expect(page().vm._infiniteScrollObserver).toBeTruthy())
+    page().vm._infiniteScrollObserver._trigger(true)
+    await flushPromises()
+    const shownResults = page().vm.entries
+    database.exec.mockClear()
+
+    await leaveAndComeBackTo('/search/wakefulness')
+
+    expect(database.exec).not.toHaveBeenCalled()
+    expect(page().vm.entries).toBe(shownResults)
+    expect(findAll('search-result')).toHaveLength(100)
+    expect(page().vm.dictionariesForCurrentResults.map((dictionary) => dictionary.numberOfEntries)).toEqual([120])
+  })
+
+  it('should give the field the focus back without scrolling, since on a phone it scrolls with the results', async () => {
+    await mountAt('/search/wakefulness')
+    const focus = vi.spyOn(field().element, 'focus')
+
+    await leaveAndComeBackTo('/search/wakefulness')
+
+    expect(focus).toHaveBeenCalledWith({ preventScroll: true })
+    expect(document.activeElement).toBe(field().element)
+  })
+
+  it('should not run it again when coming back through /search, which restores the stored query', async () => {
+    Storage.set('searchQuery', 'wakefulness')
+    await mountAt('/search/wakefulness')
+    database.exec.mockClear()
+
+    await leaveAndComeBackTo('/search')
+
+    expect(router.currentRoute.value.path).toBe('/search/wakefulness')
+    expect(database.exec).not.toHaveBeenCalled()
+    expect(findAll('search-result')).toHaveLength(3)
+  })
+
+  it('should run it again when the enabled dictionaries changed in Settings meanwhile', async () => {
+    await mountAt('/search/wakefulness')
+    database.exec.mockClear()
+
+    await router.push('/settings')
+    await flushPromises()
+    Storage.set('dictionaries', DICTIONARIES.map((dictionary) => ({ ...dictionary, enabled: true })))
+    await router.push('/search/wakefulness')
+    await flushPromises()
+
+    expect(database.exec).toHaveBeenCalledTimes(1)
+    expect(findAll('search-result')).toHaveLength(4)
+  })
+
+  it('should run the query when it is another one than the query shown', async () => {
+    await mountAt('/search/wakefulness')
+    database.exec.mockClear()
+
+    await leaveAndComeBackTo('/search/bodhichitta')
+
+    expect(database.exec).toHaveBeenCalledTimes(1)
+    expect(field().element.value).toBe('bodhichitta')
+  })
+
+  it.each(['all-terms-updated', 'dictionaries-updated'])(
+    'should run it again when the packs changed meanwhile (%s)',
+    async (eventName) => {
+      await mountAt('/search/wakefulness')
+      database.exec.mockClear()
+
+      await router.push('/settings')
+      await flushPromises()
+      window._triggerEvent(eventName)
+      await router.push('/search/wakefulness')
+      await flushPromises()
+
+      expect(database.exec).toHaveBeenCalledTimes(1)
+    }
+  )
+
+  it('should not run it again on the next return once it ran for changed packs', async () => {
+    await mountAt('/search/wakefulness')
+    window._triggerEvent('all-terms-updated')
+    await leaveAndComeBackTo('/search/wakefulness')
+    database.exec.mockClear()
+
+    await leaveAndComeBackTo('/search/wakefulness')
+
+    expect(database.exec).not.toHaveBeenCalled()
+  })
+})
+
 describe('Search — query field', () => {
   it('should carry the placeholder, a search key and no spelling help (F1)', async () => {
     await mountAt('/search')
