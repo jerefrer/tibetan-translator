@@ -562,16 +562,16 @@ export default {
 
 .term-item
   box-sizing border-box
-  height 3rem
-  padding 0.3rem 18px 0
+  min-height 3rem
+  // Same centre for one line as before; room under the last line when it wraps
+  padding 0.5875rem 18px 0.2875rem
   display flex
   align-items center
   border-bottom 1px solid var(--soft)
   font-family var(--font-tibetan)
   font-size var(--text-tibetan-sm)
-  white-space nowrap
-  overflow hidden
-  text-overflow ellipsis
+  // A term longer than the drawer wraps (after a tsheg) instead of being cut
+  overflow-wrap anywhere
   cursor pointer
 
   &:hover
@@ -692,7 +692,7 @@ export default {
     margin-bottom 0
 
   .term-item
-    height 3.25rem
+    min-height 3.25rem
     font-size var(--text-tibetan-md)
 
   .entries-pane
