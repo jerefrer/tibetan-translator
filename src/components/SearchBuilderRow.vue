@@ -194,6 +194,7 @@ export default {
       padding 0 12px
 
   .builder-row__term
+    flex none
     height 2.75rem
     padding 0 12px
 

@@ -1,6 +1,5 @@
 <script>
 import _ from 'underscore';
-import { useTheme } from 'vuetify';
 
 import TibetanRegExps from 'tibetan-regexps';
 
@@ -23,9 +22,12 @@ import {
   replaceTibetanGroups,
   syllablesFor,
 } from '../utils.js';
+import { UiButton, UiIcon, UiSpinner, UiTextField, UiTooltip } from '../ui';
 import DictionariesMenuMixin from './DictionariesMenuMixin';
 import InfiniteScrollMixin from './mixins/InfiniteScrollMixin';
+import MobileResponsiveMixin from './mixins/MobileResponsiveMixin';
 
+import DictionaryAboutDialog from './DictionaryAboutDialog.vue';
 import QuickAddDialog from './QuickAddDialog.vue';
 import UninstalledPacksNotice from './UninstalledPacksNotice.vue';
 import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries.vue';
@@ -33,20 +35,24 @@ import ScanViewer from './ScanViewer.vue';
 import SearchBuilder from './SearchBuilder.vue';
 import { getScanInfo } from '../services/scan-service';
 
+// Board "B · Search" (and its Empty, query builder, Dictionaries and Phone
+// variants): the query field on top, the query builder under it when shown,
+// then the results in one card, or the recent searches before any search.
 export default {
-  mixins: [DictionariesMenuMixin, InfiniteScrollMixin],
-  setup() {
-    const theme = useTheme();
-    return { theme };
-  },
+  mixins: [DictionariesMenuMixin, InfiniteScrollMixin, MobileResponsiveMixin],
   components: {
+    DictionaryAboutDialog,
     QuickAddDialog,
     UninstalledPacksNotice,
     ResultsAndPaginationAndDictionaries,
     ScanViewer,
     SearchBuilder,
+    UiButton,
+    UiIcon,
+    UiSpinner,
+    UiTextField,
+    UiTooltip,
   },
-  inject: ['snackbar'],
   data() {
     return {
       loading: false,
@@ -63,6 +69,8 @@ export default {
       // Search builder state
       builderVisible: Storage.get('searchBuilderVisible') !== false,
       quickAddOpen: false,
+      aboutDictionary: '',
+      aboutOpen: false,
     };
   },
   watch: {
@@ -77,6 +85,18 @@ export default {
     },
     previousQueries(value) {
       Storage.set('previousQueries', value);
+    },
+    builderVisible(value) {
+      // The help promises the choice is remembered
+      Storage.set('searchBuilderVisible', value);
+    },
+    displayedCount() {
+      // A new observer reports at once if the sentinel is still in view
+      this.setupInfiniteScroll();
+    },
+    isMobile() {
+      // The scrolling element changes with the layout
+      this.setupInfiniteScroll();
     },
   },
   beforeRouteEnter(to, from, next) {
@@ -97,9 +117,6 @@ export default {
     next();
   },
   computed: {
-    isDark() {
-      return this.theme.global.current.value.dark;
-    },
     canAddToLexicon() {
       return supportsModularPacks();
     },
@@ -114,6 +131,16 @@ export default {
     // InfiniteScrollMixin configuration
     infiniteScrollRootMargin() {
       return INFINITE_SCROLL_ROOT_MARGIN_LARGE;
+    },
+    // The results card scrolls on a desktop, the whole page on a phone
+    infiniteScrollRoot() {
+      return this.isMobile ? 'page' : 'resultsList';
+    },
+    canSearch() {
+      return !!this.searchQuery?.trim();
+    },
+    hasResults() {
+      return this.entries != undefined && this.visibleEntries.length > 0;
     },
     hasMore() {
       return this.displayedCount < this.totalNumberOfEntriesForEnabledDictionaries;
@@ -346,8 +373,9 @@ export default {
       if (this.searchQuery) this.performSearch({ query: this.searchQuery, fromNavigation: true });
     },
     focusInput() {
-      this.$refs.input.focus();
+      this.$refs.input?.focus();
     },
+
     prepareTerm(term) {
       return `"${term.replace(/'/g, "''").replace(/"/g, '""')}"`;
     },
@@ -369,13 +397,8 @@ export default {
         this.$router.push({ path: path });
       }
     },
-    changePage(page) {
-      this.paginationLoading = true;
-      setTimeout(() => (this.resultsPage = page), 280);
-    },
     performSearch(options = {}) {
-      this.searchQuery =
-        options.query || this.$refs.input.$el.querySelector('input').value;
+      this.searchQuery = options.query || this.searchQuery;
       if (this.searchQuery?.trim()) {
         this.loading = true;
         if (!options.fromNavigation) {
@@ -387,7 +410,6 @@ export default {
         this.cachedPhoneticsStrictTerms = [...this.phoneticsStrictSearchTerms];
         this.cachedPhoneticsLooseTerms = [...this.phoneticsLooseSearchTerms];
 
-        this.resultsPage = 1;
         var params = [];
 
         // Hybrid search: FTS for English/phonetics, LIKE for Tibetan
@@ -518,13 +540,9 @@ export default {
     shortDictionaryLabelFor(entry) {
       return this.dictionaryLabelFor(entry.dictionary, { short: true });
     },
-    shortDictionaryLabelForHasTibetan(entry) {
-      return this.shortDictionaryLabelFor(entry).match(
-        TibetanRegExps.tibetanGroups
-      );
-    },
     openDictionaryAbout(entry) {
-      this.snackbar.open(this.dictionaryAboutFor(entry.dictionary));
+      this.aboutDictionary = entry.dictionary;
+      this.aboutOpen = true;
     },
     // Scanned dictionary methods
     isScannedDictionary(entry) {
@@ -537,7 +555,7 @@ export default {
       return isNaN(page) ? null : page;
     },
     isApproximatePage(entry) {
-      return entry.definition?.includes('?');
+      return !!entry.definition?.includes('?');
     },
     openScanViewer(entry) {
       this.scanViewerEntry = entry;
@@ -545,15 +563,8 @@ export default {
     closeScanViewer() {
       this.scanViewerEntry = null;
     },
-    // Search builder methods
-    toggleBuilder() {
-      this.builderVisible = !this.builderVisible;
-    },
     showBuilder() {
       this.builderVisible = true;
-    },
-    hideBuilder() {
-      this.builderVisible = false;
     },
   },
   mounted() {
@@ -565,200 +576,227 @@ export default {
 };
 </script>
 
+
 <template>
-  <div class="search-page">
-    <v-system-bar height="63">
-      <v-text-field
-        autofocus
-        clearable
-        hide-details
-        height="63"
+  <div
+    ref="page"
+    class="search-page"
+    :class="{ 'is-phone': isMobile }"
+    data-testid="search-page"
+  >
+    <div class="search-top">
+      <ui-text-field
         ref="input"
-        class="flex-grow-1 tibetan"
+        v-model="searchQuery"
+        class="search-field"
         placeholder="Type your query"
+        aria-label="Search query"
+        enterkeyhint="search"
         spellcheck="false"
         autocomplete="off"
         autocapitalize="off"
         autocorrect="off"
-        v-model="searchQuery"
-        @keyup.enter="performSearch()"
+        autofocus
+        clearable
+        :loading="loading"
+        data-testid="search-field"
+        @clear="clear"
         @paste="onPaste"
-        @click:clear="clear"
+        @keyup.enter="performSearch()"
       >
-        <template v-slot:append-inner>
-          <v-progress-circular
-            size="24"
-            color="info"
-            indeterminate
-            :style="{
-              opacity: loading ? 1 : 0,
-            }"
-          />
-          <v-btn
-            variant="text"
-            size="x-large"
-            height="60"
-            color="primary"
-            :disabled="!searchQuery || !searchQuery.trim()"
+        <template #append>
+          <button
+            type="button"
+            class="search-button"
+            aria-label="Search"
+            title="Search"
+            :disabled="!canSearch"
+            data-testid="search-button"
             @click="performSearch()"
           >
-            <v-icon start>mdi-magnify</v-icon>
-          </v-btn>
+            <ui-icon name="search" :size="20" :stroke-width="2.2" />
+          </button>
         </template>
-      </v-text-field>
-    </v-system-bar>
+      </ui-text-field>
 
-    <!-- Search Builder -->
+      <button
+        v-if="!builderVisible"
+        type="button"
+        class="builder-toggle"
+        data-testid="search-builder-show"
+        @click="showBuilder"
+      >
+        <ui-icon name="sliders-horizontal" :size="16" :stroke-width="2" />
+        Query builder
+      </button>
+    </div>
+
     <SearchBuilder
       v-model="searchQuery"
       v-model:visible="builderVisible"
       @submit="performSearch()"
     />
 
-    <!-- Builder toggle button when hidden -->
-    <div v-if="!builderVisible" class="builder-toggle-container">
-      <v-btn
-        variant="text"
-        size="small"
-        color="grey"
-        @click="showBuilder"
-      >
-        <v-icon start size="small">mdi-tune</v-icon>
-        Show Query Builder
-      </v-btn>
-    </div>
-
-    <!-- Results count and dictionaries filter -->
-    <div
-      class="results-header"
-      v-if="entries != undefined && visibleEntries.length"
-    >
-      <div class="results-count">
-        Showing {{ visibleEntries.length }} of
-        {{ totalNumberOfEntriesForEnabledDictionaries }} results
-      </div>
-
-      <v-btn
-        v-if="canAddToLexicon && searchQuery"
-        icon
-        variant="text"
-        size="small"
-        @click="quickAddOpen = true"
-      >
-        <v-icon>mdi-book-plus</v-icon>
-        <v-tooltip activator="parent" location="top">Add my definition</v-tooltip>
-      </v-btn>
-
+    <!-- Results count, Dictionaries menu and Add my definition -->
+    <div v-if="hasResults" class="results-header">
+      <span class="results-count" data-testid="search-count">
+        Showing <b>{{ visibleEntries.length }}</b> of
+        <b>{{ totalNumberOfEntriesForEnabledDictionaries }}</b> results
+      </span>
+      <div class="ui-spacer" />
       <ResultsAndPaginationAndDictionaries
         :dictionaries="dictionariesForCurrentResults"
         :totalNumberOfEntries="totalNumberOfEntriesForEnabledDictionaries"
         :hidePagination="true"
         @close:dictionariesMenu="focusInput"
       />
+      <template v-if="canAddToLexicon && searchQuery">
+        <ui-tooltip v-if="isMobile" text="Add my definition">
+          <button
+            type="button"
+            class="header-button header-button--icon"
+            aria-label="Add my definition"
+            data-testid="search-add"
+            @click="quickAddOpen = true"
+          >
+            <ui-icon name="book-plus" :size="20" />
+          </button>
+        </ui-tooltip>
+        <button
+          v-else
+          type="button"
+          class="header-button"
+          data-testid="search-add"
+          @click="quickAddOpen = true"
+        >
+          Add my definition
+        </button>
+      </template>
     </div>
 
     <template v-if="!loading">
-      <template v-if="entries == undefined">
-        <div v-if="previousQueries.length > 0" class="previous-queries">
-          <div class="header">
-            <v-icon size="small" class="mr-2">mdi-history</v-icon>
-            Recent Searches
+      <!-- Before any search: recent searches and what can be searched -->
+      <div v-if="entries == undefined" class="search-start" data-testid="search-start">
+        <section
+          v-if="previousQueries.length > 0"
+          class="card recent-searches"
+          aria-label="Recent searches"
+          data-testid="search-recent"
+        >
+          <div class="card-header">
+            <ui-icon name="history" :size="18" :stroke-width="2" />
+            <span class="card-title">Recent searches</span>
+            <div class="ui-spacer" />
+            <button
+              type="button"
+              class="text-button"
+              data-testid="search-clear-history"
+              @click="clearPreviousQueries"
+            >
+              Clear history
+            </button>
           </div>
 
-          <v-fade-transition group tag="div" class="buttons">
-            <v-btn
-              variant="text"
+          <transition-group name="ui-fade" tag="div" class="recent-list">
+            <button
               v-for="query in previousQueries"
               :key="query"
-              color="grey"
-              class="previous-query"
+              type="button"
+              class="recent-query"
+              data-testid="search-recent-query"
               @click="performSearch({ query: query })"
               v-html="wrapAllTibetanWithSpansAndAddTshekIfMissing(query)"
             />
-          </v-fade-transition>
+          </transition-group>
+        </section>
 
-          <div class="clear-button-container">
-            <v-btn
-              variant="tonal"
-              size="small"
-              color="grey"
-              @click="clearPreviousQueries"
-            >
-              <v-icon start size="small">mdi-delete-clock</v-icon>
-              Clear History
-            </v-btn>
+        <section class="card search-tips" aria-label="What you can search" data-testid="search-tips">
+          <span class="card-title">What you can search</span>
+          <div class="tips">
+            <div class="tip">
+              <span class="tip-title">Tibetan or Wylie</span>
+              <span class="tip-text">
+                Find entries where a headword or a definition contains it.
+                Put Wylie in parentheses: (ye shes).
+              </span>
+            </div>
+            <div class="tip">
+              <span class="tip-title">English words</span>
+              <span class="tip-text">
+                Find every entry that mentions a word, in any dictionary you search.
+              </span>
+            </div>
+            <div class="tip">
+              <span class="tip-title">How it sounds</span>
+              <span class="tip-text">
+                Use the query builder to match terms that sound like a spelling.
+              </span>
+            </div>
           </div>
-        </div>
-      </template>
+        </section>
+      </div>
 
-      <div v-else-if="visibleEntries.length" class="entries-list">
-        <div
+      <div
+        v-else-if="visibleEntries.length"
+        ref="resultsList"
+        class="card results-list"
+        data-testid="search-results"
+      >
+        <article
           v-for="(entry, index) in visibleEntries"
           :key="`${entry.term}-${entry.dictionaryId}-${index}`"
-          class="entry"
+          class="result"
+          data-testid="search-result"
         >
-          <v-row>
-            <v-col cols="12" sm="2">
-              <div
-                class="term tibetan"
-                v-html="entry.decoratedTerm"
-              />
-            </v-col>
-            <v-col cols="12" sm="2" class="dictionary-label-col">
-              <v-chip
-                variant="flat"
-                size="small"
-                class="ml-2 px-2 dictionary-label"
-                color="grey-darken-2"
-                v-html="shortDictionaryLabelFor(entry)"
-                :class="{
-                  'has-tibetan': shortDictionaryLabelForHasTibetan(entry),
-                }"
-                @click="openDictionaryAbout(entry)"
-              />
-            </v-col>
-            <v-col cols="12" sm="8" class="d-flex">
-              <!-- Regular dictionary: show definition -->
-              <div
-                v-if="!isScannedDictionary(entry)"
-                class="definition"
-                v-html="entry.decoratedDefinition"
-              />
-              <!-- Scanned dictionary: show page number and view button -->
-              <div v-else class="scanned-entry d-flex align-center ga-3">
-                <span class="page-info">
-                  Page {{ getScanPageNumber(entry) }}
-                  <span v-if="isApproximatePage(entry)" class="text-grey">(approximate)</span>
-                </span>
-                <v-btn
-                  color="primary"
-                  variant="outlined"
-                  size="small"
-                  @click="openScanViewer(entry)"
-                >
-                  <v-icon start size="small">mdi-book-open-page-variant</v-icon>
-                  View Scan
-                </v-btn>
-              </div>
-            </v-col>
-          </v-row>
-        </div>
+          <div
+            class="result-term tibetan"
+            data-testid="search-result-term"
+            v-html="entry.decoratedTerm"
+          />
+          <div class="result-dictionary">
+            <button
+              type="button"
+              class="dictionary-label"
+              title="About this dictionary"
+              data-testid="search-result-dictionary"
+              @click="openDictionaryAbout(entry)"
+              v-html="shortDictionaryLabelFor(entry)"
+            />
+          </div>
+          <!-- Regular dictionary: the definition -->
+          <div
+            v-if="!isScannedDictionary(entry)"
+            class="result-definition definition"
+            data-testid="search-result-definition"
+            v-html="entry.decoratedDefinition"
+          />
+          <!-- Scanned dictionary: the page and a button to the scan -->
+          <div v-else class="result-definition scanned-entry" data-testid="search-result-scan">
+            <span class="page-info">
+              Page {{ getScanPageNumber(entry) }}
+              <span v-if="isApproximatePage(entry)" class="uncertain">(approximate)</span>
+            </span>
+            <ui-button
+              variant="outline"
+              size="sm"
+              class="view-scan-button"
+              data-testid="search-result-view-scan"
+              @click="openScanViewer(entry)"
+            >
+              <ui-icon name="book-open-text" :size="16" />
+              View scan
+            </ui-button>
+          </div>
+        </article>
 
         <!-- Sentinel for infinite scroll -->
-        <div ref="loadMoreSentinel" class="load-more-sentinel">
-          <v-progress-circular
-            v-if="hasMore"
-            indeterminate
-            size="24"
-            color="grey"
-          />
-          <span v-else class="text-grey text-caption">
-            All {{ totalNumberOfEntriesForEnabledDictionaries }} results loaded
-          </span>
+        <div ref="loadMoreSentinel" class="load-more-sentinel" data-testid="search-sentinel">
+          <ui-spinner v-if="hasMore" :size="22" label="Loading more results" />
+          <span v-else>All {{ totalNumberOfEntriesForEnabledDictionaries }} results loaded</span>
         </div>
       </div>
 
-      <v-alert v-else class="text-center" key="no-entries">No entries</v-alert>
+      <div v-else class="card no-results" data-testid="search-no-results">No entries</div>
 
       <UninstalledPacksNotice
         v-if="entries != undefined"
@@ -766,14 +804,16 @@ export default {
       />
     </template>
 
-    <!-- Scan Viewer Modal -->
     <ScanViewer
       v-if="scanViewerEntry"
       :model-value="!!scanViewerEntry"
       @update:model-value="closeScanViewer"
       :dictionary-id="scanViewerEntry?.dictionary"
       :initial-page="getScanPageNumber(scanViewerEntry)"
+      :approximate="isApproximatePage(scanViewerEntry)"
     />
+
+    <DictionaryAboutDialog v-model="aboutOpen" :dictionary="aboutDictionary" />
 
     <!-- Mounted at page level (not inside .results-header) so it survives
          that div's own v-if — e.g. entries clearing or a result count
@@ -787,427 +827,449 @@ export default {
   </div>
 </template>
 
-<style>
-.search-page {
-  display: flex;
-  flex-direction: column;
-  width: 100%;
-  height: 100%; /* Fill parent container */
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
-
-.search-page .v-input {
-  background: var(--paper, #faf3e0);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
-}
-
-.v-theme--dark .search-page .v-input {
-  background: #1e1e1e;
-  border-bottom-color: rgba(255, 255, 255, 0.12);
-}
-
-.search-page > .v-system-bar {
-  position: relative !important;
-  flex: 0 0 63px !important; /* Don't grow, don't shrink, fixed 63px */
-  max-height: 63px !important;
-  min-height: 63px !important;
-  z-index: 10 !important;
-  width: 100%;
-  padding: 0 15px !important;
-  margin: 0 !important;
-  top: 0 !important;
-  background: #fffcf4 !important;
-  box-shadow: none !important;
-  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
-}
-
-.v-theme--dark .search-page > .v-system-bar {
-  background: #1e1e1e !important;
-  border-bottom-color: rgba(255, 255, 255, 0.12);
-}
-
-.search-page .builder-toggle-container {
-  display: flex;
-  justify-content: center;
-  padding: 6px;
-  flex-shrink: 0;
-  background: #f0f0f0;
-  border-bottom: 1px solid #ddd;
-}
-
-.v-theme--dark .search-page .builder-toggle-container {
-  background: #2a2a2a;
-  border-bottom-color: #444;
-}
-
-.search-page .v-input {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Vuetify 3: Remove default field padding/borders */
-.search-page .v-input .v-input__control {
-  height: 63px;
-}
-.search-page .v-input .v-field {
-  padding: 0;
-  border-radius: 0;
-  height: 63px;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  --v-field-padding-start: 0;
-  --v-field-padding-end: 0;
-  --v-field-padding-top: 0;
-  --v-field-padding-bottom: 0;
-}
-.search-page .v-input .v-field__outline {
-  display: none;
-}
-.search-page .v-input .v-field__overlay {
-  display: none !important;
-  background: transparent !important;
-}
-.search-page .v-input,
-.search-page .v-input .v-input__control,
-.search-page .v-input .v-field__field,
-.search-page .v-input .v-field__field input {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.search-page .v-input .v-field__prepend-inner {
-  width: 280px;
-  flex: 0 0 280px;
-  align-items: center;
-  height: 100%;
-  margin: 0;
-  padding-left: 1em;
-}
-
-.search-page .v-input .v-field__field {
-  flex: 1;
-}
-
-.search-page .v-input .v-field__field input {
-  padding: 0 12px;
-  height: 64px !important;
-  font-size: 1.625rem !important;
-  line-height: 46px !important;
-  text-align: left;
-}
-
-.search-page .v-input .v-field__field input::placeholder {
-  font-family: 'Segoe UI', 'Roboto', sans-serif !important;
-  font-size: 1.125rem !important;
-  opacity: 0.5;
-  color: #666;
-}
-
-.v-theme--dark .search-page .v-input .v-field__field input::placeholder {
-  color: #aaa;
-}
-
-.search-page .v-input .v-field__append-inner {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  align-items: center;
-}
-
-/* Vuetify 3: Clear button styling */
-.search-page .v-input .v-field__clearable {
-  margin: 0;
-  padding: 0 8px;
-  align-items: center;
-}
-.search-page .v-input .v-field__clearable .v-icon {
-  font-size: 1.5rem;
-  opacity: 1;
-}
-
-.search-page .v-input .v-field__append-inner .v-btn {
-  min-width: 75px;
-}
-
-.search-page .v-input .v-field__append-inner .v-btn .v-icon {
-  margin: 0;
-  color: var(--deep-red);
-}
-
-.v-theme--dark .search-page .v-input .v-field__append-inner .v-btn .v-icon {
-  color: var(--yellow);
-}
-
-.search-page .v-input .v-field__append-inner .v-icon {
-  font-size: 1.75rem;
-}
-
-/* Entries list with infinite scroll */
-.search-page .entries-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 0 16px;
-  min-height: 0; /* Important for flex scroll */
-}
-
-.search-page .load-more-sentinel {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 24px;
-  min-height: 60px;
-}
-
-.search-page .results-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: var(--paper, #faf3e0);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  flex-shrink: 0;
-}
-
-.v-theme--dark .search-page .results-header {
-  background: #1e1e1e;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
-
-.search-page .results-header .results-count {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #666;
-  /* Takes all the free space so the actions after it pack against the right
-     edge. With space-between they were spread out instead, which left the
-     "Add my definition" button stranded in the middle of the bar. */
-  margin-right: auto;
-}
-
-.v-theme--dark .search-page .results-header .results-count {
-  color: #aaa;
-}
-
-.search-page .entry {
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-}
-
-.v-theme--dark .search-page .entry {
-  border-bottom-color: rgba(255, 255, 255, 0.06);
-}
-
-.search-page .v-table {
-  flex: 1;
-  overflow: visible;
-}
-
-.search-page .v-table > .v-table__wrapper {
-  overflow: visible;
-}
-
+<style lang="stylus" scoped>
 .search-page
-  .v-table
-  > .v-table__wrapper
-  > table
-  > tbody
-  > tr:hover:not(.v-data-table__expanded__content):not(
-    .v-data-table__empty-wrapper
-  ) {
-  background: transparent !important;
-}
+  box-sizing border-box
+  height 100%
+  display flex
+  flex-direction column
+  gap 18px
+  padding 28px 40px 0
+  overflow hidden
+  background var(--bg)
+  color var(--ink)
+  font-family var(--font-ui)
+  font-size var(--text-base)
 
-.v-theme--dark .search-page .v-table {
-  background-color: #252525;
-}
+.card
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
 
-.search-page .entry em {
-  color: black;
-  font-style: normal;
-  background: #ffc107;
-}
+.text-button
+  border 0
+  background none
+  padding 8px
+  color var(--accent)
+  font 600 var(--text-sm-plus) var(--font-ui)
+  cursor pointer
 
-.search-page .entry .tibetan em {
-  background: none;
-  color: inherit;
-  text-decoration: underline #ffc107 3px !important;
-}
+  &:hover
+    text-decoration underline
 
-.search-page .entry .term {
-  margin-top: 10px;
-  line-height: 30px;
-}
+  &:focus-visible
+    outline 2px solid var(--accent)
+    border-radius var(--radius-sm)
 
-.search-page .entry .dictionary-label {
-  display: inline-block;
-  height: auto;
-  margin-top: 14.5px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
+// The field: 60px, accent ring when focused (UiTextField does the focus)
+.search-top
+  flex none
+  display flex
+  align-items center
+  gap 16px
 
-.search-page .entry .v-col:nth-child(2) {
-  display: flex;
-  align-items: flex-start;
-}
+.search-field
+  flex 1
+  max-width 55rem
 
-.search-page .entry .dictionary-label.has-tibetan {
-  margin-top: 5.5px;
-}
+  :deep(.ui-field__control)
+    min-height var(--control-lg)
+    padding 0 8px 0 18px
+    border-radius var(--radius-card)
 
-.search-page .entry .dictionary-label .tibetan {
-  line-height: 38px;
-}
+  // Latin in Source Serif; Tibetan falls through to DDC Uchen
+  :deep(.ui-field__input)
+    font-family 'Source Serif 4', var(--font-tibetan)
+    font-size 1.375rem
+    line-height 1.5
 
-.search-page .entry .definition {
-  padding: 8px 0;
-  line-height: 30px;
-}
+  :deep(.ui-field__input::placeholder)
+    font-family var(--font-serif)
 
-.search-page .entry .definition .tibetan {
-  line-height: 30px;
-}
+.search-button
+  flex none
+  display inline-flex
+  align-items center
+  justify-content center
+  width 2.75rem
+  height 2.75rem
+  border 0
+  border-radius var(--radius-lg)
+  background var(--accent)
+  color var(--on-accent)
+  cursor pointer
 
-.search-page .v-alert {
-  width: 100%;
-  padding-right: 50px;
-}
+  &:hover:not(:disabled)
+    opacity 0.9
 
-.v-theme--dark .search-page .v-alert {
-  background-color: #252525;
-}
+  &:disabled
+    opacity 0.45
+    cursor default
 
-.search-page .previous-queries {
-  display: flex;
-  flex-direction: column;
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-  padding-top: 40px;
-  max-width: 800px;
-  margin: 0 auto;
-  min-height: 0;
-}
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 2px
 
-.search-page .previous-queries .header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  font-family: 'Segoe UI', 'Roboto', sans-serif;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+.builder-toggle
+  flex none
+  display inline-flex
+  align-items center
+  gap 6px
+  padding 8px
+  border 0
+  background none
+  color var(--accent)
+  font 600 var(--text-sm-plus) var(--font-ui)
+  cursor pointer
 
-.v-theme--dark .search-page .previous-queries .header {
-  color: #999;
-  border-bottom-color: rgba(255, 255, 255, 0.08);
-}
+  &:hover
+    text-decoration underline
 
-.search-page .previous-queries .buttons {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 4px;
-}
+  &:focus-visible
+    outline 2px solid var(--accent)
+    border-radius var(--radius-sm)
 
-.search-page .previous-queries .buttons .previous-query {
-  padding: 20px 28px;
-  text-transform: none;
-  height: auto;
-}
+// "Showing 12 of 147 results", Dictionaries, Add my definition
+.results-header
+  flex none
+  display flex
+  align-items center
+  gap 14px
+  margin-bottom -4px
 
-.search-page .previous-queries .buttons .previous-query span.tibetan {
-  margin: 0 5px;
-}
+.results-count
+  font-size var(--text-base)
+  color var(--muted)
 
-.search-page .previous-queries .clear-button-container {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
+  b
+    color var(--ink)
+    font-weight 600
 
-/* Mobile styles */
-@media (max-width: 600px) {
-  .search-page .v-input .v-field__prepend-inner {
-    display: none;
-  }
+.header-button
+  box-sizing border-box
+  display inline-flex
+  align-items center
+  justify-content center
+  height 2.25rem
+  padding 0 14px
+  border 1.5px solid var(--line-strong)
+  border-radius var(--radius-lg)
+  background var(--surface)
+  color var(--ink)
+  font 500 var(--text-sm-plus) var(--font-ui)
+  cursor pointer
 
-  .search-page .v-input .v-field__field input {
-    font-size: 1.25rem !important;
-  }
+  &:hover
+    border-color var(--accent)
 
-  .search-page .mobile-controls {
-    display: flex;
-    padding: 8px;
-    background: var(--paper, #faf3e0);
-  }
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 2px
 
-  .v-theme--dark .search-page .mobile-controls {
-    background: #1e1e1e;
-  }
+.header-button--icon
+  width 2.75rem
+  height 2.75rem
+  padding 0
 
-  .search-page .entry .dictionary-label-col {
-    padding-top: 0;
-    padding-bottom: 0;
-  }
+// Before any search
+.search-start
+  flex 1
+  min-height 0
+  display flex
+  flex-direction column
+  gap 18px
+  overflow-y auto
+  padding-bottom 28px
 
-  .search-page .entry .dictionary-label {
-    margin: 0 !important;
-  }
+.recent-searches,
+.search-tips
+  flex none
+  padding 20px 24px
 
-  .search-page .entry .term {
-    margin-top: 20px;
-  }
+.card-header
+  display flex
+  align-items center
+  gap 10px
+  margin -8px 0
+  color var(--muted)
 
-  .search-page .entry .definition {
-    padding: 0;
-    margin-bottom: 15px;
-  }
+  .text-button
+    margin-right -8px
 
-  .search-page .previous-queries {
-    padding: 12px;
-    padding-top: 32px;
-  }
+.card-title
+  font-size var(--text-xs)
+  font-weight 600
+  letter-spacing 0.08em
+  text-transform uppercase
+  color var(--muted)
 
-  .search-page .previous-queries .header {
-    margin-bottom: 8px;
-  }
+.recent-list
+  display flex
+  flex-wrap wrap
+  gap 10px
+  margin-top 16px
 
-  .search-page .previous-queries .buttons .previous-query {
-    padding: 12px 16px;
-  }
+.recent-query
+  box-sizing border-box
+  min-height 2.5rem
+  max-width 100%
+  padding 0 16px
+  border 1px solid var(--line)
+  border-radius var(--radius-lg)
+  background var(--surface)
+  color var(--ink)
+  font-family var(--font-serif)
+  font-size 1.0625rem
+  text-align left
+  overflow-wrap anywhere
+  cursor pointer
 
-  .search-page .previous-queries .clear-button-container {
-    margin-top: 16px;
-  }
+  &:hover
+    border-color var(--line-strong)
+    background var(--soft)
 
-  .search-page .entries-list {
-    padding: 0 8px;
-  }
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 1px
 
-  .search-page .results-header {
-    padding: 8px 12px;
-  }
+  // Tibetan, wrapped in spans by the decorator
+  :deep(.tibetan)
+    font-family var(--font-tibetan)
+    font-size 1.25rem
+    line-height 1.9
 
-  .search-page .results-header .results-count {
-    font-size: 0.8125rem;
-  }
+.tips
+  display grid
+  grid-template-columns repeat(3, 1fr)
+  gap 24px
+  margin-top 14px
 
-  .search-page .load-more-sentinel {
-    padding: 16px;
-  }
-}
+.tip
+  display flex
+  flex-direction column
+  gap 4px
+
+.tip-title
+  font-size 0.9375rem
+  font-weight 600
+
+.tip-text
+  font-size var(--text-sm-plus)
+  line-height 1.5
+  color var(--muted)
+
+// Results: rows in one card (term, dictionary, definition)
+.results-list
+  flex 0 1 auto
+  min-height 0
+  margin-bottom 28px
+  overflow-y auto
+  overscroll-behavior contain
+
+.result
+  display grid
+  grid-template-columns 18.75rem 9.375rem minmax(0, 1fr)
+  gap 20px
+  align-items baseline
+  padding 14px 24px
+  border-bottom 1px solid var(--soft)
+
+.result-term
+  min-width 0
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-md)
+  line-height 1.7
+  color var(--rubric)
+  overflow-wrap anywhere
+
+.result-dictionary
+  min-width 0
+
+.dictionary-label
+  max-width 100%
+  border 0
+  border-radius var(--radius-sm)
+  padding 3px 9px
+  background var(--accent-soft)
+  color var(--accent)
+  font 600 var(--text-chip) / 1.35 var(--font-ui)
+  text-align left
+  white-space nowrap
+  overflow hidden
+  text-overflow ellipsis
+  cursor pointer
+
+  &:hover
+    background var(--accent-line)
+
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 1px
+
+  // Tibetan inside a label (wrapped in spans by the decorator)
+  :deep(.tibetan)
+    font-size 1.15em
+    line-height 1
+
+.result-definition
+  min-width 0
+  margin 0
+  font-family var(--font-serif)
+  font-size var(--text-entry)
+  line-height 1.5
+  overflow-wrap anywhere
+
+  // Tibetan in a definition links to its own lookup
+  :deep(a[href])
+    color var(--rubric)
+    text-decoration none
+
+// The hits: Latin on yellow, Tibetan underlined in yellow
+.result :deep(em)
+  font-style normal
+  background var(--logo-bg)
+  color #2A1F1A
+  border-radius 2px
+
+.result-term :deep(em),
+.result :deep(.tibetan em)
+  background none
+  color inherit
+  text-decoration underline var(--logo-bg) 3px
+  text-underline-offset 4px
+
+.scanned-entry
+  display flex
+  align-items center
+  flex-wrap wrap
+  gap 14px
+  font-family var(--font-ui)
+
+.page-info
+  font-size var(--text-body)
+
+.uncertain
+  color var(--muted)
+
+.view-scan-button
+  color var(--accent)
+  border-color var(--accent)
+  font-weight 600
+
+.load-more-sentinel
+  display flex
+  justify-content center
+  align-items center
+  min-height 3.75rem
+  padding 0 24px
+  font-size var(--text-xs)
+  color var(--muted)
+
+.no-results
+  flex none
+  padding 16px 18px
+  font-size var(--text-base)
+  color var(--muted)
+
+.search-page :deep(.uninstalled-notice)
+  margin 0 0 28px
+
+// A narrow window: tighter columns
+@media (max-width: 1100px)
+  .result
+    grid-template-columns 12rem 8rem minmax(0, 1fr)
+    gap 16px
+    padding 12px 18px
+
+// Phone (board "B · Search on a phone"): the whole page scrolls, each
+// result is a card of its own, the dictionary beside the term and the
+// definition under them.
+.search-page.is-phone
+  gap 14px
+  padding 16px 16px 0
+  overflow-y auto
+  -webkit-overflow-scrolling touch
+
+  .search-field
+    max-width none
+
+    :deep(.ui-field__control)
+      min-height 3.375rem
+      padding 0 6px 0 16px
+
+    :deep(.ui-field__input)
+      font-size 1.25rem
+
+  .builder-toggle
+    padding 8px 0
+
+  .results-header
+    gap 8px
+    margin-bottom 0
+
+  .results-count
+    font-size var(--text-sm-plus)
+
+  .search-start
+    flex none
+    overflow visible
+    padding-bottom 16px
+
+  .recent-searches,
+  .search-tips
+    padding 16px
+
+  .tips
+    grid-template-columns 1fr
+    gap 14px
+
+  .results-list
+    flex none
+    display flex
+    flex-direction column
+    gap 10px
+    margin-bottom 0
+    overflow visible
+    background none
+    border 0
+    border-radius 0
+    box-shadow none
+
+  .result
+    grid-template-columns auto minmax(0, 1fr)
+    grid-template-areas "dictionary term" "definition definition"
+    gap 6px 10px
+    align-items center
+    padding 12px 16px
+    background var(--surface)
+    border 1px solid var(--line)
+    border-radius var(--radius-card)
+    box-shadow var(--shadow-card)
+
+  .result-dictionary
+    grid-area dictionary
+
+  .result-term
+    grid-area term
+    justify-self end
+    text-align right
+    font-size 1.25rem
+
+  .result-definition
+    grid-area definition
+    font-size 1.0313rem
+    line-height 1.45
+
+  .view-scan-button
+    height 2.75rem
+
+  .load-more-sentinel
+    min-height 3rem
+
+  :deep(.uninstalled-notice)
+    margin 0 0 16px
+
+  .no-results
+    margin-bottom 16px
 </style>
