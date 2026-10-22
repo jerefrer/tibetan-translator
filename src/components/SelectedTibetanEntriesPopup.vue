@@ -1,25 +1,39 @@
 <script>
-  import $ from 'jquery'
   import _ from 'underscore'
   import TibetanRegExps from 'tibetan-regexps'
-  import { useTheme } from 'vuetify'
 
   import Entries from './Entries.vue'
+  import { UiSpinner } from '../ui'
   import SqlDatabase from '../services/sql-database'
+  import Storage from '../services/storage'
+  import { entriesForEnabledDictionaries } from '../services/quick-lookup'
   import { withTrailingTshek, strippedTibetanText } from '../utils.js'
+
+  export const SHOW_DELAY_MS = 1000;
+  const WIDTH = 'min(90vw, 640px)';
+  const HEIGHT = '45vh';
+
+  // Inputs of the old (Vuetify) and the rebuilt (src/ui) fields
+  const INPUT_SELECTOR = '.v-input, .ui-field, input, textarea, [contenteditable="true"]';
+  // Elements that show a whole term: selecting all of one is not a lookup
+  const TERM_SELECTOR = '.term, .term-item, .result-term, .headword';
 
   var mouseX;
   var mouseY;
   var selectionStartPosition;
   var selectionEndPosition;
 
+  function closestElement(node, selector) {
+    const element = node && (node.nodeType === 1 ? node : node.parentElement);
+    return element?.closest?.(selector) || null;
+  }
+
+  // Selecting Tibetan text in the main window shows, after a second without
+  // change, a card beside the selection with the entries of what is selected.
   export default {
     components: {
-      Entries
-    },
-    setup() {
-      const theme = useTheme();
-      return { theme };
+      Entries,
+      UiSpinner
     },
     data () {
       return {
@@ -28,23 +42,16 @@
         left: 0,
         show: false,
         loading: false,
-        activator: undefined,
         entries: [],
       }
     },
     computed: {
-      isDark() {
-        return this.theme.global.current.value.dark;
-      },
       styles () {
         return {
-          position: 'fixed',
           left: this.left,
           top: this.top,
-          width: 'min(90vw, 640px)',
-          height: '45vh',
-          overflowY: 'auto',
-          zIndex: 999,
+          width: WIDTH,
+          height: HEIGHT,
         }
       }
     },
@@ -55,25 +62,29 @@
           this.left = this.calculateLeft();
           this.show = true;
           this.loading = true;
+          const request = (this._request = (this._request || 0) + 1);
           SqlDatabase.getEntriesFor(withTrailingTshek(this.term)).
-          then((rows) => this.entries = rows).
-          finally(() => this.loading = false)
+          then((rows) => {
+            // The dictionaries enabled in Settings, in the Settings order
+            if (request === this._request)
+              this.entries = entriesForEnabledDictionaries(rows, Storage.get('dictionaries'));
+          }).
+          catch(() => { if (request === this._request) this.entries = []; }).
+          finally(() => { if (request === this._request) this.loading = false; })
         }
       },
       selectionHasMostlyTibetanAndIsNotInAnInputFieldAndIsNotWholeTerm () {
         var selection = document.getSelection();
-        var selectionString = selection.toString().trim();
+        var selectionString = selection?.toString().trim();
         if (!selectionString)
           return false;
 
         // Don't open the popup if selecting text within an input
-        var selectingInsideAnInputField = !!$(selection.anchorNode).parents('.v-input').length;
-        if (selectingInsideAnInputField)
+        if (closestElement(selection.anchorNode, INPUT_SELECTOR))
           return false;
 
         // Don't open the popup on the Segment page (it has its own term lookup)
-        var selectingInsideSegmentPage = !!$(selection.anchorNode).parents('.segment-page').length;
-        if (selectingInsideSegmentPage)
+        if (closestElement(selection.anchorNode, '.segment-page'))
           return false;
 
         // Don't open the popup if the selection has a lot of non-Tibetan text
@@ -83,8 +94,8 @@
           return false;
 
         // Don't open the popup if selecting a whole entry term
-        var entryTerm = $(document.getSelection().anchorNode).parents('.term').text();
-        if (selectionString == entryTerm)
+        var termElement = closestElement(selection.anchorNode, TERM_SELECTOR);
+        if (termElement && selectionString == termElement.textContent.trim())
           return false;
 
         // Remove any non-Tibetan characters, like in "= གོོ་ཏ་མ!", and any
@@ -93,89 +104,115 @@
         return this.term.match(TibetanRegExps.tibetanGroups);
       },
       calculateLeft () {
-        var activatorLeft = selectionStartPosition.left;
-        if (activatorLeft < $(window).width() / 2)
+        var activatorLeft = selectionStartPosition?.left || 0;
+        if (activatorLeft < window.innerWidth / 2)
           return `${activatorLeft}px`;
         else
-          return `calc(${activatorLeft}px - ${this.styles.width})`;
+          return `calc(${activatorLeft}px - ${WIDTH})`;
       },
       calculateTop () {
         var margin = 10;
         var activatorHeight = 35;
-        var activatorTop = selectionEndPosition.top;
-        if (activatorTop < $(window).height() / 2)
+        var activatorTop = selectionEndPosition?.top || 0;
+        if (activatorTop < window.innerHeight / 2)
           return `${activatorTop + activatorHeight + margin}px`;
         else
-          return `calc(${activatorTop}px - ${margin}px - ${this.styles.height})`;
+          return `calc(${activatorTop}px - ${margin}px - ${HEIGHT})`;
       },
     },
     mounted () {
-      var debouncedShowPopup = _.debounce(this.maybeShowPopup, 1000);
+      this._debouncedShowPopup = _.debounce(this.maybeShowPopup, SHOW_DELAY_MS);
       document.onmousemove = (event) => {
         mouseX = event.x;
         mouseY = event.y;
       }
-      document.onselectstart = (event) => {
+      document.onselectstart = () => {
         selectionStartPosition = {
           top: mouseY,
           left: mouseX,
         }
       }
-      document.onselectionchange = (event) => {
+      document.onselectionchange = () => {
         selectionEndPosition = {
           top: mouseY,
           left: mouseX,
         }
         this.show = false;
-        debouncedShowPopup();
+        this._debouncedShowPopup();
       }
       window.onscroll = () => this.show = false;
+    },
+    beforeUnmount () {
+      this._debouncedShowPopup?.cancel();
+      document.onmousemove = null;
+      document.onselectstart = null;
+      document.onselectionchange = null;
+      window.onscroll = null;
     }
   }
 </script>
 
 <template>
-  <v-fade-transition>
-
-    <v-card
+  <transition name="ui-fade">
+    <section
       v-if="show"
       class="selected-tibetan-entries-popup"
       :style="styles"
-      :color="isDark ? '' : 'grey-lighten-4'"
+      aria-label="Entries for the selection"
+      data-testid="selection-popup"
     >
-
-      <v-fade-transition mode="out-in">
-
+      <transition name="ui-fade" mode="out-in">
         <div
           v-if="loading"
-          class="flex-centered"
+          key="loading"
+          class="selection-popup-state"
+          data-testid="selection-popup-loading"
         >
-          <v-progress-circular
-            indeterminate
-            size="64"
-            style="filter: brightness(0.25)"
-          />
+          <ui-spinner :size="40" label="Loading definitions" />
         </div>
 
         <Entries
           v-else-if="entries.length"
+          key="entries"
           :entries="entries"
         />
 
         <div
           v-else
-          class="flex-centered"
+          key="empty"
+          class="selection-popup-state"
+          data-testid="selection-popup-empty"
         >
           No entries.
         </div>
-
-      </v-fade-transition>
-
-    </v-card>
-
-  </v-fade-transition>
+      </transition>
+    </section>
+  </transition>
 </template>
 
-<style lang="stylus">
-  /* Entry styling now handled by EntriesEntry.vue scoped styles */
+<style scoped>
+/* Floating card in the style of the Define board's definitions card */
+.selected-tibetan-entries-popup {
+  position: fixed;
+  z-index: 999;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-pop);
+  font-family: var(--font-ui);
+}
+
+.selection-popup-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 6rem;
+  color: var(--muted);
+  font-size: var(--text-base);
+}
 </style>
