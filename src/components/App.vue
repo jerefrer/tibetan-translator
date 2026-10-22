@@ -13,6 +13,7 @@ import ResizeService from "../services/resize-service";
 import { supportsModularPacks } from "../config/platform";
 import { shortcutPaths } from "../config/navigation";
 import { initDocumentTheme, watchSystemTheme } from "../services/theme";
+import * as ScrollMemory from "../services/scroll-memory";
 
 import TibdictInstaller from "../services/tibdict-installer";
 import { substituteLinksWithATags } from "../utils.js";
@@ -161,6 +162,21 @@ export default {
     },
     handleResize() {
       this.isMobile = ResizeService.isMobile();
+    },
+    // <keep-alive> keeps each page, but not its scroll positions: note them
+    // as a page leaves and put them back when it shows again
+    keepScrollPositions() {
+      const segment = (route) => _.compact(route.path.split("/"))[0];
+      this._unwatchRouteBefore = this.$router.beforeEach((to, from) => {
+        if (segment(to) !== segment(from)) {
+          ScrollMemory.remember(segment(from), this.$el?.querySelector?.(".app-content"));
+        }
+      });
+      this._unwatchRouteAfter = this.$router.afterEach((to, from) => {
+        if (segment(to) !== segment(from)) {
+          this.$nextTick(() => ScrollMemory.restore(segment(to)));
+        }
+      });
     }
   },
   async created() {
@@ -204,10 +220,13 @@ export default {
     AudioPlayerService.initialize();
     ResizeService.subscribe('app', () => this.handleResize());
     this.setupTibdictDragDrop();
+    this.keepScrollPositions();
   },
   async unmounted() {
     EventHandlers.remove("tabs-shortcuts");
     this._unwatchSystemTheme?.();
+    this._unwatchRouteBefore?.();
+    this._unwatchRouteAfter?.();
     ResizeService.unsubscribe('app');
     if (GlobalLookup.isSupported()) {
       await GlobalLookup.cleanup();
