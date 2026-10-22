@@ -65,12 +65,18 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-const mountCatalog = (props = {}) =>
+const mountCatalog = (props = {}, slots = {}) =>
   mount(DictionaryCatalog, {
     props,
-    global: { plugins: [vuetify], provide: { snackbar } },
+    slots,
+    global: { provide: { snackbar } },
     attachTo: document.body,
   })
+
+const cardOf = (wrapper, label) =>
+  wrapper.findAll('[data-testid="catalog-card"]').find((card) =>
+    card.find('.catalog-card__title').text() === label
+  )
 
 const findButton = (text) =>
   Array.from(document.body.querySelectorAll('button')).find((b) =>
@@ -78,11 +84,16 @@ const findButton = (text) =>
   )
 
 describe('DictionaryCatalog', () => {
-  it('should show a first page of rows with a way to see them all when nothing is searched', () => {
+  it('should show a first page of rows with a way to see them all when nothing is searched', async () => {
     const wrapper = mountCatalog()
 
-    expect(wrapper.findAll('.catalog-row')).toHaveLength(10)
+    expect(wrapper.findAll('[data-testid="catalog-card"]')).toHaveLength(10)
     expect(wrapper.text()).toContain('Show all 65 dictionaries')
+
+    await wrapper.get('[data-testid="catalog-show-all"]').trigger('click')
+
+    expect(wrapper.findAll('[data-testid="catalog-card"]')).toHaveLength(65)
+    expect(wrapper.find('[data-testid="catalog-show-all"]').exists()).toBe(false)
 
     wrapper.unmount()
   })
@@ -142,7 +153,8 @@ describe('DictionaryCatalog', () => {
     wrapper.vm.query = 'Verbinator'
     await nextTick()
 
-    expect(wrapper.find('.installed-label').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="catalog-installed"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="catalog-install"]').exists()).toBe(false)
 
     wrapper.unmount()
   })
@@ -153,8 +165,9 @@ describe('DictionaryCatalog', () => {
     wrapper.vm.query = 'brda dkrol'
     await nextTick()
 
-    expect(wrapper.find('.installed-label').exists()).toBe(false)
-    expect(wrapper.text()).toContain('Install')
+    expect(wrapper.find('[data-testid="catalog-installed"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="catalog-install"]').text()).toBe('Install pack')
+    expect(wrapper.text()).toContain('In Tibetan Monolingual · 65 MB')
 
     wrapper.unmount()
   })
@@ -224,8 +237,10 @@ describe('DictionaryCatalog', () => {
     wrapper.vm.query = 'brda dkrol'
     await nextTick()
 
-    expect(wrapper.find('.installed-label').exists()).toBe(true)
-    expect(wrapper.vm.filterGroups.map((group) => group.key)).not.toContain('status')
+    expect(wrapper.find('[data-testid="catalog-installed"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="catalog-install"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="catalog-filter-status"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('installed')
 
     wrapper.unmount()
   })
@@ -238,6 +253,183 @@ describe('DictionaryCatalog', () => {
     await nextTick()
 
     expect(wrapper.vm.canInstall).toBe(false)
+    expect(wrapper.find('[data-testid="catalog-install"]').exists()).toBe(false)
+    expect(wrapper.text()).toContain('In Tibetan Monolingual')
+
+    wrapper.unmount()
+  })
+
+  it('should search as the user types and clear the search with its button', async () => {
+    const wrapper = mountCatalog()
+
+    await wrapper.get('[data-testid="ui-text-field-input"]').setValue('archaic')
+    expect(wrapper.findAll('[data-testid="catalog-card"]')).toHaveLength(4)
+
+    await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
+    expect(wrapper.vm.query).toBe('')
+    expect(wrapper.findAll('[data-testid="catalog-card"]')).toHaveLength(10)
+
+    wrapper.unmount()
+  })
+
+  it('should say how many dictionaries match and how many are not installed', async () => {
+    const wrapper = mountCatalog({ initialQuery: 'archaic' })
+
+    expect(wrapper.get('[data-testid="catalog-count"]').text().replace(/\s+/g, ' ')).toBe(
+      '4 dictionaries match archaic. 3 are in packs you have not installed.'
+    )
+
+    wrapper.unmount()
+  })
+
+  it('should count every dictionary and the installed ones in its header', () => {
+    const wrapper = mountCatalog()
+
+    expect(wrapper.get('.catalog-overline').text()).toMatch(
+      /^Dictionaries · 65 dictionaries in 3 packs, \d+ installed$/
+    )
+    expect(wrapper.get('[data-testid="catalog-count"]').text().replace(/\s+/g, ' ')).toBe(
+      '65 of 65 dictionaries. 30 are in packs you have not installed.'
+    )
+
+    wrapper.unmount()
+  })
+
+  it('should filter by language from the "Gives you" row', async () => {
+    const wrapper = mountCatalog()
+
+    const tibetanOnly = wrapper
+      .findAll('[data-testid="catalog-language"]')
+      .find((chip) => chip.text() === 'Tibetan only')
+    await tibetanOnly.trigger('click')
+
+    expect(wrapper.vm.language).toBe('tib-only')
+    expect(tibetanOnly.attributes('aria-pressed')).toBe('true')
+    expect(wrapper.vm.results.every((entry) => entry.languages.join() === 'tib')).toBe(true)
+
+    wrapper.unmount()
+  })
+
+  it('should keep the "Other" language and the pack filter', async () => {
+    const wrapper = mountCatalog()
+
+    const languages = wrapper.findAll('[data-testid="catalog-language"]').map((chip) => chip.text())
+    expect(languages).toEqual(['Any', 'Tibetan only', 'English', 'Sanskrit', 'Chinese', 'Other'])
+
+    const sanskritPack = wrapper
+      .get('[data-testid="catalog-filter-packId"]')
+      .findAll('button')
+      .find((chip) => chip.text() === 'Sanskrit & Academic')
+    await sanskritPack.trigger('click')
+
+    expect(new Set(wrapper.vm.results.map((entry) => entry.packId))).toEqual(
+      new Set(['sanskrit-academic'])
+    )
+
+    wrapper.unmount()
+  })
+
+  it('should search for a purpose tag when it is clicked, and clear it on a second click', async () => {
+    const wrapper = mountCatalog()
+
+    const archaic = () =>
+      wrapper
+        .get('[data-testid="catalog-purposes"]')
+        .findAll('button')
+        .find((chip) => chip.text().startsWith('archaic'))
+
+    expect(archaic().text()).toBe('archaic4')
+    await archaic().trigger('click')
+
+    expect(wrapper.vm.query).toBe('archaic')
+    expect(archaic().attributes('aria-pressed')).toBe('true')
+    expect(wrapper.findAll('[data-testid="catalog-card"]')).toHaveLength(4)
+
+    await archaic().trigger('click')
+    expect(wrapper.vm.query).toBe('')
+
+    wrapper.unmount()
+  })
+
+  it('should highlight the subject tags the search matched', async () => {
+    const wrapper = mountCatalog({ initialQuery: 'archaic' })
+
+    const tags = cardOf(wrapper, 'Dan Martin').findAll('[data-testid="catalog-keyword"]')
+    const selected = tags.filter((tag) => tag.classes().includes('is-selected')).map((tag) => tag.text())
+    expect(selected).toEqual(['archaic'])
+
+    wrapper.unmount()
+  })
+
+  it('should show the pack, the languages and the description of a dictionary', () => {
+    const wrapper = mountCatalog({ initialQuery: 'Dan Martin' })
+
+    const card = cardOf(wrapper, 'Dan Martin')
+    expect(card.text()).toContain('Core Dictionaries')
+    expect(card.text()).toContain('English')
+    expect(card.get('.catalog-card__subtitle').text()).toContain('Tibetan Vocabulary')
+    expect(card.get('.catalog-card__description').text()).toContain('word-index')
+
+    wrapper.unmount()
+  })
+
+  it('should show everything known about an installed dictionary, with live links', async () => {
+    const wrapper = mountCatalog({ initialQuery: 'Dan Martin' })
+
+    const about = cardOf(wrapper, 'Dan Martin').findAll('button').find((b) => b.text() === 'About')
+    await about.trigger('click')
+    await flushPromises()
+
+    const dialog = document.body.querySelector('[data-testid="catalog-about"]')
+    expect(dialog.textContent).toContain('11th and 12th century texts')
+    expect(dialog.querySelector('a').getAttribute('href')).toBe('http://rywiki.tsadra.org')
+
+    wrapper.unmount()
+  })
+
+  it('should show download progress instead of the install button while its pack downloads', async () => {
+    const PackManager = (await import('../src/services/pack-manager')).default
+    PackManager.downloadingPacks['tibetan-monolingual'] = { percentage: 41.6 }
+    const wrapper = mountCatalog({ initialQuery: 'brda dkrol' })
+
+    expect(wrapper.get('[data-testid="catalog-downloading"]').text()).toBe('Downloading 42%')
+    expect(wrapper.find('[data-testid="catalog-install"]').exists()).toBe(false)
+
+    delete PackManager.downloadingPacks['tibetan-monolingual']
+    wrapper.unmount()
+  })
+
+  it('should ask before installing a whole pack picked from the Packs list', async () => {
+    const wrapper = mountCatalog()
+
+    wrapper.vm.askInstallPack('sanskrit-academic')
+    await nextTick()
+
+    expect(document.body.textContent).toContain('Install Sanskrit & Academic?')
+    expect(document.body.textContent).toContain('Installing adds its 9 dictionaries')
+    findButton('Install pack').click()
+    await flushPromises()
+
+    expect(downloadPackMock).toHaveBeenCalledWith('sanskrit-academic')
+
+    wrapper.unmount()
+  })
+
+  it('should put the content of its aside slot beside the results', () => {
+    const wrapper = mountCatalog({}, { aside: '<p class="test-aside">Packs</p>' })
+
+    expect(wrapper.find('.catalog-aside .test-aside').exists()).toBe(true)
+    wrapper.unmount()
+
+    const bare = mountCatalog()
+    expect(bare.find('.catalog-aside').exists()).toBe(false)
+    bare.unmount()
+  })
+
+  it('should use the heading level it is given', () => {
+    const wrapper = mountCatalog({ headingTag: 'h1' })
+
+    expect(wrapper.get('.catalog-heading').element.tagName).toBe('H1')
 
     wrapper.unmount()
   })
