@@ -94,6 +94,20 @@ describe('DictionaryCatalog', () => {
     wrapper.unmount()
   })
 
+  it('should scroll itself into view without animation when motion is reduced', async () => {
+    const matchMedia = window.matchMedia
+    window.matchMedia = vi.fn((query) => ({ matches: query.includes('reduce') }))
+    const wrapper = mountCatalog()
+    wrapper.element.scrollIntoView = vi.fn()
+
+    wrapper.vm.bringIntoView()
+    await nextTick()
+
+    expect(wrapper.element.scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' })
+    window.matchMedia = matchMedia
+    wrapper.unmount()
+  })
+
   it('should find the dictionaries tagged archaic when searching for archaic', async () => {
     const wrapper = mountCatalog()
 

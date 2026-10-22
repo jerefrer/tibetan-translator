@@ -238,7 +238,8 @@ export default {
     },
     bringIntoView() {
       this.$nextTick(() => {
-        this.$el?.scrollIntoView?.({ behavior: 'smooth', block: 'start' });
+        const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+        this.$el?.scrollIntoView?.({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
       });
     },
     askInstall(entry) {

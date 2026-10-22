@@ -50,4 +50,8 @@ export default {
   from { transform: translateX(-100%); }
   to { transform: translateX(300%); }
 }
+/* Slower when motion is reduced, as UiSpinner does */
+@media (prefers-reduced-motion: reduce) {
+  .ui-progress__bar.is-indeterminate { animation-duration: 3.6s; }
+}
 </style>
