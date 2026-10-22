@@ -126,6 +126,36 @@ describe('UiChip', () => {
     expect(wrapper.emitted('remove')).toHaveLength(1)
     expect(wrapper.emitted('click')).toBeUndefined()
   })
+
+  it('should show the check only on the default toggle look', () => {
+    const toggle = mount(UiChip, { props: { clickable: true, selected: true } })
+    const pill = mount(UiChip, { props: { clickable: true, selected: true, variant: 'pill' } })
+    expect(toggle.find('[data-testid="ui-icon"]').exists()).toBe(true)
+    expect(pill.find('[data-testid="ui-icon"]').exists()).toBe(false)
+    expect(pill.classes()).toContain('ui-chip--pill')
+  })
+
+  it('should show a count after the label of a subject tag', () => {
+    const wrapper = mount(UiChip, {
+      props: { clickable: true, variant: 'tag', tone: 'amber', count: 4 },
+      slots: { default: 'archaic' },
+    })
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(['ui-chip--tag', 'ui-chip--amber']))
+    expect(wrapper.get('[data-testid="ui-chip-count"]').text()).toBe('4')
+    expect(wrapper.text()).toBe('archaic4')
+  })
+
+  it('should not add a look class to a plain label', () => {
+    const wrapper = mount(UiChip, { props: { variant: 'pill' } })
+    expect(wrapper.classes()).not.toContain('ui-chip--pill')
+  })
+
+  it('should mark a highlighted plain label as selected without making it a button', () => {
+    const wrapper = mount(UiChip, { props: { tone: 'amber', selected: true }, slots: { default: 'archaic' } })
+    expect(wrapper.element.tagName.toLowerCase()).toBe('span')
+    expect(wrapper.classes()).toContain('is-selected')
+    expect(wrapper.attributes('aria-pressed')).toBeUndefined()
+  })
 })
 
 describe('UiAlert', () => {

@@ -80,6 +80,8 @@ export default {
         slider: 100,
         page: 3,
         chips: ['en'],
+        pill: 'Any',
+        tag: 'archaic',
         accordion: undefined,
       },
       selectOptions: [
@@ -153,6 +155,7 @@ export default {
           <ui-chip>Hopkins 2015</ui-chip>
           <ui-chip tone="neutral">neutral</ui-chip>
           <ui-chip tone="amber">comprehensive</ui-chip>
+          <ui-chip tone="amber" selected>archaic</ui-chip>
           <ui-chip outlined>Tibetan</ui-chip>
           <ui-chip removable>removable</ui-chip>
           <ui-chip
@@ -162,6 +165,26 @@ export default {
             :selected="state.chips.includes(language.id)"
             @click="state.chips = state.chips.includes(language.id) ? [] : [language.id]"
           >{{ language.label }}</ui-chip>
+        </div>
+        <div class="row">
+          <ui-chip
+            v-for="option in ['Any', 'Tibetan only', 'English']"
+            :key="option"
+            clickable
+            variant="pill"
+            :selected="state.pill === option"
+            @click="state.pill = option"
+          >{{ option }}</ui-chip>
+          <ui-chip
+            v-for="tag in [{ label: 'archaic', count: 4 }, { label: 'synonyms', count: 4 }]"
+            :key="tag.label"
+            clickable
+            variant="tag"
+            tone="amber"
+            :count="tag.count"
+            :selected="state.tag === tag.label"
+            @click="state.tag = state.tag === tag.label ? '' : tag.label"
+          >{{ tag.label }}</ui-chip>
         </div>
 
         <h3>Alert</h3>
