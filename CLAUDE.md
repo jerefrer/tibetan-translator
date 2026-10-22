@@ -54,10 +54,10 @@ Tibetan Translator is a multi-platform dictionary app that provides access to 60
 
 ## Tech Stack
 
-- **Frontend**: Vue 3 (Options API) + Vuetify 3 + Vue Router 4
+- **Frontend**: Vue 3 (Options API) + Vue Router 4. The UI is in-house components in `src/ui` (built on Reka UI primitives) with Lucide icons and the design tokens in `src/css/tokens.css`; there is no UI framework
 - **Build**: Vite 5, pnpm
 - **Backend**: Tauri 2 (Rust), native SQLite via rusqlite
-- **Styling**: Stylus + SASS, Material Design Icons
+- **Styling**: plain CSS on the design tokens (`src/ui`, `src/css`, most components) and Stylus in some older component blocks; Lucide icons
 - **Testing**: Vitest
 - **Platforms**: macOS, Windows, Linux, iOS, Android, Web
 
@@ -82,23 +82,24 @@ pnpm check:tauri-versions  # Verify @tauri-apps/* npm vs Rust crate alignment
 
 ```
 src/
-  components/          # Vue components (Options API with mixins)
-  services/            # Core services (database, packs, search, etc.)
-  config/              # Platform detection, pack definitions
-  plugins/             # Vuetify setup
-  css/                 # Global styles (layout, tibetan fonts, scrollbars)
+  components/          # Screens and app components (Options API with mixins); App.vue is the root
+    settings/          # Settings cards
+    mixins/            # MobileResponsiveMixin, InfiniteScrollMixin
+  ui/                  # Component library (UiButton, UiDialog, UiTibetanField...), icons.js, showcase at /ui-showcase (dev only)
+  services/            # Core services (database, packs, search, theme, etc.)
+  config/              # Platform detection, pack definitions, navigation
+  css/                 # Global styles: tokens, reset (main window only), fonts, layout, tibetan, scrollbars
   router.js            # Route definitions
   main.js              # Main app entry point
   popup.js             # GlobalLookupWindow entry point (desktop popup)
   utils.js             # Tibetan text utilities
-  App.vue              # Root component
 src-tauri/
   src/main.rs          # Tauri setup, commands, macOS panel config
   src/packs.rs         # Pack installation, queries, chunked download
   src/database.rs      # Legacy single-database queries
   src/scans.rs         # Scan image management
 build/                 # Database and pack build scripts
-tests/                 # Vitest tests (phonetic search, search queries)
+tests/                 # Vitest tests: services, every screen mounted with @vue/test-utils, src/ui in tests/ui
 vendor/                # Third-party dictionary source files
 ```
 
@@ -150,6 +151,9 @@ All components use **Options API** with **mixins** for shared logic:
 - `DictionariesDetailsMixin` - Dictionary metadata and abbreviation lookups
 - `DictionariesMenuMixin` - Dictionary filtering/toggle UI
 - `DictionariesFuzzySearchMixin` - Fuzzy search across dictionaries
+- `mixins/MobileResponsiveMixin`, `mixins/InfiniteScrollMixin` - phone layout and infinite scroll
+
+Screens are built from the `src/ui` components (`import { UiButton, UiDialog } from '../ui'`), never from raw Reka UI. They are styled only with the tokens (`var(--accent)`, `var(--space-4)`, `var(--text-sm)`...), so light and dark both work; the theme is `data-theme="light|dark"` on `<html>`, set by `src/services/theme.js`. Icons are `<ui-icon name="...">` with Lucide names; `src/ui/icons.js` registers each one used (and keeps `mdi-*` aliases only for custom-pack manifests). The app-level toast is the injected `snackbar` (`this.snackbar.open(html)`), rendered by `UiToast` in App.vue.
 
 ### State Management
 
@@ -189,12 +193,12 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 ## Conventions
 
 - **Vue Options API** throughout, no `<script setup>` or Composition API in components
-- **Stylus** for component `<style>` blocks (some use `lang="stylus" scoped`, some unscoped)
+- **Styles**: `src/ui` and new code use plain CSS (`<style>`, sometimes `scoped`) on the tokens; some older components still use `lang="stylus"`. Both are fine, do not convert for the sake of it. `src/css/reset.css` is the base reset of the main window (formerly Vuetify's); the quick lookup window does not load it
 - **jQuery** is used in older code (App.vue event delegation, scroll management)
 - **Underscore.js** for debounce, utility functions
 - Keyboard shortcuts: `Cmd/Ctrl+D` (Define), `Cmd/Ctrl+S` (Search), `Cmd/Ctrl+T` (Split), `Cmd/Ctrl+G` (Settings)
 - Mobile breakpoint: `600px` (`window.innerWidth <= 600`)
-- Theme: light/dark with system preference detection, stored as `themePreference` in localStorage
+- Theme: light/dark with system preference detection, stored as `themePreference` in localStorage and applied by `src/services/theme.js`; Text size is `fontSize` (a percentage of the root font size), so sizes in rem follow it
 
 ## Git style
 
