@@ -143,7 +143,7 @@ export default {
 
         <h3>Icon</h3>
         <div class="row row--icons">
-          <ui-tooltip v-for="name in iconNames.slice(0, 18)" :key="name" :text="name">
+          <ui-tooltip v-for="name in iconNames" :key="name" :text="name">
             <span class="icon-cell"><ui-icon :name="name" :size="22" /></span>
           </ui-tooltip>
         </div>
