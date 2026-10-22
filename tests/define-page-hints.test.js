@@ -113,6 +113,17 @@ describe('DefinePage — search instead hint', () => {
     wrapper.unmount()
   })
 
+  it('should not carry the space that triggered the conversion', async () => {
+    const wrapper = mountPage()
+
+    wrapper.vm.searchTerm = 'kāka '
+    await nextTick()
+
+    expect(wrapper.find('.search-instead-hint').text()).toContain('“kāka”')
+
+    wrapper.unmount()
+  })
+
   it('should not offer Search for plain Wylie', async () => {
     const wrapper = mountPage()
 

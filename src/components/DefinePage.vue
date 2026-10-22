@@ -62,7 +62,7 @@ export default {
       // ཀཱཀིṇī་), it is no longer what the user would search for. A paste
       // arrives converted already, so that is all there is to keep then.
       if (hasLatinDiacritics(value) && (!TIBETAN.test(value) || !this.searchInsteadText))
-        this.searchInsteadText = value;
+        this.searchInsteadText = value.trim();
       else if (!value) this.searchInsteadText = "";
       this.typedWylieState = nextTypedWylie(this.typedWylieState, value || "");
       // Reset displayed count when search term changes
