@@ -27,7 +27,7 @@ export const PACK_DEFINITIONS = {
     description: 'All Tibetan-English dictionaries',
     required: true,
     included: true, // Bundled with the app
-    icon: 'mdi-book-open-variant',
+    icon: 'book-open',
     estimatedSize: '146 MB installed',
     dictionaries: [
       'Hopkins2015',
@@ -112,7 +112,7 @@ export const PACK_DEFINITIONS = {
     name: 'Sanskrit & Academic',
     description: 'Sanskrit dictionaries and academic reference works',
     required: false,
-    icon: 'mdi-school',
+    icon: 'graduation-cap',
     estimatedSize: '26 MB download, 109 MB installed',
     highlights: [
       'Mahavyutpatti-Skt',

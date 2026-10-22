@@ -2,10 +2,13 @@
  * Icon registry for <UiIcon>.
  *
  * Icons are imported one by one so the bundler can drop the rest of Lucide.
- * Keys are Lucide's kebab-case names. `MDI_ALIASES` maps the Material Design
- * Icons names used by the old Vuetify screens onto them, so a screen can be
- * migrated by swapping `<v-icon>mdi-x</v-icon>` for `<UiIcon>mdi-x</UiIcon>`
- * and renaming at leisure.
+ * Keys are Lucide's kebab-case names; the app's own code uses only those.
+ *
+ * `MDI_ALIASES` maps Material Design Icons names onto them. It stays because
+ * custom pack manifests name their icon that way: the Rust side gives every
+ * new glossary `mdi-notebook-edit-outline` (src-tauri/src/lexicon.rs), and
+ * .tibdict files already on users' disks carry such names. See
+ * CustomPackSection.vue's packIcon().
  */
 import {
   AlignVerticalJustifyCenter,
@@ -155,7 +158,7 @@ export const ICONS = {
   x: X,
 };
 
-// Every `mdi-*` name found in src/ at the time of writing.
+// Every `mdi-*` name the Vuetify screens used, which covers the manifests seen so far.
 export const MDI_ALIASES = {
   'mdi-alert': 'triangle-alert',
   'mdi-alert-circle': 'circle-alert',

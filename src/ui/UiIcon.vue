@@ -2,9 +2,9 @@
 import { h } from 'vue';
 import { resolveIcon } from './icons';
 
-// A <UiIcon> is a thin wrapper around a Lucide icon. Like Vuetify's <v-icon>
-// it also reads its name from the default slot, so `<UiIcon>mdi-plus</UiIcon>`
-// works during the migration.
+// A <UiIcon> is a thin wrapper around a Lucide icon. The name comes from the
+// `name` prop or, failing that, the default slot (`<UiIcon>plus</UiIcon>`).
+// `mdi-*` names from custom pack manifests resolve too (see icons.js).
 export default {
   name: 'UiIcon',
   props: {
