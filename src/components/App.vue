@@ -30,7 +30,6 @@ import "../css/fonts.css";
 import "../css/layout.css";
 import "../css/tibetan.css";
 import "../css/scrollbar.css";
-import "../css/help-dialog.css";
 
 if (navigator.storage && navigator.storage.persist) navigator.storage.persist();
 

@@ -23,7 +23,6 @@ describe('applyPopupAppearance', () => {
     Storage.set('themePreference', 'dark')
     expect(applyPopupAppearance().theme).toBe('dark')
     expect(root.getAttribute('data-theme')).toBe('dark')
-    expect(root.classList.contains('theme--dark')).toBe(true)
   })
 
   it('should follow the system for the "system" preference', () => {

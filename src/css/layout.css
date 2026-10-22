@@ -1,7 +1,7 @@
 html {
   overflow: hidden; /* No page-level scrollbar */
-  /* Legacy palette, still read by the screens that have not been redesigned.
-     New code uses the tokens in tokens.css. */
+  /* Legacy palette, still read by the audio player and the language labels
+     the decorator puts in definitions. New code uses the tokens in tokens.css. */
   --black-background: #001211;
   --deep-red: #A30000;
   --yellow: #FFC107;
@@ -31,18 +31,8 @@ input, textarea {
   spellcheck: false;
 }
 
-.theme--light.v-application {
-  background: var(--contentBackground);
-}
-
-.v-tabs-items,
-.theme--light.v-data-table {
-  background: none !important;
-}
-
 /* App shell: navigation rail + content on desktop, content above a bottom bar
-   on a phone. A plain div replaces v-main to avoid Vuetify's dynamic
-   --v-layout-top calculations. */
+   on a phone. */
 .app-shell {
   display: flex;
   height: 100vh;
@@ -74,93 +64,6 @@ input, textarea {
   margin-top: 0 !important;
 }
 
-@media (max-width: 600px) {
-  /* Reset overlay layout offset on mobile */
-  .v-overlay-container .v-overlay {
-    --v-layout-left: 0px !important;
-  }
-}
-
-/* Container height for app content */
-.app-content .container,
-.app-content .v-tabs-items {
-  height: 100%;
-}
-
-.theme--light .v-overlay__scrim {
-  background: var(--paper) !important;
-}
-.theme--light .v-overlay .v-progress-circular {
-  color: var(--deep-red) !important;
-}
-.theme--dark .dictionary-label {
-  text-shadow: 0px 0px 4px gray;
-}
-
-
-.text-center input,
-.text-center textarea {
-  text-align: center;
-}
-
-
-.list-item {
-  transition: transform 1s, opacity 1s;
-}
-.list-enter, .list-leave-to {
-  opacity: 0;
-}
-.list-leave-active {
-  position: absolute;
-}
-
-.flex-centered {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-}
-
-.nowrap {
-  white-space: nowrap;
-}
-
-.v-input.with-right-button .v-input__append-outer {
-  align-self: stretch;
-  height: auto;
-  margin: 0 0 0 9px;
-}
-  .v-input.with-right-button .v-input__append-outer .v-btn {
-    height: 100%;
-  }
-
-.v-card .v-progress-linear[left] {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  width: 4px;
-  height: 100% !important;
-  border-top-left-radius: 4px;
-  border-bottom-left-radius: 4px;
-}
-
-.v-tooltip__content.menuable__content__active {
-  opacity: 1 !important;
-}
-
-.v-autocomplete__content .v-list-item .v-list-item__title {
-  overflow: visible;
-  white-space: normal;
-}
-
-fieldset legend {
-  cursor: pointer;
-}
-fieldset legend:hover {
-  text-decoration: underline solid 1.7px;
-}
-
 abbr[data-title] {
   border-bottom: none;
   text-decoration: underline;
@@ -170,47 +73,6 @@ abbr[data-title] {
 }
 abbr[data-title]:hover {
   text-decoration-style: solid;
-}
-
-/* Snackbar text wrapping for long URLs */
-.v-snackbar .v-snackbar__content {
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
-
-/* Snackbar link colors - readable on dark snackbar background */
-.v-snackbar a,
-.v-snackbar a:link,
-.v-snackbar a:visited {
-  color: #4DD0E1; /* Cyan 300 - readable on dark background */
-  text-decoration: underline;
-  word-break: break-all;
-}
-.v-snackbar a:hover,
-.v-snackbar a:active {
-  color: #80DEEA; /* Cyan 200 - brighter on hover */
-}
-
-/* Light theme snackbar - if background is lighter, use darker link color */
-.theme--light .v-snackbar a,
-.theme--light .v-snackbar a:link,
-.theme--light .v-snackbar a:visited {
-  color: #00ACC1; /* Cyan 600 - good contrast */
-}
-.theme--light .v-snackbar a:hover,
-.theme--light .v-snackbar a:active {
-  color: #00BCD4; /* Cyan 500 */
-}
-
-/* Dark theme snackbar */
-.theme--dark .v-snackbar a,
-.theme--dark .v-snackbar a:link,
-.theme--dark .v-snackbar a:visited {
-  color: #4DD0E1; /* Cyan 300 */
-}
-.theme--dark .v-snackbar a:hover,
-.theme--dark .v-snackbar a:active {
-  color: #80DEEA; /* Cyan 200 */
 }
 
 .definition a[href]:hover {
@@ -244,10 +106,10 @@ abbr[data-title]:hover {
 }
 
 /* Dark theme */
-.theme--dark .dict-lang-section + .dict-lang-section {
+[data-theme='dark'] .dict-lang-section + .dict-lang-section {
   border-top-color: rgba(255, 255, 255, 0.12);
 }
-.theme--dark .dict-lang-label {
+[data-theme='dark'] .dict-lang-label {
   background: #555;
 }
 
@@ -354,29 +216,29 @@ abbr[data-title]:hover {
 }
 
 /* Dark theme */
-.theme--dark .audio-player {
+[data-theme='dark'] .audio-player {
   background: rgba(255, 255, 255, 0.08);
 }
 
-.theme--dark .audio-play-btn {
+[data-theme='dark'] .audio-play-btn {
   background: var(--yellow);
   color: var(--black-background);
 }
 
-.theme--dark .audio-progress-bar {
+[data-theme='dark'] .audio-progress-bar {
   background: rgba(255, 255, 255, 0.2);
 }
 
-.theme--dark .audio-progress-fill {
+[data-theme='dark'] .audio-progress-fill {
   background: var(--yellow);
 }
 
-.theme--dark .audio-progress-handle {
+[data-theme='dark'] .audio-progress-handle {
   background: var(--yellow);
   border-color: var(--black-background);
 }
 
-.theme--dark .audio-time {
+[data-theme='dark'] .audio-time {
   color: #aaa;
 }
 

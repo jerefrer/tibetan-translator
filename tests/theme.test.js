@@ -29,21 +29,20 @@ describe('theme service', () => {
     expect(resolveTheme('sepia', true)).toBe('light')
   })
 
-  it('should set data-theme and the legacy class together', () => {
-    applyDocumentTheme('dark')
-    const root = document.documentElement
-    expect(root.getAttribute('data-theme')).toBe('dark')
-    expect(root.classList.contains('theme--dark')).toBe(true)
-    expect(root.classList.contains('theme--light')).toBe(false)
+  it('should set data-theme on <html>', () => {
+    expect(applyDocumentTheme('dark')).toBe('dark')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 
-  it('should replace the previous theme class when switching', () => {
+  it('should replace the previous theme when switching', () => {
     applyDocumentTheme('dark')
     applyDocumentTheme('light')
-    const root = document.documentElement
-    expect(root.getAttribute('data-theme')).toBe('light')
-    expect(root.classList.contains('theme--dark')).toBe(false)
-    expect(root.classList.contains('theme--light')).toBe(true)
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
+  })
+
+  it('should treat anything but dark as light', () => {
+    expect(applyDocumentTheme('sepia')).toBe('light')
+    expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
 
   it('should apply the stored dark preference at start-up', () => {

@@ -26,8 +26,8 @@ async function initPopup() {
   await import("./css/tibetan.css");
   await import("./css/scrollbar.css");
 
-  // Same theme initialisation as the main window (data-theme for the tokens,
-  // theme--* for older styles), plus the Text size setting.
+  // Same theme initialisation as the main window (data-theme on <html>),
+  // plus the Text size setting.
   applyPopupAppearance();
   watchPopupAppearance();
 

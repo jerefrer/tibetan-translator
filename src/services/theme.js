@@ -1,10 +1,9 @@
 /**
  * Theme helpers shared by the main window and the quick-lookup popup.
  *
- * The stored `themePreference` is 'light' | 'dark' | 'system'. The document
- * carries the resolved theme in two forms:
- *   - `data-theme="light|dark"` drives the design tokens (src/css/tokens.css);
- *   - `theme--light|theme--dark` is the class existing styles still key on.
+ * The stored `themePreference` is 'light' | 'dark' | 'system'. The resolved
+ * theme goes on <html> as `data-theme="light|dark"`, which selects the design
+ * tokens (src/css/tokens.css) and the few dark rules in src/css.
  */
 import Storage from './storage';
 
@@ -24,8 +23,6 @@ export function systemPrefersDark() {
 export function applyDocumentTheme(theme, root = document.documentElement) {
   const name = theme === 'dark' ? 'dark' : 'light';
   root.setAttribute('data-theme', name);
-  root.classList.remove('theme--dark', 'theme--light');
-  root.classList.add(`theme--${name}`);
   return name;
 }
 

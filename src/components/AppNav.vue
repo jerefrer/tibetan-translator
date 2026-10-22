@@ -298,9 +298,6 @@ export default {
 .app-nav .help-button:hover {
   opacity: 1;
 }
-.app-nav .help-button .v-icon {
-  color: var(--rail-active-ink) !important;
-}
 
 /* On a phone the button floats just above the bar. */
 .app-nav--bar .app-nav__help {
@@ -314,8 +311,5 @@ export default {
   background: var(--surface);
   box-shadow: var(--shadow-card);
   border: 1px solid var(--line);
-}
-.app-nav--bar .app-nav__help .help-button .v-icon {
-  color: var(--accent) !important;
 }
 </style>

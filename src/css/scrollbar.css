@@ -1,4 +1,4 @@
-html.theme--light {
+[data-theme='light'] {
   --sidebarBackground: #f9f9f9;
   --transparentSidebarBackground: rgba(249, 249, 249, 0);
   --sidebarBorder: #e1e1e1;
@@ -6,7 +6,7 @@ html.theme--light {
   --scrollbarColorHover: #999;
 }
 
-html.theme--dark {
+[data-theme='dark'] {
   --sidebarBackground: #24282a;
   --transparentSidebarBackground: rgba(36, 40, 42, 0);
   --sidebarBorder: #000;
