@@ -1137,6 +1137,10 @@ export default {
   overflow hidden
   text-overflow ellipsis
   padding-top 0.3rem
+  // Room under the line for subjoined letters and vowels (བསྒྲུབས), which
+  // the ellipsis' clipping cut off; the negative margin keeps the row as it was
+  padding-bottom 0.5rem
+  margin-bottom -0.5rem
 
 .term-item__unknown
   flex none
