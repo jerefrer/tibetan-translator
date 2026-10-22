@@ -134,6 +134,25 @@ describe('UiMenu', () => {
     await nextTick()
     expect(view.emitted('select')?.[0][0]).toMatchObject({ key: 'copy' })
   })
+
+  it('should show an item\'s description under its label', async () => {
+    const described = [
+      { key: 'file', label: 'Dictionary file', description: 'To share, or to reinstall later' },
+    ]
+    mountAttached(UiMenu, { props: { items: described, open: true }, slots: { default: '<button>Menu</button>' } })
+    await nextTick()
+    const item = body('ui-menu-item-file')
+    expect(item.querySelector('.ui-menu__label').textContent).toBe('Dictionary file')
+    expect(item.querySelector('.ui-menu__description').textContent).toBe('To share, or to reinstall later')
+    expect(body('ui-menu').classList.contains('ui-menu--described')).toBe(true)
+  })
+
+  it('should keep plain items on one line', async () => {
+    mountAttached(UiMenu, { props: { items, open: true }, slots: { default: '<button>Menu</button>' } })
+    await nextTick()
+    expect(body('ui-menu-item-copy').querySelector('.ui-menu__description')).toBeNull()
+    expect(body('ui-menu').classList.contains('ui-menu--described')).toBe(false)
+  })
 })
 
 describe('UiSelect', () => {

@@ -98,6 +98,10 @@ export default {
         { separator: true },
         { key: 'delete', label: 'Delete', icon: 'trash-2', danger: true },
       ],
+      describedMenuItems: [
+        { key: 'tibdict', label: 'Dictionary file', description: 'To share, or to reinstall later' },
+        { key: 'xlsx', label: 'Spreadsheet', description: 'To edit in Excel and import back' },
+      ],
       accordionItems: [{ value: 'a', title: '3 rows ignored' }],
       iconNames: Object.keys(ICONS),
     };
@@ -196,6 +200,9 @@ export default {
           <div class="grow"><ui-select v-model="state.selectValue" :options="selectOptions" label="Pack" /></div>
           <ui-menu :items="menuItems">
             <ui-button variant="outline">Menu <ui-icon name="chevron-down" :size="16" /></ui-button>
+          </ui-menu>
+          <ui-menu :items="describedMenuItems" align="end">
+            <ui-button variant="outline">Export <ui-icon name="chevron-down" :size="16" /></ui-button>
           </ui-menu>
           <ui-tooltip text="A tooltip">
             <ui-button variant="ghost">Hover me</ui-button>
