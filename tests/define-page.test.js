@@ -11,6 +11,11 @@ import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { h, KeepAlive, nextTick } from 'vue'
 import { RouterView } from 'vue-router'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 vi.mock('../src/config/platform.js', () => ({
   isTauri: () => true,
@@ -515,5 +520,12 @@ describe('Define — phone', () => {
     await nextTick()
 
     expect(wrapper.find('[data-testid="define-typed"]').exists()).toBe(false)
+  })
+})
+
+describe('Define — layout', () => {
+  it('should cap the terms drawer at 40% of the page, so the definitions keep their room on a tablet', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../src/components/DefinePage.vue'), 'utf8')
+    expect(source).toMatch(/\n\.terms-pane\n  width unquote\('min\(22\.5rem, 40%\)'\)\n/)
   })
 })

@@ -534,8 +534,10 @@ export default {
   margin-top 4px
 
 // Terms
+// The drawer stops at 40% of the body: at a fixed 22.5rem it kept 360px for
+// the terms between 600 and 1180px and squeezed the definitions
 .terms-pane
-  width 22.5rem
+  width unquote('min(22.5rem, 40%)')
   flex none
   min-height 0
   display flex
