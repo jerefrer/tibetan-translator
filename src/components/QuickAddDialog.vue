@@ -1,109 +1,91 @@
 <template>
-  <v-dialog :model-value="modelValue" max-width="560" @update:model-value="close">
-    <v-card>
-      <v-card-item>
-        <v-card-title>{{ targets.length ? 'Add my definition' : 'Create a dictionary' }}</v-card-title>
-        <!-- With a single dictionary the picker below is hidden, so this is the
-             only thing that says where the definition is about to go. -->
-        <v-card-subtitle v-if="targets.length === 1">
-          Saving to {{ selectedTarget.name }}
-        </v-card-subtitle>
-      </v-card-item>
+  <ui-dialog
+    :model-value="modelValue"
+    :title="targets.length ? 'Add my definition' : 'Create a dictionary'"
+    :description="targets.length === 1 ? `Saving to ${selectedTarget.name}` : ''"
+    :max-width="560"
+    @update:model-value="close"
+  >
+    <!-- With a single dictionary the picker below is hidden, so the
+         description is the only thing that says where the definition goes. -->
+    <div class="quick-add-form" data-testid="quick-add-form">
+      <template v-if="targets.length">
+        <ui-select
+          v-if="targets.length > 1"
+          v-model="targetKey"
+          :options="targetOptions"
+          label="Add to"
+          data-testid="quick-add-target"
+        />
+        <ui-tibetan-field
+          v-model="localTerm"
+          label="Tibetan term"
+          :error="termError"
+          enterkeyhint="next"
+          data-testid="quick-add-term"
+        />
+        <ui-text-field
+          ref="definition"
+          v-model="definition"
+          label="My definition"
+          multiline
+          :rows="4"
+          :error="error"
+          class="quick-add-definition"
+          data-testid="quick-add-definition"
+        />
+        <ui-alert v-if="existingId" type="info" data-testid="quick-add-existing">
+          This term is already in {{ selectedTarget.name }} — saving will
+          replace the definition shown above.
+        </ui-alert>
+      </template>
 
-      <v-card-text class="quick-add-form">
-        <template v-if="targets.length">
-          <v-select
-            v-if="targets.length > 1"
-            v-model="targetKey"
-            :items="targets"
-            item-title="name"
-            item-value="key"
-            label="Add to"
-            variant="outlined"
-            color="primary"
-            density="comfortable"
-            hide-details
-          />
-          <TibetanTextField
-            v-model="localTerm"
-            label="Tibetan term"
-            variant="outlined"
-            color="primary"
-            density="comfortable"
-            :error-messages="termError ? [termError] : []"
-            hide-details="auto"
-          />
-          <v-textarea
-            v-model="definition"
-            label="My definition"
-            variant="outlined"
-            color="primary"
-            density="comfortable"
-            rows="4"
-            auto-grow
-            autofocus
-            hide-details="auto"
-            :error-messages="error ? [error] : []"
-          />
-          <v-alert
-            v-if="existingId"
-            type="info"
-            variant="tonal"
-            density="compact"
-          >
-            This term is already in {{ selectedTarget.name }} — saving will
-            replace the definition shown above.
-          </v-alert>
-        </template>
+      <template v-else>
+        <p class="quick-add-intro">
+          You don't have a personal dictionary yet. Name one to start
+          collecting your own definitions.
+        </p>
+        <ui-text-field
+          ref="newLexiconName"
+          v-model="newLexiconName"
+          label="Dictionary name"
+          data-testid="quick-add-name"
+          @keydown.enter="createThenSave"
+        />
+      </template>
+    </div>
 
-        <template v-else>
-          <p>
-            You don't have a personal dictionary yet. Name one to start
-            collecting your own definitions.
-          </p>
-          <v-text-field
-            v-model="newLexiconName"
-            label="Dictionary name"
-            variant="outlined"
-            color="primary"
-            density="comfortable"
-            hide-details="auto"
-            autofocus
-          />
-        </template>
-      </v-card-text>
-
-      <v-card-actions>
-        <v-spacer />
-        <v-btn variant="text" @click="close(false)">Cancel</v-btn>
-        <!-- Solid, not tonal: tonal over this theme's deep red (#A30000) reads
-             as a warning rather than as the action the dialog is here for. -->
-        <v-btn
-          v-if="targets.length"
-          color="primary"
-          variant="flat"
-          :loading="saving"
-          @click="save"
-        >
-          Save
-        </v-btn>
-        <v-btn v-else color="primary" variant="flat" :loading="saving" @click="createThenSave">
-          Create
-        </v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
+    <template #actions>
+      <ui-button variant="ghost" @click="close(false)">Cancel</ui-button>
+      <ui-button
+        v-if="targets.length"
+        :loading="saving"
+        data-testid="quick-add-save"
+        @click="save"
+      >
+        Save
+      </ui-button>
+      <ui-button
+        v-else
+        :loading="saving"
+        data-testid="quick-add-create"
+        @click="createThenSave"
+      >
+        Create
+      </ui-button>
+    </template>
+  </ui-dialog>
 </template>
 
 <script>
 import _ from 'underscore';
-import TibetanTextField from './TibetanTextField.vue';
+import { UiAlert, UiButton, UiDialog, UiSelect, UiTextField, UiTibetanField } from '../ui';
 import Lexicon, { normalizeTerm, messageForError } from '../services/lexicon';
 import Storage from '../services/storage';
 
 export default {
   name: 'QuickAddDialog',
-  components: { TibetanTextField },
+  components: { UiAlert, UiButton, UiDialog, UiSelect, UiTextField, UiTibetanField },
   inject: ['snackbar'],
   props: {
     modelValue: { type: Boolean, default: false },
@@ -133,6 +115,9 @@ export default {
         key: `${dictionary.packId}:${dictionary.dictionaryId}`,
       }));
     },
+    targetOptions() {
+      return this.targets.map((target) => ({ value: target.key, label: target.name }));
+    },
     selectedTarget() {
       return this.targets.find((target) => target.key === this.targetKey) || this.targets[0] || null;
     },
@@ -152,6 +137,7 @@ export default {
       const known = this.targets.some((target) => target.key === remembered);
       this.targetKey = known ? remembered : this.targets[0]?.key || null;
       this.loadExisting();
+      this.focusFirstEmptyField();
     },
     targetKey() {
       this.loadExisting();
@@ -174,6 +160,13 @@ export default {
     }, 250);
   },
   methods: {
+    // The dialog focuses its first field when it opens; the term is filled
+    // in already, so move on to the definition (or the dictionary name).
+    focusFirstEmptyField() {
+      setTimeout(() => {
+        (this.$refs.definition || this.$refs.newLexiconName)?.focus();
+      }, 50);
+    },
     close(value = false) {
       this.$emit('update:modelValue', value);
     },
@@ -267,10 +260,11 @@ export default {
 </script>
 
 <style lang="stylus" scoped>
-// v-card-item already sets the gap under the title, so the extra padding-top
-// this used to carry only widened the void the outlined fields now close.
 .quick-add-form
   display flex
   flex-direction column
   gap 16px
+
+.quick-add-intro
+  margin 0
 </style>

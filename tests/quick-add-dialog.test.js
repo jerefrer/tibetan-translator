@@ -26,22 +26,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { createVuetify } from 'vuetify'
-import * as components from 'vuetify/components'
-import * as directives from 'vuetify/directives'
 import { nextTick } from 'vue'
-
-// happy-dom does not implement window.visualViewport, which Vuetify's
-// VOverlay location strategy reads unconditionally once a v-dialog actually
-// opens. Without this the dialog throws on mount instead of rendering.
-if (typeof window.visualViewport === 'undefined') {
-  window.visualViewport = {
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }
-}
 
 const editableDictionariesMock = vi.fn()
 const entriesMock = vi.fn()
@@ -68,8 +53,8 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
 })
 
 import QuickAddDialog from '../src/components/QuickAddDialog.vue'
+import Storage from '../src/services/storage'
 
-const vuetify = createVuetify({ components, directives })
 const snackbar = { open: vi.fn() }
 
 const ONE_TARGET = [
@@ -87,10 +72,9 @@ describe('QuickAddDialog', () => {
   })
 
   afterEach(() => {
-    // v-dialog teleports into document.body and its leave transition isn't
-    // guaranteed to finish (and thus detach its DOM) by the time
-    // wrapper.unmount() returns, which otherwise leaks a previous test's
-    // dialog markup into the next test's document.body queries.
+    // The dialog teleports into document.body, outside the wrapper; clear it
+    // so a previous test's dialog markup cannot leak into the next one's
+    // document.body queries.
     document.body.innerHTML = ''
   })
 
@@ -101,11 +85,11 @@ describe('QuickAddDialog', () => {
         term: '',
         ...props,
       },
-      global: { plugins: [vuetify], provide: { snackbar } },
+      global: { provide: { snackbar } },
       attachTo: document.body,
     })
 
-  // v-dialog teleports its content to document.body, outside the mounted
+  // The dialog teleports its content to document.body, outside the mounted
   // wrapper's own DOM subtree, so buttons must be located via the real DOM
   // rather than wrapper.find()/findAll().
   const findButton = (text) =>
@@ -113,15 +97,15 @@ describe('QuickAddDialog', () => {
       b.textContent.trim() === text || b.textContent.trim().includes(text)
     )
 
-  // Vuetify renders each field's label and its error messages inside the
-  // same `.v-input` wrapper, so this locates the wrapper for a given field
+  // Each field renders its label and its error message inside the same
+  // `.ui-field` wrapper, so this locates the wrapper for a given field
   // by its visible label text — letting a test assert an error is attached
   // to the RIGHT field, not merely present somewhere in the DOM.
   const fieldContainerFor = (labelText) => {
     const label = Array.from(document.body.querySelectorAll('label')).find((l) =>
       l.textContent.trim().startsWith(labelText)
     )
-    return label?.closest('.v-input') ?? null
+    return label?.closest('.ui-field') ?? null
   }
 
   it('does not emit "saved" or close the dialog when Lexicon.saveEntry resolves null', async () => {
@@ -145,12 +129,9 @@ describe('QuickAddDialog', () => {
 
   it('renders "A Tibetan term is required." on the term field, not the definition field', async () => {
     // Regression check for a review finding: the message was previously
-    // bound to the definition v-textarea's :error-messages, not the term
-    // TibetanTextField's — wrong field entirely. TibetanTextField also
-    // hardcodes `hide-details` on its inner v-text-field, which swallows
-    // error-messages unless the caller overrides it with
-    // hide-details="auto" — asserting against component state alone would
-    // pass even with that bug present, so this must check the rendered DOM.
+    // bound to the definition field's error, not the term field's — wrong
+    // field entirely. Asserting against component state alone would pass
+    // even with that bug present, so this must check the rendered DOM.
     saveEntryMock.mockResolvedValue(null)
     const wrapper = mountDialog()
     wrapper.vm.localTerm = 'ཀ'
@@ -349,5 +330,92 @@ describe('QuickAddDialog', () => {
     resolveSave({ id: 1, created: true })
     await flushPromises()
     wrapper.unmount()
+  })
+
+  describe('in the new design', () => {
+    const TWO_TARGETS = [
+      ...ONE_TARGET,
+      { packId: 'custom-other', dictionaryId: 1, packName: 'Other', name: 'Other', entriesCount: 0 },
+    ]
+
+    it('says where the definition goes when there is a single dictionary, and offers no picker', async () => {
+      const wrapper = mountDialog({ modelValue: false, term: 'ཀ' })
+      await wrapper.setProps({ modelValue: true })
+      await flushPromises()
+
+      expect(document.body.querySelector('.ui-dialog__title').textContent).toBe('Add my definition')
+      expect(document.body.textContent).toContain('Saving to My Lexicon')
+      expect(document.body.querySelector('[data-testid="quick-add-target"]')).toBeNull()
+      wrapper.unmount()
+    })
+
+    it('offers a picker with several dictionaries, starting on the last one used', async () => {
+      editableDictionariesMock.mockReturnValue(TWO_TARGETS)
+      Storage.set('lastLexiconTarget', 'custom-other:1')
+      const wrapper = mountDialog({ modelValue: false, term: 'ཀ' })
+      await wrapper.setProps({ modelValue: true })
+      await flushPromises()
+
+      expect(document.body.querySelector('[data-testid="quick-add-target"]')).not.toBeNull()
+      expect(wrapper.vm.targetKey).toBe('custom-other:1')
+      expect(document.body.textContent).not.toContain('Saving to')
+      wrapper.unmount()
+    })
+
+    it('fills the term in and focuses the definition', async () => {
+      const wrapper = mountDialog({ modelValue: false, term: 'ཀ་' })
+      await wrapper.setProps({ modelValue: true })
+      await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 80))
+
+      const term = document.body.querySelector('[data-testid="quick-add-term"] input')
+      const definition = document.body.querySelector('[data-testid="quick-add-definition"] textarea')
+      expect(term.value).toBe('ཀ་')
+      expect(document.activeElement).toBe(definition)
+      wrapper.unmount()
+    })
+
+    it('asks for a definition under the definition field', async () => {
+      const wrapper = mountDialog({ modelValue: false, term: 'ཀ' })
+      await wrapper.setProps({ modelValue: true })
+      await flushPromises()
+
+      findButton('Save').click()
+      await flushPromises()
+
+      expect(fieldContainerFor('My definition').textContent).toContain('A definition is required.')
+      expect(saveEntryMock).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
+
+    it('saves, says so, remembers the dictionary, tells the page and closes', async () => {
+      saveEntryMock.mockResolvedValue({ id: 3, created: true })
+      const wrapper = mountDialog({ modelValue: false, term: 'ཀ' })
+      await wrapper.setProps({ modelValue: true })
+      await flushPromises()
+      wrapper.vm.definition = 'a letter'
+      await nextTick()
+
+      findButton('Save').click()
+      await flushPromises()
+
+      expect(saveEntryMock).toHaveBeenCalledWith('custom-mine', 1, 'ཀ', 'a letter')
+      expect(snackbar.open).toHaveBeenCalledWith('Added to your dictionary')
+      expect(Storage.get('lastLexiconTarget')).toBe('custom-mine:1')
+      expect(wrapper.emitted('saved')).toEqual([[{ id: 3, created: true }]])
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+      wrapper.unmount()
+    })
+
+    it('closes from Cancel without saving', async () => {
+      const wrapper = mountDialog()
+      await flushPromises()
+
+      findButton('Cancel').click()
+
+      expect(wrapper.emitted('update:modelValue')).toEqual([[false]])
+      expect(saveEntryMock).not.toHaveBeenCalled()
+      wrapper.unmount()
+    })
   })
 })
