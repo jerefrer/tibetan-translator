@@ -4,7 +4,7 @@
  * Desktop only - should never be shown on mobile
  */
 import { isMobile } from "./config/platform";
-import { initDocumentTheme } from "./services/theme";
+import { applyPopupAppearance, watchPopupAppearance } from "./services/popup-appearance";
 
 // Global lookup popup is desktop-only. On mobile, redirect to main app.
 if (isMobile()) {
@@ -18,21 +18,18 @@ if (isMobile()) {
 
 async function initPopup() {
   const { createApp } = await import("vue");
-  const { default: vuetify } = await import("./plugins/vuetify");
   const { default: GlobalLookupWindow } = await import("./components/GlobalLookupWindow.vue");
 
-  await import("@mdi/font/css/materialdesignicons.css");
   await import("./css/tokens.css");
   await import("./css/fonts.css");
   await import("./css/layout.css");
   await import("./css/tibetan.css");
   await import("./css/scrollbar.css");
 
-  // Same theme initialisation as the main window: sets data-theme (design
-  // tokens) and the legacy theme--* class from the stored preference.
-  initDocumentTheme();
+  // Same theme initialisation as the main window (data-theme for the tokens,
+  // theme--* for older styles), plus the Text size setting.
+  applyPopupAppearance();
+  watchPopupAppearance();
 
-  const app = createApp(GlobalLookupWindow);
-  app.use(vuetify);
-  app.mount("#popup");
+  createApp(GlobalLookupWindow).mount("#popup");
 }
