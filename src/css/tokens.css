@@ -13,7 +13,8 @@
  * Radii, borders and shadows stay in px.
  */
 
-:root {
+:root,
+[data-theme='light'] {
   color-scheme: light;
 
   /* Surfaces and text */
@@ -121,7 +122,7 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-:root[data-theme='dark'] {
+[data-theme='dark'] {
   color-scheme: dark;
 
   --bg: #1E1815;

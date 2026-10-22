@@ -154,6 +154,17 @@ if (!window.visualViewport) {
   }
 }
 
+// Reka UI positions popovers (select, menu, tooltip) with floating-ui, which
+// observes sizes through ResizeObserver; happy-dom does not provide one.
+if (!window.ResizeObserver) {
+  window.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  globalThis.ResizeObserver = window.ResizeObserver
+}
+
 // Mock Tauri API
 window.__TAURI__ = undefined
 window.__TAURI_INTERNALS__ = undefined

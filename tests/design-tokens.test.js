@@ -18,8 +18,8 @@ function block(selector) {
   return tokens
 }
 
-const light = block(':root')
-const dark = block(":root[data-theme='dark']")
+const light = block("[data-theme='light']")
+const dark = block("[data-theme='dark']")
 
 describe('design tokens', () => {
   it('should take the light palette from the mockups', () => {

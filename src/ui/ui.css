@@ -1,0 +1,46 @@
+/*
+ * Small helpers that replace Vuetify layout and transition components
+ * that need no component of their own.
+ *
+ *   <v-spacer />                    ->  <div class="ui-spacer" />
+ *   <v-fade-transition>             ->  <transition name="ui-fade">
+ *   <v-expand-transition>           ->  <transition name="ui-expand"> (opacity only; animate height in the caller)
+ *   <v-container> / <v-row> / <v-col>  ->  plain flex or grid with the --space-* tokens
+ */
+.ui-spacer {
+  flex: 1 1 auto;
+}
+
+.ui-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.ui-fade-enter-active,
+.ui-fade-leave-active,
+.ui-expand-enter-active,
+.ui-expand-leave-active {
+  transition: opacity 0.15s ease;
+}
+.ui-fade-enter-from,
+.ui-fade-leave-to,
+.ui-expand-enter-from,
+.ui-expand-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-fade-enter-active,
+  .ui-fade-leave-active,
+  .ui-expand-enter-active,
+  .ui-expand-leave-active {
+    transition: none;
+  }
+}

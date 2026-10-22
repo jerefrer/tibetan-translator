@@ -24,8 +24,7 @@ export default {
     const attrs = {
       class: 'ui-icon',
       'data-testid': 'ui-icon',
-      width: dimension,
-      height: dimension,
+      size: dimension,
       'stroke-width': this.strokeWidth,
     };
     if (this.label) {
