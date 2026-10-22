@@ -6,12 +6,18 @@
  * Syncs dictionaries from christiansteinert/tibetan-dictionary repository.
  *
  * Usage:
- *   node scripts/sync-dictionaries.js
+ *   node scripts/sync-dictionaries.mjs
  *   pnpm sync:dictionaries
  *
  * Options:
  *   --dry-run    Show what would be changed without making changes
  *   --rebuild    Automatically rebuild database after sync
+ *
+ * Upstream renames some dictionaries (it dropped the commas and apostrophes
+ * from filenames). We keep our own names, because pack definitions, stored
+ * settings and dictionary ids all depend on them, so a rename upstream is
+ * reported but never creates a duplicate. Dictionaries we added ourselves, or
+ * that upstream removed, are left alone.
  */
 
 import { execSync } from 'child_process';
@@ -28,6 +34,19 @@ import {
 } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
+
+import { PACK_DEFINITIONS } from '../build/config/pack-dictionaries.js';
+import {
+  applyOverrides,
+  diffDetails,
+  isIgnored,
+  matchLocalName,
+  mergeOverrides,
+  parseAbbreviations,
+  parseDictlist,
+  remapKeys,
+} from './lib/dictionary-sync-core.js';
+import { KEYWORDS } from './lib/dictionary-keywords.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,11 +66,42 @@ const ABBREVIATIONS_FILE = join(
 const DICT_SOURCE_PATHS = ['_input/dictionaries/public'];
 
 // Settings files in the christiansteinert repo
-const DICTLIST_SOURCE = 'webapp/settings/dictlist.js';
-const ABBREVIATIONS_SOURCE = 'webapp/settings/abbreviations.js';
+const DICTLIST_SOURCE = 'webapp/src/config/dictlist.ts';
+const ABBREVIATIONS_SOURCE = 'webapp/src/config/abbreviations.ts';
 
 // Audio files
-const AUDIO_SOURCE_PATH = 'webapp/audio';
+const AUDIO_SOURCE_PATH = 'backend/audio';
+
+// Upstream dictionaries we choose not to ship.
+const IGNORED_DICTIONARIES = [
+  // A single entry ("Definitions by Jongbok Yi"), nothing worth a dictionary
+  'JongbokYi',
+];
+
+// Where we deliberately differ from upstream's metadata, re-applied on every
+// sync. `undefined` removes the field.
+const LOCAL_DETAIL_OVERRIDES = mergeOverrides(
+  {
+    // Upstream hides its scanned dictionaries outside the web app. Ours work
+    // offline (see scan-service.js), so they must not carry the flag.
+    'ChandraDas_Scan': { webOnly: undefined },
+    'Jaeschke_Scan': { webOnly: undefined },
+    'Mahavyutpatti-Scan-1989': { webOnly: undefined },
+    'sgra-sbyor-bam-po-gnyis-pa': { webOnly: undefined },
+  },
+  // Subject tags for the catalog (see lib/dictionary-keywords.js)
+  Object.fromEntries(
+    Object.entries(KEYWORDS).map(([name, keywords]) => [name, { keywords }])
+  )
+);
+
+// The only parts of the repo we read. The rest (old releases, scans, the other
+// dictionary folders) is over a gigabyte we have no use for.
+const SPARSE_PATHS = [
+  ...DICT_SOURCE_PATHS,
+  'webapp/src/config',
+  AUDIO_SOURCE_PATH,
+];
 const AUDIO_DEST_DIR = join(__dirname, '../public/audio');
 
 const args = process.argv.slice(2);
@@ -103,26 +153,17 @@ function getExistingDictionaries() {
 
 function cloneOrPullRepo() {
   if (existsSync(TEMP_DIR)) {
-    // Check if sparse-checkout is configured properly
-    const sparseCheckoutFile = join(TEMP_DIR, '.git/info/sparse-checkout');
-    const hasSparseCheckout = existsSync(sparseCheckoutFile);
-
-    if (hasSparseCheckout) {
-      log('Updating existing repository clone...');
-      try {
-        execSync(`git -C "${TEMP_DIR}" fetch origin`, { stdio: 'pipe' });
-        execSync(`git -C "${TEMP_DIR}" reset --hard origin/${REPO_BRANCH}`, {
-          stdio: 'pipe',
-        });
-        log('Repository updated', 'success');
-      } catch (error) {
-        log('Failed to update, re-cloning...', 'warning');
-        rmSync(TEMP_DIR, { recursive: true, force: true });
-        cloneRepo();
-      }
-    } else {
-      // Old clone without sparse-checkout, re-clone with sparse
-      log('Re-cloning with sparse checkout to exclude large folders...', 'info');
+    log('Updating existing repository clone...');
+    try {
+      execSync(`git -C "${TEMP_DIR}" fetch origin`, { stdio: 'pipe' });
+      execSync(`git -C "${TEMP_DIR}" reset --hard origin/${REPO_BRANCH}`, {
+        stdio: 'pipe',
+      });
+      // Idempotent, and picks up folders added to SPARSE_PATHS since the clone
+      setSparsePaths();
+      log('Repository updated', 'success');
+    } catch (error) {
+      log('Failed to update, re-cloning...', 'warning');
       rmSync(TEMP_DIR, { recursive: true, force: true });
       cloneRepo();
     }
@@ -131,21 +172,23 @@ function cloneOrPullRepo() {
   }
 }
 
+function setSparsePaths() {
+  execSync(
+    `git -C "${TEMP_DIR}" sparse-checkout set ${SPARSE_PATHS.map((p) => `"${p}"`).join(' ')}`,
+    { stdio: 'pipe' }
+  );
+}
+
 function cloneRepo() {
   log(`Cloning ${REPO_URL} (sparse checkout)...`);
   try {
     mkdirSync(TEMP_DIR, { recursive: true });
-    // Use sparse checkout to exclude large folders we don't need
     execSync(
       `git clone --depth 1 --branch ${REPO_BRANCH} --filter=blob:none --sparse "${REPO_URL}" "${TEMP_DIR}"`,
       { stdio: 'pipe' }
     );
-    // Set sparse checkout to exclude "old releases" and "webapp/data/scan"
-    execSync(
-      `git -C "${TEMP_DIR}" sparse-checkout set --no-cone "/*" "!old releases" "!/old releases" "!webapp/data/scan"`,
-      { stdio: 'pipe' }
-    );
-    log('Repository cloned (excluding old releases & scan data)', 'success');
+    setSparsePaths();
+    log('Repository cloned (dictionaries, config and audio only)', 'success');
   } catch (error) {
     log(`Failed to clone repository: ${error.message}`, 'error');
     process.exit(1);
@@ -187,58 +230,7 @@ function findDictionaryFiles() {
     }
   }
 
-  // If no files found with the above patterns, scan for any text-like files
-  if (dictFiles.length === 0) {
-    log('No standard dictionary files found, scanning all files...', 'warning');
-    scanAllFiles(TEMP_DIR, dictFiles);
-  }
-
   return dictFiles;
-}
-
-function scanAllFiles(dir, results, depth = 0) {
-  if (depth > 3) return; // Limit recursion depth
-
-  try {
-    const files = readdirSync(dir);
-    for (const file of files) {
-      if (file.startsWith('.') || file === 'node_modules') continue;
-
-      const filePath = join(dir, file);
-      const stat = statSync(filePath);
-
-      if (stat.isDirectory()) {
-        scanAllFiles(filePath, results, depth + 1);
-      } else if (stat.isFile() && stat.size > 1000) {
-        // Dictionary files are typically larger than 1KB
-        // and don't have common non-dictionary extensions
-        const ext = file.split('.').pop().toLowerCase();
-        if (
-          ![
-            'js',
-            'json',
-            'md',
-            'html',
-            'css',
-            'py',
-            'sh',
-            'yml',
-            'yaml',
-            'xml',
-          ].includes(ext)
-        ) {
-          results.push({
-            name: file,
-            sourcePath: filePath,
-            hash: hashFile(filePath),
-            size: stat.size,
-          });
-        }
-      }
-    }
-  } catch {
-    // Ignore permission errors
-  }
 }
 
 function compareAndSync(existing, source) {
@@ -246,11 +238,31 @@ function compareAndSync(existing, source) {
     added: [],
     updated: [],
     unchanged: [],
+    renamed: [],
+    missingUpstream: [],
   };
 
-  for (const dict of source) {
-    const existingDict = existing[dict.name];
+  const localNames = Object.keys(existing);
+  const claimed = new Set();
 
+  for (const upstream of source) {
+    if (isIgnored(upstream.name, IGNORED_DICTIONARIES)) continue;
+
+    // From here on `name` is the local name, so a rename upstream updates the
+    // file we already have instead of adding a second copy under the new name.
+    const localName = matchLocalName(upstream.name, localNames);
+    const dict = { ...upstream, name: localName || upstream.name };
+
+    if (localName && localName !== upstream.name) {
+      changes.renamed.push({ from: upstream.name, to: localName });
+    }
+    if (claimed.has(dict.name)) {
+      log(`Two upstream files match ${dict.name}, skipping ${upstream.name}`, 'warning');
+      continue;
+    }
+    claimed.add(dict.name);
+
+    const existingDict = existing[dict.name];
     if (!existingDict) {
       changes.added.push(dict);
     } else if (existingDict.hash !== dict.hash) {
@@ -263,6 +275,9 @@ function compareAndSync(existing, source) {
       changes.unchanged.push(dict);
     }
   }
+
+  // Ours alone: added by us, or removed upstream. Reported, never deleted.
+  changes.missingUpstream = localNames.filter((name) => !claimed.has(name));
 
   return changes;
 }
@@ -299,78 +314,74 @@ function formatSize(bytes) {
 }
 
 /**
- * Parse dictlist.js and convert to ES module format for dictionaries-details.js
+ * Read the default export of one of our generated `export default {...}`
+ * modules without importing it, which would print a module-type warning.
  */
-function syncDictionariesDetails() {
+function readGeneratedModule(path) {
+  if (!existsSync(path)) return {};
+  const source = readFileSync(path, 'utf-8').replace('export default', 'return');
+  return new Function(source)();
+}
+
+function describeDiff(label, diff) {
+  const parts = [
+    ['added', diff.added],
+    ['changed', diff.changed],
+    ['not in upstream, kept', diff.removed],
+  ];
+  for (const [what, keys] of parts) {
+    if (keys.length) log(`${label} ${what}: ${keys.join(', ')}`, 'change');
+  }
+}
+
+/**
+ * Parse upstream's dictlist.ts and write dictionaries-details.js.
+ *
+ * Upstream keys are renamed to our local dictionary names, and entries that
+ * only exist here (dictionaries we added ourselves) are carried over untouched.
+ *
+ * @param {string[]} localFiles dictionary filenames present after the sync
+ * @returns {boolean} whether the details file differs from what it was
+ */
+function syncDictionariesDetails(localFiles) {
   const sourcePath = join(TEMP_DIR, DICTLIST_SOURCE);
   if (!existsSync(sourcePath)) {
-    log('dictlist.js not found in source repository', 'warning');
+    log(`${DICTLIST_SOURCE} not found in source repository`, 'error');
     return false;
   }
 
   log('Syncing dictionaries details...');
 
   try {
-    let content = readFileSync(sourcePath, 'utf-8');
-
-    // Parse the GROUPED_DICTLIST object
-    // Remove the variable assignment and trailing code
-    const match = content.match(
-      /GROUPED_DICTLIST\s*=\s*(\{[\s\S]*?\n\});?\s*(?:\/\/|DICTLIST|$)/
+    const upstream = Object.fromEntries(
+      Object.entries(
+        remapKeys(parseDictlist(readFileSync(sourcePath, 'utf-8')), localFiles)
+      ).filter(([key]) => !isIgnored(key, IGNORED_DICTIONARIES))
     );
-    if (!match) {
-      log('Could not parse GROUPED_DICTLIST from dictlist.js', 'error');
-      return false;
-    }
+    const current = readGeneratedModule(DETAILS_FILE);
 
-    // Evaluate the object (safely using Function constructor)
-    let groupedDictlist;
-    try {
-      groupedDictlist = new Function('return ' + match[1])();
-    } catch (e) {
-      log(`Error parsing dictlist.js: ${e.message}`, 'error');
-      return false;
-    }
+    const localOnly = Object.fromEntries(
+      Object.entries(current).filter(([key]) => !(key in upstream))
+    );
+    const merged = applyOverrides(
+      { ...upstream, ...localOnly },
+      LOCAL_DETAIL_OVERRIDES
+    );
 
-    // Flatten the grouped structure into a single object
-    const flatDetails = {};
-
-    for (const [key, value] of Object.entries(groupedDictlist)) {
-      if (value.type === 'group' && value.items) {
-        // For groups, add each item
-        for (const [itemKey, itemValue] of Object.entries(value.items)) {
-          flatDetails[itemKey] = { ...itemValue };
-          // Clean up label (remove &shy; soft hyphens)
-          if (flatDetails[itemKey].label) {
-            flatDetails[itemKey].label = flatDetails[itemKey].label.replace(
-              /&shy;/g,
-              ''
-            );
-          }
-        }
-      } else if (!key.startsWith('_')) {
-        // Regular entry (not a group marker)
-        flatDetails[key] = { ...value };
-        // Clean up label
-        if (flatDetails[key].label) {
-          flatDetails[key].label = flatDetails[key].label.replace(/&shy;/g, '');
-        }
-      }
-    }
-
-    // Generate ES module content
-    const esModule =
-      'export default ' + JSON.stringify(flatDetails, null, 2) + '\n';
+    const diff = diffDetails(current, merged);
+    // Local-only entries are preserved, so they are not a removal
+    diff.removed = Object.keys(localOnly);
+    describeDiff('Details', diff);
 
     if (!isDryRun) {
-      writeFileSync(DETAILS_FILE, esModule);
+      writeFileSync(
+        DETAILS_FILE,
+        'export default ' + JSON.stringify(merged, null, 2) + '\n'
+      );
     }
 
-    log(
-      `Synced ${Object.keys(flatDetails).length} dictionary details`,
-      'success'
-    );
-    return true;
+    log(`Synced ${Object.keys(merged).length} dictionary details`, 'success');
+    return diff.added.length > 0 || diff.changed.length > 0;
   } catch (error) {
     log(`Error syncing dictionaries details: ${error.message}`, 'error');
     return false;
@@ -378,49 +389,36 @@ function syncDictionariesDetails() {
 }
 
 /**
- * Parse abbreviations.js and convert to ES module format
+ * Parse upstream's abbreviations.ts and write dictionaries-abbreviations-list.js
+ *
+ * @returns {boolean} whether the abbreviations differ from what they were
  */
 function syncAbbreviations() {
   const sourcePath = join(TEMP_DIR, ABBREVIATIONS_SOURCE);
   if (!existsSync(sourcePath)) {
-    log('abbreviations.js not found in source repository', 'warning');
+    log(`${ABBREVIATIONS_SOURCE} not found in source repository`, 'error');
     return false;
   }
 
   log('Syncing abbreviations...');
 
   try {
-    let content = readFileSync(sourcePath, 'utf-8');
-
-    // Parse the ABBREVIATIONS object
-    const match = content.match(/ABBREVIATIONS\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
-    if (!match) {
-      log('Could not parse ABBREVIATIONS from abbreviations.js', 'error');
-      return false;
-    }
-
-    // Evaluate the object
-    let abbreviations;
-    try {
-      abbreviations = new Function('return ' + match[1])();
-    } catch (e) {
-      log(`Error parsing abbreviations.js: ${e.message}`, 'error');
-      return false;
-    }
-
-    // Generate ES module content
-    const esModule =
-      'export default ' + JSON.stringify(abbreviations, null, 2) + '\n';
+    const abbreviations = parseAbbreviations(readFileSync(sourcePath, 'utf-8'));
+    const diff = diffDetails(readGeneratedModule(ABBREVIATIONS_FILE), abbreviations);
+    describeDiff('Abbreviations', diff);
 
     if (!isDryRun) {
-      writeFileSync(ABBREVIATIONS_FILE, esModule);
+      writeFileSync(
+        ABBREVIATIONS_FILE,
+        'export default ' + JSON.stringify(abbreviations, null, 2) + '\n'
+      );
     }
 
     log(
       `Synced ${Object.keys(abbreviations).length} abbreviation sets`,
       'success'
     );
-    return true;
+    return diff.added.length > 0 || diff.changed.length > 0 || diff.removed.length > 0;
   } catch (error) {
     log(`Error syncing abbreviations: ${error.message}`, 'error');
     return false;
@@ -669,6 +667,38 @@ function cleanup() {
   // }
 }
 
+/**
+ * Say what the name matching did: files renamed upstream (kept under our
+ * name) and files upstream no longer has (kept, never deleted).
+ */
+function reportRenamesAndStrays(changes) {
+  for (const { from, to } of changes.renamed) {
+    log(`Renamed upstream: ${from} -> kept as ${to}`, 'info');
+  }
+  for (const name of changes.missingUpstream) {
+    log(`Not in upstream, kept: ${name}`, 'warning');
+  }
+}
+
+/**
+ * A dictionary no pack lists is built into nothing: it would sit in
+ * build/dictionaries and never reach a user. Flag new ones so that is a
+ * decision, not a surprise.
+ */
+function warnAboutUnpackedDictionaries(added) {
+  const packed = new Set(
+    Object.values(PACK_DEFINITIONS).flatMap((pack) => pack.dictionaries)
+  );
+  for (const { name } of added) {
+    if (!packed.has(name.replace(/^\d+-/, ''))) {
+      log(
+        `${name} is in no pack. Add it to build/config/pack-dictionaries.js and src/config/pack-definitions.js to ship it.`,
+        'warning'
+      );
+    }
+  }
+}
+
 async function main() {
   console.log('\n📚 Tibetan Dictionary Sync Script\n');
 
@@ -709,6 +739,8 @@ async function main() {
     log(`New dictionaries: ${changes.added.length}`);
     log(`Updated dictionaries: ${changes.updated.length}`);
     log(`Unchanged dictionaries: ${changes.unchanged.length}`);
+    reportRenamesAndStrays(changes);
+    warnAboutUnpackedDictionaries(changes.added);
 
     // Step 6: Apply dictionary changes
     if (changes.added.length > 0 || changes.updated.length > 0) {
@@ -718,9 +750,12 @@ async function main() {
       log('\nAll dictionary files are up to date!', 'success');
     }
 
-    // Step 7: Always sync settings files (dictlist.js and abbreviations.js)
+    // Step 7: Always sync settings files (dictlist.ts and abbreviations.ts)
     console.log('\n📋 Settings:');
-    const detailsSynced = syncDictionariesDetails();
+    const detailsSynced = syncDictionariesDetails([
+      ...Object.keys(existing),
+      ...changes.added.map((d) => d.name),
+    ]);
     const abbreviationsSynced = syncAbbreviations();
 
     // Step 8: Sync audio files
@@ -751,7 +786,7 @@ async function main() {
         rebuildDatabase();
       } else {
         log(
-          '\nRun `pnpm build:database` to rebuild the database with the new dictionaries.',
+          '\nRun `pnpm build:packs` (app) and `pnpm build:database` (web) to rebuild with the new dictionaries.',
           'info'
         );
       }
