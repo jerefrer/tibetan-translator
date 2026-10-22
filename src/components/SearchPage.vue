@@ -74,6 +74,8 @@ export default {
       // Search builder state
       builderVisible: Storage.get('searchBuilderVisible') !== false,
       quickAddOpen: false,
+      // The query whose route this page pushed itself (see the route watcher)
+      pushedQuery: null,
       aboutDictionary: '',
       aboutOpen: false,
     };
@@ -86,6 +88,10 @@ export default {
 
       this.searchQuery = value;
       Storage.set('searchQuery', value);
+      // A search from the page pushes its own route: it has run already
+      const pushedQuery = this.pushedQuery;
+      this.pushedQuery = null;
+      if (value && value === pushedQuery) return;
       if (value) this.performSearch({ query: value, fromNavigation: true });
     },
     previousQueries(value) {
@@ -396,10 +402,14 @@ export default {
       if (this.previousQueries.length > MAX_PREVIOUS_QUERIES)
         this.previousQueries = this.previousQueries.slice(0, MAX_PREVIOUS_QUERIES);
     },
-    pushRoute() {
+    pushRoute({ searched = false } = {}) {
       var path = '/search/' + encodeURIComponent(this.searchQuery);
       if (path != this.$route.path) {
-        this.$router.push({ path: path });
+        if (searched) this.pushedQuery = this.searchQuery;
+        // A push that goes nowhere (same route) never reaches the watcher
+        this.$router.push({ path: path }).then((failure) => {
+          if (failure) this.pushedQuery = null;
+        });
       }
     },
     performSearch(options = {}) {
@@ -408,7 +418,7 @@ export default {
         this.loading = true;
         if (!options.fromNavigation) {
           this.storeQuery();
-          this.pushRoute();
+          this.pushRoute({ searched: true });
         }
         // Cache highlight terms at search time to avoid re-rendering on input changes
         this.cachedRegularTerms = [...this.regularSearchTerms];

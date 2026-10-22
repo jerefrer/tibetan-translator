@@ -55,7 +55,7 @@ async function mountPage() {
       plugins: [vuetify],
       mocks: {
         $route: { params: { query: 'ཀ' }, path: '/search/ཀ' },
-        $router: { push: vi.fn(), replace: vi.fn() },
+        $router: { push: vi.fn(async () => {}), replace: vi.fn() },
       },
       provide: { snackbar: { open: vi.fn() } },
       stubs: {
