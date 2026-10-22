@@ -1,6 +1,6 @@
 {
   "schemaVersion": 3,
-  "generated": "2026-02-20T19:45:30.048Z",
+  "generated": "2026-10-21T23:29:26.653Z",
   "packs": {
     "core": {
       "id": "core",
@@ -11,16 +11,16 @@
       "files": {
         "sqlite": {
           "filename": "core.sqlite",
-          "size": 193818624,
-          "sizeMB": "184.8"
+          "size": 193560576,
+          "sizeMB": "184.6"
         },
         "compressed": {
           "filename": "core.7z",
-          "size": 44398131,
-          "sizeMB": "42.3"
+          "size": 44614623,
+          "sizeMB": "42.5"
         }
       },
-      "checksum": "3190ba9166ed429a8b4a4ff8ff490eda1f7effd0224a2d9a509b33bf0b0ec2db"
+      "checksum": "ca14f92a691d788a2e48a53b42c8ad00a7b9bdab9419f732a59a3ac4692926be"
     },
     "tibetan-monolingual": {
       "id": "tibetan-monolingual",
@@ -31,16 +31,16 @@
       "files": {
         "sqlite": {
           "filename": "tibetan-monolingual.sqlite",
-          "size": 313442304,
-          "sizeMB": "298.9"
+          "size": 312909824,
+          "sizeMB": "298.4"
         },
         "compressed": {
           "filename": "tibetan-monolingual.7z",
-          "size": 70819679,
+          "size": 70761038,
           "sizeMB": "67.5"
         }
       },
-      "checksum": "9aec91ebc64e28bc8c7630cd03aadc159adf8a7ffd682fa504ad42de0a12988a"
+      "checksum": "5e826c9091507aaa47185bf8282624e70efefc01c3ca1ef2d385f1f02d6347c5"
     },
     "sanskrit-academic": {
       "id": "sanskrit-academic",
@@ -51,16 +51,16 @@
       "files": {
         "sqlite": {
           "filename": "sanskrit-academic.sqlite",
-          "size": 125022208,
-          "sizeMB": "119.2"
+          "size": 125104128,
+          "sizeMB": "119.3"
         },
         "compressed": {
           "filename": "sanskrit-academic.7z",
-          "size": 29180166,
-          "sizeMB": "27.8"
+          "size": 29206946,
+          "sizeMB": "27.9"
         }
       },
-      "checksum": "b8f6e673df8053939db9bfeb396872f3285d918f9b7ba00463aa55ac624f9cc9"
+      "checksum": "679279200885be3db2ce824c96df3ad38c11f7395599835015739ac168d2a27f"
     }
   }
 }

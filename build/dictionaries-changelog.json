@@ -1,5 +1,54 @@
 [
   {
+    "lastSync": "2026-10-21T23:00:23.722Z",
+    "source": "https://github.com/christiansteinert/tibetan-dictionary.git",
+    "changes": {
+      "added": [],
+      "updated": []
+    }
+  },
+  {
+    "lastSync": "2026-10-21T22:58:56.889Z",
+    "source": "https://github.com/christiansteinert/tibetan-dictionary.git",
+    "changes": {
+      "added": [],
+      "updated": [
+        "02-RangjungYeshe",
+        "05-Hackett-Def2015",
+        "08-IvesWaldo",
+        "12-Hopkins-Divisions,Tib2015",
+        "13-Hopkins-Examples",
+        "14-Hopkins-Examples,Tib",
+        "15-Hopkins-Skt2015",
+        "17-Hopkins-TibetanSynonyms1992",
+        "17-Hopkins-TibetanSynonyms2015",
+        "18-Hopkins-TibetanDefinitions2015",
+        "19-Hopkins-TibetanTenses2015",
+        "20-Hopkins-others'English2015",
+        "22-Yoghacharabhumi-glossary",
+        "25-tshig-mdzod-chen-mo-Tib",
+        "26-Verbinator",
+        "33-TsepakRigdzin",
+        "34-dung-dkar-tshig-mdzod-chen-mo-Tib",
+        "37-dag_tshig_gsar_bsgrigs-Tib",
+        "49-LokeshChandraSkt",
+        "50-NegiSkt",
+        "51-LaineAbbreviations",
+        "52-ITLR",
+        "54-bod_rgya_nang_don_rig_pai_tshig_mdzod",
+        "56-chos_rnam_kun_btus",
+        "60-sngas_rgyas_chos_gzhung_tshig_mdzod",
+        "62-bod_yig_tshig_gter_rgya_mtsho",
+        "63-Mahavyutpatti-Scan-1989",
+        "66-Jaeschke_Scan",
+        "67-hotl1",
+        "67-hotl2",
+        "67-hotl3",
+        "68-tibetanlanguage-school"
+      ]
+    }
+  },
+  {
     "lastSync": "2026-01-01T12:02:39.808Z",
     "source": "https://github.com/christiansteinert/tibetan-dictionary.git",
     "changes": {
