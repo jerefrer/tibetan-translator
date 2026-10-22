@@ -1,6 +1,8 @@
 <script>
 import { ref, computed, watch } from 'vue';
 import PackManager from '../services/pack-manager';
+import DictionariesDetails from '../services/dictionaries-details';
+import { getPackHighlights } from '../services/dictionary-catalog';
 import { PACK_DEFINITIONS, getRequiredPackIds, getOptionalPackIds } from '../config/pack-definitions';
 import { isTauri, isMobile, isMacOS } from '../config/platform';
 
@@ -148,6 +150,9 @@ export default {
       return { download, installed };
     };
 
+    // Which dictionaries a pack holds, so choosing one is not choosing blind
+    const packHighlights = (pack) => getPackHighlights(pack, DictionariesDetails);
+
     return {
       step,
       selectedOptionalPacks,
@@ -174,6 +179,7 @@ export default {
       isTibetanKaIcon,
       parseSize,
       PACK_DEFINITIONS,
+      packHighlights,
     };
   },
 };
@@ -237,6 +243,9 @@ export default {
               <div class="pack-info">
                 <div class="pack-name">{{ pack.name }}</div>
                 <div class="pack-description">{{ pack.description }}</div>
+                <div v-if="packHighlights(pack).labels.length" class="pack-highlights text-caption">
+                  Includes {{ packHighlights(pack).labels.join(', ') }}<template v-if="packHighlights(pack).moreCount">, and {{ packHighlights(pack).moreCount }} more</template>
+                </div>
                 <div class="pack-sizes">
                   <span class="text-caption text-grey">{{ parseSize(pack.estimatedSize).download }} download</span>
                   <span class="text-caption text-grey separator">·</span>
@@ -549,6 +558,11 @@ export default {
     .pack-description
       font-size: 0.8rem
       line-height: 1.3
+      color: rgba(var(--v-theme-on-surface), 0.7)
+      margin-bottom: 6px
+
+    .pack-highlights
+      line-height: 1.35
       color: rgba(var(--v-theme-on-surface), 0.7)
       margin-bottom: 6px
 
