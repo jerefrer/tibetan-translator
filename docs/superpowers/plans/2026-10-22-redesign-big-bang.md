@@ -91,10 +91,12 @@ Lowest risk first, each checked against the B mockup:
 
 Exit: no screen imports Vuetify.
 
-## Phase 4: remove Vuetify (1 session)
+## Phase 4: remove Vuetify (1 session) ✅
 
-- Remove the plugin, the dependency, the 26 dark overrides and dead CSS.
-- Compare bundle size before and after (desktop and web).
+- [x] Remove the plugin, the dependency, the 26 dark overrides and dead CSS. Vuetify's CSS reset is kept as `src/css/reset.css` so nothing moves.
+- [x] Compare bundle size before and after (desktop and web share one Vite build): main JS 1,065 → 525 kB, main CSS 901 → 73 kB, 3.6 MB of Material Design Icons fonts gone.
+
+Done on `claude/remove-vuetify-p4840x`; see `docs/redesign/reports/vuetify-removal.md`.
 
 ## Phase 5: hardening (2 sessions)
 
