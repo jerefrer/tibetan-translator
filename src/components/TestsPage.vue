@@ -102,5 +102,7 @@ export default {
   padding: 4px 10px;
   font-size: 1.2em;
   border-radius: 4px;
+  background: #fff;
+  color: #333;
 }
 </style>
