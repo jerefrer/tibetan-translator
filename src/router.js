@@ -33,6 +33,15 @@ const routes = [
   { path: '/tests', component: TestsPage },
 ]
 
+// Development-only component showcase. The dynamic import keeps the page and
+// everything it pulls in out of production builds.
+if (import.meta.env.DEV) {
+  routes.push({
+    path: '/ui-showcase',
+    component: () => import('./ui/UiShowcasePage.vue'),
+  });
+}
+
 const router = createRouter({
   history: createWebHistory(),
   routes,
