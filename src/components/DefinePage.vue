@@ -9,9 +9,12 @@ import SqlDatabase from "../services/sql-database";
 import CopyService from "../services/copy-service";
 import { getScanInfo } from "../services/scan-service";
 import { supportsModularPacks } from "../config/platform";
+import { hasLatinDiacritics } from "../services/non-wylie-input";
 import Entries from "./Entries.vue";
 import TibetanTextField from "./TibetanTextField.vue";
 import QuickAddDialog from "./QuickAddDialog.vue";
+import SearchInsteadHint from "./SearchInsteadHint.vue";
+import UninstalledPacksNotice from "./UninstalledPacksNotice.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
 import MobileResponsiveMixin from "./mixins/MobileResponsiveMixin";
 import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries.vue";
@@ -27,6 +30,8 @@ export default {
     Entries,
     TibetanTextField,
     QuickAddDialog,
+    SearchInsteadHint,
+    UninstalledPacksNotice,
     ResultsAndPaginationAndDictionaries,
   },
   data() {
@@ -38,10 +43,15 @@ export default {
       loading: false,
       allTermsVersion: 0,
       quickAddOpen: false,
+      // What the user typed when it looked like Sanskrit or another Latin-script
+      // language. The field turns it into Tibetan, so it has to be kept as typed.
+      searchInsteadText: "",
     };
   },
   watch: {
-    searchTerm() {
+    searchTerm(value) {
+      if (hasLatinDiacritics(value)) this.searchInsteadText = value;
+      else if (!value) this.searchInsteadText = "";
       // Reset displayed count when search term changes
       this.displayedTermsCount = this.termsBatchSize;
       // Clear stale entries if selected term is no longer in filtered list
@@ -290,6 +300,10 @@ export default {
             @close:dictionariesMenu="focusInput"
           />
         </div>
+        <SearchInsteadHint
+          v-if="searchInsteadText"
+          :text="searchInsteadText"
+        />
         <div v-if="termsStartingWithSearchTerm.length" ref="termsList" class="terms-list">
           <div
             v-for="term in visibleTerms"
@@ -322,6 +336,10 @@ export default {
         >
           No results.
         </div>
+        <UninstalledPacksNotice
+          v-if="searchTerm"
+          :result-count="numberOfTermsStartingWithSearchTerm"
+        />
       </div>
 
       <div class="definitions-container">

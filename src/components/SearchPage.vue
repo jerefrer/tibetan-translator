@@ -27,6 +27,7 @@ import DictionariesMenuMixin from './DictionariesMenuMixin';
 import InfiniteScrollMixin from './mixins/InfiniteScrollMixin';
 
 import QuickAddDialog from './QuickAddDialog.vue';
+import UninstalledPacksNotice from './UninstalledPacksNotice.vue';
 import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries.vue';
 import ScanViewer from './ScanViewer.vue';
 import SearchBuilder from './SearchBuilder.vue';
@@ -40,6 +41,7 @@ export default {
   },
   components: {
     QuickAddDialog,
+    UninstalledPacksNotice,
     ResultsAndPaginationAndDictionaries,
     ScanViewer,
     SearchBuilder,
@@ -757,6 +759,11 @@ export default {
       </div>
 
       <v-alert v-else class="text-center" key="no-entries">No entries</v-alert>
+
+      <UninstalledPacksNotice
+        v-if="entries != undefined"
+        :result-count="totalNumberOfEntriesForEnabledDictionaries"
+      />
     </template>
 
     <!-- Scan Viewer Modal -->
