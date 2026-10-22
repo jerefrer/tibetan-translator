@@ -245,6 +245,12 @@ export default {
       const dy = touches[0].clientY - touches[1].clientY;
       return Math.sqrt(dx * dx + dy * dy);
     },
+    // Focus the viewer itself rather than its first button (no ring on the
+    // close button at open), so Tab stays inside it and Escape reaches it
+    focusViewer(event) {
+      event.preventDefault();
+      event.target?.focus?.({ preventScroll: true });
+    },
     handleKeydown(e) {
       if (!this.dialog) return;
       if (e.key === 'ArrowLeft') this.prevPage();
@@ -272,7 +278,7 @@ export default {
         class="scan-viewer"
         :class="{ 'is-android': isAndroid }"
         data-testid="scan-viewer"
-        @open-auto-focus.prevent
+        @open-auto-focus="focusViewer"
       >
         <div class="scan-toolbar">
           <button type="button" class="scan-icon-button scan-close" aria-label="Close" data-testid="scan-close" @click="close">

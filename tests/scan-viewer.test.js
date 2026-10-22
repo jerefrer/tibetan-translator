@@ -163,6 +163,13 @@ describe('ScanViewer', () => {
     expect(wrapper.vm.currentPage).toBe(506)
   })
 
+  it('should take the focus when it opens, so Tab stays inside it', async () => {
+    await open()
+    await new Promise((r) => setTimeout(r, 0))
+    await flushPromises()
+    expect(document.activeElement).toBe(body('scan-viewer'))
+  })
+
   it('should close from its close button', async () => {
     await open()
     body('scan-close').click()
