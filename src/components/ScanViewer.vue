@@ -1,11 +1,19 @@
 <script>
+import { DialogRoot, DialogPortal, DialogContent, DialogTitle, DialogDescription } from 'reka-ui'
+import { UiIcon, UiSpinner } from '../ui'
 import { getScanUrl, getScanInfo } from '../services/scan-service'
+import DICTIONARIES_DETAILS from '../services/dictionaries-details'
 
+// Full-screen viewer for a scanned dictionary page (board "B · Scan viewer").
+// It always sits on a dark surface, whatever the theme, so the page stands out.
 export default {
+  components: { DialogRoot, DialogPortal, DialogContent, DialogTitle, DialogDescription, UiIcon, UiSpinner },
   props: {
     modelValue: Boolean,
     dictionaryId: String,
-    initialPage: Number
+    initialPage: Number,
+    // The stored page number is a guess (it carried a "?")
+    approximate: { type: Boolean, default: false }
   },
   emits: ['update:modelValue'],
   data() {
@@ -41,14 +49,33 @@ export default {
       set(value) { this.$emit('update:modelValue', value) }
     },
     canGoPrev() {
-      return this.scanInfo && this.currentPage > this.scanInfo.min_page;
+      return !!this.scanInfo && this.currentPage > this.scanInfo.min_page;
     },
     canGoNext() {
-      return this.scanInfo && this.currentPage < this.scanInfo.max_page;
+      return !!this.scanInfo && this.currentPage < this.scanInfo.max_page;
     },
     displayPageNum() {
       if (!this.scanInfo) return this.currentPage;
       return this.currentPage + (this.scanInfo.display_pageadjust || 0);
+    },
+    // "Jäschke (scanned dictionary)" -> "Jäschke"
+    dictionaryName() {
+      const label = DICTIONARIES_DETAILS[this.dictionaryId]?.label || '';
+      return label
+        .replace(/\s*\(scanned dictionary\)$/i, '')
+        .replace(/,\s*scanned dictionary\)$/i, ')')
+        .trim();
+    },
+    title() {
+      const page = `Page ${this.displayPageNum}`;
+      return this.dictionaryName ? `${this.dictionaryName} · ${page}` : page;
+    },
+    // Only the page the entry pointed to is a guess
+    showApproximate() {
+      return this.approximate && this.currentPage === this.initialPage;
+    },
+    zoomPercent() {
+      return Math.round(this.scale * 100);
     },
     // Use width percentage instead of transform for proper scrolling
     imageStyle() {
@@ -222,7 +249,7 @@ export default {
       if (!this.dialog) return;
       if (e.key === 'ArrowLeft') this.prevPage();
       else if (e.key === 'ArrowRight') this.nextPage();
-      else if (e.key === 'Escape') this.close();
+      // Escape is handled by the dialog itself
       else if (e.key === '+' || e.key === '=') this.zoomIn();
       else if (e.key === '-') this.zoomOut();
       else if (e.key === '0') this.resetZoom();
@@ -239,161 +266,275 @@ export default {
 </script>
 
 <template>
-  <v-dialog
-    v-model="dialog"
-    fullscreen
-    transition="dialog-bottom-transition"
-  >
-    <v-card class="scan-viewer" :class="{ 'is-android': isAndroid }">
-      <!-- Toolbar - just close, page info, and zoom controls -->
-      <div class="scan-toolbar">
-        <v-btn icon variant="text" @click="close">
-          <v-icon>mdi-close</v-icon>
-        </v-btn>
-
-        <span class="toolbar-title">Page {{ displayPageNum }}</span>
-
-        <v-spacer></v-spacer>
-
-        <!-- Zoom controls -->
-        <v-btn icon variant="text" size="small" @click="zoomOut" :disabled="scale <= minScale">
-          <v-icon size="small">mdi-minus</v-icon>
-        </v-btn>
-
-        <span class="zoom-level">{{ Math.round(scale * 100) }}%</span>
-
-        <v-btn icon variant="text" size="small" @click="zoomIn" :disabled="scale >= maxScale">
-          <v-icon size="small">mdi-plus</v-icon>
-        </v-btn>
-      </div>
-
-      <!-- Content area with touch handlers -->
-      <div
-        class="scan-content"
-        @touchstart="onTouchStart"
-        @touchmove="onTouchMove"
-        @touchend="onTouchEnd"
+  <dialog-root :open="dialog" @update:open="dialog = $event">
+    <dialog-portal>
+      <dialog-content
+        class="scan-viewer"
+        :class="{ 'is-android': isAndroid }"
+        data-testid="scan-viewer"
+        @open-auto-focus.prevent
       >
-        <!-- Loading overlay -->
-        <div v-if="loading" class="scan-loading">
-          <v-progress-circular
-            indeterminate
-            color="white"
-            size="64"
-          ></v-progress-circular>
-          <p class="mt-4 text-caption">Loading scan...</p>
-        </div>
+        <div class="scan-toolbar">
+          <button type="button" class="scan-icon-button scan-close" aria-label="Close" data-testid="scan-close" @click="close">
+            <ui-icon name="x" :size="22" :stroke-width="2" />
+          </button>
 
-        <!-- Error state -->
-        <div v-else-if="error" class="scan-error">
-          <v-icon size="64" color="yellow">mdi-alert-circle</v-icon>
-          <p class="mt-4">{{ error }}</p>
-          <v-btn
-            color="white"
-            variant="outlined"
-            class="mt-4"
-            @click="retryLoad"
+          <div class="scan-heading">
+            <dialog-title class="scan-title" data-testid="scan-title">{{ title }}</dialog-title>
+            <dialog-description v-if="showApproximate" class="scan-approximate" data-testid="scan-approximate">
+              approximate
+            </dialog-description>
+            <dialog-description v-else class="scan-hidden-description">Scanned dictionary page</dialog-description>
+          </div>
+
+          <span class="scan-spacer" />
+
+          <button
+            type="button"
+            class="scan-icon-button scan-icon-button--bordered"
+            aria-label="Zoom out"
+            data-testid="scan-zoom-out"
+            :disabled="scale <= minScale"
+            @click="zoomOut"
           >
-            Retry
-          </v-btn>
+            <ui-icon name="minus" :size="20" :stroke-width="2" />
+          </button>
+          <span class="zoom-level" data-testid="scan-zoom">{{ zoomPercent }}%</span>
+          <button
+            type="button"
+            class="scan-icon-button scan-icon-button--bordered"
+            aria-label="Zoom in"
+            data-testid="scan-zoom-in"
+            :disabled="scale >= maxScale"
+            @click="zoomIn"
+          >
+            <ui-icon name="plus" :size="20" :stroke-width="2" />
+          </button>
         </div>
 
-        <!-- Image container - always render img so load/error events fire -->
-        <div class="scan-image-wrapper" :class="{ 'visually-hidden': loading || error }">
-          <img
-            v-if="imageUrl"
-            :key="imageKey"
-            :src="imageUrl"
-            @load="onImageLoad"
-            @error="onImageError"
-            class="scan-image"
-            :style="imageStyle"
-            alt="Dictionary scan"
-          />
+        <div class="scan-stage">
+          <button
+            type="button"
+            class="scan-nav-button scan-nav-button--side"
+            data-testid="scan-prev"
+            :disabled="!canGoPrev"
+            @click="prevPage"
+          >
+            <ui-icon name="chevron-left" :size="18" :stroke-width="2.2" />
+            Previous
+          </button>
+
+          <!-- Content area with touch handlers -->
+          <div
+            class="scan-content"
+            @touchstart="onTouchStart"
+            @touchmove="onTouchMove"
+            @touchend="onTouchEnd"
+          >
+            <div v-if="loading" class="scan-loading" data-testid="scan-loading">
+              <ui-spinner :size="48" label="Loading scan" />
+              <p>Loading scan...</p>
+            </div>
+
+            <div v-else-if="error" class="scan-error" data-testid="scan-error">
+              <ui-icon name="circle-alert" :size="48" />
+              <p>{{ error }}</p>
+              <button type="button" class="scan-nav-button" data-testid="scan-retry" @click="retryLoad">
+                Retry
+              </button>
+            </div>
+
+            <!-- Image container - always render img so load/error events fire -->
+            <div class="scan-image-wrapper" :class="{ 'visually-hidden': loading || error }">
+              <img
+                v-if="imageUrl"
+                :key="imageKey"
+                :src="imageUrl"
+                @load="onImageLoad"
+                @error="onImageError"
+                class="scan-image"
+                :style="imageStyle"
+                alt="Dictionary scan"
+              />
+            </div>
+          </div>
+
+          <button
+            type="button"
+            class="scan-nav-button scan-nav-button--side"
+            data-testid="scan-next"
+            :disabled="!canGoNext"
+            @click="nextPage"
+          >
+            Next
+            <ui-icon name="chevron-right" :size="18" :stroke-width="2.2" />
+          </button>
         </div>
-      </div>
 
-      <!-- Bottom Navigation - prev/next only here -->
-      <div class="scan-footer">
-        <v-btn
-          variant="text"
-          :disabled="!canGoPrev"
-          @click="prevPage"
-          class="flex-grow-1"
-        >
-          <v-icon start>mdi-chevron-left</v-icon>
-          Previous
-        </v-btn>
-
-        <v-divider vertical></v-divider>
-
-        <v-btn
-          variant="text"
-          :disabled="!canGoNext"
-          @click="nextPage"
-          class="flex-grow-1"
-        >
-          Next
-          <v-icon end>mdi-chevron-right</v-icon>
-        </v-btn>
-      </div>
-    </v-card>
-  </v-dialog>
+        <!-- Phone: previous and next sit under the page -->
+        <div class="scan-footer">
+          <button type="button" class="scan-footer-button" :disabled="!canGoPrev" @click="prevPage">
+            <ui-icon name="chevron-left" :size="18" :stroke-width="2.2" />
+            Previous
+          </button>
+          <span class="scan-footer-divider" />
+          <button type="button" class="scan-footer-button" :disabled="!canGoNext" @click="nextPage">
+            Next
+            <ui-icon name="chevron-right" :size="18" :stroke-width="2.2" />
+          </button>
+        </div>
+      </dialog-content>
+    </dialog-portal>
+  </dialog-root>
 </template>
 
 <style scoped>
+/* Fixed colours: the viewer is dark in both themes (they are the dark
+   theme's own surface, line and muted values). */
 .scan-viewer {
+  --scan-bg: #1b1512;
+  --scan-ink: #F3E8D6;
+  --scan-muted: #B8A998;
+  --scan-line: #3D312B;
+  --scan-line-strong: #54453B;
+
+  position: fixed;
+  inset: 0;
+  z-index: 2400;
   display: flex;
   flex-direction: column;
-  height: 100%;
-  /* Red background everywhere - matches app theme */
-  background: var(--deep-red, #A30000);
+  background: var(--scan-bg);
+  color: var(--scan-ink);
+  font-family: var(--font-ui);
+  font-size: var(--text-base);
+  /* Safe area for the notch and landscape orientation */
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  box-sizing: border-box;
+}
+.scan-viewer:focus {
+  outline: none;
 }
 
 .scan-toolbar {
+  flex: none;
   display: flex;
   align-items: center;
-  flex-shrink: 0;
-  height: 56px;
-  padding: 0 8px;
-  /* Safe area for landscape orientation */
-  padding-left: max(8px, env(safe-area-inset-left, 0px));
-  padding-right: max(8px, env(safe-area-inset-right, 0px));
-  /* Safe area margin pushes toolbar below notch/status bar */
-  margin-top: env(safe-area-inset-top, 0px);
-  /* Red background like the rest of the app */
-  background: var(--deep-red, #A30000);
+  gap: 14px;
+  height: 64px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--scan-line);
   box-sizing: border-box;
 }
 
-.scan-toolbar .v-btn {
-  color: white;
+.scan-heading {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
 }
 
-.scan-toolbar .v-btn:disabled {
-  color: rgba(255, 255, 255, 0.4);
+.scan-title {
+  margin: 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--text-md);
+  font-weight: 600;
 }
 
-.toolbar-title {
-  color: white;
-  font-size: 1rem;
-  font-weight: 500;
-  margin-left: 8px;
+.scan-approximate {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--scan-muted);
+}
+
+.scan-hidden-description {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.scan-spacer {
+  flex: 1;
+}
+
+.scan-icon-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.scan-icon-button--bordered {
+  border: 1.5px solid var(--scan-line-strong);
+}
+.scan-icon-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+}
+.scan-icon-button:disabled,
+.scan-nav-button:disabled,
+.scan-footer-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.scan-icon-button:focus-visible,
+.scan-nav-button:focus-visible,
+.scan-footer-button:focus-visible {
+  outline: 2px solid var(--scan-ink);
+  outline-offset: 2px;
 }
 
 .zoom-level {
-  min-width: 50px;
+  width: 56px;
   text-align: center;
-  color: white;
-  font-size: 0.85rem;
+  font-size: var(--text-sm-plus);
+}
+
+.scan-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  padding: 0 20px;
+}
+
+.scan-nav-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 18px;
+  border: 1.5px solid var(--scan-line-strong);
+  border-radius: var(--radius-xl);
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.scan-nav-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .scan-content {
-  flex: 1;
-  overflow: auto;
-  /* Keep content area with neutral dark background for readability */
-  background: #1a1a1a;
   position: relative;
+  align-self: stretch;
+  flex: 0 1 46rem;
+  min-width: 0;
+  overflow: auto;
   /* Prevent text selection */
   user-select: none;
   -webkit-user-select: none;
@@ -401,35 +542,35 @@ export default {
   -webkit-overflow-scrolling: touch;
   /* Allow pan but prevent browser pinch zoom */
   touch-action: pan-x pan-y;
-  /* Safe area for landscape orientation */
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
 }
 
 .scan-loading,
 .scan-error {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: white;
-  text-align: center;
+  gap: 16px;
   padding: 20px;
-  z-index: 10;
-  background: #1a1a1a;
+  text-align: center;
+  color: var(--scan-muted);
+  z-index: 1;
+}
+.scan-loading p,
+.scan-error p {
+  margin: 0;
+}
+.scan-error {
+  color: var(--scan-ink);
 }
 
 .scan-image-wrapper {
   min-width: 100%;
   min-height: 100%;
-  /* Space for footer including safe area */
-  padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
-  display: block;
+  padding: 20px 0;
+  box-sizing: border-box;
 }
 
 /* Hide but keep in DOM so image loads */
@@ -449,73 +590,83 @@ export default {
   /* Width controlled by imageStyle computed property */
   height: auto;
   display: block;
+  margin: 0 auto;
+  border-radius: 6px;
   /* Prevent drag */
   -webkit-user-drag: none;
   user-drag: none;
 }
 
 .scan-footer {
-  position: fixed;
-  bottom: env(safe-area-inset-bottom, 0px);
-  left: 0;
-  right: 0;
-  display: flex;
-  align-items: center;
-  height: 56px;
-  /* Red background like the toolbar */
-  background: var(--deep-red, #A30000);
-  /* iOS safe area for sides */
-  padding-left: env(safe-area-inset-left, 0px);
-  padding-right: env(safe-area-inset-right, 0px);
-  box-sizing: border-box;
+  display: none;
 }
 
-/* Red fill below footer for safe area */
-.scan-viewer::after {
-  content: '';
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: env(safe-area-inset-bottom, 0px);
-  background: var(--deep-red, #A30000);
-  z-index: 1;
-}
-
-.scan-footer .v-btn {
-  height: 56px;
-  border-radius: 0;
-  color: white;
-}
-
-.scan-footer .v-btn:disabled {
-  color: rgba(255, 255, 255, 0.4);
-}
-
-.scan-footer .v-divider {
-  border-color: rgba(255, 255, 255, 0.3);
-}
-
-/* Mobile specific */
+/* Phone: the page takes the full width; previous and next move under it */
 @media (max-width: 600px) {
+  .scan-toolbar {
+    gap: 8px;
+    height: 56px;
+    padding: 0 8px;
+  }
   .zoom-level {
     display: none;
   }
+  /* "approximate" goes under the title */
+  .scan-heading {
+    flex-direction: column;
+    gap: 0;
+  }
+  .scan-title {
+    font-size: var(--text-base);
+  }
+  .scan-approximate {
+    font-size: var(--text-xs);
+  }
+  .scan-stage {
+    padding: 0;
+  }
+  .scan-nav-button--side {
+    display: none;
+  }
+  .scan-content {
+    flex: 1 1 auto;
+  }
+  .scan-image-wrapper {
+    padding: 0;
+  }
+  .scan-image {
+    border-radius: 0;
+  }
+  .scan-footer {
+    flex: none;
+    display: flex;
+    align-items: center;
+    height: 56px;
+    margin-bottom: env(safe-area-inset-bottom, 0px);
+    border-top: 1px solid var(--scan-line);
+  }
+  .scan-footer-button {
+    flex: 1;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .scan-footer-divider {
+    width: 1px;
+    height: 28px;
+    background: var(--scan-line-strong);
+  }
 }
 
-/* Android specific - status bar doesn't report via env() */
-.scan-viewer.is-android .scan-toolbar {
-  margin-top: 24px; /* Android status bar height */
-}
-
-.scan-viewer.is-android::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 24px;
-  background: var(--deep-red, #A30000);
-  z-index: 2;
+/* Android: the status bar is not reported through env() */
+.scan-viewer.is-android {
+  padding-top: 24px;
 }
 </style>
