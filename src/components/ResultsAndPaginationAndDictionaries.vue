@@ -1,15 +1,34 @@
 <script>
-import $ from "jquery";
 import pluralize from "pluralize";
+import {
+  PopoverRoot,
+  PopoverTrigger,
+  PopoverPortal,
+  PopoverContent,
+} from "reka-ui";
 
+import { UiButton, UiIcon, UiPagination, UiSwitch, UiTextField } from "../ui";
 import DictionariesFuzzySearchMixin from "./DictionariesFuzzySearchMixin";
-import DictionariesMenuHelpTab from "./DictionariesMenuHelpTab.vue";
 import EventHandlers from "../services/event-handlers";
 
+// The "Dictionaries" button and its menu, shared by Define, Search and Split.
+// The menu picks which dictionaries the current results come from, for this
+// lookup only (the page resets it to the Settings choice on the next one).
+//
+// The pagination half is kept for callers that do not pass hidePagination;
+// none does today.
 export default {
   mixins: [DictionariesFuzzySearchMixin],
   components: {
-    DictionariesMenuHelpTab,
+    PopoverRoot,
+    PopoverTrigger,
+    PopoverPortal,
+    PopoverContent,
+    UiButton,
+    UiIcon,
+    UiPagination,
+    UiSwitch,
+    UiTextField,
   },
   props: {
     page: Number,
@@ -24,20 +43,23 @@ export default {
     return {
       dictionariesMenu: false,
       term: "",
+      // Row moved to with Up/Down; -1 when none
+      highlightedIndex: -1,
       longPressTimer: null,
       longPressTriggered: false,
     };
   },
   watch: {
     dictionariesMenu(value) {
+      this.highlightedIndex = -1;
       if (value) {
-        // Focus the search field when menu opens (needs delay for v-menu to render)
-        setTimeout(() => {
-          this.$refs.menuSearchField?.focus();
-        }, 50);
+        this.$nextTick(() => this.$refs.menuSearchField?.focus());
       } else {
         this.$emit("close:dictionariesMenu");
       }
+    },
+    term() {
+      this.highlightedIndex = -1;
     },
   },
   computed: {
@@ -59,6 +81,17 @@ export default {
     },
     numberOfEntriesForPreferredDictionaries() {
       return this.sumNumberOfEntriesFor(this.preferredDictionaries);
+    },
+    buttonCount() {
+      const enabled = this.enabledDictionaries.length;
+      const total = this.dictionaries.length;
+      return enabled === total ? String(total) : `${enabled}/${total}`;
+    },
+    showPagination() {
+      return !this.hidePagination && this.totalNumberOfEntries > this.numberOfEntriesPerPage;
+    },
+    pageCount() {
+      return Math.ceil(this.totalNumberOfEntries / this.numberOfEntriesPerPage);
     },
   },
   methods: {
@@ -133,6 +166,18 @@ export default {
     menuIsOpened() {
       return this.dictionariesMenu;
     },
+    moveHighlight(step) {
+      const count = this.fuzzyMatchedDictionaries.length;
+      if (!count) return;
+      const start = this.highlightedIndex < 0 ? (step > 0 ? -1 : count) : this.highlightedIndex;
+      this.highlightedIndex = Math.min(Math.max(start + step, 0), count - 1);
+      this.$nextTick(() => {
+        this.$refs.dictionaryRows?.[this.highlightedIndex]?.scrollIntoView?.({ block: "nearest" });
+      });
+    },
+    highlightedDictionary() {
+      return this.fuzzyMatchedDictionaries[this.highlightedIndex];
+    },
     registerKeyboardHandler() {
       var vm = this;
       // Remove any existing handler first to ensure fresh registration
@@ -141,39 +186,35 @@ export default {
         id: "dictionary-menu",
         type: "keydown",
         callback(event) {
+          const key = event.key || "";
           // Only handle Ctrl/Cmd+B when dictionaries button is visible (has entries)
-          if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() == "b" && !vm.menuIsOpened() && vm.totalNumberOfEntries > 0) {
+          if ((event.ctrlKey || event.metaKey) && key.toLowerCase() == "b" && !vm.menuIsOpened() && vm.totalNumberOfEntries > 0) {
             event.preventDefault();
             vm.openMenu();
           } else if (vm.menuIsOpened()) {
-            var highlightedDictionary = $(
-              ".dictionaries-menu .v-list-item--highlighted"
-            ).get(0);
-            if (event.key == "Escape") vm.closeMenu();
-            else if (event.key == " ") {
-              var dictionaryIndex = $(
-                ".dictionaries-menu .v-list-item--highlighted"
-              ).data("dictionary-index");
-              if (dictionaryIndex != undefined) {
-                var dictionary = vm.fuzzyMatchedDictionaries[dictionaryIndex];
-                dictionary.enabled = !dictionary.enabled;
-                event.preventDefault();
-              }
-            } else if (event.key == "ArrowUp" || event.key == "ArrowDown") {
-              if (highlightedDictionary)
-                highlightedDictionary.scrollIntoViewIfNeeded();
+            var highlighted = vm.highlightedDictionary();
+            if (key == "Escape") vm.closeMenu();
+            else if (key == "ArrowDown" || key == "ArrowUp") {
+              event.preventDefault();
+              vm.moveHighlight(key == "ArrowDown" ? 1 : -1);
+            } else if (key == " " && highlighted) {
+              event.preventDefault();
+              highlighted.enabled = !highlighted.enabled;
             } else if (event.ctrlKey || event.shiftKey) {
-              if (event.key == "Enter") vm.enableOnlyMatchedDictionaries();
-              else if (event.key.toLowerCase() == "a")
+              if (key == "Enter") vm.enableOnlyMatchedDictionaries();
+              else if (key.toLowerCase() == "a")
                 vm.enableAllMatchedDictionaries();
-              else if (event.key.toLowerCase() == "n")
+              else if (key.toLowerCase() == "n")
                 vm.disableAllMatchedDictionaries();
-              else if (event.key.toLowerCase() == "r")
+              else if (key.toLowerCase() == "r")
                 vm.enableOnlyPreferedDictionaries();
-              if (["enter", "a", "n", "r"].includes(event.key.toLowerCase()))
+              if (["enter", "a", "n", "r"].includes(key.toLowerCase()))
                 event.preventDefault();
-            } else if (event.key == "Enter" && !highlightedDictionary)
-              vm.enableOnlyMatchedDictionaries();
+            } else if (key == "Enter") {
+              event.preventDefault();
+              if (highlighted) vm.selectSingleDictionary(highlighted);
+              else vm.enableOnlyMatchedDictionaries();
+            }
           }
         },
       });
@@ -192,293 +233,243 @@ export default {
   },
   unmounted() {
     EventHandlers.remove("dictionary-menu");
+    this.cancelLongPress();
   },
 };
 </script>
 
 <template>
-  <transition-group
-    name="list"
-    tag="div"
-    class="results-and-pagination-and-dictionaries d-flex align-center text-caption text-grey"
-  >
-    <template v-if="!hidePagination">
-      <span
-        class="list-item"
-        v-if="totalNumberOfEntries > numberOfEntriesPerPage"
-        key="entries"
-      >
-        Entries
-      </span>
-
-      <span
-        class="list-item"
-        v-if="totalNumberOfEntries > numberOfEntriesPerPage"
-        :key="totalNumberOfEntries + '-' + page"
-      >
-        {{ (page - 1) * numberOfEntriesPerPage }}-{{
+  <div class="results-and-pagination-and-dictionaries">
+    <template v-if="showPagination">
+      <span class="results-count" data-testid="results-range">
+        Entries {{ (page - 1) * numberOfEntriesPerPage }}-{{
           Math.min(page * numberOfEntriesPerPage, totalNumberOfEntries)
-        }}
+        }} out of {{ totalNumberOfEntries }}
       </span>
-
-      <span
-        class="list-item"
-        v-if="totalNumberOfEntries > numberOfEntriesPerPage"
-        key="out-of"
-      >
-        out of
-      </span>
-
-      <span class="list-item" :key="totalNumberOfEntries">
-        {{ totalNumberOfEntries }}
-      </span>
-
-      <span
-        class="list-item"
-        v-if="totalNumberOfEntries <= numberOfEntriesPerPage"
-        key="results"
-      >
-        {{ pluralize("result", totalNumberOfEntries) }}
-      </span>
-    </template>
-
-    <div key="pagination-and-dictionaries" class="pagination-and-dictionaries">
-      <v-pagination
-        rounded
-        v-if="!hidePagination && totalNumberOfEntries > numberOfEntriesPerPage"
-        class="list-item"
+      <ui-pagination
         :model-value="page"
-        :length="Math.ceil(totalNumberOfEntries / numberOfEntriesPerPage)"
-        :total-visible="0"
-        :disabled="loading"
-        :prev-icon="loading ? 'mdi-loading mdi-spin' : 'mdi-chevron-left'"
-        :next-icon="loading ? 'mdi-loading mdi-spin' : 'mdi-chevron-right'"
+        :length="pageCount"
+        :visible="0"
         @update:model-value="$emit('change:page', $event)"
       />
+    </template>
+    <span v-else-if="!hidePagination" class="results-count" data-testid="results-range">
+      {{ totalNumberOfEntries }} {{ pluralize("result", totalNumberOfEntries) }}
+    </span>
 
-      <v-menu
-        v-model="dictionariesMenu"
-        location="bottom end"
-        :close-on-content-click="false"
-      >
-        <template v-slot:activator="{ props }">
-          <v-btn
-            v-if="totalNumberOfEntries > 0"
-            rounded
-            height="32"
-            class="ml-2 dictionaries-menu-button"
-            :class="{
-              'bg-primary': dictionariesDifferentThanGlobally,
-            }"
-            key="filter-menu"
-            v-bind="props"
-          >
-            <v-icon class="ma-0" style="font-size: 1.125rem">
-              mdi-book-multiple
-            </v-icon>
-            <span class="ml-1">{{ enabledDictionaries.length }}</span>
-            <span class="dict-total">/{{ dictionaries.length }}</span>
-          </v-btn>
-        </template>
+    <popover-root v-model:open="dictionariesMenu">
+      <popover-trigger v-if="totalNumberOfEntries > 0" as-child>
+        <button
+          type="button"
+          class="dictionaries-menu-button"
+          :class="{ 'is-filtered': dictionariesDifferentThanGlobally }"
+          :title="dictionariesDifferentThanGlobally ? 'Not the dictionaries chosen in Settings' : 'Choose dictionaries (Ctrl/Cmd+B)'"
+          data-testid="dictionaries-menu-button"
+        >
+          Dictionaries · {{ buttonCount }}
+          <ui-icon name="chevron-down" :size="12" :stroke-width="2.4" />
+        </button>
+      </popover-trigger>
 
-        <v-card class="dictionaries-menu" elevation="8">
+      <popover-portal>
+        <popover-content
+          class="dictionaries-menu"
+          align="end"
+          :side-offset="6"
+          :collision-padding="16"
+          data-testid="dictionaries-menu"
+          @open-auto-focus.prevent
+          @close-auto-focus.prevent
+        >
           <div class="dictionaries-menu-header">
-            <v-text-field
+            <ui-text-field
               ref="menuSearchField"
-              clearable
-              hide-details
-              variant="outlined"
-              density="compact"
               v-model="term"
-              placeholder="Filter dictionaries..."
-              prepend-inner-icon="mdi-magnify"
+              clearable
+              prepend-icon="search"
+              placeholder="Filter dictionaries"
+              aria-label="Filter dictionaries"
               class="search-field"
+              data-testid="dictionaries-menu-filter"
             />
 
             <div class="action-buttons">
-              <v-btn
-                variant="tonal"
-                color="success"
-                @click="enableAllMatchedDictionaries"
-              >
-                <v-icon start>mdi-check-all</v-icon>
-                Enable &nbsp;<u>a</u>ll
-              </v-btn>
-
-              <v-btn
-                variant="tonal"
-                color="error"
-                @click="disableAllMatchedDictionaries"
-              >
-                <v-icon start>mdi-close-circle-multiple</v-icon>
-                Enable &nbsp;<u>n</u>one
-              </v-btn>
-
-              <v-btn
-                variant="tonal"
-                color="warning"
-                @click="enableOnlyPreferedDictionaries"
-              >
-                <v-icon start>mdi-restore</v-icon>
-                <u>R</u>estore preferences
-              </v-btn>
+              <ui-button variant="outline" size="sm" data-testid="dictionaries-menu-all" @click="enableAllMatchedDictionaries">
+                <span>Enable <u>a</u>ll</span>
+              </ui-button>
+              <ui-button variant="outline" size="sm" data-testid="dictionaries-menu-none" @click="disableAllMatchedDictionaries">
+                <span>Enable <u>n</u>one</span>
+              </ui-button>
+              <ui-button variant="outline" size="sm" data-testid="dictionaries-menu-restore" @click="enableOnlyPreferedDictionaries">
+                <span><u>R</u>estore preferences</span>
+              </ui-button>
             </div>
           </div>
 
-          <v-divider />
-
-          <v-card-text class="dictionaries-list-container">
-            <v-list v-if="fuzzyMatchedDictionaries.length" density="compact" class="dictionaries-list">
-              <v-list-item
+          <div class="dictionaries-list-container">
+            <div v-if="fuzzyMatchedDictionaries.length" class="dictionaries-list" role="list">
+              <div
                 v-for="(dictionary, index) in fuzzyMatchedDictionaries"
                 :key="dictionary.id"
+                ref="dictionaryRows"
+                class="dictionary-row"
+                :class="{ 'is-highlighted': index === highlightedIndex, 'is-disabled': !dictionary.enabled }"
+                role="listitem"
                 :data-dictionary-index="index"
+                data-testid="dictionaries-menu-row"
                 @click="handleDictionaryClick($event, dictionary)"
-                @touchstart="startLongPress(dictionary)"
+                @touchstart.passive="startLongPress(dictionary)"
                 @touchend="cancelLongPress"
                 @touchcancel="cancelLongPress"
-                @touchmove="cancelLongPress"
+                @touchmove.passive="cancelLongPress"
               >
-                <v-list-item-title>
-                  <span
-                    :class="{ 'text-grey': !dictionary.enabled }"
-                    v-html="fuzzyDisplayFor(dictionary)"
-                  />
-                </v-list-item-title>
-                <template v-slot:append>
-                  <v-switch
-                    v-model="dictionary.enabled"
-                    hide-details
-                    density="compact"
-                    class="switch"
-                    color="primary"
-                    @click.stop
-                  />
-                </template>
-              </v-list-item>
-            </v-list>
-
-            <div v-else class="no-results">
-              <v-icon size="48" color="grey-lighten-1">mdi-book-search</v-icon>
-              <div class="mt-2 text-grey">No matching dictionary</div>
+                <!-- eslint-disable-next-line vue/no-v-html -- labels from the bundled details -->
+                <span class="dictionary-row__label" v-html="fuzzyDisplayFor(dictionary)" />
+                <ui-switch
+                  v-model="dictionary.enabled"
+                  :aria-label="dictionary.shortLabel"
+                  @click.stop
+                />
+              </div>
             </div>
-          </v-card-text>
-        </v-card>
-      </v-menu>
-    </div>
-  </transition-group>
+
+            <div v-else class="no-results" data-testid="dictionaries-menu-empty">
+              <ui-icon name="book-search" :size="36" />
+              <div>No matching dictionary</div>
+            </div>
+          </div>
+        </popover-content>
+      </popover-portal>
+    </popover-root>
+  </div>
 </template>
 
 <style lang="stylus">
 .results-and-pagination-and-dictionaries
-  white-space nowrap
-  .list-item
-    margin 0 2px
-    cursor pointer
-  .pagination-and-dictionaries
-    flex 1
-    display flex
-    justify-content flex-end
-    align-items center
-    /* Vuetify 3 pagination structure */
-    .v-pagination
-      margin-left 10px
-      .v-pagination__list
-        gap 0
-      .v-pagination__prev,
-      .v-pagination__next
-        .v-btn
-          width 32px !important
-          height 32px !important
-          min-width 32px !important
-          background #333333 !important
-          border-radius 50% !important
-          margin 0 3px
-          box-shadow none !important
-          .v-icon
-            margin 0
-            font-size 1.25rem
-            color white
+  display flex
+  align-items center
+  justify-content flex-end
+  gap 10px
+  min-width 0
+  font-family var(--font-ui)
 
-.v-theme--light
-  .results-and-pagination-and-dictionaries
-    .text-caption
-      color #616161 !important
+  .results-count
+    font-size var(--text-sm)
+    color var(--muted)
+    white-space nowrap
 
 .dictionaries-menu-button
-  .v-btn__content
-    align-items baseline
-    .v-icon
-      top 1px
-  .dict-total
-    opacity 0.6
-    font-size 0.85em
+  box-sizing border-box
+  flex none
+  display inline-flex
+  align-items center
+  gap 8px
+  height 2.25rem
+  padding 0 14px
+  border 1.5px solid var(--line-strong)
+  border-radius var(--radius-lg)
+  background var(--surface)
+  color var(--ink)
+  font 500 var(--text-sm-plus) var(--font-ui)
+  white-space nowrap
+  cursor pointer
+
+  &:hover
+    background var(--soft)
+
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 2px
+
+  // The choice differs from Settings for this lookup
+  &.is-filtered
+    border-color var(--accent)
+    background var(--accent-soft)
+    color var(--accent)
+    font-weight 600
 
 .dictionaries-menu
-  width auto
-  min-width 400px
-  max-width 600px
-  border-radius 12px !important
+  z-index 3000
+  box-sizing border-box
+  width unquote('min(28rem, calc(100vw - 32px))')
+  max-height unquote('min(34rem, calc(100dvh - 120px))')
+  display flex
+  flex-direction column
+  background var(--surface)
+  color var(--ink)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-pop)
+  font-family var(--font-ui)
   overflow hidden
 
+  &:focus
+    outline none
+
   .dictionaries-menu-header
-    padding 16px
-    background linear-gradient(135deg, #f5f5f5 0%, #fafafa 100%)
+    flex none
+    display flex
+    flex-direction column
+    gap 10px
+    padding 14px
+    border-bottom 1px solid var(--line)
 
-    .search-field
-      margin-bottom 12px
+  .action-buttons
+    display flex
+    flex-wrap wrap
+    gap 6px
 
-    .action-buttons
-      display flex
-      justify-content space-between
-      gap 8px
+    .ui-button
+      flex 1 1 auto
 
   .dictionaries-list-container
-    max-height 400px
+    flex 1
+    min-height 0
     overflow-y auto
-    padding 8px 0 !important
+    padding 6px
 
-  .dictionaries-list
-    background transparent
+  .dictionary-row
+    display flex
+    align-items center
+    justify-content space-between
+    gap 12px
+    min-height 2.5rem
+    padding 0 10px
+    border-radius var(--radius-md)
+    font-size var(--text-base)
+    cursor pointer
+    user-select none
+    -webkit-user-select none
 
-    .v-list-item
-      border-radius 8px
-      padding 6px 12px
-      min-height 40px
-      transition all 0.15s ease
+    &:hover,
+    &.is-highlighted
+      background var(--soft)
 
-      &:hover
-        background rgba(0, 0, 0, 0.04)
+    &.is-disabled .dictionary-row__label
+      color var(--faint)
+
+    b
+      color var(--accent)
+
+  .dictionary-row__label
+    min-width 0
+    overflow-wrap anywhere
 
   .no-results
     display flex
     flex-direction column
     align-items center
-    justify-content center
-    padding 48px 16px
+    gap 8px
+    padding 40px 16px
+    color var(--muted)
 
-/* Dark theme */
-.v-theme--dark .dictionaries-menu
-  .dictionaries-menu-header
-    background linear-gradient(135deg, #2a2a2a 0%, #1e1e1e 100%)
+@media (max-width: 600px)
+  .dictionaries-menu-button
+    height 2.75rem
 
-  .dictionaries-list .v-list-item
-    &:hover
-      background rgba(255, 255, 255, 0.06)
-</style>
+  .dictionaries-menu .action-buttons
+    flex-direction column
 
-<style>
-@media (max-width: 600px) {
-  .dictionaries-menu {
-    width: 95vw !important;
-    min-width: unset !important;
-    max-width: unset !important;
-  }
-  .dictionaries-menu .dictionaries-menu-header .action-buttons {
-    flex-direction: column;
-  }
-  .dictionaries-menu .dictionaries-menu-header .action-buttons .v-btn {
-    width: 100%;
-  }
-}
+  .dictionaries-menu .dictionary-row
+    min-height 2.75rem
 </style>
