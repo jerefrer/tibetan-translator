@@ -516,6 +516,65 @@ describe('PackManagerCard', () => {
     expect(mocks.db.reloadPack).toHaveBeenCalledWith('tibetan-monolingual')
   })
 
+  describe('focus after Install', () => {
+    const PACK = 'tibetan-monolingual'
+    const status = () => byTestId('pack-' + PACK).find('[data-testid="pack-status"]')
+    let finish
+    beforeEach(() => {
+      // As the real one: the row shows the progress as soon as Install is pressed
+      mocks.packs.downloadPack.mockImplementation(async (id) => {
+        mocks.packs.state.downloadingPacks = { [id]: { percentage: 0 } }
+      })
+      mocks.packs.waitForDownload.mockImplementation(() => new Promise((resolve) => { finish = resolve }))
+    })
+    afterEach(() => {
+      mocks.packs.downloadPack.mockImplementation(async () => {})
+      mocks.packs.waitForDownload.mockImplementation(async () => {})
+    })
+
+    it("moves to the row's status line while the pack downloads, not to the document", async () => {
+      await mountWith(PackManagerCard)
+      const install = byTestId('pack-' + PACK).find('[data-testid="pack-install"]')
+      install.element.focus()
+
+      await install.trigger('click')
+      await flushPromises()
+
+      expect(status().text()).toBe('Downloading 0%')
+      expect(status().attributes('tabindex')).toBe('-1')
+      expect(document.activeElement).toBe(status().element)
+    })
+
+    it('stays on the status line once it says Installed', async () => {
+      await mountWith(PackManagerCard)
+      await byTestId('pack-' + PACK).find('[data-testid="pack-install"]').trigger('click')
+      await flushPromises()
+
+      mocks.packs.state.downloadingPacks = {}
+      mocks.packs.state.installedPacks = ['core', PACK]
+      finish()
+      await flushPromises()
+
+      expect(status().text()).toBe('Installed')
+      expect(document.activeElement).toBe(status().element)
+    })
+
+    it('leaves the focus alone if it was moved elsewhere meanwhile', async () => {
+      await mountWith(PackManagerCard)
+      await byTestId('pack-' + PACK).find('[data-testid="pack-install"]').trigger('click')
+      await flushPromises()
+      const elsewhere = byTestId('packs-check-updates').element
+      elsewhere.focus()
+
+      mocks.packs.state.downloadingPacks = {}
+      mocks.packs.state.installedPacks = ['core', PACK]
+      finish()
+      await flushPromises()
+
+      expect(document.activeElement).toBe(elsewhere)
+    })
+  })
+
   it('shows progress while a pack downloads', async () => {
     mocks.packs.state.downloadingPacks = { 'tibetan-monolingual': { percentage: 41.6 } }
     await mountWith(PackManagerCard)

@@ -72,13 +72,29 @@ export default {
       return DictionariesDetails[name]?.label || name;
     },
     async downloadPack(packId) {
+      // Install turns into the progress: the focus goes to the row's status
+      // line rather than falling to the document, and again once that line
+      // says "Installed" (or the download failed and Install is back)
+      const started = PackManager.downloadPack(packId);
+      this.focusPackStatus(packId);
       try {
-        await PackManager.downloadPack(packId);
+        await started;
         await PackManager.waitForDownload(packId);
         await db.reloadPack(packId);
       } catch (e) {
         console.error('Download failed:', e);
       }
+      this.focusPackStatus(packId);
+    },
+    focusPackStatus(packId) {
+      this.$nextTick(() => {
+        const active = document.activeElement;
+        if (active && active !== document.body && active.isConnected) return;
+        this.$el
+          ?.querySelector?.(`[data-testid="pack-${packId}"]`)
+          ?.querySelector('[data-testid="pack-status"], [data-testid="pack-install"], [data-testid="pack-update"]')
+          ?.focus();
+      });
     },
     confirmRemovePack(pack) {
       if (pack.required || pack.included) return;
@@ -163,10 +179,10 @@ export default {
         <div class="pack-row__head">
           <span class="pack-row__name">{{ pack.name }}</span>
 
-          <span v-if="pack.updating" class="pack-row__status pack-row__status--amber" data-testid="pack-status">
+          <span v-if="pack.updating" class="pack-row__status pack-row__status--amber" tabindex="-1" data-testid="pack-status">
             Updating {{ pack.updateProgress }}%
           </span>
-          <span v-else-if="pack.downloading" class="pack-row__status pack-row__status--accent" data-testid="pack-status">
+          <span v-else-if="pack.downloading" class="pack-row__status pack-row__status--accent" tabindex="-1" data-testid="pack-status">
             Downloading {{ pack.downloadProgress }}%
           </span>
           <template v-else-if="pack.installed">
@@ -180,7 +196,7 @@ export default {
               <ui-icon name="download" :size="16" />
               Update<template v-if="pack.updateSize"> · {{ pack.updateSize }} MB</template>
             </ui-button>
-            <span v-else class="pack-row__status pack-row__status--ok" data-testid="pack-status">
+            <span v-else class="pack-row__status pack-row__status--ok" tabindex="-1" data-testid="pack-status">
               <ui-icon name="circle-check" :size="16" />
               Installed
             </span>
