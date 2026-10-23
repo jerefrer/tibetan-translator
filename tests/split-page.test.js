@@ -193,6 +193,13 @@ afterEach(() => {
 })
 
 describe('Split — route and lifecycle', () => {
+  it('should carry a visually hidden level-one heading with the page name', async () => {
+    await mountPage()
+    const heading = page().find('h1')
+    expect(heading.text()).toBe('Split')
+    expect(heading.classes()).toEqual(['ui-visually-hidden'])
+  })
+
   it('should open at /segment, with the segment-page class the selection popup relies on (L1, L5)', async () => {
     await mountPage()
 

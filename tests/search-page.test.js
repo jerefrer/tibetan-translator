@@ -144,6 +144,13 @@ afterEach(() => {
 })
 
 describe('Search — route and lifecycle', () => {
+  it('should carry a visually hidden level-one heading with the page name', async () => {
+    await mountAt('/search')
+    const heading = page().find('h1')
+    expect(heading.text()).toBe('Search')
+    expect(heading.classes()).toEqual(['ui-visually-hidden'])
+  })
+
   it('should run the query from the route and show it in the field (R1, R4)', async () => {
     await mountAt('/search/wakefulness')
 

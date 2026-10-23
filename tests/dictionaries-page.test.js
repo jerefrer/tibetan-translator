@@ -74,6 +74,14 @@ const packRow = (wrapper, name) =>
   wrapper.findAll('[data-testid="pack-row"]').find((row) => row.text().startsWith(name))
 
 describe('DictionariesPage', () => {
+  it('should have one level-one heading, with the page name', async () => {
+    const wrapper = mountPage()
+    // The catalog title is the page's level-one heading already: no second one
+    const headings = wrapper.findAll('h1')
+    expect(headings).toHaveLength(1)
+    expect(headings[0].text()).toContain('Dictionaries')
+  })
+
   it('should open the catalog on the search and status given in the address', () => {
     const wrapper = mountPage({ find: 'verbs', status: 'available' })
 

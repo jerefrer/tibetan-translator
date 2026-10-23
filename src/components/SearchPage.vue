@@ -666,6 +666,7 @@ export default {
     :class="{ 'is-phone': isMobile }"
     data-testid="search-page"
   >
+    <h1 class="ui-visually-hidden">Search</h1>
     <div class="search-top">
       <ui-text-field
         ref="input"

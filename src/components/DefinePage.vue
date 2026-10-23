@@ -317,6 +317,7 @@ export default {
     :class="{ 'is-phone': isMobile, 'mobile-show-definition': showingEntries }"
     data-testid="define-page"
   >
+    <h1 class="ui-visually-hidden">Define</h1>
     <div v-show="!showingEntries" class="define-search">
       <ui-tibetan-field
         ref="input"

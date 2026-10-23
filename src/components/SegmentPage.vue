@@ -735,6 +735,7 @@ export default {
     :class="{ 'is-phone': isMobile, 'mobile-show-definition': showingEntries }"
     data-testid="split-page"
   >
+    <h1 class="ui-visually-hidden">Split</h1>
     <!-- Board "Empty": the title sits above the text area until there is text -->
     <span v-if="!hasText && !showingEntries" class="split-eyebrow" data-testid="split-title">Split</span>
 

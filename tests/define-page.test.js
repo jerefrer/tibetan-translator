@@ -133,6 +133,13 @@ afterEach(() => {
 })
 
 describe('Define — route and lifecycle', () => {
+  it('should carry a visually hidden level-one heading with the page name', async () => {
+    await mountAt('/define')
+    const heading = page().find('h1')
+    expect(heading.text()).toBe('Define')
+    expect(heading.classes()).toEqual(['ui-visually-hidden'])
+  })
+
   it('should show the term from the route in the field, and its definitions', async () => {
     await mountAt('/define/' + encodeURIComponent(KA))
 
