@@ -662,6 +662,64 @@ describe('DictionaryPreferencesCard', () => {
     expect(wrapper.findAll('[data-testid="dictionary-pref"]')).toHaveLength(1)
   })
 
+  describe('from the keyboard', () => {
+    const handles = () => wrapper.findAll('[data-testid="dictionary-pref-handle"]')
+    const names = () => Storage.get('dictionaries').map((d) => d.name)
+    const announcement = () => wrapper.find('[data-testid="dictionary-pref-announcement"]')
+
+    it('makes each drag handle focusable, with a name saying what and where it is', async () => {
+      seedDictionaries()
+      await mountWith(DictionaryPreferencesCard)
+      const handle = handles()[0]
+      expect(handle.attributes('tabindex')).toBe('0')
+      expect(handle.attributes('role')).toBe('button')
+      expect(handle.attributes('aria-label')).toBe('Move Rangjung Yeshe, position 1 of 3')
+      expect(handle.attributes('aria-keyshortcuts')).toBe('Alt+ArrowUp Alt+ArrowDown')
+      const hint = wrapper.find('#' + handle.attributes('aria-describedby'))
+      expect(hint.text()).toBe('Alt+Up or Alt+Down moves it up or down.')
+      expect(announcement().attributes('aria-live')).toBe('polite')
+    })
+
+    it('moves a dictionary down with Alt+Down, saves the order, announces it and keeps the focus on its handle', async () => {
+      seedDictionaries()
+      await mountWith(DictionaryPreferencesCard)
+      handles()[0].element.focus()
+
+      await handles()[0].trigger('keydown', { key: 'ArrowDown', altKey: true })
+      await flushPromises()
+
+      expect(names()).toEqual(['Hopkins2015', 'RangjungYeshe', 'Berzin-Def'])
+      expect(Storage.get('dictionaries').map((d) => d.position)).toEqual([1, 2, 3])
+      expect(announcement().text()).toBe('Rangjung Yeshe moved to position 2 of 3')
+      expect(document.activeElement).toBe(handles()[1].element)
+      expect(handles()[1].attributes('aria-label')).toBe('Move Rangjung Yeshe, position 2 of 3')
+    })
+
+    it('moves a dictionary up with Alt+Up', async () => {
+      seedDictionaries()
+      await mountWith(DictionaryPreferencesCard)
+
+      await handles()[2].trigger('keydown', { key: 'ArrowUp', altKey: true })
+      await flushPromises()
+
+      expect(names()).toEqual(['RangjungYeshe', 'Berzin-Def', 'Hopkins2015'])
+      expect(document.activeElement).toBe(handles()[1].element)
+    })
+
+    it('leaves the order as it is past either end, and for Up / Down without Alt', async () => {
+      seedDictionaries()
+      await mountWith(DictionaryPreferencesCard)
+
+      await handles()[0].trigger('keydown', { key: 'ArrowUp', altKey: true })
+      await handles()[2].trigger('keydown', { key: 'ArrowDown', altKey: true })
+      await handles()[1].trigger('keydown', { key: 'ArrowDown' })
+      await flushPromises()
+
+      expect(names()).toEqual(['Hopkins2015', 'RangjungYeshe', 'Berzin-Def'])
+      expect(announcement().text()).toBe('')
+    })
+  })
+
   it('drops its own header in the phone sub-screen', async () => {
     seedDictionaries()
     await mountWith(DictionaryPreferencesCard, { props: { bare: true } })

@@ -44,6 +44,9 @@ export default {
   data() {
     return {
       dictionaries: storedDictionaries(),
+      // Read out politely after a move from the keyboard
+      announcement: '',
+      keysHintId: `dictionary-pref-keys-${this.$.uid}`,
     };
   },
   watch: {
@@ -76,6 +79,23 @@ export default {
     },
     languages(dictionary) {
       return languageLabel(this.details(dictionary));
+    },
+    handleLabel(dictionary, index) {
+      return `Move ${this.label(dictionary)}, position ${index + 1} of ${this.dictionaries.length}`;
+    },
+    // Alt+Up / Alt+Down on the focused handle: the keyboard way to drag
+    onHandleKeydown(event, index) {
+      if (!event.altKey || (event.key !== 'ArrowUp' && event.key !== 'ArrowDown')) return;
+      event.preventDefault();
+      const target = index + (event.key === 'ArrowUp' ? -1 : 1);
+      if (target < 0 || target >= this.dictionaries.length) return;
+      const [dictionary] = this.dictionaries.splice(index, 1);
+      this.dictionaries.splice(target, 0, dictionary);
+      this.announcement = `${this.label(dictionary)} moved to position ${target + 1} of ${this.dictionaries.length}`;
+      // The row was moved in the page: keep the focus on its handle
+      this.$nextTick(() => {
+        this.$el.querySelectorAll('.dictionary-pref__handle')[target]?.focus();
+      });
     },
     showInfo(dictionary) {
       const scrollTop = document.documentElement.scrollTop || window.scrollY;
@@ -118,7 +138,17 @@ export default {
           :class="{ 'is-disabled': !dictionary.enabled }"
           data-testid="dictionary-pref"
         >
-          <span class="dictionary-pref__handle" title="Drag to reorder" data-testid="dictionary-pref-handle">
+          <span
+            class="dictionary-pref__handle"
+            role="button"
+            tabindex="0"
+            title="Drag to reorder, or Alt+Up / Alt+Down"
+            :aria-label="handleLabel(dictionary, index)"
+            :aria-describedby="keysHintId"
+            aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+            data-testid="dictionary-pref-handle"
+            @keydown="onHandleKeydown($event, index)"
+          >
             <ui-icon name="equal" :size="18" :stroke-width="2" />
           </span>
           <span class="dictionary-pref__index">{{ index + 1 }}.</span>
@@ -148,6 +178,8 @@ export default {
         </div>
       </template>
     </draggable>
+    <span :id="keysHintId" class="ui-visually-hidden">Alt+Up or Alt+Down moves it up or down.</span>
+    <div class="ui-visually-hidden" aria-live="polite" data-testid="dictionary-pref-announcement">{{ announcement }}</div>
   </settings-card>
 </template>
 
@@ -180,6 +212,11 @@ export default {
   color: var(--faint);
   cursor: move;
   touch-action: none;
+  border-radius: var(--radius-sm);
+}
+.dictionary-pref__handle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 .dictionary-pref__index {
   flex: none;
