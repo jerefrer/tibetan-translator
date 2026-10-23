@@ -7,6 +7,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick, reactive } from 'vue'
 import { createRouter, createMemoryHistory } from 'vue-router'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
 const env = vi.hoisted(() => ({ modularPacks: false, onboarding: false }))
 const mocks = vi.hoisted(() => ({ db: null, update: null, releaseDb: null }))
@@ -136,6 +139,14 @@ describe('start-up overlay', () => {
     expect(wrapper.find('[data-testid="app-loading"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="app-shell"]').exists()).toBe(true)
     expect(wrapper.find('.stub-page').exists()).toBe(true)
+  })
+
+  it('shows the logo undimmed in dark, where brightness(0.25) all but hid it', () => {
+    const source = fs.readFileSync(
+      path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/components/App.vue'),
+      'utf8'
+    )
+    expect(source).toContain("[data-theme='dark'] .app-loading__logo {\n  filter: none;\n}")
   })
 })
 

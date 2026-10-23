@@ -326,6 +326,10 @@ export default {
   height: 100px;
   filter: brightness(0.25);
 }
+/* Darkened, the logo all but vanished on the near-black background */
+[data-theme='dark'] .app-loading__logo {
+  filter: none;
+}
 /* A thin ring 192px across, centred 2px above the logo's centre */
 .app-loading__spinner.ui-spinner {
   position: absolute;
