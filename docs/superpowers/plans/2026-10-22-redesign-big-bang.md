@@ -1,6 +1,6 @@
 # Redesign (big bang): plan
 
-Status: proposed, not started.
+Status (2026-10-23): phases 0 to 4 are done and merged on `redesign`; the Phase 5 audit and its recommended fixes are done too (see `docs/redesign/reports/`). Left: validation on real devices (macOS, Windows, Linux, iOS, Android, the Tauri windows, a real first-launch download, Tibetan rendering per platform), the decisions the audit left to the owner (`hardening.md` D6, D8 to D10, D12, D15 to D20 and `decisions-applied.md`), and Phase 6, the 2.0.0 release.
 
 Mockups (private, owner access only): https://claude.ai/artifact/X4QzT2uuG9VuoXP4e8vGJr. Source files are in `docs/redesign/mockups/` (see its README).
 Option **B** ("the same screens as today, refined") is the reference. Option A (merged Lookup and Reading) is kept on the canvas for comparison only and is not part of this plan.
