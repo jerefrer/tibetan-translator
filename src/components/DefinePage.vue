@@ -507,9 +507,11 @@ export default {
     font-size var(--text-tibetan-lg)
     padding-top 0.5rem
 
-  :deep(.ui-field__input::placeholder)
-    font-family var(--font-ui)
-    font-size var(--text-md)
+  // Empty, the field is an ordinary one, as in Search: the Tibetan size and
+  // offset only suit Tibetan text, and pushed the placeholder and caret down
+  :deep(.ui-field__input:placeholder-shown)
+    font var(--text-md) var(--font-ui)
+    padding-top 0
 
   // The "typed …" echo sits before the clear button, as on the board
   :deep(.ui-field__clear)
@@ -693,6 +695,9 @@ export default {
 
     :deep(.ui-field__input)
       font-size var(--text-tibetan-md)
+
+    :deep(.ui-field__input:placeholder-shown)
+      font var(--text-md) var(--font-ui)
 
   .define-body
     flex-direction column
