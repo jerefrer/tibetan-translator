@@ -135,6 +135,7 @@ beforeEach(() => {
   Storage.delete('searchQuery')
   Storage.delete('previousQueries')
   Storage.delete('searchBuilderVisible')
+  Storage.delete('searchDefinitionsPerTerm')
 })
 
 afterEach(() => {
@@ -887,6 +888,51 @@ describe('Search — grouped by term', () => {
     await mountAt(searchFor('ཡེ་ཤེས་'))
 
     expect(findAll('search-group-term').map((term) => term.text())).toEqual(['ཡེ་ཤེས་ཁ', 'ཡེ་ཤེས་ཀ'])
+  })
+
+  it('should show 3 definitions of a term and "N more in Define" by default', async () => {
+    await mountAt('/search/wakefulness')
+    database.exec = vi.fn(async () => Array.from({ length: 7 }, (_, i) => ({
+      term: 'ཡེ་ཤེས་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: -i,
+    })))
+    await router.push('/search/dharma')
+    await flushPromises()
+
+    expect(findAll('search-result')).toHaveLength(3)
+    expect(find('term-entries-more').text()).toBe('4 more in Define →')
+  })
+
+  it('should open Define on the term when "N more in Define" is tapped', async () => {
+    Storage.set('searchDefinitionsPerTerm', 1)
+    await mountAt('/search/wakefulness')
+
+    await find('term-entries-more').trigger('click')
+    await flushPromises()
+
+    expect(findAll('search-result')).toHaveLength(0)
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('ཡེ་ཤེས་'))
+  })
+
+  it('should show every definition and no link when the setting is All', async () => {
+    Storage.set('searchDefinitionsPerTerm', 'all')
+    Storage.set('dictionaries', DICTIONARIES.map((dictionary) => ({ ...dictionary, enabled: true })))
+    await mountAt('/search/wakefulness')
+
+    expect(findAll('search-result')).toHaveLength(4)
+    expect(find('term-entries-more').exists()).toBe(false)
+  })
+
+  it('should follow the setting changed in Settings while the page was kept', async () => {
+    await mountAt('/search/wakefulness')
+    expect(findAll('search-result')).toHaveLength(3)
+
+    await router.push('/settings')
+    await flushPromises()
+    Storage.set('searchDefinitionsPerTerm', 1)
+    await router.push('/search/wakefulness')
+    await flushPromises()
+
+    expect(findAll('search-result')).toHaveLength(1)
   })
 
   it('should open Define on the term when its headword is tapped', async () => {

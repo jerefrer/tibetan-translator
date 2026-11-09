@@ -6,6 +6,7 @@ import { Lexicon } from '../services/lexicon';
 import { supportsModularPacks } from '../config/platform';
 import { UiIcon, UiList, UiListItem } from '../ui';
 import AppearanceCard from './settings/AppearanceCard.vue';
+import SearchCard from './settings/SearchCard.vue';
 import GlobalLookupCard from './settings/GlobalLookupCard.vue';
 import AboutCard from './settings/AboutCard.vue';
 import PackManagerCard from './settings/PackManagerCard.vue';
@@ -32,6 +33,7 @@ export default {
     UiList,
     UiListItem,
     AppearanceCard,
+    SearchCard,
     GlobalLookupCard,
     AboutCard,
     PackManagerCard,
@@ -159,6 +161,7 @@ export default {
       </ui-list>
 
       <appearance-card />
+      <search-card />
       <global-lookup-card />
 
       <ui-list class="settings-rows">
@@ -204,6 +207,7 @@ export default {
       <div class="settings-page__columns">
         <div class="settings-page__column settings-page__column--main">
           <appearance-card />
+          <search-card />
           <global-lookup-card />
           <about-card />
           <scanned-dictionaries-card />
