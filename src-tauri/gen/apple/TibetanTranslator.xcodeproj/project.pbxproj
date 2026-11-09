@@ -16,7 +16,6 @@
 		3FF0DF3DC6E6718FA76A9DAE /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F95ECEC7D949373826B807BA /* UIKit.framework */; };
 		42E94C583726C2A7D1580823 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5BB2268BC3CAE3E4786A190E /* QuartzCore.framework */; };
 		5C6BDCBE387974662D808051 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 8C4C7B913580795D0068C6B5 /* libapp.a */; };
-		A01C3D697E91A23CF9F09E55 /* libapp.a in Resources */ = {isa = PBXBuildFile; fileRef = 2477DD7822F31132AA456A15 /* libapp.a */; };
 		B16A426830673FBE50E4310B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AD14AA266945A2E45C7D039 /* Metal.framework */; };
 		B9C84860F19B7C493278028D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A1568655D1EE8D06C35DC75 /* Assets.xcassets */; };
 		BC103A9F32A6865C26EBEC1A /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = EBA6B97DA37CB789660F0B86 /* main.mm */; };
@@ -28,7 +27,6 @@
 		04A385E178893734C62C91A9 /* lib.rs */ = {isa = PBXFileReference; path = lib.rs; sourceTree = "<group>"; };
 		1484A7DB1350D8C9B676FBF2 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
 		1F351B380832D0A8DBE1B64E /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
-		2477DD7822F31132AA456A15 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		277C18C57924236873B49336 /* lexicon.rs */ = {isa = PBXFileReference; path = lexicon.rs; sourceTree = "<group>"; };
 		2A1568655D1EE8D06C35DC75 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		34E899EF1D631628881F9C1C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -114,22 +112,6 @@
 			path = TibetanTranslator_iOS;
 			sourceTree = "<group>";
 		};
-		29AD7A905072875BE8A77445 /* debug */ = {
-			isa = PBXGroup;
-			children = (
-				2477DD7822F31132AA456A15 /* libapp.a */,
-			);
-			path = debug;
-			sourceTree = "<group>";
-		};
-		326356FA3C8A649BFE2446E9 /* arm64 */ = {
-			isa = PBXGroup;
-			children = (
-				29AD7A905072875BE8A77445 /* debug */,
-			);
-			path = arm64;
-			sourceTree = "<group>";
-		};
 		5C957D60C6CE069B42601D34 /* bindings */ = {
 			isa = PBXGroup;
 			children = (
@@ -164,7 +146,6 @@
 		BE81FD65CB5901A9F892160B /* Externals */ = {
 			isa = PBXGroup;
 			children = (
-				326356FA3C8A649BFE2446E9 /* arm64 */,
 			);
 			path = Externals;
 			sourceTree = "<group>";
@@ -184,13 +165,6 @@
 				5C957D60C6CE069B42601D34 /* bindings */,
 			);
 			path = TibetanTranslator;
-			sourceTree = "<group>";
-		};
-		"TEMP_A9FBBD6A-98A0-4D43-9F1E-C67417E281A8" /* x86_64 */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = x86_64;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -258,7 +232,6 @@
 				0FF4DF6EAB6B07F2FB959ECA /* LaunchScreen.storyboard in Resources */,
 				278B0767FB25E62DACA255B3 /* PrivacyInfo.xcprivacy in Resources */,
 				195A7C992656A13A9914B738 /* assets in Resources */,
-				A01C3D697E91A23CF9F09E55 /* libapp.a in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -322,8 +295,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME) $(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)";
-				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME) $(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jerefrer.TibetanTranslator;
 				PRODUCT_NAME = "TibetanTranslator";
 				SDKROOT = iphoneos;
@@ -354,8 +327,8 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME) $(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)";
-				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(TOOLCHAIN_DIR)/usr/lib/swift/$(PLATFORM_NAME) $(TOOLCHAIN_DIR)/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=arm64]" = "$(inherited) $(PROJECT_DIR)/Externals/arm64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
+				"LIBRARY_SEARCH_PATHS[arch=x86_64]" = "$(inherited) $(PROJECT_DIR)/Externals/x86_64/$(CONFIGURATION) $(SDKROOT)/usr/lib/swift $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME) $(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)";
 				PRODUCT_BUNDLE_IDENTIFIER = com.jerefrer.TibetanTranslator;
 				PRODUCT_NAME = "TibetanTranslator";
 				SDKROOT = iphoneos;
