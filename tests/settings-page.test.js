@@ -679,9 +679,24 @@ describe('ScannedDictionariesCard', () => {
     mocks.scans.isScanDownloaded.mockResolvedValueOnce(true)
     await mountWith(ScannedDictionariesCard)
     await byTestId('scan-delete').trigger('click')
+    await nextTick()
+    expect(mocks.scans.deleteScan).not.toHaveBeenCalled()
+    expect(inBody('ui-dialog').textContent).toContain('Delete downloaded pages?')
+    inBody('delete-confirm').click()
     await flushPromises()
     expect(mocks.scans.deleteScan).toHaveBeenCalledWith('das')
     expect(snackbar.open).toHaveBeenCalledWith('Deleted successfully')
+  })
+
+  it('should delete nothing when the scan deletion is cancelled', async () => {
+    env.tauri = true
+    mocks.scans.isScanDownloaded.mockResolvedValueOnce(true)
+    await mountWith(ScannedDictionariesCard)
+    await byTestId('scan-delete').trigger('click')
+    await nextTick()
+    inBody('delete-cancel').click()
+    await flushPromises()
+    expect(mocks.scans.deleteScan).not.toHaveBeenCalled()
   })
 
   it('reports a failed download', async () => {
@@ -724,9 +739,24 @@ describe('AudioCard', () => {
     mocks.audio.isAudioDownloaded.mockResolvedValueOnce(true)
     await mountWith(AudioCard)
     await byTestId('audio-delete').trigger('click')
+    await nextTick()
+    expect(mocks.audio.deleteAudio).not.toHaveBeenCalled()
+    expect(inBody('ui-dialog').textContent).toContain('Delete downloaded recordings?')
+    inBody('delete-confirm').click()
     await flushPromises()
     expect(mocks.audio.deleteAudio).toHaveBeenCalledWith('hotl1')
     expect(byTestId('audio-download').exists()).toBe(true)
+  })
+
+  it('should delete nothing when the recordings deletion is cancelled', async () => {
+    env.tauri = true
+    mocks.audio.isAudioDownloaded.mockResolvedValueOnce(true)
+    await mountWith(AudioCard)
+    await byTestId('audio-delete').trigger('click')
+    await nextTick()
+    inBody('delete-cancel').click()
+    await flushPromises()
+    expect(mocks.audio.deleteAudio).not.toHaveBeenCalled()
   })
 
   it('should report a failed download and offer it again', async () => {

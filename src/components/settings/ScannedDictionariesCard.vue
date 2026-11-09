@@ -6,7 +6,7 @@ import {
   deleteScan,
   isAppMode,
 } from '../../services/scan-service';
-import { UiButton, UiChip, UiIcon, UiProgress, UiTooltip } from '../../ui';
+import { UiButton, UiChip, UiDialog, UiIcon, UiProgress, UiTooltip } from '../../ui';
 import SettingsCard from './SettingsCard.vue';
 
 // Tauri event listener, loaded lazily so the browser build never imports it
@@ -38,7 +38,7 @@ export function estimatedScanSize(pageCount) {
 // the app; online only in a browser.
 export default {
   name: 'ScannedDictionariesCard',
-  components: { SettingsCard, UiButton, UiChip, UiIcon, UiProgress, UiTooltip },
+  components: { SettingsCard, UiButton, UiChip, UiDialog, UiIcon, UiProgress, UiTooltip },
   inject: ['snackbar'],
   data() {
     return {
@@ -46,6 +46,8 @@ export default {
       status: {},
       isAppMode: false,
       progressUnlisten: null,
+      confirmOpen: false,
+      pendingDelete: null,
     };
   },
   async created() {
@@ -98,7 +100,15 @@ export default {
         this.snackbar.open(`Download failed: ${e.message || 'Unknown error'}`);
       }
     },
-    async remove(scanId) {
+    confirmRemove(dictionary) {
+      this.pendingDelete = dictionary;
+      this.confirmOpen = true;
+    },
+    async remove() {
+      if (!this.pendingDelete) return;
+      const scanId = this.pendingDelete.scanId;
+      this.confirmOpen = false;
+      this.pendingDelete = null;
       try {
         await deleteScan(scanId);
         this.status[scanId] = { downloaded: false, downloading: false, progress: 0, error: null };
@@ -154,7 +164,7 @@ export default {
             class="scanned-row__delete"
             :aria-label="'Delete download of ' + label(dictionary)"
             data-testid="scan-delete"
-            @click="remove(dictionary.scanId)"
+            @click="confirmRemove(dictionary)"
           >
             <ui-icon name="trash-2" :size="18" />
           </ui-button>
@@ -178,6 +188,13 @@ export default {
     <p v-if="!isAppMode" class="scanned-card__note" data-testid="scan-web-note">
       Download for offline is only available in the desktop/mobile app.
     </p>
+    <ui-dialog v-model="confirmOpen" title="Delete downloaded pages?" :max-width="400">
+      Delete <strong>{{ pendingDelete ? label(pendingDelete) : '' }}</strong>? It can be downloaded again later.
+      <template #actions>
+        <ui-button variant="ghost" data-testid="delete-cancel" @click="confirmOpen = false">Cancel</ui-button>
+        <ui-button variant="danger" data-testid="delete-confirm" @click="remove">Delete</ui-button>
+      </template>
+    </ui-dialog>
   </settings-card>
 </template>
 

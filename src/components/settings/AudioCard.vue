@@ -6,7 +6,7 @@ import {
   deleteAudio,
 } from '../../services/audio-service';
 import { isTauri } from '../../config/platform';
-import { UiButton, UiChip, UiIcon, UiProgress, UiTooltip } from '../../ui';
+import { UiButton, UiChip, UiDialog, UiIcon, UiProgress, UiTooltip } from '../../ui';
 import SettingsCard from './SettingsCard.vue';
 
 // Tauri event listener, loaded lazily so the browser build never imports it.
@@ -36,7 +36,7 @@ function errorMessage(e) {
 // Rows share the look of the scanned dictionaries card (.scanned-row).
 export default {
   name: 'AudioCard',
-  components: { SettingsCard, UiButton, UiChip, UiIcon, UiProgress, UiTooltip },
+  components: { SettingsCard, UiButton, UiChip, UiDialog, UiIcon, UiProgress, UiTooltip },
   inject: ['snackbar'],
   data() {
     return {
@@ -44,6 +44,8 @@ export default {
       status: {},
       isAppMode: isTauri(),
       progressUnlisten: null,
+      confirmOpen: false,
+      pendingDelete: null,
     };
   },
   async created() {
@@ -89,7 +91,15 @@ export default {
         this.snackbar.open(`Download failed: ${errorMessage(e)}`);
       }
     },
-    async remove(audioId) {
+    confirmRemove(dictionary) {
+      this.pendingDelete = dictionary;
+      this.confirmOpen = true;
+    },
+    async remove() {
+      if (!this.pendingDelete) return;
+      const audioId = this.pendingDelete.audioId;
+      this.confirmOpen = false;
+      this.pendingDelete = null;
       try {
         await deleteAudio(audioId);
         this.status[audioId] = { downloaded: false, downloading: false, progress: 0 };
@@ -143,7 +153,7 @@ export default {
             class="scanned-row__delete"
             :aria-label="'Delete downloaded recordings of ' + dictionary.label"
             data-testid="audio-delete"
-            @click="remove(dictionary.audioId)"
+            @click="confirmRemove(dictionary)"
           >
             <ui-icon name="trash-2" :size="18" />
           </ui-button>
@@ -163,5 +173,12 @@ export default {
         <ui-chip v-else tone="neutral" outlined data-testid="audio-online-only">Online only</ui-chip>
       </div>
     </div>
+    <ui-dialog v-model="confirmOpen" title="Delete downloaded recordings?" :max-width="400">
+      Delete <strong>{{ pendingDelete?.label }}</strong>? It can be downloaded again later.
+      <template #actions>
+        <ui-button variant="ghost" data-testid="delete-cancel" @click="confirmOpen = false">Cancel</ui-button>
+        <ui-button variant="danger" data-testid="delete-confirm" @click="remove">Delete</ui-button>
+      </template>
+    </ui-dialog>
   </settings-card>
 </template>
