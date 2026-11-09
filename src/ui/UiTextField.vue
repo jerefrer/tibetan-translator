@@ -144,11 +144,10 @@ export default {
   border: 1.5px solid var(--line-strong);
   border-radius: var(--radius-xl);
   color: var(--ink);
-  transition: border-color 0.12s, box-shadow 0.12s;
+  transition: border-color 0.12s;
 }
 .ui-field__control:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--ring);
 }
 .ui-field.is-error .ui-field__control { border-color: var(--danger); }
 .ui-field.is-disabled .ui-field__control { opacity: 0.55; background: var(--soft); }
