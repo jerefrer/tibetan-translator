@@ -15,6 +15,20 @@ describe('history service', () => {
     expect(recentTerms()).toEqual(['ཁ་', 'ཀ་'])
   })
 
+  it('should keep only the last step when the term is being typed out', () => {
+    // Define opens the first matching term while you type: སངས་ then སངས་རྒྱས་
+    recordTerm('ཀ་')
+    recordTerm('སངས་')
+    recordTerm('སངས་རྒྱས་')
+    expect(recentTerms()).toEqual(['སངས་རྒྱས་', 'ཀ་'])
+  })
+
+  it('should keep only the last step when the term is being shortened', () => {
+    recordTerm('སངས་རྒྱས་')
+    recordTerm('སངས་')
+    expect(recentTerms()).toEqual(['སངས་'])
+  })
+
   it('should move a term to the top without duplicating it when it is recorded again', () => {
     recordTerm('ཀ་')
     recordTerm('ཁ་')
