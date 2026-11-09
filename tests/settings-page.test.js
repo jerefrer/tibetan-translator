@@ -232,6 +232,12 @@ describe('ConfigurePage', () => {
     expect(wrapper.findComponent({ name: 'CustomPackSection' }).exists()).toBe(false)
   })
 
+  it('should credit Christian Steinert for the dictionary data when in the app', async () => {
+    env.tauri = true
+    await mountWith(ConfigurePage)
+    expect(byTestId('about-credits').text()).toContain('Christian Steinert')
+  })
+
   it('forwards the old catalog links to Dictionaries', async () => {
     await mountWith(ConfigurePage, { path: '/settings?status=available' })
     await flushPromises()
@@ -293,6 +299,12 @@ describe('ConfigurePage', () => {
       expect(byTestId('about-whats-new-row').text()).toContain('Tibetan Translator 1.12.0')
       expect(byTestId('about-check-row').exists()).toBe(true)
       expect(byTestId('about-card').exists()).toBe(false)
+    })
+
+    it('should credit Christian Steinert for the dictionary data as a row', async () => {
+      env.tauri = true
+      await mountWith(ConfigurePage)
+      expect(byTestId('about-credits-row').text()).toContain('Christian Steinert')
     })
   })
 })

@@ -133,6 +133,12 @@ export default {
           <ui-icon v-else name="refresh-cw" :size="18" class="settings-row__chevron" />
         </template>
       </ui-list-item>
+      <ui-list-item
+        title="Dictionary data"
+        subtitle="Collected and maintained by Christian Steinert"
+        class="settings-row"
+        data-testid="about-credits-row"
+      />
     </template>
 
     <settings-card v-else title="About" :subtitle="versionLine" class="about-card" data-testid="about-card">
@@ -155,6 +161,10 @@ export default {
           Check for updates
         </ui-button>
       </div>
+      <p class="about-card__caption" data-testid="about-credits">
+        Dictionary data collected and maintained by Christian Steinert
+        (github.com/christiansteinert/tibetan-dictionary).
+      </p>
     </settings-card>
 
     <ui-dialog
