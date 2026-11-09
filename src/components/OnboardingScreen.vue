@@ -3,6 +3,7 @@ import PackManager from '../services/pack-manager';
 import DictionariesDetails from '../services/dictionaries-details';
 import GlobalLookup from '../services/global-lookup';
 import db from '../services/sql-database';
+import { getAudioDictionaries, isAudioDownloaded, downloadAudio } from '../services/audio-service';
 import { getPackHighlights } from '../services/dictionary-catalog';
 import { PACK_DEFINITIONS, getRequiredPackIds, getOptionalPackIds } from '../config/pack-definitions';
 import { isTauri, isMobile, isMacOS } from '../config/platform';
@@ -30,8 +31,12 @@ function joinWithAnd(items) {
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
 }
 
-// First launch in the app: optional packs to download, then (desktop only)
-// how Quick lookup works, then the download's progress, success or failure.
+// The audio row and choice share the pack ids' namespace
+const AUDIO_ID = 'audio';
+
+// First launch in the app: optional packs and audio recordings to download,
+// then (desktop only) how Quick lookup works, then the download's progress,
+// success or failure.
 // Shown by App.vue over everything until it emits `complete`.
 export default {
   name: 'OnboardingScreen',
@@ -49,6 +54,16 @@ export default {
       downloadState: 'idle',
       error: null,
       failedPackId: null,
+      // Dictionaries whose recordings can be downloaded (from audio-service)
+      audioDictionaries: [],
+      // Whether this run downloads the recordings, fixed when it starts
+      includeAudio: false,
+      // 'waiting' | 'downloading' | 'installed', for the audio row
+      audioStatus: 'waiting',
+      audioPercentage: 0,
+      // Which dictionary's recordings are downloading, to combine progress
+      audioIndex: 0,
+      audioUnlisten: null,
       reducedMotion: !!window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches,
     };
   },
@@ -75,19 +90,28 @@ export default {
         };
       });
     },
+    // The recordings, offered apart from the packs: they stream when not
+    // downloaded, so getting them now is about listening offline
+    audioOption() {
+      if (!this.audioDictionaries.length) return null;
+      const bytes = this.audioDictionaries.reduce((sum, dictionary) => sum + dictionary.bytes, 0);
+      return { id: AUDIO_ID, name: 'Audio recordings', size: Math.round(bytes / 1048576) };
+    },
     hasSelection() {
       return this.selectedPackIds.length > 0;
     },
     selectedSize() {
-      return this.optionalPacks
+      const packs = this.optionalPacks
         .filter((pack) => this.selectedPackIds.includes(pack.id))
         .reduce((sum, pack) => sum + (pack.size.download || 0), 0);
+      const audio = this.audioOption && this.isSelected(AUDIO_ID) ? this.audioOption.size : 0;
+      return packs + audio;
     },
     // One row per pack of this run, with where its download stands
     downloads() {
       const downloading = PackManager.downloadingPacks;
       const installed = PackManager.installedPacks;
-      return this.downloadPackIds.map((id) => {
+      const rows = this.downloadPackIds.map((id) => {
         const progress = downloading[id];
         let status = 'waiting';
         if (installed.includes(id)) status = 'installed';
@@ -101,6 +125,22 @@ export default {
           percentage: Math.round(progress?.percentage || 0),
         };
       });
+      if (this.includeAudio) {
+        const failed = this.downloadState === 'error' && this.failedPackId === AUDIO_ID;
+        rows.push({
+          id: AUDIO_ID,
+          name: this.audioOption.name,
+          status: failed ? 'failed' : this.audioStatus,
+          percentage: this.audioPercentage,
+        });
+      }
+      return rows;
+    },
+    // What the finished download brought, said under Quick lookup
+    doneSummary() {
+      if (!this.downloadPackIds.length) return 'Audio recordings downloaded.';
+      if (this.includeAudio) return 'Packs and audio recordings downloaded and installed.';
+      return 'Packs downloaded and installed.';
     },
     currentDownload() {
       return this.downloads.find((download) => download.status === 'downloading' || download.status === 'extracting')
@@ -120,8 +160,19 @@ export default {
       this.$nextTick(() => this.focusHeading());
     },
   },
+  async created() {
+    try {
+      this.audioDictionaries = await getAudioDictionaries();
+    } catch (e) {
+      console.warn('[Onboarding] Audio recordings unavailable:', e);
+    }
+    await this.listenForAudioProgress();
+  },
   mounted() {
     this.focusHeading();
+  },
+  unmounted() {
+    this.audioUnlisten?.();
   },
   methods: {
     isSelected(packId) {
@@ -144,6 +195,7 @@ export default {
     // "Download N MB": desktop shows Quick lookup while the packs download
     download() {
       this.downloadPackIds = getOptionalPackIds().filter((id) => this.selectedPackIds.includes(id));
+      this.includeAudio = !!this.audioOption && this.isSelected(AUDIO_ID);
       this.step = this.isDesktop ? 'lookup' : 'download';
       this.runDownloads();
     },
@@ -169,11 +221,41 @@ export default {
           // As Settings does: load the new pack into the running database
           await db.reloadPack(packId).catch((e) => console.warn('[Onboarding] reloadPack failed:', e));
         }
+        if (this.includeAudio && this.audioStatus !== 'installed') {
+          this.failedPackId = AUDIO_ID;
+          await this.downloadRecordings();
+        }
         this.downloadState = 'done';
       } catch (e) {
         // Tauri rejects with the Rust error as a plain string
         this.error = (typeof e === 'string' ? e : e?.message) || DOWNLOAD_ERROR;
         this.downloadState = 'error';
+      }
+    },
+    // Each dictionary's recordings in turn, skipping those already downloaded
+    async downloadRecordings() {
+      this.audioStatus = 'downloading';
+      this.audioPercentage = 0;
+      for (const [index, dictionary] of this.audioDictionaries.entries()) {
+        this.audioIndex = index;
+        if (await isAudioDownloaded(dictionary.audioId)) continue;
+        await downloadAudio(dictionary.audioId);
+      }
+      this.audioStatus = 'installed';
+      this.audioPercentage = 100;
+    },
+    // Progress events carry one dictionary's percentage; the row shows the
+    // whole set's. Only in the app: the browser build has no Tauri events.
+    async listenForAudioProgress() {
+      if (!window.__TAURI_INTERNALS__) return;
+      try {
+        const { listen } = await import('@tauri-apps/api/event');
+        this.audioUnlisten = await listen('audio-download-progress', (event) => {
+          const total = this.audioDictionaries.length || 1;
+          this.audioPercentage = Math.round((this.audioIndex * 100 + event.payload.percent) / total);
+        });
+      } catch (e) {
+        console.warn('[Onboarding] Audio progress unavailable:', e);
       }
     },
     finish() {
@@ -247,6 +329,32 @@ export default {
           </span>
         </div>
       </div>
+
+      <template v-if="audioOption">
+        <span id="onboarding-audio" class="onboarding__label">Audio</span>
+        <div class="onboarding__packs" role="group" aria-labelledby="onboarding-audio">
+          <div
+            class="onboarding-pack"
+            :class="{ 'is-selected': isSelected(audioOption.id) }"
+            data-testid="onboarding-pack-audio"
+            @click="toggle(audioOption.id)"
+          >
+            <ui-checkbox
+              class="onboarding-pack__check"
+              :model-value="isSelected(audioOption.id)"
+              @update:model-value="setSelected(audioOption.id, $event)"
+              @click.stop
+            >
+              <span class="onboarding-pack__name">{{ audioOption.name }}</span>
+            </ui-checkbox>
+            <span class="onboarding-pack__size" data-testid="onboarding-pack-size">{{ audioOption.size }} MB</span>
+            <p class="onboarding-pack__description">
+              Pronunciation of the Heart of Tibetan Language vocabulary, to listen to without a connection.
+              Without them, the recordings play online.
+            </p>
+          </div>
+        </div>
+      </template>
 
       <div class="onboarding__actions">
         <template v-if="hasSelection">
@@ -326,7 +434,7 @@ export default {
         </template>
         <template v-else-if="downloadState === 'done'">
           <ui-icon name="circle-check" :size="16" class="onboarding__success" />
-          <span>Packs downloaded and installed.</span>
+          <span>{{ doneSummary }}</span>
         </template>
         <template v-else>
           <span class="onboarding-lookup__download-text">
@@ -357,7 +465,7 @@ export default {
       </h1>
 
       <p v-if="downloadState === 'done'" class="onboarding__lede">
-        The new dictionaries are installed and ready to use.
+        {{ downloadPackIds.length ? 'The new dictionaries are installed and ready to use.' : 'The audio recordings now play without a connection.' }}
       </p>
       <template v-else-if="downloadState === 'error'">
         <ui-alert type="error" data-testid="onboarding-error">{{ error }}</ui-alert>

@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 
 const env = vi.hoisted(() => ({ mobile: false, mac: false }))
-const mocks = vi.hoisted(() => ({ packs: null, db: null, hotkey: 'CommandOrControl+Shift+C' }))
+const mocks = vi.hoisted(() => ({ packs: null, db: null, audio: null, hotkey: 'CommandOrControl+Shift+C' }))
 
 vi.mock('../src/config/platform', () => ({
   isTauri: () => true,
@@ -47,6 +47,18 @@ vi.mock('../src/services/global-lookup', async () => {
       formatHotkeyForDisplay: actual.formatHotkeyForDisplay,
     },
   }
+})
+
+vi.mock('../src/services/audio-service', () => {
+  mocks.audio = {
+    getAudioDictionaries: vi.fn(async () => [
+      { audioId: 'hotl1', label: 'Heart of Tibetan Language 1', count: 3, bytes: 50 * 1048576 },
+      { audioId: 'hotl2', label: 'Heart of Tibetan Language 2', count: 2, bytes: 30 * 1048576 },
+    ]),
+    isAudioDownloaded: vi.fn(async () => false),
+    downloadAudio: vi.fn(async () => {}),
+  }
+  return { ...mocks.audio, default: mocks.audio }
 })
 
 import OnboardingScreen, { parsePackSize } from '../src/components/OnboardingScreen.vue'
@@ -135,7 +147,7 @@ describe('pack choice', () => {
 
   it('P4 lists every optional pack in order with its name, description, highlights and sizes', async () => {
     await mountScreen()
-    const cards = wrapper.findAll('.onboarding-pack')
+    const cards = wrapper.findAll('[aria-labelledby="onboarding-optional"] .onboarding-pack')
     expect(cards.map((card) => card.find('.onboarding-pack__name').text())).toEqual(['Tibetan Monolingual', 'Sanskrit & Academic'])
 
     const monolingual = pack('tibetan-monolingual')
@@ -478,6 +490,68 @@ describe('download step', () => {
     await startPhoneDownload('sanskrit-academic')
     expect(mocks.packs.completeOnboarding).not.toHaveBeenCalled()
     expect(wrapper.emitted('complete')).toBeUndefined()
+  })
+})
+
+describe('audio recordings', () => {
+  const audio = () => byTestId('onboarding-pack-audio')
+
+  it('A1 offers the recordings apart from the packs, unticked, with their total size', async () => {
+    await mountScreen()
+    expect(audio().text()).toContain('Audio recordings')
+    expect(audio().text()).toContain('Heart of Tibetan Language')
+    expect(audio().find('[data-testid="onboarding-pack-size"]').text()).toBe('80 MB')
+    expect(audio().find('[data-testid="ui-checkbox-control"]').attributes('data-state')).toBe('unchecked')
+    expect(wrapper.find('[aria-labelledby="onboarding-optional"] [data-testid="onboarding-pack-audio"]').exists()).toBe(false)
+  })
+
+  it('A2 counts the recordings in the Download button when ticked', async () => {
+    await mountScreen()
+    await tick('audio')
+    expect(text('onboarding-download')).toBe('Download 80 MB')
+    await tick('sanskrit-academic')
+    expect(text('onboarding-download')).toBe('Download 106 MB')
+  })
+
+  it('A3 downloads each dictionary’s recordings after the packs, and shows them installed', async () => {
+    const calls = []
+    mocks.packs.downloadPack.mockImplementation(async (id) => calls.push(`pack ${id}`))
+    mocks.audio.downloadAudio.mockImplementation(async (id) => calls.push(`audio ${id}`))
+    env.mobile = true
+    await mountScreen()
+    await tick('audio')
+    await tick('sanskrit-academic')
+    await click('onboarding-download')
+
+    expect(calls).toEqual(['pack sanskrit-academic', 'audio hotl1', 'audio hotl2'])
+    expect(byTestId('onboarding-download-audio').text()).toContain('Audio recordings')
+    expect(byTestId('onboarding-download-audio').text()).toContain('Installed')
+    expect(wrapper.find('h1').text()).toBe('You’re all set')
+  })
+
+  it('A3 skips recordings already on the device', async () => {
+    mocks.audio.isAudioDownloaded.mockResolvedValueOnce(true).mockResolvedValueOnce(false)
+    env.mobile = true
+    await mountScreen()
+    await tick('audio')
+    await click('onboarding-download')
+    expect(mocks.audio.downloadAudio).toHaveBeenCalledTimes(1)
+    expect(mocks.audio.downloadAudio).toHaveBeenCalledWith('hotl2')
+  })
+
+  it('A4 a failed audio download is reported on its row and can be retried', async () => {
+    mocks.audio.downloadAudio.mockRejectedValueOnce('connection reset')
+    env.mobile = true
+    await mountScreen()
+    await tick('audio')
+    await click('onboarding-download')
+
+    expect(byTestId('onboarding-error').text()).toBe('connection reset')
+    expect(byTestId('onboarding-download-audio').classes()).toContain('is-failed')
+
+    await click('onboarding-retry')
+    expect(wrapper.find('h1').text()).toBe('You’re all set')
+    expect(byTestId('onboarding-download-audio').text()).toContain('Installed')
   })
 })
 
