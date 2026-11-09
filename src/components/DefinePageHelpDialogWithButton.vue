@@ -6,6 +6,10 @@
   // The "?" in the navigation (rail on a desktop, floating above the bar on a
   // phone) and the help it opens while Define is shown.
   export default {
+    props: {
+      // Settings (phone) opens the dialog from its own row
+      hideButton: { type: Boolean, default: false }
+    },
     components: {
       DictionariesMenuHelp,
       UiButton,
@@ -48,6 +52,9 @@
       }
     },
     methods: {
+      open() {
+        this.dialog = true
+      },
       handleResize() {
         this.isMobile = window.innerWidth <= 600;
       }
@@ -64,7 +71,7 @@
 <template>
   <span class="define-help">
     <button
-      v-if="$route.path.includes('/define')"
+      v-if="!hideButton && $route.path.includes('/define')"
       type="button"
       class="help-button define-help-button"
       aria-label="How to use the Define page"

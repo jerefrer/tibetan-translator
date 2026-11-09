@@ -4,8 +4,8 @@ import { navItemsFor, activeNavId } from '../config/navigation';
 
 // Desktop: a vertical rail with Define / Search / Split, a divider,
 // Glossary / Dictionaries, and Settings at the bottom.
-// Phone: a bottom bar with four tabs. The `help` slot receives the
-// per-page help buttons.
+// Phone: a bottom bar with four tabs (page help lives in Settings there).
+// The `help` slot receives the per-page help buttons of the rail.
 export default {
   name: 'AppNav',
   components: { UiIcon },
@@ -158,10 +158,6 @@ export default {
         </a>
       </router-link>
     </template>
-
-    <div v-if="isMobile" class="app-nav__help" data-testid="nav-help">
-      <slot name="help" />
-    </div>
   </nav>
 </template>
 
@@ -319,23 +315,9 @@ export default {
   opacity: 1;
 }
 
-/* On a phone the button floats just above the bar. Lists that end above
-   the bar keep this much room after their last row, so it can scroll clear
-   of the button (2.75rem tall, 6px above the bar, plus 8px). */
+/* Pages keep this much room after their last row (it used to clear the
+   floating phone help button; now just the usual page padding). */
 :root {
-  --phone-help-clearance: calc(2.75rem + 14px);
-}
-/* On a phone the button floats just above the bar. */
-.app-nav--bar .app-nav__help {
-  position: absolute;
-  right: 8px;
-  bottom: 100%;
-  margin-bottom: 6px;
-  z-index: 5;
-}
-.app-nav--bar .app-nav__help .help-button {
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-  border: 1px solid var(--line);
+  --phone-help-clearance: 16px;
 }
 </style>

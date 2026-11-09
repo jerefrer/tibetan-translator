@@ -11,6 +11,9 @@ import AboutCard from './settings/AboutCard.vue';
 import PackManagerCard from './settings/PackManagerCard.vue';
 import ScannedDictionariesCard from './settings/ScannedDictionariesCard.vue';
 import AudioCard from './settings/AudioCard.vue';
+import DefinePageHelpDialogWithButton from './DefinePageHelpDialogWithButton.vue';
+import SearchPageHelpDialogWithButton from './SearchPageHelpDialogWithButton.vue';
+import SplitPageHelpDialogWithButton from './SplitPageHelpDialogWithButton.vue';
 import DictionaryPreferencesCard from './settings/DictionaryPreferencesCard.vue';
 import { packSummary, plural } from './settings/pack-summary';
 
@@ -20,7 +23,8 @@ const CATALOG_QUERY_KEYS = ['find', 'status'];
 // Desktop: two columns (appearance, global lookup, about on the left; packs
 // and dictionary preferences on the right). Phone: rows opening My glossary
 // and Dictionaries first, then the cards; Dictionary preferences opens as a
-// sub-screen (?view=preferences) with a back arrow.
+// sub-screen (?view=preferences) with a back arrow. The phone has no floating
+// help button: a Help group at the end opens each page's help dialog.
 export default {
   name: 'ConfigurePage',
   components: {
@@ -34,6 +38,9 @@ export default {
     ScannedDictionariesCard,
     AudioCard,
     DictionaryPreferencesCard,
+    DefinePageHelpDialogWithButton,
+    SearchPageHelpDialogWithButton,
+    SplitPageHelpDialogWithButton,
   },
   data() {
     return {
@@ -42,6 +49,13 @@ export default {
     };
   },
   computed: {
+    helpRows() {
+      return [
+        { id: 'define', ref: 'defineHelp', title: 'How to use Define' },
+        { id: 'search', ref: 'searchHelp', title: 'How to use Search' },
+        { id: 'split', ref: 'splitHelp', title: 'How to use Split' },
+      ];
+    },
     view() {
       return this.isMobile ? String(this.$route.query.view || '') : '';
     },
@@ -164,6 +178,25 @@ export default {
       <pack-manager-card />
       <scanned-dictionaries-card />
       <audio-card />
+
+      <span class="settings-page__eyebrow">Help</span>
+      <ui-list class="settings-rows">
+        <ui-list-item
+          v-for="help in helpRows"
+          :key="help.ref"
+          :title="help.title"
+          :icon="'circle-help'"
+          clickable
+          class="settings-row"
+          :data-testid="'settings-row-help-' + help.id"
+          @click="$refs[help.ref].open()"
+        >
+          <template #append><ui-icon name="chevron-right" :size="18" :stroke-width="2" class="settings-row__chevron" /></template>
+        </ui-list-item>
+      </ui-list>
+      <define-page-help-dialog-with-button ref="defineHelp" hide-button />
+      <search-page-help-dialog-with-button ref="searchHelp" hide-button />
+      <split-page-help-dialog-with-button ref="splitHelp" hide-button />
     </template>
 
     <template v-else>

@@ -280,6 +280,35 @@ describe('ConfigurePage', () => {
       expect(router.currentRoute.value.path).toBe('/dictionaries')
     })
 
+    it('should list a Help row per page and open that page\'s help when tapped', async () => {
+      await mountWith(ConfigurePage)
+      expect(byTestId('settings-row-help-define').exists()).toBe(true)
+      expect(byTestId('settings-row-help-search').exists()).toBe(true)
+      expect(byTestId('settings-row-help-split').exists()).toBe(true)
+      expect(inBody('search-help')).toBeNull()
+
+      await byTestId('settings-row-help-search').find('button').trigger('click')
+      await nextTick()
+      expect(inBody('search-help')).not.toBeNull()
+    })
+
+    it('should open the Define and Split help from their rows', async () => {
+      await mountWith(ConfigurePage)
+      await byTestId('settings-row-help-define').find('button').trigger('click')
+      await nextTick()
+      expect(inBody('define-help')).not.toBeNull()
+      document.body.querySelector('[data-testid="define-help-close"]').click()
+      await nextTick()
+      await byTestId('settings-row-help-split').find('button').trigger('click')
+      await nextTick()
+      expect(inBody('split-help')).not.toBeNull()
+    })
+
+    it('should show no floating help button next to the rows', async () => {
+      await mountWith(ConfigurePage)
+      expect(wrapper.find('.help-button').exists()).toBe(false)
+    })
+
     it('summarises glossary entries and installed packs', async () => {
       env.tauri = true
       mocks.packs.state.customPacks = [

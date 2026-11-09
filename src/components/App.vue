@@ -271,7 +271,7 @@ export default {
       data-testid="app-shell"
     >
       <app-nav :is-mobile="isMobile" :update-ready="updateReady">
-        <template #help>
+        <template v-if="!isMobile" #help>
           <DefinePageHelpDialogWithButton v-if="currentTabId == 'define'" />
           <SearchPageHelpDialogWithButton v-if="currentTabId == 'search'" />
           <SplitPageHelpDialogWithButton v-if="currentTabId == 'segment'" />

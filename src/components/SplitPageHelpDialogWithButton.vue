@@ -7,6 +7,10 @@
   // phone) and the help it opens while Split is shown. The button and the
   // panels use the styles of DefinePageHelpDialogWithButton.vue (global).
   export default {
+    props: {
+      // Settings (phone) opens the dialog from its own row
+      hideButton: { type: Boolean, default: false }
+    },
     components: {
       DictionariesMenuHelp,
       UiButton,
@@ -47,6 +51,9 @@
       }
     },
     methods: {
+      open() {
+        this.dialog = true
+      },
       handleResize() {
         this.isMobile = window.innerWidth <= 600;
       }
@@ -63,7 +70,7 @@
 <template>
   <span class="split-help">
     <button
-      v-if="$route.path.includes('/segment')"
+      v-if="!hideButton && $route.path.includes('/segment')"
       type="button"
       class="help-button define-help-button"
       aria-label="How to use the Split page"

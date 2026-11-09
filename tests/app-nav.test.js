@@ -66,11 +66,12 @@ describe('AppNav', () => {
     expect(wrapper.find('[data-testid="nav-update-dot"]').exists()).toBe(true)
   })
 
-  it('should render the help slot on both layouts', async () => {
+  it('should render the help slot on the desktop rail only', async () => {
     const help = '<button data-testid="help-probe">?</button>'
     const desktop = await mountNav('/define', {}, { help })
     expect(desktop.wrapper.find('[data-testid="help-probe"]').exists()).toBe(true)
     const phone = await mountNav('/define', { isMobile: true }, { help })
-    expect(phone.wrapper.find('[data-testid="help-probe"]').exists()).toBe(true)
+    expect(phone.wrapper.find('[data-testid="help-probe"]').exists()).toBe(false)
+    expect(phone.wrapper.find('[data-testid="nav-help"]').exists()).toBe(false)
   })
 })

@@ -8,6 +8,10 @@
   // (.define-help-button, .define-help-content in
   // DefinePageHelpDialogWithButton.vue), so the two read as one.
   export default {
+    props: {
+      // Settings (phone) opens the dialog from its own row
+      hideButton: { type: Boolean, default: false }
+    },
     components: {
       DictionariesMenuHelp,
       UiAlert,
@@ -61,6 +65,9 @@
       }
     },
     methods: {
+      open() {
+        this.dialog = true
+      },
       handleResize() {
         this.isMobile = window.innerWidth <= 600;
       }
@@ -77,7 +84,7 @@
 <template>
   <span class="search-help">
     <button
-      v-if="$route.path.includes('/search')"
+      v-if="!hideButton && $route.path.includes('/search')"
       type="button"
       class="help-button define-help-button"
       aria-label="How to use the Search page"
