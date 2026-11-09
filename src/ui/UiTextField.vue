@@ -173,6 +173,11 @@ export default {
   line-height: 1.5;
   padding-top: 0.3rem;
 }
+/* While the placeholder shows, look exactly like an ordinary field (Search) */
+.ui-field--tibetan .ui-field__input:placeholder-shown {
+  font: var(--text-md) var(--font-ui);
+  padding-top: 0;
+}
 .ui-field__clear {
   position: relative;
   flex: none;
