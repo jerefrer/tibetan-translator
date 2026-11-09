@@ -68,6 +68,36 @@ describe('UiDialog', () => {
   })
 })
 
+describe('UiDialog sheet options', () => {
+  it('should mark itself tall only when asked to', async () => {
+    const view = mountAttached(UiDialog, { props: { modelValue: true, title: 'T' } })
+    await nextTick()
+    expect(body('ui-dialog').classList).not.toContain('ui-dialog--tall')
+    await view.setProps({ tall: true })
+    expect(body('ui-dialog').classList).toContain('ui-dialog--tall')
+  })
+
+  it('should focus its first field at opening by default', async () => {
+    mountAttached(UiDialog, {
+      props: { modelValue: true, title: 'T' },
+      slots: { default: '<input id="f" />' },
+    })
+    await nextTick()
+    await nextTick()
+    expect(document.activeElement).toBe(document.getElementById('f'))
+  })
+
+  it('should leave the first field unfocused when autoFocus is off', async () => {
+    mountAttached(UiDialog, {
+      props: { modelValue: true, title: 'T', autoFocus: false },
+      slots: { default: '<input id="f" />' },
+    })
+    await nextTick()
+    await nextTick()
+    expect(document.activeElement).not.toBe(document.getElementById('f'))
+  })
+})
+
 describe('UiTooltip', () => {
   it('should show its text beside the trigger when open', async () => {
     mountAttached(UiTooltip, {

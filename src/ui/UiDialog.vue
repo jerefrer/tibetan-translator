@@ -21,9 +21,17 @@ export default {
     // px at the default text size
     maxWidth: { type: Number, default: 520 },
     persistent: { type: Boolean, default: false },
+    // Phones: a sheet about 90% of the visible height, the body filling it and
+    // scrolling inside (the title and the actions stay put). Ignored elsewhere.
+    tall: { type: Boolean, default: false },
+    // false keeps the first field from taking focus at opening (no keyboard)
+    autoFocus: { type: Boolean, default: true },
   },
   emits: ['update:modelValue'],
   methods: {
+    skipAutoFocus(event) {
+      if (!this.autoFocus) event.preventDefault();
+    },
     keepOpen(event) {
       if (this.persistent) event.preventDefault();
     },
@@ -37,9 +45,11 @@ export default {
       <dialog-overlay class="ui-dialog__overlay" data-testid="ui-dialog-overlay" />
       <dialog-content
         class="ui-dialog"
+        :class="{ 'ui-dialog--tall': tall }"
         :style="{ maxWidth: maxWidth / 16 + 'rem' }"
         :aria-describedby="description ? undefined : ''"
         data-testid="ui-dialog"
+        @open-auto-focus="skipAutoFocus"
         @escape-key-down="keepOpen"
         @pointer-down-outside="keepOpen"
         @interact-outside="keepOpen"
@@ -122,5 +132,15 @@ export default {
     border-radius: var(--radius-dialog) var(--radius-dialog) 0 0;
   }
   .ui-dialog__actions > * { flex: 1; }
+  .ui-dialog--tall {
+    height: calc(var(--visible-height, 100dvh) * 0.9);
+    overflow: hidden;
+  }
+  .ui-dialog--tall .ui-dialog__body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
 }
 </style>
