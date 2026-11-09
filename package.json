@@ -44,7 +44,7 @@
     "android:init": "tauri android init",
     "android:dev": "tauri android dev",
     "android:build": "tauri android build",
-    "android:release": "node ./scripts/check-tauri-versions.js && tauri android build --aab true --apk false",
+    "android:release": "node ./scripts/check-tauri-versions.js && tauri android build --aab",
     "ios:init": "tauri ios init",
     "ios:dev": "tauri ios dev 'iPhone 16'",
     "ios:build": "tauri ios build",
