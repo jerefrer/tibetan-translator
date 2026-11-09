@@ -592,8 +592,8 @@ export default {
     background var(--soft)
 
   &.is-active
-    background var(--accent)
-    color var(--on-accent)
+    background var(--accent-soft)
+    color var(--accent)
     border-bottom-color transparent
 
 .terms-load-more-sentinel
