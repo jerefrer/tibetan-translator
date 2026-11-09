@@ -15,12 +15,12 @@ name = "app_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.5.3", features = [] }
+tauri-build = { version = "2.7.4", features = [] }
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
-tauri = { version = "2.10", features = [] }
+tauri = { version = "2.12.3", features = [] }
 tauri-plugin-fs = "2"
 open = "5.0"
 rusqlite = { version = "0.32", features = ["bundled"] }
@@ -31,10 +31,10 @@ tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 base64 = "0.22"
 sevenz-rust2 = "0.20"
 tauri-plugin-global-shortcut = "2"
-tauri-plugin-clipboard-manager = "2"
+tauri-plugin-clipboard-manager = "2.4.2"
 tauri-plugin-updater = "2"
 tauri-plugin-process = "2"
-tauri-plugin-dialog = "2.7"
+tauri-plugin-dialog = "2.8.2"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 calamine = "0.36"
 csv = "1.3"
