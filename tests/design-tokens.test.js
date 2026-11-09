@@ -22,25 +22,25 @@ const light = block("[data-theme='light']")
 const dark = block("[data-theme='dark']")
 
 describe('design tokens', () => {
-  it('should take the light palette from the mockups', () => {
-    expect(light['--bg']).toBe('#F7F1E3')
-    expect(light['--surface']).toBe('#FFFDF8')
-    expect(light['--accent']).toBe('#A30000')
-    expect(light['--rail-bg']).toBe('#A30000')
-    expect(light['--rail-active-ink']).toBe('#FFC107')
+  it('should use palette 6 in light', () => {
+    expect(light['--bg']).toBe('#F5F5F4')
+    expect(light['--surface']).toBe('#FFFFFF')
+    expect(light['--accent']).toBe('#1F5BB8')
+    expect(light['--rail-bg']).toBe('#FFFFFF')
+    expect(light['--rail-active-ink']).toBe('#1F5BB8')
     expect(light['--amber-solid']).toBe('#8F6200')
   })
 
-  it('should take the dark palette from the dark mockup', () => {
-    expect(dark['--bg']).toBe('#1E1815')
-    expect(dark['--surface']).toBe('#2A211D')
-    expect(dark['--accent']).toBe('#F0766A')
-    expect(dark['--rail-bg']).toBe('#5A0000')
+  it('should use palette 6 in dark', () => {
+    expect(dark['--bg']).toBe('#161618')
+    expect(dark['--surface']).toBe('#202023')
+    expect(dark['--accent']).toBe('#7AA7F0')
+    expect(dark['--rail-bg']).toBe('#1C1C1F')
   })
 
   it('should highlight Search hits in the logo yellow in light and in the amber of notices in dark', () => {
     expect(light['--hit-bg']).toBe('#FFC107')
-    expect(light['--on-hit-bg']).toBe('#2A1F1A')
+    expect(light['--on-hit-bg']).toBe('#18181B')
     expect(dark['--hit-bg']).toBe('var(--amber-solid)')
     expect(dark['--on-hit-bg']).toBe('var(--on-amber-solid)')
   })

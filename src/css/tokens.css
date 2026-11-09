@@ -1,8 +1,9 @@
 /*
  * Design tokens for the redesigned interface.
  *
- * Source of truth: the "B" boards in docs/redesign/mockups. Colour names are the
- * mockups' own so a board can be diffed against this file.
+ * Colours: palette 6 "Reference" (neutral ground, ink-blue accent for what can
+ * be tapped, Tibetan in the logo's dark red as --rubric). Sizes and names come
+ * from the "B" boards in docs/redesign/mockups.
  *
  * The theme is selected by `data-theme="light" | "dark"` on <html>
  * (see src/services/theme.js). Light is the default so nothing flashes before
@@ -18,22 +19,22 @@
   color-scheme: light;
 
   /* Surfaces and text */
-  --bg: #F7F1E3;
-  --surface: #FFFDF8;
-  --ink: #2A1F1A;
-  --muted: #6A5B50;
-  --faint: #9C8D7E;
-  --line: #E6D9BC;
-  --line-strong: #D6C59F;
-  --soft: #F0E6CE;
+  --bg: #F5F5F4;
+  --surface: #FFFFFF;
+  --ink: #18181B;
+  --muted: #5F6368;
+  --faint: #8E9297;
+  --line: #E4E4E2;
+  --line-strong: #D4D4D1;
+  --soft: #EEEEEC;
 
   /* Accent */
-  --accent: #A30000;
-  --accent-soft: #F7E3DD;
-  --accent-line: #E7BDB4;
+  --accent: #1F5BB8;
+  --accent-soft: #E6EEFA;
+  --accent-line: #B9CCEB;
   --on-accent: #FFFFFF;
-  --rubric: #A30000;
-  --ring: #F7E3DD;
+  --rubric: #8E1B1B;
+  --ring: #E6EEFA;
 
   /* Notices (amber) */
   --amber-bg: #FFF0BF;
@@ -44,11 +45,11 @@
 
   /* Search hits: the logo yellow in light */
   --hit-bg: #FFC107;
-  --on-hit-bg: #2A1F1A;
+  --on-hit-bg: #18181B;
 
   /* Inverse surface (dark chips, tooltips) */
-  --dark: #2A1F1A;
-  --on-dark: #FFF8E8;
+  --dark: #18181B;
+  --on-dark: #FAFAFA;
 
   /* Status */
   --danger: #B3261E;
@@ -61,16 +62,16 @@
   --success-line: #A9D2AC;
 
   /* Navigation rail and bottom bar */
-  --rail-bg: #A30000;
-  --rail-line: #7C0000;
-  --rail-ink: #F9DAD4;
-  --rail-active-bg: #7C0000;
-  --rail-active-ink: #FFC107;
+  --rail-bg: #FFFFFF;
+  --rail-line: #E4E4E2;
+  --rail-ink: #5F6368;
+  --rail-active-bg: #E6EEFA;
+  --rail-active-ink: #1F5BB8;
 
   /* Overlays */
-  --scrim: rgba(42, 31, 26, 0.62);
-  --shadow-card: 0 1px 2px rgba(42, 31, 26, 0.05);
-  --shadow-pop: 0 8px 24px rgba(42, 31, 26, 0.18), 0 1px 3px rgba(42, 31, 26, 0.12);
+  --scrim: rgba(24, 24, 27, 0.55);
+  --shadow-card: 0 1px 2px rgba(24, 24, 27, 0.05);
+  --shadow-pop: 0 8px 24px rgba(24, 24, 27, 0.16), 0 1px 3px rgba(24, 24, 27, 0.10);
   --shadow-dialog: 0 24px 60px rgba(0, 0, 0, 0.35);
 
   /* Fonts. DDC Uchen is declared in tibetan.css. */
@@ -129,21 +130,21 @@
 [data-theme='dark'] {
   color-scheme: dark;
 
-  --bg: #1E1815;
-  --surface: #2A211D;
-  --ink: #F3E8D6;
-  --muted: #B8A998;
-  --faint: #7E7064;
-  --line: #3D312B;
-  --line-strong: #54453B;
-  --soft: #342A25;
+  --bg: #161618;
+  --surface: #202023;
+  --ink: #EDEDEF;
+  --muted: #A1A1AA;
+  --faint: #71717A;
+  --line: #2E2E33;
+  --line-strong: #3F3F46;
+  --soft: #27272A;
 
-  --accent: #F0766A;
-  --accent-soft: #3F211D;
-  --accent-line: #6B2F28;
-  --on-accent: #1E0A08;
-  --rubric: #FF9A8D;
-  --ring: #4A2622;
+  --accent: #7AA7F0;
+  --accent-soft: #1C2A44;
+  --accent-line: #2F4A78;
+  --on-accent: #0B1530;
+  --rubric: #F08A80;
+  --ring: #1C2A44;
 
   --amber-bg: #3A2E10;
   --amber-ink: #FFE3A0;
@@ -155,8 +156,8 @@
   --hit-bg: var(--amber-solid);
   --on-hit-bg: var(--on-amber-solid);
 
-  --dark: #F3E8D6;
-  --on-dark: #2A1F1A;
+  --dark: #EDEDEF;
+  --on-dark: #18181B;
 
   --danger: #C9372E;
   --on-danger: #FFFFFF;
@@ -167,11 +168,11 @@
   --success-soft: #1F3322;
   --success-line: #386B3C;
 
-  --rail-bg: #5A0000;
-  --rail-line: #3F0000;
-  --rail-ink: #F1C9C2;
-  --rail-active-bg: #3F0000;
-  --rail-active-ink: #FFC107;
+  --rail-bg: #1C1C1F;
+  --rail-line: #2E2E33;
+  --rail-ink: #A1A1AA;
+  --rail-active-bg: #1C2A44;
+  --rail-active-ink: #7AA7F0;
 
   --scrim: rgba(0, 0, 0, 0.62);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
