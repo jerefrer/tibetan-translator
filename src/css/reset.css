@@ -121,7 +121,7 @@ input {
   border-radius: 0;
 }
 
-[disabled] {
+:where([disabled]) {
   cursor: default;
 }
 
@@ -130,7 +130,7 @@ input {
   height: auto;
 }
 
-[type="search"] {
+:where([type="search"]) {
   -webkit-appearance: textfield;
   outline-offset: -2px;
 }
@@ -166,11 +166,10 @@ select {
   text-transform: none;
 }
 
+/* Zero specificity: in the production build this stylesheet loads after the
+   src/ui one, so an attribute selector here would beat .ui-button's colours */
 button,
-[type="button"],
-[type="reset"],
-[type="submit"],
-[role="button"] {
+:where([type="button"], [type="reset"], [type="submit"], [role="button"]) {
   cursor: pointer;
   color: inherit;
 }
