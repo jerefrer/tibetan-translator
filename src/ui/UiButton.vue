@@ -82,6 +82,7 @@ export default {
   color: var(--on-accent);
 }
 .ui-button--solid:hover:not(:disabled) { opacity: 0.9; }
+.ui-button--solid:active:not(:disabled) { opacity: 0.85; }
 .ui-button--outline {
   background: var(--surface);
   color: var(--ink);
@@ -89,17 +90,20 @@ export default {
   font-weight: 500;
 }
 .ui-button--outline:hover:not(:disabled) { background: var(--soft); }
+.ui-button--outline:active:not(:disabled) { background: var(--soft); }
 .ui-button--ghost {
   background: transparent;
   color: var(--accent);
   padding: 0 var(--space-3);
 }
 .ui-button--ghost:hover:not(:disabled) { background: var(--accent-soft); }
+.ui-button--ghost:active:not(:disabled) { background: var(--accent-soft); }
 .ui-button--danger {
   background: var(--danger);
   color: var(--on-danger);
 }
 .ui-button--danger:hover:not(:disabled) { opacity: 0.9; }
+.ui-button--danger:active:not(:disabled) { opacity: 0.85; }
 .ui-button--icon {
   width: var(--control-md);
   padding: 0;

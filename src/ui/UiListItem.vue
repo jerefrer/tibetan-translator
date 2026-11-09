@@ -55,7 +55,8 @@ export default {
   font: var(--text-base) var(--font-ui);
 }
 button.ui-list-item__row { cursor: pointer; }
-button.ui-list-item__row:hover { background: var(--soft); }
+button.ui-list-item__row:hover,
+button.ui-list-item__row:active { background: var(--soft); }
 button.ui-list-item__row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 .ui-list-item.is-selected .ui-list-item__row { background: var(--accent-soft); color: var(--accent); }
 .ui-list-item__icon { color: var(--muted); }

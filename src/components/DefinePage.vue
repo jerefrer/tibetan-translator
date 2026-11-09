@@ -588,7 +588,8 @@ export default {
   overflow-wrap anywhere
   cursor pointer
 
-  &:hover
+  &:hover,
+  &:active
     background var(--soft)
 
   &.is-active

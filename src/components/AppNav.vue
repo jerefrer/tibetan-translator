@@ -199,6 +199,9 @@ export default {
 .app-nav--bar .app-nav__item {
   color: var(--muted);
 }
+.app-nav--bar .app-nav__item:active {
+  background: var(--soft);
+}
 .app-nav--bar .app-nav__item.is-active {
   background: none;
   color: var(--accent);
