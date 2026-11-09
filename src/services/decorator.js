@@ -111,12 +111,11 @@ export default {
       (match, filename) => {
         // Convert .wav to .mp3 (audio files are re-encoded to mp3)
         const mp3Filename = filename.trim().replace(/\.wav$/i, '.mp3');
-        const audioPath = `/audio/${dictKey}/${mp3Filename}`;
         // Use SVG for play/pause icons to avoid iOS emoji rendering
         const playIcon = `<svg class="play-icon" viewBox="0 0 24 24" width="12" height="12"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>`;
         const pauseIcon = `<svg class="pause-icon" viewBox="0 0 24 24" width="12" height="12" style="display:none"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>`;
         return `
-          <div class="audio-player" data-audio="${audioPath}">
+          <div class="audio-player" data-audio-id="${dictKey}" data-audio-file="${mp3Filename}">
             <button class="audio-play-btn" title="Play audio">${playIcon}${pauseIcon}</button>
             <div class="audio-progress-container">
               <div class="audio-progress-bar">

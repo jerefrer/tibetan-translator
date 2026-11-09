@@ -1,3 +1,4 @@
+mod audio;
 mod custom_packs;
 mod database;
 mod lexicon;
@@ -21,6 +22,7 @@ use packs::{
     pack_get_dictionaries, pack_get_entries_for_term, pack_search_entries, read_pack_database,
     read_pack_database_chunk, remove_pack, supports_modular_packs, update_pack,
 };
+use audio::{check_audio_downloaded, delete_audio, download_audio, get_audio_data};
 use scans::{check_scan_downloaded, delete_scan, download_scan_images, get_scan_image_data};
 use spreadsheet::read_spreadsheet;
 
@@ -63,6 +65,11 @@ pub fn run() {
             read_spreadsheet,
             download_scan_images,
             delete_scan,
+            // Audio commands
+            check_audio_downloaded,
+            get_audio_data,
+            download_audio,
+            delete_audio,
             // Pack commands
             fetch_pack_manifest,
             get_installed_packs,

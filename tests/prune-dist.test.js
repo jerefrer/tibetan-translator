@@ -23,7 +23,8 @@ afterEach(() => {
 });
 
 describe('pruneDist', () => {
-  it('should remove the dictionary packs and the web database when present', () => {
+  it('should remove the dictionary packs, the recordings and the web database when present', () => {
+    touch('audio/hotl1/1-100a.mp3');
     touch('packs/core.7z');
     touch('packs/core.sqlite');
     touch('TibetanTranslator.sqlite');
@@ -32,6 +33,7 @@ describe('pruneDist', () => {
 
     pruneDist(outDir);
 
+    expect(exists('audio')).toBe(false);
     expect(exists('packs')).toBe(false);
     expect(exists('TibetanTranslator.sqlite')).toBe(false);
     expect(exists('database.7z.001')).toBe(false);
@@ -40,14 +42,14 @@ describe('pruneDist', () => {
 
   it('should keep the files the app loads at runtime', () => {
     touch('index.html');
-    touch('audio/hotl1/1-100a.mp3');
+    touch('img/global-lookup-demo.mp4');
     touch('botok-dictionary.json');
     touch('worker.sql-wasm.js');
 
     pruneDist(outDir);
 
     expect(exists('index.html')).toBe(true);
-    expect(exists('audio/hotl1/1-100a.mp3')).toBe(true);
+    expect(exists('img/global-lookup-demo.mp4')).toBe(true);
     expect(exists('botok-dictionary.json')).toBe(true);
     expect(exists('worker.sql-wasm.js')).toBe(true);
   });

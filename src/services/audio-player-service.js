@@ -11,6 +11,8 @@
 
 import $ from "jquery";
 
+import { getAudioUrl } from "./audio-service";
+
 let currentAudio = null;
 let currentPlayer = null;
 let isInitialized = false;
@@ -77,8 +79,6 @@ function stopCurrentAudio() {
 function handlePlayPauseClick(event) {
   const btn = $(event.currentTarget);
   const player = btn.closest(".audio-player");
-  const audioPath = player.attr("data-audio");
-
   // If clicking on a different player, stop the current one
   if (currentPlayer && currentPlayer[0] !== player[0]) {
     stopCurrentAudio();
@@ -86,7 +86,8 @@ function handlePlayPauseClick(event) {
 
   // If no audio or different audio, create new one
   if (!currentAudio || currentPlayer[0] !== player[0]) {
-    currentAudio = new Audio(audioPath);
+    const audio = new Audio();
+    currentAudio = audio;
     currentPlayer = player;
 
     currentAudio.addEventListener("timeupdate", () => {
@@ -103,9 +104,17 @@ function handlePlayPauseClick(event) {
       updateProgress(player, currentAudio);
     });
 
-    currentAudio.play().catch(err => {
-      console.error("Audio playback failed:", err);
-    });
+    // The recording is either downloaded or streamed, which takes a lookup.
+    // Another player may have been started meanwhile: then this one stays quiet.
+    getAudioUrl(player.attr("data-audio-id"), player.attr("data-audio-file"))
+      .then((url) => {
+        if (currentAudio !== audio) return;
+        audio.src = url;
+        return audio.play();
+      })
+      .catch(err => {
+        console.error("Audio playback failed:", err);
+      });
     showPauseIcon(btn);
   } else {
     // Toggle play/pause on same audio

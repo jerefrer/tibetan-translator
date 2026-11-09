@@ -71,7 +71,7 @@ describe('EntriesEntry', () => {
   it('should keep audio players the decorator put in the definition, and have no headword audio button', () => {
     mountEntry({
       entry: entry({
-        definition: '<div class="audio-player" data-audio="/audio/hotl1/a.mp3"><button class="audio-play-btn"></button></div>',
+        definition: '<div class="audio-player" data-audio-id="hotl1" data-audio-file="a.mp3"><button class="audio-play-btn"></button></div>',
       }),
     })
 

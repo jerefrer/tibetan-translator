@@ -10,6 +10,8 @@
  *   download from the `dictionary-packs` GitHub release, never from here.
  * - TibetanTranslator.sqlite, database.7z.*: the full database of the
  *   browser build, which is not published (see DECISIONS.md).
+ * - audio/: the recordings stream from GitHub or are downloaded from Settings
+ *   (src/services/audio-service.js).
  *
  * `pnpm dev` serves public/ directly and is unaffected.
  */
@@ -18,6 +20,7 @@ const fs = require('fs');
 const path = require('path');
 
 const UNUSED_IN_APP = [
+  'audio',
   'packs',
   'TibetanTranslator.sqlite',
   'database.7z.001',
