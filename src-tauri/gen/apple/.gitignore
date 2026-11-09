@@ -1,3 +1,5 @@
 xcuserdata/
 build/
 Externals/
+# Copied in at build time from bundle.resources
+assets/
