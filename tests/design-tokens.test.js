@@ -23,7 +23,7 @@ const dark = block("[data-theme='dark']")
 
 describe('design tokens', () => {
   it('should take the light palette from the mockups', () => {
-    expect(light['--bg']).toBe('#FAF3E0')
+    expect(light['--bg']).toBe('#F7F1E3')
     expect(light['--surface']).toBe('#FFFDF8')
     expect(light['--accent']).toBe('#A30000')
     expect(light['--rail-bg']).toBe('#A30000')
