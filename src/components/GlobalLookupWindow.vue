@@ -490,7 +490,7 @@ export default {
   <div class="quick-lookup" data-testid="quick-lookup">
     <!-- Bar: drags the window -->
     <header class="ql-bar" data-testid="ql-bar" @mousedown="startDrag">
-      <div class="ql-logo" aria-hidden="true"><span>ཀ</span></div>
+      <img class="ql-logo" src="/img/app-icon.png" alt="" />
       <span class="ql-title" data-testid="ql-title">{{ title }}</span>
       <span class="ui-spacer" />
       <div class="ql-modes" role="group" aria-label="Mode">
@@ -744,18 +744,6 @@ html, body
   flex none
   width 28px
   height 28px
-  border-radius 8px
-  background var(--logo-bg)
-  color var(--logo-ink)
-  display flex
-  align-items center
-  justify-content center
-
-  span
-    font-family var(--font-tibetan)
-    font-size 18px
-    line-height 1
-    margin-top 4px
 
 .ql-title
   font-size var(--text-sm-plus)

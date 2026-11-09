@@ -244,7 +244,7 @@ export default {
     <transition name="ui-fade">
       <div v-if="loading" class="app-loading" data-testid="app-loading">
         <div class="app-loading__mark">
-          <img src="/img/logo.png" width="100" height="100" alt="" class="app-loading__logo" />
+          <img src="/img/app-icon.png" width="100" height="100" alt="" class="app-loading__logo" />
           <ui-spinner :size="243" class="app-loading__spinner" />
         </div>
       </div>
@@ -324,11 +324,6 @@ export default {
   display: block;
   width: 100px;
   height: 100px;
-  filter: brightness(0.25);
-}
-/* Darkened, the logo all but vanished on the near-black background */
-[data-theme='dark'] .app-loading__logo {
-  filter: none;
 }
 /* A thin ring 192px across, centred 2px above the logo's centre */
 .app-loading__spinner.ui-spinner {

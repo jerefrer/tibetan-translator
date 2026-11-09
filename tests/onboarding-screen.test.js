@@ -132,7 +132,7 @@ describe('pack choice', () => {
     expect(root.attributes('role')).toBe('dialog')
     expect(root.attributes('aria-modal')).toBe('true')
     expect(root.attributes('aria-labelledby')).toBe('onboarding-title')
-    expect(wrapper.find('.onboarding__logo').text()).toBe('ཀ')
+    expect(wrapper.find('img.onboarding__logo').attributes('src')).toBe('/img/app-icon.png')
     expect(wrapper.find('h1').text()).toBe('Welcome to Tibetan Translator')
   })
 

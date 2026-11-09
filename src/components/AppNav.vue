@@ -46,9 +46,7 @@ export default {
     aria-label="Main"
     data-testid="app-nav"
   >
-    <div v-if="!isMobile" class="app-nav__logo" aria-hidden="true">
-      <span>ཀ</span>
-    </div>
+    <img v-if="!isMobile" class="app-nav__logo" src="/img/app-icon.png" alt="" />
 
     <template v-if="isMobile">
       <router-link
@@ -221,19 +219,7 @@ export default {
   width: 44px;
   height: 44px;
   flex: none;
-  border-radius: var(--radius-xl);
-  background: var(--logo-bg);
-  color: var(--logo-ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin-bottom: 22px;
-}
-.app-nav__logo span {
-  font-family: var(--font-tibetan);
-  font-size: 1.875rem;
-  line-height: 1;
-  margin-top: 6px;
 }
 
 .app-nav__item {

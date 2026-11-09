@@ -130,7 +130,7 @@ describe('start-up overlay', () => {
     await mountApp()
     const overlay = wrapper.find('[data-testid="app-loading"]')
     expect(overlay.exists()).toBe(true)
-    expect(overlay.find('img').attributes('src')).toBe('/img/logo.png')
+    expect(overlay.find('img').attributes('src')).toBe('/img/app-icon.png')
     expect(overlay.find('[data-testid="ui-spinner"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="app-shell"]').exists()).toBe(false)
 
@@ -139,14 +139,6 @@ describe('start-up overlay', () => {
     expect(wrapper.find('[data-testid="app-loading"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="app-shell"]').exists()).toBe(true)
     expect(wrapper.find('.stub-page').exists()).toBe(true)
-  })
-
-  it('shows the logo undimmed in dark, where brightness(0.25) all but hid it', () => {
-    const source = fs.readFileSync(
-      path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../src/components/App.vue'),
-      'utf8'
-    )
-    expect(source).toContain("[data-theme='dark'] .app-loading__logo {\n  filter: none;\n}")
   })
 })
 

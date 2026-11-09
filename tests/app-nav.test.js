@@ -52,6 +52,13 @@ describe('AppNav', () => {
     expect(wrapper.find('[data-testid="nav-settings"]').attributes('aria-current')).toBe('page')
   })
 
+  it('should show the app icon as the logo on the desktop rail only', async () => {
+    const desktop = await mountNav('/define')
+    expect(desktop.wrapper.find('img.app-nav__logo').attributes('src')).toBe('/img/app-icon.png')
+    const phone = await mountNav('/define', { isMobile: true })
+    expect(phone.wrapper.find('.app-nav__logo').exists()).toBe(false)
+  })
+
   it('should navigate when an entry is clicked', async () => {
     const { wrapper, router } = await mountNav('/define')
     await wrapper.find('[data-testid="nav-dictionaries"]').trigger('click')

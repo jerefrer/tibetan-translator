@@ -295,7 +295,7 @@ export default {
   >
     <!-- Pack choice -->
     <section v-if="step === 'packs'" class="onboarding__card" data-testid="onboarding-packs">
-      <div class="onboarding__logo" aria-hidden="true"><span>ཀ</span></div>
+      <img class="onboarding__logo" src="/img/app-icon.png" alt="" />
       <h1 id="onboarding-title" ref="heading" class="onboarding__title" tabindex="-1">Welcome to Tibetan Translator</h1>
       <p class="onboarding__lede" data-testid="onboarding-welcome">{{ welcomeText }}</p>
 
@@ -552,18 +552,6 @@ export default {
   flex: none;
   width: 52px;
   height: 52px;
-  border-radius: 14px;
-  background: var(--logo-bg);
-  color: var(--logo-ink);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.onboarding__logo span {
-  font-family: var(--font-tibetan);
-  font-size: 34px;
-  line-height: 1;
-  margin-top: 7px;
 }
 .onboarding__title {
   margin: 0;

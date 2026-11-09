@@ -66,8 +66,6 @@
   --rail-ink: #F9DAD4;
   --rail-active-bg: #7C0000;
   --rail-active-ink: #FFC107;
-  --logo-bg: #FFC107;
-  --logo-ink: #7C0000;
 
   /* Overlays */
   --scrim: rgba(42, 31, 26, 0.62);
@@ -174,8 +172,6 @@
   --rail-ink: #F1C9C2;
   --rail-active-bg: #3F0000;
   --rail-active-ink: #FFC107;
-  --logo-bg: #FFC107;
-  --logo-ink: #7C0000;
 
   --scrim: rgba(0, 0, 0, 0.62);
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
