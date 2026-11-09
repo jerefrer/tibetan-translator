@@ -26,3 +26,12 @@
 **Revisit if:** GitHub rate-limits raw downloads, the recordings move, or offline audio becomes a common request.
 
 ---
+
+## 2026-11-09 — Offline audio downloads one archive per dictionary
+**Chosen:** Supersedes the per-file downloads of the previous entry. `pnpm build:audio` zips each dictionary's recordings (stored, not deflated) into `build/audio-archives/`, uploaded to the `dictionary-packs` release; the app downloads one archive and unpacks it. Streaming a single recording still reads `public/audio` on `main`.
+**Alternatives:** Raising the per-file parallelism.
+**Why:** Per-file downloads meant about 4,600 requests: on a phone each one costs a round trip, so the download took many minutes, and that many requests to raw.githubusercontent.com approaches its per-IP limit. One archive downloads at the speed of the connection.
+**Trade-offs:** Changing the recordings now also means rebuilding and re-uploading the archives; an interrupted download restarts from zero.
+**Revisit if:** the archives grow large enough that resuming an interrupted download matters.
+
+---

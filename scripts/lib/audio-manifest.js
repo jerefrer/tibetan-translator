@@ -1,28 +1,31 @@
 /**
- * Builds the list of recordings the app can download for offline use.
+ * Builds the description of the recordings the app can download for offline
+ * use: one archive per dictionary, with its number of recordings and size.
  *
- * Free of I/O so it can be tested directly; ../build-audio-manifest.js reads
- * public/audio and writes the result to src/config/audio-manifest.json.
+ * Free of I/O so it can be tested directly; ../build-audio-archives.js reads
+ * public/audio, zips each folder and writes src/config/audio-manifest.json.
  */
 
 /**
- * @param {Object<string, {name: string, size: number}[]>} entriesByAudioId
- *   the directory entries of each public/audio/<audioId> folder
- * @returns {Object<string, {files: string[], bytes: number}>}
+ * @param {string[]} names - the entries of one public/audio/<audioId> folder
+ * @returns {string[]} its recordings, sorted
  */
-function buildAudioManifest(entriesByAudioId) {
+function listRecordings(names) {
+  return names.filter((name) => name.endsWith('.mp3') && !name.startsWith('.')).sort();
+}
+
+/**
+ * @param {Object<string, string[]>} recordingsByAudioId
+ * @param {Object<string, number>} archiveBytesByAudioId
+ * @returns {Object<string, {count: number, bytes: number}>}
+ */
+function buildAudioManifest(recordingsByAudioId, archiveBytesByAudioId) {
   const manifest = {};
-  for (const [audioId, entries] of Object.entries(entriesByAudioId)) {
-    const recordings = entries.filter(
-      (entry) => entry.name.endsWith('.mp3') && !entry.name.startsWith('.'),
-    );
+  for (const [audioId, recordings] of Object.entries(recordingsByAudioId)) {
     if (!recordings.length) continue;
-    manifest[audioId] = {
-      files: recordings.map((entry) => entry.name).sort(),
-      bytes: recordings.reduce((sum, entry) => sum + entry.size, 0),
-    };
+    manifest[audioId] = { count: recordings.length, bytes: archiveBytesByAudioId[audioId] };
   }
   return manifest;
 }
 
-module.exports = { buildAudioManifest };
+module.exports = { listRecordings, buildAudioManifest };

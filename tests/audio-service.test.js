@@ -11,6 +11,7 @@ import {
   downloadAudio,
   deleteAudio,
   GITHUB_AUDIO_BASE,
+  AUDIO_ARCHIVE_BASE,
 } from '../src/services/audio-service';
 
 function inApp() {
@@ -31,7 +32,7 @@ describe('getAudioDictionaries', () => {
     expect(dictionaries.map((d) => d.audioId)).toEqual(['hotl1', 'hotl2', 'hotl3']);
     const hotl1 = dictionaries[0];
     expect(hotl1.label).toBe('Heart of Tibetan Language 1');
-    expect(hotl1.count).toBe(manifest.hotl1.files.length);
+    expect(hotl1.count).toBe(manifest.hotl1.count);
     expect(hotl1.bytes).toBe(manifest.hotl1.bytes);
   });
 });
@@ -71,18 +72,18 @@ describe('downloads in the app', () => {
     expect(await isAudioDownloaded('hotl2')).toBe(true);
     expect(invoke).toHaveBeenCalledWith('check_audio_downloaded', {
       audioId: 'hotl2',
-      expectedCount: manifest.hotl2.files.length,
+      expectedCount: manifest.hotl2.count,
     });
   });
 
-  it('should download every recording listed for the dictionary', async () => {
+  it('should download the dictionary’s archive from the packs release', async () => {
     invoke.mockResolvedValue(undefined);
     await downloadAudio('hotl3');
     expect(invoke).toHaveBeenCalledWith('download_audio', {
       audioId: 'hotl3',
-      baseUrl: GITHUB_AUDIO_BASE,
-      fileNames: manifest.hotl3.files,
+      url: `${AUDIO_ARCHIVE_BASE}/hotl3.zip`,
     });
+    expect(AUDIO_ARCHIVE_BASE).toBe('https://github.com/jerefrer/tibetan-translator/releases/download/dictionary-packs');
   });
 
   it('should refuse a dictionary that has no recordings', async () => {

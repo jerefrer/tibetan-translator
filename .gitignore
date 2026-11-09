@@ -16,3 +16,4 @@ dist/
 #Tauri build output
 /src-tauri/target/
 .dict-sync-temp/
+build/audio-archives/

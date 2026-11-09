@@ -1,9 +1,10 @@
 /**
  * Recordings of the dictionaries that have audio (Heart of Tibetan Language).
  *
- * The app does not ship them: they play from GitHub, or from the device once
- * a dictionary's set is downloaded for offline use, as the scans do. The
- * browser build plays the copy the dev server serves from public/audio.
+ * The app does not ship them: they play one at a time from GitHub, or from
+ * the device once a dictionary's archive is downloaded for offline use (built
+ * by `pnpm build:audio`). The browser build plays the copy the dev server
+ * serves from public/audio.
  */
 
 import { isTauri } from "../config/platform";
@@ -20,7 +21,12 @@ async function invoke(command, args) {
   return tauriInvoke(command, args);
 }
 
-// The file list is only needed to download, so it stays out of the main bundle
+// One zip per dictionary, uploaded to the release that also holds the packs.
+// Installed apps download from this path too.
+export const AUDIO_ARCHIVE_BASE =
+  "https://github.com/jerefrer/tibetan-translator/releases/download/dictionary-packs";
+
+// Only needed to download, so it stays out of the main bundle
 async function loadManifest() {
   return (await import("../config/audio-manifest.json")).default;
 }
@@ -37,7 +43,7 @@ export async function getAudioDictionaries() {
     dictionaries.push({
       audioId: details.audioId,
       label: details.label,
-      count: entry.files.length,
+      count: entry.count,
       bytes: entry.bytes,
     });
   }
@@ -64,15 +70,15 @@ export async function isAudioDownloaded(audioId) {
   const entry = (await loadManifest())[audioId];
   if (!entry) return false;
   try {
-    return await invoke("check_audio_downloaded", { audioId, expectedCount: entry.files.length });
+    return await invoke("check_audio_downloaded", { audioId, expectedCount: entry.count });
   } catch (e) {
     return false;
   }
 }
 
 /**
- * Download every recording of a dictionary. Progress arrives as
- * `audio-download-progress` events ({ audio_id, current, total, percent }).
+ * Download a dictionary's archive and unpack it. Progress arrives as
+ * `audio-download-progress` events ({ audio_id, downloaded, total, percent }).
  */
 export async function downloadAudio(audioId) {
   if (!isTauri()) {
@@ -80,11 +86,7 @@ export async function downloadAudio(audioId) {
   }
   const entry = (await loadManifest())[audioId];
   if (!entry) throw new Error(`Unknown audio id: ${audioId}`);
-  await invoke("download_audio", {
-    audioId,
-    baseUrl: GITHUB_AUDIO_BASE,
-    fileNames: entry.files,
-  });
+  await invoke("download_audio", { audioId, url: `${AUDIO_ARCHIVE_BASE}/${audioId}.zip` });
 }
 
 export async function deleteAudio(audioId) {

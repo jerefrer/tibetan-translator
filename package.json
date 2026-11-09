@@ -37,7 +37,7 @@
     "build:packs": "babel-node ./build/build-packs.js && pnpm clear:cache",
     "build:tibdict": "babel-node ./build/convert-anki-to-tibdict.js",
     "build:empty-pack": "babel-node ./build/make-empty-pack.js",
-    "build:audio-manifest": "node ./scripts/build-audio-manifest.js",
+    "build:audio": "node ./scripts/build-audio-archives.js",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
