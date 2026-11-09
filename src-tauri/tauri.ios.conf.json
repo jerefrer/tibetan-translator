@@ -1,0 +1,16 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tibetan Translator"
+      }
+    ]
+  },
+  "bundle": {
+    "iOS": {
+      "developmentTeam": "3J4HCZ8V25",
+      "minimumSystemVersion": "13.0"
+    }
+  }
+}

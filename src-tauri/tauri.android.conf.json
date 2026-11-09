@@ -1,0 +1,10 @@
+{
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Tibetan Translator"
+      }
+    ]
+  }
+}
