@@ -4,6 +4,7 @@ import "./css/reset.css";
 import router from "./router";
 
 import App from "./components/App.vue";
+import { startKeyboardInset } from "./services/keyboard-inset";
 
 // Add platform detection class to document for CSS targeting
 if (/android/i.test(navigator.userAgent)) {
@@ -14,6 +15,8 @@ if (/android/i.test(navigator.userAgent)) {
 if (/iphone|ipad|ipod/i.test(navigator.userAgent)) {
   document.documentElement.classList.add('is-ios');
 }
+
+startKeyboardInset();
 
 // Create reactive snackbar state for provide/inject pattern
 const snackbar = reactive({

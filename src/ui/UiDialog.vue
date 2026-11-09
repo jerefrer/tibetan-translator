@@ -107,4 +107,20 @@ export default {
   gap: 10px;
   margin-top: 6px;
 }
+/* Phones: a bottom sheet that rides above the keyboard (see keyboard-inset.js) */
+@media (max-width: 600px) {
+  .ui-dialog {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: var(--keyboard-inset, 0px);
+    transform: none;
+    width: 100%;
+    max-width: none !important;
+    max-height: calc(var(--visible-height, 100dvh) - var(--safe-top) - var(--space-4));
+    padding-bottom: max(22px, var(--safe-bottom));
+    border-radius: var(--radius-dialog) var(--radius-dialog) 0 0;
+  }
+  .ui-dialog__actions > * { flex: 1; }
+}
 </style>
