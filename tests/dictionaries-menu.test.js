@@ -348,3 +348,149 @@ describe('Menu alignment', () => {
     expect(requestedAlignment()).toBe('start')
   })
 })
+
+describe('Dictionaries menu groups', () => {
+  const labels = () =>
+    Array.from(document.body.querySelectorAll('[data-testid="dictionaries-menu-group-label"]')).map((el) => el.textContent.trim())
+
+  const mountGrouped = () => {
+    // Pack order, not list order: the custom one comes first in the data
+    dictionaries = reactive([
+      { id: 1, name: 'MyLexicon', shortLabel: 'My lexicon', enabled: true, enabledInPreferences: true, numberOfEntries: 1 },
+      { id: 2, name: 'Mahavyutpatti-Skt', shortLabel: 'Mahavyutpatti', enabled: true, enabledInPreferences: true, numberOfEntries: 1 },
+      { id: 3, name: 'Hopkins2015', shortLabel: 'Hopkins 2015', enabled: true, enabledInPreferences: true, numberOfEntries: 1 },
+      { id: 4, name: 'RangjungYeshe', shortLabel: 'Rangjung Yeshe', enabled: true, enabledInPreferences: true, numberOfEntries: 1 },
+      { id: 5, name: 'tshig-mdzod-chen-mo-Tib', shortLabel: 'Tshig mdzod', enabled: true, enabledInPreferences: true, numberOfEntries: 1 },
+    ])
+    wrapper = mount(ResultsAndPaginationAndDictionaries, {
+      props: { dictionaries, totalNumberOfEntries: 4, hidePagination: true },
+      attachTo: document.body,
+    })
+  }
+
+  it('should group the dictionaries by pack, in pack order, with the others last', async () => {
+    mountGrouped()
+    await openMenu()
+
+    expect(labels()).toEqual(['Core Dictionaries', 'Tibetan Monolingual', 'Sanskrit & Academic', 'Your dictionaries'])
+    expect(rows().map((row) => row.textContent.trim())).toEqual([
+      'Hopkins 2015', 'Rangjung Yeshe', 'Tshig mdzod', 'Mahavyutpatti', 'My lexicon',
+    ])
+  })
+
+  it('should hide the groups with no match while filtering', async () => {
+    mountGrouped()
+    await openMenu()
+
+    wrapper.vm.term = 'mahav'
+    await nextTick()
+
+    expect(labels()).toEqual(['Sanskrit & Academic'])
+  })
+
+  it('should walk the keyboard through the rows in the order shown', async () => {
+    mountGrouped()
+    await openMenu()
+
+    press('ArrowDown')
+    press('ArrowDown')
+    press('ArrowDown')
+    press('ArrowDown')
+    await nextTick()
+
+    expect(rows()[3].classList).toContain('is-highlighted')
+    expect(wrapper.vm.highlightedDictionary().name).toBe('Mahavyutpatti-Skt')
+  })
+})
+
+describe('Dictionaries menu on desktop', () => {
+  it('should keep the popover and put the three actions on one row with their long labels', async () => {
+    mountMenu()
+    await openMenu()
+
+    expect(body('dictionaries-menu')).not.toBeNull()
+    expect(body('ui-dialog')).toBeNull()
+    expect(body('dictionaries-menu-actions').children).toHaveLength(3)
+    expect(body('dictionaries-menu-all').textContent).toBe('Enable all')
+    expect(body('dictionaries-menu-restore').textContent).toBe('Restore preferences')
+  })
+
+  it('should focus the filter field at opening', async () => {
+    mountMenu()
+    await openMenu()
+    await nextTick()
+
+    expect(document.activeElement).toBe(body('dictionaries-menu-filter').querySelector('input'))
+  })
+})
+
+describe('Dictionaries menu on a phone', () => {
+  const desktopWidth = window.innerWidth
+  beforeEach(() => {
+    window.innerWidth = 400
+  })
+  afterEach(() => {
+    window.innerWidth = desktopWidth
+  })
+
+  it('should open a tall sheet instead of the popover', async () => {
+    mountMenu()
+    await openMenu()
+
+    expect(body('dictionaries-menu')).toBeNull()
+    expect(body('ui-dialog').classList).toContain('ui-dialog--tall')
+    expect(body('ui-dialog').textContent).toContain('Dictionaries')
+    expect(rows()).toHaveLength(3)
+  })
+
+  it('should say how many dictionaries are on', async () => {
+    mountMenu()
+    await openMenu()
+
+    expect(body('ui-dialog').textContent).toContain('2 of 3 on')
+  })
+
+  it('should not focus the filter field at opening, so no keyboard shows', async () => {
+    mountMenu()
+    await openMenu()
+    await nextTick()
+
+    const input = body('dictionaries-menu-filter').querySelector('input')
+    expect(document.activeElement).not.toBe(input)
+  })
+
+  it('should offer All, None and Reset on one row that work like the long ones', async () => {
+    mountMenu()
+    await openMenu()
+
+    expect(Array.from(body('dictionaries-menu-actions').children).map((el) => el.textContent.trim())).toEqual(['All', 'None', 'Reset'])
+    body('dictionaries-menu-all').click()
+    expect(dictionaries.every((d) => d.enabled)).toBe(true)
+    body('dictionaries-menu-none').click()
+    expect(dictionaries.some((d) => d.enabled)).toBe(false)
+    body('dictionaries-menu-restore').click()
+    expect(dictionaries.map((d) => d.enabled)).toEqual([true, true, false])
+  })
+
+  it('should keep the row click and switch behaviour', async () => {
+    mountMenu()
+    await openMenu()
+
+    rows()[0].click()
+    expect(dictionaries[0].enabled).toBe(false)
+    rows()[2].querySelector('[data-testid="ui-switch-control"]').click()
+    await nextTick()
+    expect(dictionaries[2].enabled).toBe(true)
+  })
+
+  it('should close on Done', async () => {
+    mountMenu()
+    await openMenu()
+
+    body('dictionaries-menu-done').click()
+    await flushPromises()
+
+    expect(wrapper.vm.dictionariesMenu).toBe(false)
+    expect(body('ui-dialog')).toBeNull()
+  })
+})

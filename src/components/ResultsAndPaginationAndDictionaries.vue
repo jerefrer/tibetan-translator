@@ -7,28 +7,34 @@ import {
   PopoverContent,
 } from "reka-ui";
 
-import { UiButton, UiIcon, UiPagination, UiSwitch, UiTextField } from "../ui";
+import { UiButton, UiDialog, UiIcon, UiPagination } from "../ui";
 import DictionariesFuzzySearchMixin from "./DictionariesFuzzySearchMixin";
+import DictionariesMenuBody from "./DictionariesMenuBody.vue";
+import MobileResponsiveMixin from "./mixins/MobileResponsiveMixin";
+import { PACK_DEFINITIONS } from "../config/pack-definitions";
 import EventHandlers from "../services/event-handlers";
 
 // The "Dictionaries" button and its menu, shared by Define, Search and Split.
 // The menu picks which dictionaries the current results come from, for this
 // lookup only (the page resets it to the Settings choice on the next one).
 //
+// On a phone the menu is a tall bottom sheet (UiDialog) instead of a popover,
+// opened without the keyboard; the dictionaries are grouped by pack.
+//
 // The pagination half is kept for callers that do not pass hidePagination;
 // none does today.
 export default {
-  mixins: [DictionariesFuzzySearchMixin],
+  mixins: [DictionariesFuzzySearchMixin, MobileResponsiveMixin],
   components: {
     PopoverRoot,
     PopoverTrigger,
     PopoverPortal,
     PopoverContent,
     UiButton,
+    UiDialog,
     UiIcon,
     UiPagination,
-    UiSwitch,
-    UiTextField,
+    DictionariesMenuBody,
   },
   props: {
     page: Number,
@@ -56,7 +62,8 @@ export default {
     dictionariesMenu(value) {
       this.highlightedIndex = -1;
       if (value) {
-        this.$nextTick(() => this.$refs.menuSearchField?.focus());
+        // Not on a phone: the keyboard would cover half the sheet
+        if (!this.isMobile) this.$nextTick(() => this.$refs.menuBody?.focusFilter());
       } else {
         this.$emit("close:dictionariesMenu");
       }
@@ -84,6 +91,51 @@ export default {
     },
     numberOfEntriesForPreferredDictionaries() {
       return this.sumNumberOfEntriesFor(this.preferredDictionaries);
+    },
+    // The listed dictionaries by pack, in pack order, then the ones in no pack
+    // (custom packs, lexicons); a group with nothing to list is left out
+    dictionaryGroups() {
+      const packOf = new Map();
+      Object.values(PACK_DEFINITIONS).forEach((pack) =>
+        pack.dictionaries.forEach((name) => packOf.set(name, pack.id))
+      );
+      const groups = [
+        ...Object.values(PACK_DEFINITIONS).map((pack) => ({ id: pack.id, label: pack.name, items: [] })),
+        { id: "custom", label: "Your dictionaries", items: [] },
+      ];
+      const byId = new Map(groups.map((group) => [group.id, group]));
+      this.fuzzyMatchedDictionaries.forEach((dictionary) => {
+        byId.get(packOf.get(dictionary.name) || "custom").items.push({ dictionary });
+      });
+      let index = 0;
+      groups.forEach((group) => group.items.forEach((item) => (item.index = index++)));
+      return groups.filter((group) => group.items.length);
+    },
+    // The rows in the order they are shown, which the keyboard walks through
+    listedDictionaries() {
+      return this.dictionaryGroups.flatMap((group) => group.items.map((item) => item.dictionary));
+    },
+    bodyProps() {
+      return {
+        groups: this.dictionaryGroups,
+        modelValue: this.term,
+        highlightedIndex: this.highlightedIndex,
+        labelFor: this.fuzzyDisplayFor,
+      };
+    },
+    bodyListeners() {
+      return {
+        "update:modelValue": (value) => (this.term = value || ""),
+        all: this.enableAllMatchedDictionaries,
+        none: this.disableAllMatchedDictionaries,
+        restore: this.enableOnlyPreferedDictionaries,
+        "row-click": this.handleDictionaryClick,
+        "press-start": this.startLongPress,
+        "press-cancel": this.cancelLongPress,
+      };
+    },
+    menuSummary() {
+      return `${this.enabledDictionaries.length} of ${this.dictionaries.length} on`;
     },
     buttonCount() {
       const enabled = this.enabledDictionaries.length;
@@ -176,16 +228,16 @@ export default {
       return this.dictionariesMenu;
     },
     moveHighlight(step) {
-      const count = this.fuzzyMatchedDictionaries.length;
+      const count = this.listedDictionaries.length;
       if (!count) return;
       const start = this.highlightedIndex < 0 ? (step > 0 ? -1 : count) : this.highlightedIndex;
       this.highlightedIndex = Math.min(Math.max(start + step, 0), count - 1);
       this.$nextTick(() => {
-        this.$refs.dictionaryRows?.[this.highlightedIndex]?.scrollIntoView?.({ block: "nearest" });
+        this.$refs.menuBody?.rowElement(this.highlightedIndex)?.scrollIntoView?.({ block: "nearest" });
       });
     },
     highlightedDictionary() {
-      return this.fuzzyMatchedDictionaries[this.highlightedIndex];
+      return this.listedDictionaries[this.highlightedIndex];
     },
     registerKeyboardHandler() {
       var vm = this;
@@ -280,7 +332,7 @@ export default {
         </button>
       </popover-trigger>
 
-      <popover-portal>
+      <popover-portal v-if="!isMobile">
         <popover-content
           class="dictionaries-menu"
           :align="menuAlign"
@@ -290,66 +342,29 @@ export default {
           @open-auto-focus.prevent
           @close-auto-focus.prevent
         >
-          <div class="dictionaries-menu-header">
-            <ui-text-field
-              ref="menuSearchField"
-              v-model="term"
-              clearable
-              prepend-icon="search"
-              placeholder="Filter dictionaries"
-              aria-label="Filter dictionaries"
-              class="search-field"
-              data-testid="dictionaries-menu-filter"
-            />
-
-            <div class="action-buttons">
-              <ui-button variant="outline" size="sm" data-testid="dictionaries-menu-all" @click="enableAllMatchedDictionaries">
-                <span>Enable <u>a</u>ll</span>
-              </ui-button>
-              <ui-button variant="outline" size="sm" data-testid="dictionaries-menu-none" @click="disableAllMatchedDictionaries">
-                <span>Enable <u>n</u>one</span>
-              </ui-button>
-              <ui-button variant="outline" size="sm" data-testid="dictionaries-menu-restore" @click="enableOnlyPreferedDictionaries">
-                <span><u>R</u>estore preferences</span>
-              </ui-button>
-            </div>
-          </div>
-
-          <div class="dictionaries-list-container">
-            <div v-if="fuzzyMatchedDictionaries.length" class="dictionaries-list" role="list">
-              <div
-                v-for="(dictionary, index) in fuzzyMatchedDictionaries"
-                :key="dictionary.id"
-                ref="dictionaryRows"
-                class="dictionary-row"
-                :class="{ 'is-highlighted': index === highlightedIndex, 'is-disabled': !dictionary.enabled }"
-                role="listitem"
-                :data-dictionary-index="index"
-                data-testid="dictionaries-menu-row"
-                @click="handleDictionaryClick($event, dictionary)"
-                @touchstart.passive="startLongPress(dictionary)"
-                @touchend="cancelLongPress"
-                @touchcancel="cancelLongPress"
-                @touchmove.passive="cancelLongPress"
-              >
-                <!-- eslint-disable-next-line vue/no-v-html -- labels from the bundled details -->
-                <span class="dictionary-row__label" v-html="fuzzyDisplayFor(dictionary)" />
-                <ui-switch
-                  v-model="dictionary.enabled"
-                  :aria-label="dictionary.shortLabel"
-                  @click.stop
-                />
-              </div>
-            </div>
-
-            <div v-else class="no-results" data-testid="dictionaries-menu-empty">
-              <ui-icon name="book-search" :size="36" />
-              <div>No matching dictionary</div>
-            </div>
-          </div>
+          <dictionaries-menu-body v-bind="bodyProps" v-on="bodyListeners" ref="menuBody" />
         </popover-content>
       </popover-portal>
     </popover-root>
+
+    <ui-dialog
+      v-if="isMobile"
+      v-model="dictionariesMenu"
+      title="Dictionaries"
+      :description="menuSummary"
+      tall
+      :auto-focus="false"
+    >
+      <dictionaries-menu-body
+        v-bind="bodyProps"
+        compact
+        v-on="bodyListeners"
+        ref="menuBody"
+      />
+      <template #actions>
+        <ui-button data-testid="dictionaries-menu-done" @click="closeMenu">Done</ui-button>
+      </template>
+    </ui-dialog>
   </div>
 </template>
 
@@ -417,70 +432,8 @@ export default {
   &:focus
     outline none
 
-  .dictionaries-menu-header
-    flex none
-    display flex
-    flex-direction column
-    gap 10px
-    padding 14px
-    border-bottom 1px solid var(--line)
-
-  .action-buttons
-    display flex
-    flex-wrap wrap
-    gap 6px
-
-    .ui-button
-      flex 1 1 auto
-
-  .dictionaries-list-container
-    flex 1
-    min-height 0
-    overflow-y auto
-    padding 6px
-
-  .dictionary-row
-    display flex
-    align-items center
-    justify-content space-between
-    gap 12px
-    min-height 2.5rem
-    padding 0 10px
-    border-radius var(--radius-md)
-    font-size var(--text-base)
-    cursor pointer
-    user-select none
-    -webkit-user-select none
-
-    &:hover,
-    &.is-highlighted
-      background var(--soft)
-
-    &.is-disabled .dictionary-row__label
-      color var(--muted)
-
-    b
-      color var(--accent)
-
-  .dictionary-row__label
-    min-width 0
-    overflow-wrap anywhere
-
-  .no-results
-    display flex
-    flex-direction column
-    align-items center
-    gap 8px
-    padding 40px 16px
-    color var(--muted)
-
 @media (max-width: 600px)
   .dictionaries-menu-button
     height 2.75rem
 
-  .dictionaries-menu .action-buttons
-    flex-direction column
-
-  .dictionaries-menu .dictionary-row
-    min-height 2.75rem
 </style>
