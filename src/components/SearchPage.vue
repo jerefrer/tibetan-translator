@@ -43,6 +43,12 @@ const TIBETAN = new RegExp(TibetanRegExps.tibetanGroups.source, 'iu');
 // Board "B · Search" (and its Empty, query builder, Dictionaries and Phone
 // variants): the query field on top, the query builder under it when shown,
 // then the results in one card, or the recent searches before any search.
+function initialBuilderVisible() {
+  const stored = Storage.get('searchBuilderVisible');
+  if (stored === true || stored === false) return stored;
+  return window.innerWidth > 600;
+}
+
 export default {
   mixins: [DictionariesMenuMixin, InfiniteScrollMixin, MobileResponsiveMixin],
   components: {
@@ -72,7 +78,9 @@ export default {
       cachedPhoneticsStrictTerms: [],
       cachedPhoneticsLooseTerms: [],
       // Search builder state
-      builderVisible: Storage.get('searchBuilderVisible') !== false,
+      // Open by default, except on a phone (a third of the screen) until the
+      // user has chosen; an explicit choice is remembered
+      builderVisible: initialBuilderVisible(),
       quickAddOpen: false,
       // The query whose route this page pushed itself (see the route watcher)
       pushedQuery: null,

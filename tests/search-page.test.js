@@ -862,6 +862,18 @@ describe('Search — phone', () => {
     expect(find('search-add').text()).toBe('')
   })
 
+  it('should fold the query builder when the user never chose, on a phone', async () => {
+    await mountAt('/search')
+    expect(find('search-builder').exists()).toBe(false)
+    expect(find('search-builder-show').exists()).toBe(true)
+  })
+
+  it('should remember an explicit choice to show the builder, on a phone', async () => {
+    Storage.set('searchBuilderVisible', true)
+    await mountAt('/search')
+    expect(find('search-builder').exists()).toBe(true)
+  })
+
   it('should watch the page itself for the infinite scroll (L8)', async () => {
     await mountAt('/search/wakefulness')
     await flushPromises()
