@@ -17,3 +17,12 @@
 **Revisit if:** the database can be served per query from a backend, and the dictionary rights are settled.
 
 ---
+
+## 2026-11-09 — Audio recordings stream from GitHub instead of shipping in the app
+**Chosen:** User decision: the Heart of Tibetan Language recordings (4,622 mp3, 148 MB) leave the app bundle. They play from `raw.githubusercontent.com/jerefrer/tibetan-translator/main/public/audio`, and each dictionary's set can be downloaded for offline listening from Settings or during onboarding, as the scans can.
+**Alternatives:** Keep them bundled (the Android bundle then exceeds Google Play's 200 MB base download); Play Asset Delivery for Android only; a zip per dictionary attached to a GitHub release.
+**Why:** Tauri embeds all of `dist/` in the binary, so the recordings weighed on every installer, desktop included, for a feature few users open. Streaming from the repository needs no new hosting, and per-file downloads reuse the scans' pattern; `src/config/audio-manifest.json` (`pnpm build:audio-manifest`) lists the files.
+**Trade-offs:** Without a connection and without a download, recordings do not play. Installed apps depend on `public/audio` staying at that path on `main`. A full offline download is about 4,600 requests (eight at a time).
+**Revisit if:** GitHub rate-limits raw downloads, the recordings move, or offline audio becomes a common request.
+
+---
