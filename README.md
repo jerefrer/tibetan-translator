@@ -92,7 +92,7 @@ interface for all devices.
 
 * Before trying to add `ra` or `'i`, check that it's an open vowel
 
-## To report on Christian Steiner's github
+## To report on Christian Steinert's github
 
 * Two things to fix about the conversion of Negi:
   * Everything that is "g}\.{y" should be just "g.y" (1351 occurences)
@@ -107,8 +107,11 @@ interface for all devices.
 Infinite gratitude ...
 * to my teachers for revealing what is possible
 * to the people behind all these incredible dictionaries
-* to the people behind THL Dictionary and Tibthop, and to Christian Steiner
-  for giving me the inspiration to start this project
+* to [Christian Steinert](https://github.com/christiansteinert/tibetan-dictionary),
+  who collected, converted and maintains the dictionary data this app is built
+  on: without his years of work, none of it would exist
+* to the people behind THL Dictionary and Tibthop for giving me the
+  inspiration to start this project
 * and to the people behind Vue.js, Vuetify, Google Chrome, Material Design,
   SQLite, DevDocs.io and all the other tools that make developing beautiful
   apps so easy and enjoyable.
