@@ -890,6 +890,28 @@ describe('Search — grouped by term', () => {
     expect(findAll('search-group-term').map((term) => term.text())).toEqual(['ཡེ་ཤེས་ཁ', 'ཡེ་ཤེས་ཀ'])
   })
 
+  it('should put the terms that sound like the query first, shortest first, when looking up by sound', async () => {
+    database.exec = vi.fn(async () => [
+      // Matched only through a Tibetan word in its definition
+      { term: 'ད་', termPhoneticsStrict: 'ta', termPhoneticsLoose: 'ta', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'now; a particle', rank: -20 },
+      { term: 'བཅོམ་ལྡན་འདས་མ་', termPhoneticsStrict: 'chom den de ma', termPhoneticsLoose: 'chom ten te ma', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'bhagavati', rank: -9 },
+      { term: 'བཅོམ་ལྡན་', termPhoneticsStrict: 'chom den', termPhoneticsLoose: 'chom ten', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'conqueror; victor', rank: -1 },
+    ])
+    await mountAt(searchFor('{jomden}'))
+
+    expect(findAll('search-group-term').map((term) => term.text())).toEqual(['བཅོམ་ལྡན་', 'བཅོམ་ལྡན་འདས་མ་', 'ད་'])
+  })
+
+  it('should put the best-ranked term first when searching English words in the definitions', async () => {
+    database.exec = vi.fn(async () => [
+      { term: 'བཅོམ་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'conquered', rank: -1 },
+      { term: 'བཅོམ་ལྡན་', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'conqueror; victor', rank: -9 },
+    ])
+    await mountAt(searchFor('victor'))
+
+    expect(findAll('search-group-term').map((term) => term.text())).toEqual(['བཅོམ་ལྡན་', 'བཅོམ་'])
+  })
+
   it('should show 3 definitions of a term and "N more in Define" by default', async () => {
     await mountAt('/search/wakefulness')
     database.exec = vi.fn(async () => Array.from({ length: 7 }, (_, i) => ({

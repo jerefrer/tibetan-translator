@@ -218,12 +218,49 @@ export default {
         });
       }
 
-      // Groups: 1) term STARTS WITH the search query, 2) best BM25 rank in
-      // the group, 3) term length (shorter = more specific)
+      // Looking up a Tibetan word (typed in Tibetan, or by its sound) wants
+      // the terms that ARE that word first, then terms that contain it, and
+      // only then terms found through their definitions; within each, shorter
+      // terms before BM25 rank, which otherwise favours terms with many
+      // definitions. Searching English words in the definitions is ranked by
+      // BM25 first.
+      const tibetanQueries = this.cachedRegularTerms.filter((term) => this.containsTibetan(term));
+      const { strict, loose } = this.termPhoneticVariants;
+      const lookingUpTibetan = tibetanQueries.length > 0 || strict.length > 0 || loose.length > 0;
+
+      // 0: the term starts with the query, 1: contains it, 2: neither
+      const termMatch = (group) => {
+        const [entry] = group.entries;
+        const candidates = [
+          ...tibetanQueries.map((query) => [group.term, query]),
+          ...strict.map((variant) => [entry.termPhoneticsStrict || '', variant]),
+          ...loose.map((variant) => [entry.termPhoneticsLoose || '', variant]),
+        ];
+        if (candidates.some(([text, query]) => text.startsWith(query))) return 0;
+        if (candidates.some(([text, query]) => text.includes(query))) return 1;
+        return 2;
+      };
+
       return _.sortBy(groups, (group) => {
         const startsWithBonus = group.term.toLowerCase().startsWith(searchTermLower) ? 0 : 1;
-        return [startsWithBonus, group.bestRank + 1000, group.term.length].map(pad);
+        const rank = group.bestRank + 1000;
+        const length = group.term.length;
+        return (lookingUpTibetan ? [termMatch(group), length, rank] : [startsWithBonus, rank, length]).map(pad);
       });
+    },
+    // The phonetic queries of the last search, prepared the way performSearch
+    // matches them against termPhoneticsStrict / termPhoneticsLoose
+    termPhoneticVariants() {
+      const prepare = (terms, prepareTerm) =>
+        terms.flatMap((raw) =>
+          (raw.includes(' ') ? [raw] : PhoneticSearch.processSpacelessPhoneticSearch(raw)).map((variant) =>
+            prepareTerm.call(PhoneticSearch, variant)
+          )
+        ).filter(Boolean);
+      return {
+        strict: prepare(this.cachedPhoneticsStrictTerms, PhoneticSearch.prepareTermForStrictMatching),
+        loose: prepare(this.cachedPhoneticsLooseTerms, PhoneticSearch.prepareTermForLooseMatching),
+      };
     },
     visibleGroups() {
       // Decorate here, not in the template: a computed only re-runs when its
