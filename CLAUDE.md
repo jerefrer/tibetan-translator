@@ -48,6 +48,17 @@ Pure logic lives in `scripts/lib/changelog-core.js`, covered by `tests/changelog
 
 Releases from v1.9.2 onward sit on a single `v*` tag. Earlier ones sit on a parallel `app-v*` tag that `tauri-action` used to mint, which is why compare links in `CHANGELOG.md` use both forms.
 
+## Mobile store builds
+
+Built locally, not in CI (see `DECISIONS.md`). `pnpm android:release` makes the `.aab`, `pnpm ios:release` the App Store `.ipa`; both run `check:tauri-versions` first.
+
+- **Version:** both read `version` from `tauri.conf.json`, the one `release:*` bumps. Android derives `versionCode` from it; each store refuses a second upload of the same number.
+- **Android signing:** `src-tauri/gen/android/keystore.properties` (`keyAlias`, `password`, `storeFile`) points at the upload keystore, kept outside the repo; both are git-ignored. Without the file, release builds come out unsigned. Losing the upload key is recoverable through Play App Signing support, but slow.
+- **Android NDK:** `NDK_HOME` must point at NDK r28 or later, which aligns native libraries to the 16 KB pages Google Play requires.
+- **iOS signing:** team `3J4HCZ8V25` (personal, not the BDRC team also in Xcode), set in `tauri.ios.conf.json` and `gen/apple/project.yml`.
+- **iOS privacy:** `src-tauri/Info.ios.plist` is merged into the app's Info.plist (export compliance: no non-exempt encryption). `gen/apple/TibetanTranslator_iOS/PrivacyInfo.xcprivacy` declares the required-reason APIs; if App Store Connect answers an upload with ITMS-91053, add the category it names there. After editing `gen/apple/project.yml`, run `xcodegen generate` in `gen/apple` (outside the sandbox: its atomic write of `Info.plist` is refused inside it and deletes the file).
+- **Windows:** `tauri.ios.conf.json` and `tauri.android.conf.json` replace `app.windows` with the main window only; the quick-lookup popup is desktop-only.
+
 ## Project Overview
 
 Tibetan Translator is a multi-platform dictionary app that provides access to 60+ Tibetan dictionaries through a unified interface. It runs as a **Tauri 2** desktop/mobile app and can also run in a web browser.
