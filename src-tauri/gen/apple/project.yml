@@ -12,6 +12,7 @@ settingGroups:
     base:
       PRODUCT_NAME: TibetanTranslator
       PRODUCT_BUNDLE_IDENTIFIER: com.jerefrer.TibetanTranslator
+      DEVELOPMENT_TEAM: 3J4HCZ8V25
 targetTemplates:
   app:
     type: application
