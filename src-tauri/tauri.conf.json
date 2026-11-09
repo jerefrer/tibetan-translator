@@ -68,7 +68,7 @@
     "shortDescription": "The best Tibetan dictionaries in a pleasant interface for all devices",
     "longDescription": "An attempt at providing access to the best Tibetan dictionaries in a pleasant interface for all devices.",
     "iOS": {
-      "minimumSystemVersion": "13.0"
+      "minimumSystemVersion": "15.0"
     },
     "android": {
       "minSdkVersion": 24
