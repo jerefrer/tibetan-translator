@@ -45,6 +45,7 @@ vi.mock('../src/services/copy-service', async (importOriginal) => {
 
 import DefinePage from '../src/components/DefinePage.vue'
 import Storage from '../src/services/storage'
+import { recentTerms, recordTerm } from '../src/services/history'
 
 const KA = 'ཀ་'
 const KAKA = 'ཀ་ཀ་'
@@ -123,6 +124,7 @@ beforeEach(() => {
   Storage.set('dictionaries', DICTIONARIES)
   // Storage writes localStorage properties, which the setup's clear() keeps
   Storage.delete('selectedTerm')
+  Storage.delete('defineHistory')
 })
 
 afterEach(() => {
@@ -539,5 +541,72 @@ describe('Define — layout', () => {
   it('should cap the terms drawer at 40% of the page, so the definitions keep their room on a tablet', () => {
     const source = fs.readFileSync(path.resolve(__dirname, '../src/components/DefinePage.vue'), 'utf8')
     expect(source).toMatch(/\n\.terms-pane\n  width unquote\('min\(22\.5rem, 40%\)'\)\n/)
+  })
+})
+
+describe('Define — recent terms and the Wylie tip', () => {
+  const rows = () => wrapper.findAll('[data-testid="define-recent-item"]')
+
+  it('should record the term when its definitions are shown', async () => {
+    await mountAt('/define/' + encodeURIComponent(KA))
+
+    expect(recentTerms()).toEqual([KA])
+  })
+
+  it('should list the recent terms, most recent first, when the screen is empty', async () => {
+    recordTerm(KA)
+    recordTerm(KHA)
+    await mountAt('/define')
+
+    expect(rows().map((row) => row.text())).toEqual([KHA, KA])
+  })
+
+  it('should show at most eight recent terms', async () => {
+    for (let i = 0; i < 12; i++) recordTerm('ཀ' + i)
+    await mountAt('/define')
+
+    expect(rows()).toHaveLength(8)
+  })
+
+  it('should open the term when a recent row is tapped', async () => {
+    recordTerm(KA)
+    await mountAt('/define')
+
+    await rows()[0].find('button').trigger('click')
+    await waitForRoute('/define/' + encodeURIComponent(KA))
+    await flushPromises()
+
+    expect(field().element.value).toBe(KA)
+    expect(wrapper.find('[data-testid="define-empty"]').exists()).toBe(false)
+  })
+
+  it('should empty the history and hide the section when Clear is tapped', async () => {
+    recordTerm(KA)
+    await mountAt('/define')
+
+    await wrapper.find('[data-testid="define-recent-clear"]').trigger('click')
+
+    expect(recentTerms()).toEqual([])
+    expect(wrapper.find('[data-testid="define-recent"]').exists()).toBe(false)
+  })
+
+  it('should hide the recent section when there is no history', async () => {
+    await mountAt('/define')
+
+    expect(wrapper.find('[data-testid="define-recent"]').exists()).toBe(false)
+  })
+
+  it('should show the Wylie tip on the empty screen with or without history', async () => {
+    await mountAt('/define')
+
+    expect(wrapper.find('[data-testid="define-tip"]').text()).toContain('No Tibetan keyboard? Type in Wylie.')
+    expect(wrapper.find('[data-testid="define-tip"]').text()).toContain('sangs rgyas')
+  })
+
+  it('should show nothing of the empty screen when a term is shown', async () => {
+    recordTerm(KA)
+    await mountAt('/define/' + encodeURIComponent(KA))
+
+    expect(wrapper.find('[data-testid="define-empty"]').exists()).toBe(false)
   })
 })

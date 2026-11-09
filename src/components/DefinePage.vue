@@ -8,8 +8,9 @@ import CopyService from "../services/copy-service";
 import { getScanInfo } from "../services/scan-service";
 import { supportsModularPacks } from "../config/platform";
 import { hasLatinDiacritics } from "../services/non-wylie-input";
+import { recentTerms, recordTerm, clearHistory } from "../services/history";
 import { initialTypedWylie, nextTypedWylie, typedWylieFor } from "../services/typed-wylie";
-import { UiButton, UiIcon, UiSpinner, UiTibetanField, UiTooltip } from "../ui";
+import { UiButton, UiIcon, UiList, UiListItem, UiSpinner, UiTibetanField, UiTooltip } from "../ui";
 import Entries from "./Entries.vue";
 import QuickAddDialog from "./QuickAddDialog.vue";
 import SearchInsteadHint from "./SearchInsteadHint.vue";
@@ -19,6 +20,7 @@ import MobileResponsiveMixin from "./mixins/MobileResponsiveMixin";
 import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictionaries.vue";
 
 const TIBETAN = /[\u0F00-\u0FFF]/;
+const RECENT_ROWS = 8;
 
 // Board "B · Define" (and its Empty, Dark and Phone variants).
 // Desktop: the field on top, the terms starting with what was typed on the
@@ -36,6 +38,8 @@ export default {
     ResultsAndPaginationAndDictionaries,
     UiButton,
     UiIcon,
+    UiList,
+    UiListItem,
     UiSpinner,
     UiTibetanField,
     UiTooltip,
@@ -54,6 +58,8 @@ export default {
       searchInsteadText: "",
       // The Wylie behind the Tibetan in the field ("typed ye shes")
       typedWylieState: initialTypedWylie(),
+      // The terms opened before, shown on the empty screen
+      recent: recentTerms(),
     };
   },
   watch: {
@@ -155,6 +161,12 @@ export default {
     showingEntries() {
       return this.isMobile && this.mobileShowDefinition;
     },
+    showEmptyScreen() {
+      return !this.searchTerm && !this.selectedTerm;
+    },
+    recentRows() {
+      return this.recent.slice(0, RECENT_ROWS);
+    },
     typedWylie() {
       return typedWylieFor(this.typedWylieState, this.searchTerm);
     },
@@ -189,6 +201,8 @@ export default {
     },
     setEntriesForSelectedTerm() {
       if (this.selectedTerm) {
+        recordTerm(this.selectedTerm);
+        this.recent = recentTerms();
         this.loading = true;
         SqlDatabase.getEntriesFor(this.selectedTerm)
           .then((rows) => {
@@ -241,6 +255,10 @@ export default {
     },
     focusInput() {
       this.$refs.input?.focus();
+    },
+    clearRecent() {
+      clearHistory();
+      this.recent = [];
     },
     selectTermMobile(term) {
       this.pushRoute(term);
@@ -300,6 +318,7 @@ export default {
     this.setupTermsInfiniteScroll();
   },
   activated() {
+    this.recent = recentTerms();
     this.$nextTick(() => this.focusInput());
   },
   beforeUnmount() {
@@ -340,7 +359,35 @@ export default {
       </ui-tibetan-field>
     </div>
 
-    <div class="define-body">
+    <div v-if="showEmptyScreen" class="define-empty" data-testid="define-empty">
+      <section v-if="recentRows.length" class="recent" aria-label="Recent">
+        <div class="section-head">
+          <h2 class="section-label">Recent</h2>
+          <ui-button variant="ghost" size="sm" data-testid="define-recent-clear" @click="clearRecent">Clear</ui-button>
+        </div>
+        <ui-list data-testid="define-recent">
+          <ui-list-item
+            v-for="term in recentRows"
+            :key="term"
+            clickable
+            data-testid="define-recent-item"
+            @click="selectTermMobile(term)"
+          >
+            <span class="recent-term">{{ term }}</span>
+          </ui-list-item>
+        </ui-list>
+      </section>
+      <section class="tip" aria-label="Tip" data-testid="define-tip">
+        <h2 class="section-label">Tip</h2>
+        <div class="tip-card">
+          <p class="tip-title">No Tibetan keyboard? Type in Wylie.</p>
+          <p class="tip-example"><code>sangs rgyas</code> <span aria-hidden="true">&rarr;</span> <span class="tip-tibetan">སངས་རྒྱས་</span></p>
+          <p class="tip-note">Each syllable turns into Tibetan when you type a space.</p>
+        </div>
+      </section>
+    </div>
+
+    <div v-show="!showEmptyScreen" class="define-body">
       <section v-show="!showingEntries" class="terms-pane" aria-label="Terms">
         <div v-if="numberOfTermsStartingWithSearchTerm" class="terms-header">
           <span class="terms-count" data-testid="define-terms-count">
@@ -529,6 +576,75 @@ export default {
   b
     font-weight 600
     color var(--ink)
+
+// Empty screen: recent terms and a Wylie tip (board "Define vide · A")
+.define-empty
+  flex 1
+  min-height 0
+  overflow-y auto
+  display flex
+  flex-direction column
+  gap 22px
+  max-width 55rem
+  padding-bottom 28px
+
+.section-head
+  display flex
+  align-items center
+  justify-content space-between
+  margin-bottom 8px
+
+.section-label
+  margin 0
+  font-size var(--text-xs)
+  font-weight 600
+  letter-spacing 0.06em
+  text-transform uppercase
+  color var(--muted)
+
+.tip .section-label
+  margin-bottom 8px
+
+.recent-term
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-sm)
+  color var(--rubric)
+
+.tip-card
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
+  padding 16px 18px
+  display flex
+  flex-direction column
+  gap 8px
+
+  p
+    margin 0
+
+.tip-title
+  font-weight 600
+
+.tip-example
+  display flex
+  align-items baseline
+  gap 10px
+
+  code
+    font-family var(--font-ui)
+    padding 2px 8px
+    border-radius var(--radius-sm)
+    background var(--soft)
+
+.tip-tibetan
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-sm)
+  color var(--rubric)
+
+.tip-note
+  font-size var(--text-sm)
+  color var(--muted)
 
 .define-body
   flex 1
