@@ -157,6 +157,7 @@ describe('Search — route and lifecycle', () => {
     expect(field().element.value).toBe('wakefulness')
     expect(database.exec).toHaveBeenCalledTimes(1)
     expect(lastSql()).toContain("entries_fts MATCH 'term:\"wakefulness\" OR definition:\"wakefulness\"'")
+    expect(findAll('search-group')).toHaveLength(1)
     expect(findAll('search-result')).toHaveLength(3)
   })
 
@@ -263,7 +264,7 @@ describe('Search — coming back to the page', () => {
 
     expect(database.exec).not.toHaveBeenCalled()
     expect(page().vm.entries).toBe(shownResults)
-    expect(findAll('search-result')).toHaveLength(100)
+    expect(findAll('search-group')).toHaveLength(40)
     expect(page().vm.dictionariesForCurrentResults.map((dictionary) => dictionary.numberOfEntries)).toEqual([120])
   })
 
@@ -300,7 +301,9 @@ describe('Search — coming back to the page', () => {
     await flushPromises()
 
     expect(database.exec).toHaveBeenCalledTimes(1)
-    expect(findAll('search-result')).toHaveLength(4)
+    // the fourth definition of the term is behind "1 more in Define"
+    expect(findAll('search-result')).toHaveLength(3)
+    expect(find('term-entries-more').text()).toBe('1 more in Define →')
   })
 
   it('should run the query when it is another one than the query shown', async () => {
@@ -517,7 +520,7 @@ describe('Search — running a query', () => {
   it('should show only the dictionaries on in Settings, in the Settings order (S5, S6)', async () => {
     await mountAt('/search/wakefulness')
 
-    const chips = findAll('search-result-dictionary').map((chip) => chip.text())
+    const chips = findAll('entry-dictionary').map((chip) => chip.text())
     expect(chips).toEqual(['Hopkins 2015', 'Rangjung Yeshe', 'Jäschke (scanned dictionary)'])
   })
 
@@ -528,7 +531,7 @@ describe('Search — running a query', () => {
     ])
     await mountAt(searchFor('ཡེ་ཤེས་'))
 
-    expect(findAll('search-result-term').map((term) => term.text())).toEqual(['ཡེ་ཤེས་', 'བདེ་སྟོང་ཡེ་ཤེས་'])
+    expect(findAll('search-group-term').map((term) => term.text())).toEqual(['ཡེ་ཤེས་', 'བདེ་སྟོང་ཡེ་ཤེས་'])
   })
 
   it('should give each query the Settings choice of dictionaries again (S5)', async () => {
@@ -689,7 +692,7 @@ describe('Search — results', () => {
   it('should say how many results are shown out of how many (L1)', async () => {
     await mountAt('/search/wakefulness')
 
-    expect(find('search-count').text().replace(/\s+/g, ' ')).toBe('Showing 3 of 3 results')
+    expect(find('search-count').text().replace(/\s+/g, ' ')).toBe('Showing 1 of 1 term · 3 definitions')
   })
 
   it('should offer Add my definition with the query when it is one Tibetan term, and search again after a save (L2)', async () => {
@@ -737,7 +740,7 @@ describe('Search — results', () => {
   it('should decorate and highlight each definition, in an element App.vue listens on (L4, L5)', async () => {
     await mountAt('/search/wakefulness')
 
-    const definition = findAll('search-result-definition')[0]
+    const definition = findAll('search-result')[0].find('.definition')
     expect(definition.classes()).toContain('definition')
     expect(definition.html()).toContain('<em>wakefulness</em>')
     expect(definition.html()).not.toContain('<em><em>')
@@ -745,13 +748,13 @@ describe('Search — results', () => {
 
   it('should highlight Tibetan hits in the term (L5)', async () => {
     await mountAt(searchFor('ཡེ་ཤེས་'))
-    expect(findAll('search-result-term')[0].html()).toContain('<em>ཡེ་ཤེས་</em>')
+    expect(findAll('search-group-term')[0].html()).toContain('<em>ཡེ་ཤེས་</em>')
   })
 
   it('should open the dictionary About dialog from its chip (L6)', async () => {
     await mountAt('/search/wakefulness')
 
-    await findAll('search-result-dictionary')[1].trigger('click')
+    await findAll('entry-dictionary')[1].trigger('click')
 
     const about = wrapper.findComponent(aboutStub)
     expect(about.props('modelValue')).toBe(true)
@@ -761,12 +764,12 @@ describe('Search — results', () => {
   it('should show the page of a scanned dictionary and open the scan there (L7)', async () => {
     await mountAt('/search/wakefulness')
 
-    const scanned = find('search-result-scan')
+    const scanned = find('entry-scan')
     expect(scanned.text()).toContain('Page 505')
     expect(scanned.text()).toContain('(approximate)')
     expect(scanned.classes()).not.toContain('definition')
 
-    await find('search-result-view-scan').trigger('click')
+    await find('entry-view-scan').trigger('click')
     const viewer = wrapper.findComponent(scanViewerStub)
     expect(viewer.props()).toMatchObject({
       modelValue: true,
@@ -777,31 +780,32 @@ describe('Search — results', () => {
 
     viewer.vm.$emit('update:modelValue', false)
     await nextTick()
-    expect(wrapper.findComponent(scanViewerStub).exists()).toBe(false)
+    expect(wrapper.findComponent(scanViewerStub).props('modelValue')).toBe(false)
   })
 
-  it('should show 50 results, then 50 more as the end comes into view, then say all are loaded (L8)', async () => {
+  it('should show 20 terms, then 20 more as the end comes into view, then say all are loaded (L8)', async () => {
     database.exec = vi.fn(async () =>
       Array.from({ length: 120 }, (_, i) => ({
         term: `ཀ${i}`, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: 0,
       }))
     )
     await mountAt('/search/wakefulness')
-    expect(findAll('search-result')).toHaveLength(50)
+    expect(findAll('search-group')).toHaveLength(20)
     expect(find('search-sentinel').find('[data-testid="ui-spinner"]').exists()).toBe(true)
+    expect(find('search-count').text().replace(/\s+/g, ' ')).toBe('Showing 20 of 120 terms · 120 definitions')
 
-    for (const expected of [100, 120]) {
+    for (const expected of [40, 60, 80, 100, 120]) {
       await vi.waitFor(() => expect(page().vm._infiniteScrollObserver).toBeTruthy())
       page().vm._infiniteScrollObserver._trigger(true)
       await nextTick()
-      expect(findAll('search-result')).toHaveLength(expected)
+      expect(findAll('search-group')).toHaveLength(expected)
       await flushPromises()
     }
-    expect(find('search-sentinel').text()).toBe('All 120 results loaded')
-    expect(find('search-count').text().replace(/\s+/g, ' ')).toBe('Showing 120 of 120 results')
+    expect(find('search-sentinel').text()).toBe('All 120 terms loaded')
+    expect(find('search-count').text().replace(/\s+/g, ' ')).toBe('Showing 120 of 120 terms · 120 definitions')
   })
 
-  it('should decorate each result once per search, not again with each new batch', async () => {
+  it('should decorate each term once per search, and not the terms not yet shown', async () => {
     database.exec = vi.fn(async () =>
       Array.from({ length: 120 }, (_, i) => ({
         term: `ཀ${i}`, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: 0,
@@ -814,10 +818,10 @@ describe('Search — results', () => {
     page().vm._infiniteScrollObserver._trigger(true)
     await nextTick()
 
-    expect(findAll('search-result')).toHaveLength(100)
-    // the 50 new results, term and definition: 100 calls, not 200
-    expect(highlight).toHaveBeenCalledTimes(100)
-    expect(find('search-result-definition').html()).toContain('<em>wakefulness</em>')
+    expect(findAll('search-group')).toHaveLength(40)
+    // the 20 new terms, headword and definition: 40 calls, not 80 and not 240
+    expect(highlight).toHaveBeenCalledTimes(40)
+    expect(find('search-result').html()).toContain('<em>wakefulness</em>')
   })
 
   it('should watch the results card on a desktop and the page on a phone (L8)', async () => {
@@ -846,6 +850,63 @@ describe('Search — results', () => {
   it('should not show the packs notice before any search (L10)', async () => {
     await mountAt('/search')
     expect(find('uninstalled-notice').exists()).toBe(false)
+  })
+})
+
+describe('Search — grouped by term', () => {
+  const MIXED = [
+    { term: 'བདེ་སྟོང་ཡེ་ཤེས་', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'far', rank: -9 },
+    { term: 'ཡེ་ཤེས་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'first, position 2', rank: -1 },
+    { term: 'ཡེ་ཤེས་', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'second, position 1', rank: -5 },
+    { term: 'ཡེ་ཤེས་ཅན་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'longer', rank: -1 },
+  ]
+
+  it('should show one group per term with all its definitions under it, groups starting with the query first', async () => {
+    database.exec = vi.fn(async () => MIXED.map((row) => ({ ...row })))
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+
+    expect(findAll('search-group-term').map((term) => term.text())).toEqual([
+      'ཡེ་ཤེས་', 'ཡེ་ཤེས་ཅན་', 'བདེ་སྟོང་ཡེ་ཤེས་',
+    ])
+    expect(findAll('search-group').map((group) => group.findAll('[data-testid="search-result"]').length)).toEqual([2, 1, 1])
+  })
+
+  it('should order the definitions of a term by the dictionary order of Settings', async () => {
+    database.exec = vi.fn(async () => MIXED.map((row) => ({ ...row })))
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+
+    const definitions = findAll('search-group')[0].findAll('[data-testid="search-result"] .definition')
+    expect(definitions.map((definition) => definition.text())).toEqual(['second, position 1', 'first, position 2'])
+  })
+
+  it('should order groups with the same start by their best rank, not by dictionary position', async () => {
+    database.exec = vi.fn(async () => [
+      { term: 'ཡེ་ཤེས་ཀ', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'a', rank: -1 },
+      { term: 'ཡེ་ཤེས་ཁ', dictionaryId: 3, dictionary: 'Jaeschke_Scan', definition: 'b', rank: -8 },
+    ])
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+
+    expect(findAll('search-group-term').map((term) => term.text())).toEqual(['ཡེ་ཤེས་ཁ', 'ཡེ་ཤེས་ཀ'])
+  })
+
+  it('should open Define on the term when its headword is tapped', async () => {
+    await mountAt('/search/wakefulness')
+
+    await find('search-group-term').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('ཡེ་ཤེས་'))
+  })
+
+  it('should not decorate the definitions of groups not yet shown', async () => {
+    database.exec = vi.fn(async () =>
+      Array.from({ length: 60 }, (_, i) => ({
+        term: `ཀ${i}`, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: 0,
+      }))
+    )
+    await mountAt('/search/wakefulness')
+
+    expect(page().vm._decorated.has(page().vm.groups[30].entries[0])).toBe(false)
   })
 })
 

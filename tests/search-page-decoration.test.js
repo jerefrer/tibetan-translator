@@ -4,7 +4,7 @@
  * Decoration used to be called from the template, so every keystroke in the
  * search box (searchQuery is a render dependency) re-decorated every visible
  * entry — and the definition was highlighted twice. Decoration now lives in
- * the visibleEntries computed, which depends on the search-time cached terms
+ * the visibleGroups computed, which depends on the search-time cached terms
  * and not on searchQuery.
  */
 
@@ -77,7 +77,7 @@ describe('SearchPage decoration', () => {
 
   it('should not re-decorate any entry when the search input changes', async () => {
     const wrapper = await mountPage()
-    expect(wrapper.vm.visibleEntries.length).toBe(20)
+    expect(wrapper.vm.visibleGroups.length).toBe(20)
 
     const spy = vi.spyOn(Decorator, 'decorate')
     wrapper.vm.searchQuery = wrapper.vm.searchQuery + 'x'
@@ -86,22 +86,25 @@ describe('SearchPage decoration', () => {
     expect(spy).not.toHaveBeenCalled()
   })
 
-  it('should carry decoratedTerm and decoratedDefinition on each visible entry, leaving term raw', async () => {
+  it('should carry decoratedTerm on each visible group and decoratedDefinition on its entries, leaving term raw', async () => {
     const wrapper = await mountPage()
 
-    for (const entry of wrapper.vm.visibleEntries) {
-      expect(entry.decoratedTerm).toEqual(expect.any(String))
-      expect(entry.decoratedTerm.length).toBeGreaterThan(0)
-      expect(entry.decoratedDefinition).toEqual(expect.any(String))
-      expect(entry.decoratedDefinition.length).toBeGreaterThan(0)
-      expect(entry.term).not.toContain('<')
+    for (const group of wrapper.vm.visibleGroups) {
+      expect(group.decoratedTerm).toEqual(expect.any(String))
+      expect(group.decoratedTerm.length).toBeGreaterThan(0)
+      expect(group.term).not.toContain('<')
+      for (const entry of group.entries) {
+        expect(entry.decoratedDefinition).toEqual(expect.any(String))
+        expect(entry.decoratedDefinition.length).toBeGreaterThan(0)
+        expect(entry.term).not.toContain('<')
+      }
     }
   })
 
   it('should highlight the definition only once', async () => {
     const wrapper = await mountPage()
 
-    const definition = wrapper.vm.visibleEntries[0].decoratedDefinition
+    const definition = wrapper.vm.visibleGroups[0].entries[0].decoratedDefinition
     expect(definition).toContain('<em>')
     expect(definition).not.toContain('<em><em>')
   })

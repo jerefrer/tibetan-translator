@@ -22,6 +22,8 @@ export const PACK_CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
 export const MAX_ENTRIES_PER_REQUEST = 5000;
 export const ENTRIES_PER_PAGE = 25;
 export const ENTRIES_BATCH_SIZE = 50;
+// Search shows its results by term: this many terms per batch
+export const SEARCH_GROUPS_BATCH_SIZE = 20;
 export const TERMS_BATCH_SIZE = 100;
 
 // Search history
@@ -51,6 +53,7 @@ export default {
   MAX_ENTRIES_PER_REQUEST,
   ENTRIES_PER_PAGE,
   ENTRIES_BATCH_SIZE,
+  SEARCH_GROUPS_BATCH_SIZE,
   TERMS_BATCH_SIZE,
   MAX_PREVIOUS_QUERIES,
   DATABASE_LOAD_TIMEOUT_MS,

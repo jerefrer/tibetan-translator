@@ -46,9 +46,12 @@ describe('design tokens', () => {
   })
 
   it('should draw the Search hits with those tokens', () => {
-    const search = fs.readFileSync(path.resolve(__dirname, '../src/components/SearchPage.vue'), 'utf8')
-    expect(search).toContain('background var(--hit-bg)\n  color var(--on-hit-bg)')
+    // The hits are drawn by the term cards (TermEntries), which Search shows
+    const search = fs.readFileSync(path.resolve(__dirname, '../src/components/TermEntries.vue'), 'utf8')
+    expect(search).toContain('background: var(--hit-bg);\n  color: var(--on-hit-bg)')
     expect(search).not.toContain('--logo-bg')
+    const page = fs.readFileSync(path.resolve(__dirname, '../src/components/SearchPage.vue'), 'utf8')
+    expect(page).not.toContain('--logo-bg')
   })
 
   it('should override only tokens that exist in the light theme', () => {

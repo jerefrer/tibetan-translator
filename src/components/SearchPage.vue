@@ -5,7 +5,7 @@ import TibetanRegExps from 'tibetan-regexps';
 
 import {
   MAX_ENTRIES_PER_REQUEST,
-  ENTRIES_BATCH_SIZE,
+  SEARCH_GROUPS_BATCH_SIZE,
   MAX_PREVIOUS_QUERIES,
   INFINITE_SCROLL_ROOT_MARGIN_LARGE,
 } from '../config/constants';
@@ -31,7 +31,7 @@ import DictionaryAboutDialog from './DictionaryAboutDialog.vue';
 import QuickAddDialog from './QuickAddDialog.vue';
 import UninstalledPacksNotice from './UninstalledPacksNotice.vue';
 import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictionaries.vue';
-import ScanViewer from './ScanViewer.vue';
+import TermEntries from './TermEntries.vue';
 import SearchBuilder from './SearchBuilder.vue';
 import { getScanInfo } from '../services/scan-service';
 
@@ -56,8 +56,8 @@ export default {
     QuickAddDialog,
     UninstalledPacksNotice,
     ResultsAndPaginationAndDictionaries,
-    ScanViewer,
     SearchBuilder,
+    TermEntries,
     UiButton,
     UiIcon,
     UiSpinner,
@@ -68,11 +68,13 @@ export default {
     return {
       loading: false,
       entries: undefined,
-      displayedCount: ENTRIES_BATCH_SIZE,
-      batchSize: ENTRIES_BATCH_SIZE,
+      // Counted in terms (groups of definitions), not in definitions
+      displayedCount: SEARCH_GROUPS_BATCH_SIZE,
+      batchSize: SEARCH_GROUPS_BATCH_SIZE,
+      // 1, 3, 5, 10 or 'all' (Settings)
+      definitionsPerTerm: Storage.get('searchDefinitionsPerTerm'),
       searchQuery: this.$route.params.query,
       previousQueries: Storage.get('previousQueries', []),
-      scanViewerEntry: null, // Entry for which scan viewer is open
       // Cached highlight terms - only updated on search, not on input change
       cachedRegularTerms: [],
       cachedPhoneticsStrictTerms: [],
@@ -173,14 +175,17 @@ export default {
       return !!this.searchQuery?.trim();
     },
     hasResults() {
-      return this.entries != undefined && this.visibleEntries.length > 0;
+      return this.entries != undefined && this.visibleGroups.length > 0;
     },
     hasMore() {
-      return this.displayedCount < this.totalNumberOfEntriesForEnabledDictionaries;
+      return this.displayedCount < this.groups.length;
     },
-    sortedEntries() {
-      // Multi-factor sorting with BM25 relevance ranking
-      // Priority: 1) starts with search term, 2) BM25 rank, 3) term length, 4) dictionary position
+    definitionLimit() {
+      return this.definitionsPerTerm === 'all' ? Infinity : Number(this.definitionsPerTerm) || 3;
+    },
+    // The entries grouped by Tibetan term. The groups come most relevant
+    // first; inside a group the entries follow the user's dictionary order.
+    groups() {
       // Use cached terms to avoid re-sorting on input change (only on search)
       const searchTermLower = this.cachedRegularTerms[0]?.toLowerCase() || '';
 
@@ -191,61 +196,63 @@ export default {
       const userDictPositions = {};
       for (const d of this.dictionaries) userDictPositions[d.id] = d.position;
 
-      return _.chain(this.entriesForEnabledDictionaries)
-        .sortBy((entry) => {
-          // Factor 1: Does term START WITH the search query? (0 = yes, 1 = no)
-          const startsWithBonus = entry.term
-            .toLowerCase()
-            .startsWith(searchTermLower)
-            ? 0
-            : 1;
+      const pad = (x) => x.toString().padStart(10, '0');
+      const byTerm = new Map();
+      for (const entry of this.entriesForEnabledDictionaries) {
+        if (!byTerm.has(entry.term)) byTerm.set(entry.term, []);
+        byTerm.get(entry.term).push(entry);
+      }
 
-          // Factor 2: User-preferred dictionary position. Promoted above BM25
-          // so reordering dictionaries in Settings actually reorders results,
-          // even when BM25 scores differ slightly across packs.
-          const dictPos = userDictPositions[entry.dictionaryId] || 999;
+      const groups = [];
+      for (const [term, entries] of byTerm) {
+        // Dictionary position first, so reordering dictionaries in Settings
+        // reorders the definitions; then BM25 rank (negative, closer to 0 =
+        // better; offset to stay positive for string comparison)
+        const sorted = _.sortBy(entries, (entry) =>
+          [userDictPositions[entry.dictionaryId] || 999, (entry.rank || 0) + 1000].map(pad)
+        );
+        groups.push({
+          term,
+          entries: sorted,
+          bestRank: Math.min(...entries.map((entry) => entry.rank || 0)),
+        });
+      }
 
-          // Factor 3: BM25 rank (negative values, closer to 0 = better match)
-          // Add offset to make all values positive for string comparison
-          const rankScore = (entry.rank || 0) + 1000;
-
-          // Factor 4: Term length (shorter = more specific match)
-          const termLength = entry.term.length;
-
-          return [startsWithBonus, dictPos, rankScore, termLength].map((x) =>
-            x.toString().padStart(10, '0')
-          );
-        })
-        .value();
+      // Groups: 1) term STARTS WITH the search query, 2) best BM25 rank in
+      // the group, 3) term length (shorter = more specific)
+      return _.sortBy(groups, (group) => {
+        const startsWithBonus = group.term.toLowerCase().startsWith(searchTermLower) ? 0 : 1;
+        return [startsWithBonus, group.bestRank + 1000, group.term.length].map(pad);
+      });
     },
-    visibleEntries() {
+    visibleGroups() {
       // Decorate here, not in the template: a computed only re-runs when its
       // dependencies change, whereas template method calls re-ran on every
       // keystroke (searchQuery is a render dependency). This depends on the
       // cached terms (frozen at search time), never on searchQuery.
       //
-      // Each entry is decorated once per search: loading the next batch only
-      // decorates the new entries (decorating all of them again took up to
-      // 180 ms per batch once a few thousand were shown).
+      // Only the groups shown, and in them the definitions shown, are
+      // decorated, each once per search: loading the next batch only
+      // decorates the new ones.
       const terms = [this.cachedRegularTerms, this.cachedPhoneticsStrictTerms, this.cachedPhoneticsLooseTerms];
       if (!this._decorated || terms.some((list, i) => list !== this._decoratedFor[i])) {
         this._decorated = new WeakMap();
+        this._decoratedTerms = new Map();
         this._decoratedFor = terms;
       }
-      return this.sortedEntries.slice(0, this.displayedCount).map((entry) => {
-        let decorated = this._decorated.get(entry);
-        if (!decorated) {
-          decorated = {
-            ...entry,
-            decoratedTerm: this.highlightSearchTerms(entry.term),
-            // Scanned dictionaries show a page number instead of a definition
-            decoratedDefinition: this.isScannedDictionary(entry)
-              ? ''
-              : this.highlightSearchTerms(Decorator.decorate(entry)),
-          };
-          this._decorated.set(entry, decorated);
+      const limit = this.definitionLimit;
+      return this.groups.slice(0, this.displayedCount).map((group) => {
+        let decoratedTerm = this._decoratedTerms.get(group.term);
+        if (decoratedTerm === undefined) {
+          decoratedTerm = this.highlightSearchTerms(group.term);
+          this._decoratedTerms.set(group.term, decoratedTerm);
         }
-        return decorated;
+        return {
+          term: group.term,
+          decoratedTerm,
+          entries: group.entries.slice(0, limit).map((entry) => this.decoratedEntry(entry)),
+          totalEntries: group.entries.length,
+        };
       });
     },
     totalNumberOfEntriesForEnabledDictionaries() {
@@ -273,6 +280,25 @@ export default {
     },
   },
   methods: {
+    decoratedEntry(entry) {
+      let decorated = this._decorated.get(entry);
+      if (!decorated) {
+        // Scanned dictionaries keep their page number as the definition
+        const decoratedDefinition = this.isScannedDictionary(entry)
+          ? ''
+          : this.highlightSearchTerms(Decorator.decorate(entry));
+        decorated = {
+          ...entry,
+          decoratedDefinition,
+          definition: this.isScannedDictionary(entry) ? entry.definition : decoratedDefinition,
+        };
+        this._decorated.set(entry, decorated);
+      }
+      return decorated;
+    },
+    openTerm(term) {
+      this.$router.push('/define/' + encodeURIComponent(term));
+    },
     containsTibetan(text) {
       // Check if text contains any Tibetan Unicode characters
       return TIBETAN.test(text);
@@ -616,31 +642,12 @@ export default {
         this.displayedCount += this.batchSize;
       }
     },
-    shortDictionaryLabelFor(entry) {
-      return this.dictionaryLabelFor(entry.dictionary, { short: true });
-    },
-    openDictionaryAbout(entry) {
-      this.aboutDictionary = entry.dictionary;
+    openDictionaryAbout(dictionary) {
+      this.aboutDictionary = dictionary;
       this.aboutOpen = true;
     },
-    // Scanned dictionary methods
     isScannedDictionary(entry) {
       return !!getScanInfo(entry.dictionary);
-    },
-    getScanPageNumber(entry) {
-      if (!this.isScannedDictionary(entry)) return null;
-      const pageStr = entry.definition?.replace('?', '').trim();
-      const page = parseInt(pageStr, 10);
-      return isNaN(page) ? null : page;
-    },
-    isApproximatePage(entry) {
-      return !!entry.definition?.includes('?');
-    },
-    openScanViewer(entry) {
-      this.scanViewerEntry = entry;
-    },
-    closeScanViewer() {
-      this.scanViewerEntry = null;
     },
     showBuilder() {
       this.builderVisible = true;
@@ -653,6 +660,8 @@ export default {
     if (this.searchQuery) this.performSearch();
   },
   activated() {
+    // Changed in Settings while the page was kept
+    this.definitionsPerTerm = Storage.get('searchDefinitionsPerTerm');
     // The Dictionaries menu was just read again from Settings, without the
     // counts of the results kept from before
     if (this.entries && !this.loading) this.resetDictionariesToDefaultAndSetNumberOfEntries();
@@ -734,8 +743,10 @@ export default {
     <!-- Results count, Dictionaries menu and Add my definition -->
     <div v-if="hasResults" class="results-header">
       <span class="results-count" data-testid="search-count">
-        Showing <b>{{ visibleEntries.length }}</b> of
-        <b>{{ totalNumberOfEntriesForEnabledDictionaries }}</b> results
+        Showing <b>{{ visibleGroups.length }}</b> of
+        <b>{{ groups.length }}</b> {{ groups.length === 1 ? 'term' : 'terms' }}
+        &middot; <b>{{ totalNumberOfEntriesForEnabledDictionaries }}</b>
+        {{ totalNumberOfEntriesForEnabledDictionaries === 1 ? 'definition' : 'definitions' }}
       </span>
       <div class="ui-spacer" />
       <ResultsAndPaginationAndDictionaries
@@ -831,62 +842,27 @@ export default {
       </div>
 
       <div
-        v-else-if="visibleEntries.length"
+        v-else-if="visibleGroups.length"
         ref="resultsList"
-        class="card results-list"
+        class="results-list"
         data-testid="search-results"
       >
-        <article
-          v-for="(entry, index) in visibleEntries"
-          :key="`${entry.term}-${entry.dictionaryId}-${index}`"
-          class="result"
-          data-testid="search-result"
-        >
-          <div
-            class="result-term tibetan"
-            data-testid="search-result-term"
-            v-html="entry.decoratedTerm"
-          />
-          <div class="result-dictionary">
-            <button
-              type="button"
-              class="dictionary-label"
-              title="About this dictionary"
-              data-testid="search-result-dictionary"
-              @click="openDictionaryAbout(entry)"
-              v-html="shortDictionaryLabelFor(entry)"
-            />
-          </div>
-          <!-- Regular dictionary: the definition -->
-          <div
-            v-if="!isScannedDictionary(entry)"
-            class="result-definition definition"
-            data-testid="search-result-definition"
-            v-html="entry.decoratedDefinition"
-          />
-          <!-- Scanned dictionary: the page and a button to the scan -->
-          <div v-else class="result-definition scanned-entry" data-testid="search-result-scan">
-            <span class="page-info">
-              Page {{ getScanPageNumber(entry) }}
-              <span v-if="isApproximatePage(entry)" class="uncertain">(approximate)</span>
-            </span>
-            <ui-button
-              variant="outline"
-              size="sm"
-              class="view-scan-button"
-              data-testid="search-result-view-scan"
-              @click="openScanViewer(entry)"
-            >
-              <ui-icon name="book-open-text" :size="16" />
-              View scan
-            </ui-button>
-          </div>
-        </article>
-
+        <term-entries
+          v-for="group in visibleGroups"
+          :key="group.term"
+          :term="group.decoratedTerm"
+          :entries="group.entries"
+          :total="group.totalEntries"
+          title-testid="search-group-term"
+          entry-testid="search-result"
+          data-testid="search-group"
+          @open-term="openTerm(group.term)"
+          @show-about="openDictionaryAbout"
+        />
         <!-- Sentinel for infinite scroll -->
         <div ref="loadMoreSentinel" class="load-more-sentinel" data-testid="search-sentinel">
           <ui-spinner v-if="hasMore" :size="22" label="Loading more results" />
-          <span v-else>All {{ totalNumberOfEntriesForEnabledDictionaries }} results loaded</span>
+          <span v-else>All {{ groups.length }} {{ groups.length === 1 ? 'term' : 'terms' }} loaded</span>
         </div>
       </div>
 
@@ -897,15 +873,6 @@ export default {
         :result-count="totalNumberOfEntriesForEnabledDictionaries"
       />
     </template>
-
-    <ScanViewer
-      v-if="scanViewerEntry"
-      :model-value="!!scanViewerEntry"
-      @update:model-value="closeScanViewer"
-      :dictionary-id="scanViewerEntry?.dictionary"
-      :initial-page="getScanPageNumber(scanViewerEntry)"
-      :approximate="isApproximatePage(scanViewerEntry)"
-    />
 
     <DictionaryAboutDialog v-model="aboutOpen" :dictionary="aboutDictionary" />
 
@@ -1157,103 +1124,16 @@ export default {
   line-height 1.5
   color var(--muted)
 
-// Results: rows in one card (term, dictionary, definition)
+// Results: one card per term (TermEntries), the list scrolls on a desktop
 .results-list
   flex 0 1 auto
   min-height 0
+  display flex
+  flex-direction column
+  gap 14px
   margin-bottom 28px
   overflow-y auto
   overscroll-behavior contain
-
-.result
-  display grid
-  grid-template-columns 18.75rem 9.375rem minmax(0, 1fr)
-  gap 20px
-  align-items baseline
-  padding 14px 24px
-  border-bottom 1px solid var(--soft)
-
-.result-term
-  min-width 0
-  font-family var(--font-tibetan)
-  font-size var(--text-tibetan-md)
-  line-height 1.7
-  color var(--rubric)
-  overflow-wrap anywhere
-
-.result-dictionary
-  min-width 0
-
-.dictionary-label
-  max-width 100%
-  border 0
-  border-radius var(--radius-sm)
-  padding 3px 9px
-  background var(--accent-soft)
-  color var(--accent)
-  font 600 var(--text-chip) / 1.35 var(--font-ui)
-  text-align left
-  white-space nowrap
-  overflow hidden
-  text-overflow ellipsis
-  cursor pointer
-
-  &:hover
-    background var(--accent-line)
-
-  &:focus-visible
-    outline 2px solid var(--accent)
-    outline-offset 1px
-
-  // Tibetan inside a label (wrapped in spans by the decorator)
-  :deep(.tibetan)
-    font-size 1.15em
-    line-height 1
-
-.result-definition
-  min-width 0
-  margin 0
-  font-family var(--font-serif)
-  font-size var(--text-entry)
-  line-height 1.5
-  overflow-wrap anywhere
-
-  // Tibetan in a definition links to its own lookup
-  :deep(a[href])
-    color var(--rubric)
-    text-decoration none
-
-// The hits: Latin on yellow, Tibetan underlined in yellow (amber in dark)
-.result :deep(em)
-  font-style normal
-  background var(--hit-bg)
-  color var(--on-hit-bg)
-  border-radius 2px
-
-.result-term :deep(em),
-.result :deep(.tibetan em)
-  background none
-  color inherit
-  text-decoration underline var(--hit-bg) 3px
-  text-underline-offset 4px
-
-.scanned-entry
-  display flex
-  align-items center
-  flex-wrap wrap
-  gap 14px
-  font-family var(--font-ui)
-
-.page-info
-  font-size var(--text-body)
-
-.uncertain
-  color var(--muted)
-
-.view-scan-button
-  color var(--accent)
-  border-color var(--accent)
-  font-weight 600
 
 .load-more-sentinel
   display flex
@@ -1273,16 +1153,8 @@ export default {
 .search-page :deep(.uninstalled-notice)
   margin 0 0 28px
 
-// A narrow window: tighter columns
-@media (max-width: 1100px)
-  .result
-    grid-template-columns 12rem 8rem minmax(0, 1fr)
-    gap 16px
-    padding 12px 18px
-
 // Phone (board "B · Search on a phone"): the whole page scrolls, each
-// result is a card of its own, the dictionary beside the term and the
-// definition under them.
+// term is a card of its own.
 .search-page.is-phone
   gap 14px
   // Room for the floating help button after the last result
@@ -1337,45 +1209,9 @@ export default {
 
   .results-list
     flex none
-    display flex
-    flex-direction column
     gap 10px
     margin-bottom 0
     overflow visible
-    background none
-    border 0
-    border-radius 0
-    box-shadow none
-
-  .result
-    // The dictionary leaves at least 5rem to the term: a long name ends in
-    // an ellipsis instead of squeezing the term to one letter per line
-    grid-template-columns fit-content(calc(100% - 5rem)) minmax(0, 1fr)
-    grid-template-areas "dictionary term" "definition definition"
-    gap 6px 10px
-    align-items center
-    padding 12px 16px
-    background var(--surface)
-    border 1px solid var(--line)
-    border-radius var(--radius-card)
-    box-shadow var(--shadow-card)
-
-  .result-dictionary
-    grid-area dictionary
-
-  .result-term
-    grid-area term
-    justify-self end
-    text-align right
-    font-size 1.25rem
-
-  .result-definition
-    grid-area definition
-    font-size 1.0313rem
-    line-height 1.45
-
-  .view-scan-button
-    height 2.75rem
 
   .load-more-sentinel
     min-height 3rem
