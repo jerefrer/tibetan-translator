@@ -194,8 +194,28 @@ export default {
 
 .app-nav--bar {
   height: calc(var(--bottom-bar-height) - 14px + max(14px, var(--safe-bottom)));
-  border-top: 1px solid var(--rail-line);
   padding: 6px 8px max(14px, var(--safe-bottom));
+  /* Light bar, like iOS and Android: the surface, a hairline, accent on the active tab */
+  background: var(--surface);
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+.app-nav--bar .app-nav__item {
+  color: var(--muted);
+}
+.app-nav--bar .app-nav__item.is-active {
+  background: none;
+  color: var(--accent);
+}
+.app-nav--bar .app-nav__item:focus-visible {
+  outline-color: var(--accent);
+}
+.app-nav--bar .app-nav__dot {
+  background: var(--accent);
+  border-color: var(--surface);
+}
+.app-nav--bar .app-nav__item.is-active .app-nav__dot {
+  border-color: var(--surface);
 }
 
 .app-nav__logo {
