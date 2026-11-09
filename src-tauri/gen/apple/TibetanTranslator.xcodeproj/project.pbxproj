@@ -19,6 +19,7 @@
 		B16A426830673FBE50E4310B /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3AD14AA266945A2E45C7D039 /* Metal.framework */; };
 		B9C84860F19B7C493278028D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A1568655D1EE8D06C35DC75 /* Assets.xcassets */; };
 		BC103A9F32A6865C26EBEC1A /* main.mm in Sources */ = {isa = PBXBuildFile; fileRef = EBA6B97DA37CB789660F0B86 /* main.mm */; };
+		E8AFF16AFAD0588832D69DA7 /* WebViewTweaks.m in Sources */ = {isa = PBXBuildFile; fileRef = A8BCC8575CA3AF382E156662 /* WebViewTweaks.m */; };
 		ECE9A5A8A3B7CC45324FAA37 /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 789BD70EAFD487FF09E39B61 /* Security.framework */; };
 /* End PBXBuildFile section */
 
@@ -41,6 +42,7 @@
 		789BD70EAFD487FF09E39B61 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		8C4C7B913580795D0068C6B5 /* libapp.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; path = libapp.a; sourceTree = "<group>"; };
 		A615693601FAA11B19AB28F8 /* scans.rs */ = {isa = PBXFileReference; path = scans.rs; sourceTree = "<group>"; };
+		A8BCC8575CA3AF382E156662 /* WebViewTweaks.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = WebViewTweaks.m; sourceTree = "<group>"; };
 		B146F99FBEC71B84B9B9B1C8 /* audio.rs */ = {isa = PBXFileReference; path = audio.rs; sourceTree = "<group>"; };
 		C23ED7829A1378A14C6A172F /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		D532D75359BEE7518A6113BF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -162,6 +164,7 @@
 			isa = PBXGroup;
 			children = (
 				EBA6B97DA37CB789660F0B86 /* main.mm */,
+				A8BCC8575CA3AF382E156662 /* WebViewTweaks.m */,
 				5C957D60C6CE069B42601D34 /* bindings */,
 			);
 			path = TibetanTranslator;
@@ -266,6 +269,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E8AFF16AFAD0588832D69DA7 /* WebViewTweaks.m in Sources */,
 				BC103A9F32A6865C26EBEC1A /* main.mm in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
