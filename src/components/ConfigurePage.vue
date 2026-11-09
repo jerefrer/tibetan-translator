@@ -10,6 +10,7 @@ import GlobalLookupCard from './settings/GlobalLookupCard.vue';
 import AboutCard from './settings/AboutCard.vue';
 import PackManagerCard from './settings/PackManagerCard.vue';
 import ScannedDictionariesCard from './settings/ScannedDictionariesCard.vue';
+import AudioCard from './settings/AudioCard.vue';
 import DictionaryPreferencesCard from './settings/DictionaryPreferencesCard.vue';
 import { packSummary, plural } from './settings/pack-summary';
 
@@ -31,6 +32,7 @@ export default {
     AboutCard,
     PackManagerCard,
     ScannedDictionariesCard,
+    AudioCard,
     DictionaryPreferencesCard,
   },
   data() {
@@ -161,6 +163,7 @@ export default {
 
       <pack-manager-card />
       <scanned-dictionaries-card />
+      <audio-card />
     </template>
 
     <template v-else>
@@ -171,6 +174,7 @@ export default {
           <global-lookup-card />
           <about-card />
           <scanned-dictionaries-card />
+          <audio-card />
         </div>
         <div class="settings-page__column settings-page__column--side">
           <pack-manager-card />

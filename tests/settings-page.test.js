@@ -110,8 +110,21 @@ vi.mock('../src/services/scan-service', () => {
   return mocks.scans
 })
 
+vi.mock('../src/services/audio-service', () => {
+  mocks.audio = {
+    getAudioDictionaries: vi.fn(async () => [
+      { audioId: 'hotl1', label: 'Heart of Tibetan Language 1', count: 1742, bytes: 66060288 },
+    ]),
+    isAudioDownloaded: vi.fn(async () => false),
+    downloadAudio: vi.fn(async () => {}),
+    deleteAudio: vi.fn(async () => {}),
+  }
+  return { ...mocks.audio, default: mocks.audio }
+})
+
 import Storage from '../src/services/storage'
 import ConfigurePage from '../src/components/ConfigurePage.vue'
+import AudioCard from '../src/components/settings/AudioCard.vue'
 import AppearanceCard from '../src/components/settings/AppearanceCard.vue'
 import GlobalLookupCard, { DEFAULT_HOTKEY } from '../src/components/settings/GlobalLookupCard.vue'
 import AboutCard from '../src/components/settings/AboutCard.vue'
@@ -211,6 +224,7 @@ describe('ConfigurePage', () => {
     expect(byTestId('appearance-card').exists()).toBe(true)
     expect(byTestId('dictionary-preferences').exists()).toBe(true)
     expect(byTestId('scanned-card').exists()).toBe(true)
+    expect(byTestId('audio-card').exists()).toBe(true)
     expect(wrapper.find('.dictionary-catalog').exists()).toBe(false)
     expect(wrapper.html()).not.toContain('v-card')
   })
@@ -678,6 +692,51 @@ describe('ScannedDictionariesCard', () => {
     await flushPromises()
     expect(snackbar.open).toHaveBeenCalledWith('Download failed: disk full')
     expect(byTestId('scan-download').exists()).toBe(true)
+  })
+})
+
+describe('AudioCard', () => {
+  it('should list each dictionary with its number of recordings and download size', async () => {
+    await mountWith(AudioCard)
+    const row = byTestId('audio-hotl1')
+    expect(row.text()).toContain('Heart of Tibetan Language 1')
+    expect(row.text()).toContain('1,742 recordings (63 MB)')
+  })
+
+  it('should mark recordings as online only in a browser', async () => {
+    await mountWith(AudioCard)
+    expect(byTestId('audio-online-only').exists()).toBe(true)
+    expect(byTestId('audio-download').exists()).toBe(false)
+  })
+
+  it('should download a dictionary’s recordings in the app', async () => {
+    env.tauri = true
+    await mountWith(AudioCard)
+    await byTestId('audio-download').trigger('click')
+    await flushPromises()
+    expect(mocks.audio.downloadAudio).toHaveBeenCalledWith('hotl1')
+    expect(snackbar.open).toHaveBeenCalledWith('Download complete!')
+    expect(byTestId('audio-delete').exists()).toBe(true)
+  })
+
+  it('should delete downloaded recordings', async () => {
+    env.tauri = true
+    mocks.audio.isAudioDownloaded.mockResolvedValueOnce(true)
+    await mountWith(AudioCard)
+    await byTestId('audio-delete').trigger('click')
+    await flushPromises()
+    expect(mocks.audio.deleteAudio).toHaveBeenCalledWith('hotl1')
+    expect(byTestId('audio-download').exists()).toBe(true)
+  })
+
+  it('should report a failed download and offer it again', async () => {
+    env.tauri = true
+    mocks.audio.downloadAudio.mockRejectedValueOnce('connection reset')
+    await mountWith(AudioCard)
+    await byTestId('audio-download').trigger('click')
+    await flushPromises()
+    expect(snackbar.open).toHaveBeenCalledWith('Download failed: connection reset')
+    expect(byTestId('audio-download').exists()).toBe(true)
   })
 })
 
