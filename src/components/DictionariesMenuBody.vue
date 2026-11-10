@@ -62,6 +62,7 @@ export default {
           data-testid="dictionaries-menu-all"
           @click="$emit('all')"
         >
+          <ui-icon name="check-check" :size="15" :stroke-width="2.2" />
           <span v-if="compact">All</span>
           <span v-else>Enable <u>a</u>ll</span>
         </ui-button>
@@ -71,6 +72,7 @@ export default {
           data-testid="dictionaries-menu-none"
           @click="$emit('none')"
         >
+          <ui-icon name="x" :size="15" :stroke-width="2.2" />
           <span v-if="compact">None</span>
           <span v-else>Enable <u>n</u>one</span>
         </ui-button>
@@ -80,6 +82,7 @@ export default {
           data-testid="dictionaries-menu-restore"
           @click="$emit('restore')"
         >
+          <ui-icon name="rotate-ccw" :size="15" :stroke-width="2.2" />
           <span v-if="compact">Reset</span>
           <span v-else><u>R</u>estore preferences</span>
         </ui-button>
@@ -161,6 +164,9 @@ export default {
     .ui-button
       flex 1 1 auto
       white-space nowrap
+      gap 6px
+      // With their icons the three fit the menu's width only this tight
+      padding-inline 10px
 
   .dictionaries-list-container
     flex 1
