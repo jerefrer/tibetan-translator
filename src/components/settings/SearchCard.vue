@@ -31,7 +31,12 @@ export default {
 </script>
 
 <template>
-  <settings-card title="Search" class="search-card" data-testid="search-card">
+  <settings-card
+    title="Search"
+    subtitle="Every matching term is listed. This only sets how many of its definitions show at first; the rest stay one tap away in Define."
+    class="search-card"
+    data-testid="search-card"
+  >
     <ui-select
       v-model="definitionsPerTerm"
       :options="options"
