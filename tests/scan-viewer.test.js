@@ -126,6 +126,45 @@ describe('ScanViewer', () => {
     expect(body('scan-zoom').textContent).toBe('100%')
   })
 
+  describe('fitting the page', () => {
+    // jsdom has no layout: give the reading area and the image their sizes
+    async function loadPage({ areaWidth, areaHeight, imageWidth, imageHeight }) {
+      await open()
+      const area = document.body.querySelector('.scan-content')
+      Object.defineProperty(area, 'clientWidth', { value: areaWidth, configurable: true })
+      Object.defineProperty(area, 'clientHeight', { value: areaHeight, configurable: true })
+      const img = document.body.querySelector('img.scan-image')
+      Object.defineProperty(img, 'naturalWidth', { value: imageWidth, configurable: true })
+      Object.defineProperty(img, 'naturalHeight', { value: imageHeight, configurable: true })
+      img.dispatchEvent(new Event('load'))
+      await nextTick()
+      return () => document.body.querySelector('img.scan-image').style.width
+    }
+
+    it('should show the whole page at 100% when the page is taller than the area', async () => {
+      // 700px of height minus the 20px above and below: 660px high, 440px wide
+      const width = await loadPage({ areaWidth: 736, areaHeight: 700, imageWidth: 1000, imageHeight: 1500 })
+
+      expect(width()).toBe('440px')
+      expect(body('scan-zoom').textContent).toBe('100%')
+    })
+
+    it('should fill the width at 100% when the page is wider than the area allows', async () => {
+      const width = await loadPage({ areaWidth: 360, areaHeight: 700, imageWidth: 1000, imageHeight: 1500 })
+
+      expect(width()).toBe('360px')
+    })
+
+    it('should zoom from the fitted size', async () => {
+      const width = await loadPage({ areaWidth: 736, areaHeight: 700, imageWidth: 1000, imageHeight: 1500 })
+
+      body('scan-zoom-in').click()
+      await nextTick()
+
+      expect(width()).toBe('660px')
+    })
+  })
+
   it('should answer the keyboard: arrows turn pages, + - 0 zoom', async () => {
     await open()
     const key = (name) => wrapper.vm.handleKeydown({ key: name })

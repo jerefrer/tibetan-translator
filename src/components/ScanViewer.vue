@@ -4,8 +4,14 @@ import { UiIcon, UiSpinner } from '../ui'
 import { getScanUrl, getScanInfo } from '../services/scan-service'
 import DICTIONARIES_DETAILS from '../services/dictionaries-details'
 
+// The room .scan-image-wrapper keeps above and below the page, phone excepted
+const PAGE_MARGIN = 20
+const PHONE_WIDTH = 600
+
 // Full-screen viewer for a scanned dictionary page (board "B · Scan viewer").
 // It always sits on a dark surface, whatever the theme, so the page stands out.
+// At 100% the whole page shows: as wide as the reading area allows, but no
+// taller than it; zooming starts from there.
 export default {
   components: { DialogRoot, DialogPortal, DialogContent, DialogTitle, DialogDescription, UiIcon, UiSpinner },
   props: {
@@ -25,8 +31,9 @@ export default {
       scanInfo: null,
       // Key to force image re-render on retry
       imageKey: 0,
-      // Zoom state
+      // Zoom state; at scale 1 the page is fitWidth wide (null until known)
       scale: 1,
+      fitWidth: null,
       minScale: 1,
       maxScale: 4,
       // Touch/swipe state
@@ -80,7 +87,7 @@ export default {
     // Use width percentage instead of transform for proper scrolling
     imageStyle() {
       return {
-        width: `${this.scale * 100}%`,
+        width: this.fitWidth ? `${this.scale * this.fitWidth}px` : `${this.scale * 100}%`,
         maxWidth: 'none'
       };
     }
@@ -154,7 +161,17 @@ export default {
         console.error('Scan load error:', e);
       }
     },
+    // The width at which the whole page fits the reading area
+    fitPage() {
+      const area = this.$refs.content;
+      const img = this.$refs.image;
+      if (!area || !img?.naturalWidth || !img.naturalHeight) return;
+      const margin = window.innerWidth <= PHONE_WIDTH ? 0 : PAGE_MARGIN;
+      const height = area.clientHeight - 2 * margin;
+      this.fitWidth = Math.floor(Math.min(area.clientWidth, height * img.naturalWidth / img.naturalHeight));
+    },
     onImageLoad() {
+      this.fitPage();
       this.clearLoadTimeout();
       this.loading = false;
       this.error = null;
@@ -263,9 +280,11 @@ export default {
   },
   mounted() {
     window.addEventListener('keydown', this.handleKeydown);
+    window.addEventListener('resize', this.fitPage);
   },
   unmounted() {
     window.removeEventListener('keydown', this.handleKeydown);
+    window.removeEventListener('resize', this.fitPage);
     this.clearLoadTimeout();
   }
 }
@@ -332,6 +351,7 @@ export default {
 
           <!-- Content area with touch handlers -->
           <div
+            ref="content"
             class="scan-content"
             @touchstart="onTouchStart"
             @touchmove="onTouchMove"
@@ -354,6 +374,7 @@ export default {
             <div class="scan-image-wrapper" :class="{ 'visually-hidden': loading || error }">
               <img
                 v-if="imageUrl"
+                ref="image"
                 :key="imageKey"
                 :src="imageUrl"
                 @load="onImageLoad"
