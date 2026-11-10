@@ -547,6 +547,15 @@ describe('Search — running a query', () => {
     expect(findAll('search-result')).toHaveLength(3)
   })
 
+  it('should keep the Dictionaries button when every dictionary is turned off', async () => {
+    // Turning them all off is how you start picking only a few
+    await mountAt('/search/wakefulness')
+    page().vm.dictionaries.forEach((dictionary) => (dictionary.enabled = false))
+    await nextTick()
+
+    expect(find('dictionaries-menu-button').exists()).toBe(true)
+  })
+
   it('should hide the recent searches while a query runs (S7)', async () => {
     Storage.set('previousQueries', ['dharma'])
     await mountAt('/search')
@@ -726,7 +735,9 @@ describe('Search — results', () => {
 
     const menu = wrapper.findComponent(ResultsAndPaginationAndDictionaries)
     expect(menu.props('dictionaries').map((dictionary) => dictionary.id).sort()).toEqual([1, 2, 3, 4])
-    expect(menu.props('totalNumberOfEntries')).toBe(3)
+    // Every entry, also those of dictionaries off in Settings: the button
+    // stays as long as some dictionary has a result
+    expect(menu.props('totalNumberOfEntries')).toBe(4)
   })
 
   it('should give the field the focus when the Dictionaries menu closes (L3)', async () => {

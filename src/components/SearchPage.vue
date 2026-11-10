@@ -174,8 +174,11 @@ export default {
     canSearch() {
       return !!this.searchQuery?.trim();
     },
-    hasResults() {
-      return this.entries != undefined && this.visibleGroups.length > 0;
+    // Entries in any dictionary, on or off: the header and its Dictionaries
+    // button stay while every dictionary is turned off, or the menu would
+    // close under the user the moment they press None
+    hasEntries() {
+      return !!this.entries?.length;
     },
     hasMore() {
       return this.displayedCount < this.groups.length;
@@ -778,7 +781,7 @@ export default {
     />
 
     <!-- Results count, Dictionaries menu and Add my definition -->
-    <div v-if="hasResults" class="results-header">
+    <div v-if="hasEntries" class="results-header">
       <span class="results-count" data-testid="search-count">
         Showing <b>{{ visibleGroups.length }}</b> of
         <b>{{ groups.length }}</b> {{ groups.length === 1 ? 'term' : 'terms' }}
@@ -788,7 +791,7 @@ export default {
       <div class="ui-spacer" />
       <ResultsAndPaginationAndDictionaries
         :dictionaries="dictionariesForCurrentResults"
-        :totalNumberOfEntries="totalNumberOfEntriesForEnabledDictionaries"
+        :totalNumberOfEntries="entries.length"
         :hidePagination="true"
         @close:dictionariesMenu="focusInput"
       />
