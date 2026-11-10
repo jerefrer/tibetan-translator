@@ -10,7 +10,8 @@ import { convertWylieInText, tibetanLookupKey, withTrailingTshek } from "../util
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
 import { mayNeedLegacyRepair } from "../services/legacy-to-unicode";
-import { UiButton, UiIcon, UiSpinner, UiTextField, UiTooltip } from "../ui";
+import { recentTexts, recordText, clearSplitHistory } from "../services/split-history";
+import { UiButton, UiIcon, UiList, UiListItem, UiSpinner, UiTextField, UiTooltip } from "../ui";
 import Entries from "./Entries.vue";
 import ResizableDivider from "./ResizableDivider.vue";
 import DictionariesMenuMixin from "./DictionariesMenuMixin";
@@ -20,6 +21,9 @@ import ResultsAndPaginationAndDictionaries from "./ResultsAndPaginationAndDictio
 // Merge brackets sit in lanes from the right edge of the terms list, so that
 // brackets covering the same rows do not draw over each other.
 const MERGE_LANE_WIDTH = 30;
+
+// The passage the empty screen offers to try
+const EXAMPLE_TEXT = "སངས་རྒྱས་ཆོས་དང་ཚོགས་ཀྱི་མཆོག་རྣམས་ལ།";
 
 // Boards "B · Split" (and its Empty and Phone variants).
 // Desktop: the text on top; below, the terms found in it on the left and the
@@ -37,6 +41,8 @@ export default {
     ResultsAndPaginationAndDictionaries,
     UiButton,
     UiIcon,
+    UiList,
+    UiListItem,
     UiSpinner,
     UiTextField,
     UiTooltip,
@@ -44,6 +50,8 @@ export default {
   data() {
     return {
       inputText: "",
+      exampleText: EXAMPLE_TEXT,
+      recent: recentTexts(),
       termsList: [], // List of terms with tsek, preserving order and duplicates
       selectedTermIndex: null,
       entries: [],
@@ -197,10 +205,46 @@ export default {
         this.updateTextareaFromTerms();
 
         this.hasBeenSegmented = true;
+        this.recordCurrentText();
 
       } finally {
         this.segmenting = false;
       }
+    },
+
+    // Remembers the text on the empty screen's Recent list
+    recordCurrentText() {
+      recordText(this.inputText);
+      this.recent = recentTexts();
+    },
+
+    // A Recent text or the example: the field takes it and splits it as a paste would
+    async useText(text) {
+      this.inputText = this.convertWylie(text);
+      await this.resegmentText();
+      this.focusTextarea();
+    },
+
+    // A recent text is stored as split, so its spaces are the user's own
+    // splits: read them back instead of running the tokenizer again
+    async openRecent(text) {
+      this.updatingTextarea = true;
+      this.inputText = text;
+      await this.$nextTick();
+      this.updatingTextarea = false;
+      this.termsList = [];
+      this.selectedTermIndex = null;
+      await this.updateFromTextarea();
+      if (this.termsList.length > 0) {
+        this.lastSelectedTerm = null;
+        this.selectTermByIndex(0, { showMobileDefinition: false });
+      }
+      this.focusTextarea();
+    },
+
+    clearRecent() {
+      clearSplitHistory();
+      this.recent = [];
     },
 
     extractTermsFromTokens(tokens) {
@@ -324,6 +368,7 @@ export default {
 
       // Re-check for possible merges (positions changed)
       await this.checkPossibleMerges();
+      this.recordCurrentText();
 
       // If selected term changed, refresh definitions
       if (needsDefinitionRefresh && this.selectedTermIndex !== null) {
@@ -716,6 +761,7 @@ export default {
   },
   activated() {
     this.listenToArrows();
+    this.recent = recentTexts();
     this.$nextTick(() => this.focusTextarea());
   },
   deactivated() {
@@ -736,8 +782,6 @@ export default {
     data-testid="split-page"
   >
     <h1 class="ui-visually-hidden">Split</h1>
-    <!-- Board "Empty": the title sits above the text area until there is text -->
-    <span v-if="!hasText && !showingEntries" class="split-eyebrow" data-testid="split-title">Split</span>
 
     <section
       v-show="!showingEntries"
@@ -746,8 +790,6 @@ export default {
       aria-label="Text to split"
     >
       <div v-if="hasText" class="split-input__header" data-testid="split-header">
-        <span class="split-eyebrow">Split</span>
-        <span v-if="!isMobile" class="split-hint">Add or remove spaces to change where words are split.</span>
         <ui-button
           size="sm"
           class="split-words"
@@ -796,7 +838,7 @@ export default {
     </section>
 
     <ResizableDivider
-      v-if="!isMobile"
+      v-if="!isMobile && hasText"
       direction="horizontal"
       label="Resize the text area"
       :value="topHeight"
@@ -805,7 +847,55 @@ export default {
       @resize="onHorizontalResize"
     />
 
-    <div ref="bottomContainer" class="split-body">
+    <!-- Board "Empty": where you left off, and how the page works -->
+    <div v-if="!hasText" class="split-empty" data-testid="split-empty">
+      <section v-if="recent.length" class="split-recent" aria-label="Recent">
+        <div class="section-head">
+          <h2 class="section-label">Recent</h2>
+          <ui-button variant="ghost" size="sm" data-testid="split-recent-clear" @click="clearRecent">Clear</ui-button>
+        </div>
+        <ui-list data-testid="split-recent">
+          <ui-list-item
+            v-for="text in recent"
+            :key="text"
+            clickable
+            data-testid="split-recent-item"
+            @click="openRecent(text)"
+          >
+            <span class="recent-text">{{ text }}</span>
+          </ui-list-item>
+        </ui-list>
+      </section>
+
+      <section class="split-how" aria-label="How it works" data-testid="split-how">
+        <h2 class="section-label">How it works</h2>
+        <div class="how-card">
+          <ol class="how-steps">
+            <li class="how-step">
+              <span class="how-step__title"><span class="how-step__number" aria-hidden="true">1</span>Paste a passage</span>
+              <span class="how-step__note">Words are split for you.</span>
+            </li>
+            <li class="how-step">
+              <span class="how-step__title"><span class="how-step__number" aria-hidden="true">2</span>Fix the splits</span>
+              <span class="how-step__note">Add or remove a space to change where words break.</span>
+            </li>
+            <li class="how-step">
+              <span class="how-step__title"><span class="how-step__number" aria-hidden="true">3</span>Read each word</span>
+              <span class="how-step__note">{{ isMobile ? "Tap a word to see its definitions." : "Click a word to see its definitions alongside." }}</span>
+            </li>
+          </ol>
+          <p class="how-example">
+            <span class="how-example__label">Try it with</span>
+            <button type="button" class="how-example__button" data-testid="split-example" @click="useText(exampleText)">
+              <span class="how-example__text">{{ exampleText }}</span>
+              <ui-icon name="arrow-right" :size="16" :stroke-width="2" />
+            </button>
+          </p>
+        </div>
+      </section>
+    </div>
+
+    <div v-else ref="bottomContainer" class="split-body">
       <section
         v-show="!showingEntries"
         class="terms-pane"
@@ -884,14 +974,11 @@ export default {
           </span>
         </div>
         <div
-          v-else-if="!segmenting && hasText"
+          v-else-if="!segmenting"
           class="terms-empty"
           data-testid="split-terms-empty"
         >
           Add spaces between words or click "Split words"
-        </div>
-        <div v-else-if="!hasText" class="terms-empty" data-testid="split-terms-empty">
-          Paste text above to begin
         </div>
       </section>
 
@@ -988,46 +1075,28 @@ export default {
   font-family var(--font-ui)
   font-size var(--text-base)
 
-// The text: a card with the title, the hint, Split words and Clear above the field
+// The text: Split words and Clear above the field
 .card
   background var(--surface)
   border 1px solid var(--line)
   border-radius var(--radius-card)
   box-shadow var(--shadow-card)
 
-.split-eyebrow
-  flex none
-  font-size var(--text-xs)
-  font-weight 600
-  letter-spacing 0.08em
-  text-transform uppercase
-  color var(--muted)
-
+// No card around it: the field is the surface, as on Define and Search
 .split-input
-  @extend .card
   flex none
   box-sizing border-box
   min-height 0
   display flex
   flex-direction column
   gap 10px
-  padding 14px 22px 16px
 
 .split-input__header
   flex none
   display flex
   align-items center
+  justify-content flex-end
   gap 10px
-
-.split-hint
-  flex 1
-  min-width 0
-  padding-left 10px
-  font-size var(--text-chip)
-  color var(--muted)
-  white-space nowrap
-  overflow hidden
-  text-overflow ellipsis
 
 .split-words
   gap 8px
@@ -1073,6 +1142,135 @@ export default {
   gap 6px
   font-size var(--text-sm)
   color var(--danger-ink)
+
+// Below, with no text yet: Recent, and how the page works
+.split-empty
+  flex 1
+  min-height 0
+  overflow-y auto
+  display flex
+  flex-direction column
+  gap 22px
+  max-width 55rem
+  padding-bottom 28px
+
+.section-head
+  display flex
+  align-items center
+  justify-content space-between
+  margin-bottom 8px
+
+.section-label
+  margin 0 0 8px
+  font-size var(--text-xs)
+  font-weight 600
+  letter-spacing 0.06em
+  text-transform uppercase
+  color var(--muted)
+
+.section-head .section-label
+  margin 0
+
+// One line of the passage, cut short with an ellipsis
+.recent-text
+  display block
+  min-width 0
+  overflow hidden
+  text-overflow ellipsis
+  white-space nowrap
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-sm)
+  // overflow hidden clips at the line box: leave room for vowels like ི above
+  line-height 2.1
+  color var(--rubric)
+
+.how-card
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
+  padding 16px 18px
+  display flex
+  flex-direction column
+  gap 16px
+
+.how-steps
+  list-style none
+  margin 0
+  padding 0
+  display grid
+  grid-template-columns repeat(3, minmax(0, 1fr))
+  gap 18px
+
+.how-step
+  display flex
+  flex-direction column
+  gap 4px
+
+.how-step__title
+  display flex
+  align-items center
+  gap 8px
+  font-weight 600
+
+.how-step__number
+  flex none
+  display inline-flex
+  align-items center
+  justify-content center
+  width 1.5rem
+  height 1.5rem
+  border-radius 50%
+  background var(--accent-soft)
+  color var(--accent)
+  font-size var(--text-sm)
+
+.how-step__note
+  font-size var(--text-sm)
+  color var(--muted)
+
+.how-example
+  margin 0
+  display flex
+  align-items center
+  flex-wrap wrap
+  gap 10px
+  padding-top 14px
+  border-top 1px solid var(--soft)
+
+.how-example__label
+  font-size var(--text-sm)
+  color var(--muted)
+
+.how-example__button
+  display inline-flex
+  align-items center
+  gap 10px
+  min-width 0
+  max-width 100%
+  padding 4px 10px
+  border 1px solid var(--line)
+  border-radius var(--radius-sm)
+  background var(--soft)
+  color var(--accent)
+  cursor pointer
+
+  &:hover
+    border-color var(--accent-line)
+
+  &:focus-visible
+    outline 2px solid var(--accent)
+    outline-offset 2px
+
+.how-example__text
+  min-width 0
+  overflow hidden
+  text-overflow ellipsis
+  white-space nowrap
+  font-family var(--font-tibetan)
+  font-size var(--text-tibetan-sm)
+  line-height 2.1
+  color var(--rubric)
 
 // Below: terms | definitions
 .split-body
@@ -1282,14 +1480,10 @@ export default {
   padding 16px 16px 0
 
   .split-input
-    padding 10px 12px 12px
     gap 8px
 
   .split-input__header
     gap 8px
-
-    .split-eyebrow
-      flex 1
 
   .split-words,
   .split-clear
@@ -1315,6 +1509,13 @@ export default {
 
   .split-body
     flex-direction column
+
+  .split-empty
+    padding-bottom var(--phone-help-clearance)
+
+  .how-steps
+    grid-template-columns 1fr
+    gap 14px
 
   .terms-pane
     flex 1

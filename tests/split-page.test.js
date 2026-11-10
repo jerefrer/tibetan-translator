@@ -259,6 +259,98 @@ describe('Split — route and lifecycle', () => {
   })
 })
 
+describe('Split — empty state', () => {
+  const EXAMPLE = 'སངས་རྒྱས་ཆོས་དང་ཚོགས་ཀྱི་མཆོག་རྣམས་ལ།'
+  const recentItems = () => wrapper.findAll('[data-testid="split-recent-item"]')
+
+  beforeEach(() => Storage.delete('splitHistory'))
+
+  it('should explain how the page works, with no title, terms column or hint, when there is no text', async () => {
+    await mountPage()
+
+    expect(testid('split-empty').exists()).toBe(true)
+    expect(testid('split-how').text()).toContain('How it works')
+    expect(testid('split-how').text()).toContain('Click a word to see its definitions alongside.')
+    expect(testid('split-title').exists()).toBe(false)
+    expect(wrapper.find('.split-body').exists()).toBe(false)
+    expect(wrapper.find('[role="separator"]').exists()).toBe(false)
+    expect(wrapper.text()).not.toContain('No terms')
+    expect(wrapper.text()).not.toContain('Paste text above to begin')
+    expect(testid('split-recent').exists()).toBe(false)
+  })
+
+  it('should word the last step for touch when on a phone', async () => {
+    window.innerWidth = 390
+    await mountPage()
+
+    expect(testid('split-how').text()).toContain('Tap a word to see its definitions.')
+  })
+
+  it('should swap the empty state for the terms and definitions when there is text', async () => {
+    await mountPage()
+    await textarea().setValue('ཀ་ ཁ་')
+
+    expect(testid('split-empty').exists()).toBe(false)
+    expect(wrapper.find('.split-body').exists()).toBe(true)
+  })
+
+  it('should list the recent texts when storage has some, and fill the field and split when one is clicked', async () => {
+    Storage.set('splitHistory', [SPLIT_TEXT, 'ཀ་ ཁ་'])
+    await mountPage()
+
+    expect(recentItems().map((item) => item.text())).toEqual([SPLIT_TEXT, 'ཀ་ ཁ་'])
+    await recentItems()[0].find('button').trigger('click')
+    await vi.waitFor(() => expect(terms()).toEqual([BCOMLDANDAS, MA, SHESRAB, KYI, PHAROL]))
+
+    expect(textarea().element.value).toBe(SPLIT_TEXT)
+    expect(testid('split-empty').exists()).toBe(false)
+  })
+
+  it('should keep the splits the user made when a recent text is reopened', async () => {
+    // ཤེས་རབ་ཀྱི་ joined by hand: the tokenizer would split it in two
+    const edited = [BCOMLDANDAS, MA, SHESRAB + KYI, PHAROL].join(' ')
+    Storage.set('splitHistory', [edited])
+    await mountPage()
+
+    await recentItems()[0].find('button').trigger('click')
+    await vi.waitFor(() => expect(terms().length).toBeGreaterThan(0))
+
+    expect(terms()).toEqual([BCOMLDANDAS, MA, SHESRAB + KYI, PHAROL])
+  })
+
+  it('should fill the field with the example and split it when Try it with is clicked', async () => {
+    await mountPage()
+    expect(testid('split-example').text()).toContain(EXAMPLE)
+
+    await testid('split-example').trigger('click')
+    await vi.waitFor(() => expect(terms().length).toBeGreaterThan(0))
+
+    expect(textarea().element.value.replace(/\s+/g, '')).toBe(EXAMPLE.replace(/།$/, '་'))
+    expect(testid('split-empty').exists()).toBe(false)
+  })
+
+  it('should record the text in Recent once it is split, and show it after Clear', async () => {
+    await mountPage()
+    await splitText()
+    expect(Storage.get('splitHistory')).toEqual([SPLIT_TEXT])
+
+    await testid('split-clear').trigger('click')
+    await nextTick()
+
+    expect(recentItems().map((item) => item.text())).toEqual([SPLIT_TEXT])
+  })
+
+  it('should empty Recent when its Clear is clicked', async () => {
+    Storage.set('splitHistory', ['ཀ་ ཁ་'])
+    await mountPage()
+
+    await testid('split-recent-clear').trigger('click')
+
+    expect(testid('split-recent').exists()).toBe(false)
+    expect(Storage.get('splitHistory', [])).toEqual([])
+  })
+})
+
 describe('Split — text area', () => {
   it('should be a multi-line Tibetan field with the Split placeholder and no spelling aids (A1)', async () => {
     await mountPage()
@@ -399,18 +491,18 @@ describe('Split — text area', () => {
 })
 
 describe('Split — Split words, Clear and the tokenizer', () => {
-  it('should show Split words and Clear only when there is text, with the title moving into their row (B1)', async () => {
+  it('should show Split words and Clear only when there is text, with no title (B1)', async () => {
     await mountPage()
 
     expect(testid('split-words').exists()).toBe(false)
     expect(testid('split-clear').exists()).toBe(false)
-    expect(testid('split-title').text()).toBe('Split')
+    expect(testid('split-title').exists()).toBe(false)
 
     await textarea().setValue('ཀ')
     expect(testid('split-words').text()).toBe('Split words')
     expect(testid('split-clear').text()).toBe('Clear')
     expect(testid('split-title').exists()).toBe(false)
-    expect(testid('split-header').text()).toContain('Add or remove spaces to change where words are split.')
+    expect(testid('split-header').text()).not.toContain('Add or remove spaces')
 
     await textarea().setValue('   ')
     expect(testid('split-words').exists()).toBe(false)
@@ -498,7 +590,7 @@ describe('Split — Split words, Clear and the tokenizer', () => {
     expect(terms()).toEqual([])
     expect(mergeLabels()).toEqual([])
     expect(testid('split-entries').exists()).toBe(false)
-    expect(testid('split-terms-empty').text()).toBe('Paste text above to begin')
+    expect(testid('split-empty').exists()).toBe(true)
     expect(document.activeElement).toBe(textarea().element)
   })
 })
@@ -506,7 +598,7 @@ describe('Split — Split words, Clear and the tokenizer', () => {
 describe('Split — terms', () => {
   it('should count the terms: "No terms", "1 term", "N terms" (T1)', async () => {
     await mountPage()
-    expect(testid('split-terms-count').text()).toBe('No terms')
+    expect(testid('split-terms-count').exists()).toBe(false)
 
     await typeAndWait('ཀ་', ['ཀ་'])
     expect(testid('split-terms-count').text()).toBe('1 term')
@@ -733,7 +825,6 @@ describe('Split — terms', () => {
 
   it('should say what to do when there is no term (T9)', async () => {
     await mountPage()
-    expect(testid('split-terms-empty').text()).toBe('Paste text above to begin')
 
     await textarea().setValue('།')
     await flushPromises()
@@ -825,6 +916,7 @@ describe('Split — dividers', () => {
   it('should resize the text area with the horizontal divider, between 15 % and 70 %, and remember it (R1)', async () => {
     Storage.set('segment.topHeight', 33)
     await mountPage()
+    await textarea().setValue('ཀ་')
     const container = page().vm.$refs.container
     Object.defineProperty(container, 'clientHeight', { value: 1000 })
     const divider = wrapper.findAllComponents({ name: 'ResizableDivider' })[0]
@@ -844,7 +936,7 @@ describe('Split — dividers', () => {
   it('should resize the terms with the vertical divider, shown only with terms, between 20 % and 60 % (R2)', async () => {
     Storage.set('segment.leftWidth', 35)
     await mountPage()
-    expect(wrapper.findAllComponents({ name: 'ResizableDivider' })).toHaveLength(1)
+    expect(wrapper.findAllComponents({ name: 'ResizableDivider' })).toHaveLength(0)
 
     await typeAndWait('ཀ་', ['ཀ་'])
     const divider = wrapper.findAllComponents({ name: 'ResizableDivider' })[1]
@@ -917,7 +1009,8 @@ describe('Split — phone', () => {
 
     page().vm.clearTextarea()
     await nextTick()
-    expect(visible('.terms-pane')).toBe(true)
-    expect(visible('.entries-pane')).toBe(false)
+    expect(visible('.split-input')).toBe(true)
+    expect(testid('split-empty').exists()).toBe(true)
+    expect(wrapper.find('.entries-pane').exists()).toBe(false)
   })
 })
