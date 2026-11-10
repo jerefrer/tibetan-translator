@@ -73,6 +73,8 @@ export default {
       batchSize: SEARCH_GROUPS_BATCH_SIZE,
       // 1, 3, 5, 10 or 'all' (Settings)
       definitionsPerTerm: Storage.get('searchDefinitionsPerTerm'),
+      // The terms unfolded with "Show N more", until the next search
+      expandedTerms: {},
       searchQuery: this.$route.params.query,
       previousQueries: Storage.get('previousQueries', []),
       // Cached highlight terms - only updated on search, not on input change
@@ -287,11 +289,14 @@ export default {
           decoratedTerm = this.highlightSearchTerms(group.term);
           this._decoratedTerms.set(group.term, decoratedTerm);
         }
+        // Only a term with definitions held back can unfold
+        const expanded = !!this.expandedTerms[group.term] && group.entries.length > limit;
         return {
           term: group.term,
           decoratedTerm,
-          entries: group.entries.slice(0, limit).map((entry) => this.decoratedEntry(entry)),
+          entries: group.entries.slice(0, expanded ? undefined : limit).map((entry) => this.decoratedEntry(entry)),
           totalEntries: group.entries.length,
+          expanded,
         };
       });
     },
@@ -338,6 +343,9 @@ export default {
     },
     openTerm(term) {
       this.$router.push('/define/' + encodeURIComponent(term));
+    },
+    toggleTerm(term) {
+      this.expandedTerms = { ...this.expandedTerms, [term]: !this.expandedTerms[term] };
     },
     containsTibetan(text) {
       // Check if text contains any Tibetan Unicode characters
@@ -667,6 +675,7 @@ export default {
           .then((rows) => {
             this.entries = rows;
             this.displayedCount = this.batchSize; // Reset to initial batch
+            this.expandedTerms = {};
             this.resetDictionariesToDefaultAndSetNumberOfEntries();
           })
           .finally(() => {
@@ -893,10 +902,12 @@ export default {
           :term="group.decoratedTerm"
           :entries="group.entries"
           :total="group.totalEntries"
+          :expanded="group.expanded"
           title-testid="search-group-term"
           entry-testid="search-result"
           data-testid="search-group"
           @open-term="openTerm(group.term)"
+          @toggle-more="toggleTerm(group.term)"
           @show-about="openDictionaryAbout"
         />
         <!-- Sentinel for infinite scroll -->

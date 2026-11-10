@@ -6,7 +6,8 @@
   // definition or the scanned page, copy button). The entries arrive already
   // decorated. The caller passes only the entries to show (so the others are
   // never decorated) and, when it held some back, the `total`: a
-  // "N more in Define" button follows.
+  // "Show N more" button follows, asking the caller to unfold the card. Once
+  // `expanded`, the same button offers "Show less".
   export default {
     name: 'TermEntries',
     components: { Entry },
@@ -15,13 +16,23 @@
       term: { type: String, required: true },
       entries: { type: Array, required: true },
       total: { type: Number, default: null },
+      expanded: { type: Boolean, default: false },
       titleTestid: { type: String, default: 'term-entries-title' },
       entryTestid: { type: String, default: 'entry' }
     },
-    emits: ['open-term', 'show-about'],
+    emits: ['open-term', 'show-about', 'toggle-more'],
     computed: {
       hiddenCount () {
         return this.total === null ? 0 : Math.max(0, this.total - this.entries.length);
+      }
+    },
+    methods: {
+      toggleMore () {
+        const folding = this.expanded;
+        this.$emit('toggle-more');
+        // Folding a long card would leave the reader far below it: keep the
+        // button they pressed in view (jsdom has no scrollIntoView)
+        if (folding) this.$nextTick(() => this.$refs.more?.scrollIntoView?.({ block: 'nearest' }));
       }
     }
   }
@@ -44,13 +55,15 @@
       @show-about="$emit('show-about', $event)"
     />
     <button
-      v-if="hiddenCount > 0"
+      v-if="expanded || hiddenCount > 0"
+      ref="more"
       type="button"
       class="term-entries__more"
+      :aria-expanded="expanded"
       data-testid="term-entries-more"
-      @click="$emit('open-term')"
+      @click="toggleMore"
     >
-      {{ hiddenCount }} more in Define &rarr;
+      {{ expanded ? 'Show less' : `Show ${hiddenCount} more` }}
     </button>
   </section>
 </template>

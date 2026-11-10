@@ -302,9 +302,9 @@ describe('Search — coming back to the page', () => {
     await flushPromises()
 
     expect(database.exec).toHaveBeenCalledTimes(1)
-    // the fourth definition of the term is behind "1 more in Define"
+    // the fourth definition of the term is behind "Show 1 more"
     expect(findAll('search-result')).toHaveLength(3)
-    expect(find('term-entries-more').text()).toBe('1 more in Define →')
+    expect(find('term-entries-more').text()).toBe('Show 1 more')
   })
 
   it('should run the query when it is another one than the query shown', async () => {
@@ -923,7 +923,7 @@ describe('Search — grouped by term', () => {
     expect(findAll('search-group-term').map((term) => term.text())).toEqual(['བཅོམ་ལྡན་', 'བཅོམ་'])
   })
 
-  it('should show 3 definitions of a term and "N more in Define" by default', async () => {
+  it('should show 3 definitions of a term and "Show N more" by default', async () => {
     await mountAt('/search/wakefulness')
     database.exec = vi.fn(async () => Array.from({ length: 7 }, (_, i) => ({
       term: 'ཡེ་ཤེས་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: -i,
@@ -932,17 +932,51 @@ describe('Search — grouped by term', () => {
     await flushPromises()
 
     expect(findAll('search-result')).toHaveLength(3)
-    expect(find('term-entries-more').text()).toBe('4 more in Define →')
+    expect(find('term-entries-more').text()).toBe('Show 4 more')
   })
 
-  it('should open Define on the term when "N more in Define" is tapped', async () => {
+  it('should unfold the other definitions in place when "Show N more" is tapped', async () => {
     Storage.set('searchDefinitionsPerTerm', 1)
     await mountAt('/search/wakefulness')
 
     await find('term-entries-more').trigger('click')
     await flushPromises()
 
-    expect(findAll('search-result')).toHaveLength(0)
+    expect(findAll('search-result')).toHaveLength(3)
+    expect(router.currentRoute.value.path).toBe('/search/wakefulness')
+    expect(find('term-entries-more').text()).toBe('Show less')
+  })
+
+  it('should fold the definitions back when "Show less" is tapped', async () => {
+    Storage.set('searchDefinitionsPerTerm', 1)
+    await mountAt('/search/wakefulness')
+    await find('term-entries-more').trigger('click')
+
+    await find('term-entries-more').trigger('click')
+
+    expect(findAll('search-result')).toHaveLength(1)
+    expect(find('term-entries-more').text()).toBe('Show 2 more')
+  })
+
+  it('should fold every term back on a new search', async () => {
+    Storage.set('searchDefinitionsPerTerm', 1)
+    await mountAt('/search/wakefulness')
+    await find('term-entries-more').trigger('click')
+
+    await router.push('/search/dharma')
+    await flushPromises()
+    await router.push('/search/wakefulness')
+    await flushPromises()
+
+    expect(findAll('search-result')).toHaveLength(1)
+  })
+
+  it('should still open Define on the term when its title is tapped', async () => {
+    await mountAt('/search/wakefulness')
+
+    await find('search-group-term').trigger('click')
+    await flushPromises()
+
     expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('ཡེ་ཤེས་'))
   })
 
