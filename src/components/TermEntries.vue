@@ -62,6 +62,9 @@
   border-radius: var(--radius-card);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+  /* overflow: hidden drops a flex item's minimum height to 0: in Search's
+     scrolling column the cards would shrink to their borders */
+  flex: none;
 }
 .term-entries__title {
   display: block;
