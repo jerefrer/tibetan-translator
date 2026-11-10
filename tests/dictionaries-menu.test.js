@@ -61,15 +61,20 @@ afterEach(() => {
 describe('Dictionaries button', () => {
   it('should show how many dictionaries are enabled out of those with results', () => {
     mountMenu()
-    expect(wrapper.find('[data-testid="dictionaries-menu-button"]').text()).toBe('Dictionaries · 2/3')
+    expect(wrapper.find('[data-testid="dictionaries-menu-label"]').text()).toBe('Dictionaries · 2/3')
   })
 
   it('should show the plain count when every dictionary is enabled', () => {
     mountMenu()
     dictionaries[2].enabled = true
     return nextTick().then(() => {
-      expect(wrapper.find('[data-testid="dictionaries-menu-button"]').text()).toBe('Dictionaries · 3')
+      expect(wrapper.find('[data-testid="dictionaries-menu-label"]').text()).toBe('Dictionaries · 3')
     })
+  })
+
+  it('should keep the room of the widest count so the menu does not move when the count changes', () => {
+    mountMenu()
+    expect(wrapper.find('[data-testid="dictionaries-menu-sizer"]').text()).toBe('Dictionaries · 3/3')
   })
 
   it('should stand out when the choice differs from Settings', async () => {

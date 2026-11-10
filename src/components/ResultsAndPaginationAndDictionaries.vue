@@ -327,7 +327,12 @@ export default {
           :title="dictionariesDifferentThanGlobally ? 'Not the dictionaries chosen in Settings' : 'Choose dictionaries (Ctrl/Cmd+B)'"
           data-testid="dictionaries-menu-button"
         >
-          Dictionaries · {{ buttonCount }}
+          <!-- The hidden widest label keeps the width: the count growing from
+               "39" to "0/39" would shift the button, and the menu with it -->
+          <span class="dictionaries-menu-button__label">
+            <span data-testid="dictionaries-menu-label">Dictionaries · {{ buttonCount }}</span>
+            <span class="dictionaries-menu-button__sizer" aria-hidden="true" data-testid="dictionaries-menu-sizer">Dictionaries · {{ dictionaries.length }}/{{ dictionaries.length }}</span>
+          </span>
           <ui-icon name="chevron-down" :size="12" :stroke-width="2.4" />
         </button>
       </popover-trigger>
@@ -396,10 +401,24 @@ export default {
   color var(--ink)
   font 500 var(--text-sm-plus) var(--font-ui)
   white-space nowrap
+  font-variant-numeric tabular-nums
   cursor pointer
 
   &:hover
     background var(--soft)
+
+  // Both labels in one cell: the cell is as wide as the wider one
+  .dictionaries-menu-button__label
+    display inline-grid
+    justify-items start
+
+    > span
+      grid-area 1 / 1
+
+  .dictionaries-menu-button__sizer
+    visibility hidden
+    // As bold as the filtered state, the wider of the two
+    font-weight 600
 
   &:focus-visible
     outline 2px solid var(--accent)
