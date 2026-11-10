@@ -12,7 +12,7 @@ export default {
     modelValue: { type: String, default: "" },
     highlightedIndex: { type: Number, default: -1 },
     labelFor: { type: Function, required: true },
-    // Phone: short action labels, ghost buttons
+    // Phone: short action labels
     compact: { type: Boolean, default: false },
   },
   emits: [
@@ -57,7 +57,7 @@ export default {
 
       <div class="action-buttons" data-testid="dictionaries-menu-actions">
         <ui-button
-          :variant="compact ? 'ghost' : 'outline'"
+          variant="ghost"
           size="sm"
           data-testid="dictionaries-menu-all"
           @click="$emit('all')"
@@ -67,7 +67,7 @@ export default {
           <span v-else>Enable <u>a</u>ll</span>
         </ui-button>
         <ui-button
-          :variant="compact ? 'ghost' : 'outline'"
+          variant="ghost"
           size="sm"
           data-testid="dictionaries-menu-none"
           @click="$emit('none')"
@@ -77,7 +77,7 @@ export default {
           <span v-else>Enable <u>n</u>one</span>
         </ui-button>
         <ui-button
-          :variant="compact ? 'ghost' : 'outline'"
+          variant="ghost"
           size="sm"
           data-testid="dictionaries-menu-restore"
           @click="$emit('restore')"
@@ -155,6 +155,15 @@ export default {
     gap 10px
     padding 14px
     border-bottom 1px solid var(--line)
+
+  // A filled field and plain actions: one box at the top of the menu
+  // rather than four bordered ones stacked
+  .search-field .ui-field__control
+    background var(--soft)
+    border-color transparent
+
+  .search-field .ui-field__control:focus-within
+    border-color var(--accent)
 
   .action-buttons
     display flex
