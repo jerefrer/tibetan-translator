@@ -312,29 +312,29 @@ export default {
             <dialog-description v-else class="scan-hidden-description">Scanned dictionary page</dialog-description>
           </div>
 
-          <span class="scan-spacer" />
-
-          <button
-            type="button"
-            class="scan-icon-button scan-icon-button--bordered"
-            aria-label="Zoom out"
-            data-testid="scan-zoom-out"
-            :disabled="scale <= minScale"
-            @click="zoomOut"
-          >
-            <ui-icon name="minus" :size="20" :stroke-width="2" />
-          </button>
-          <span class="zoom-level" data-testid="scan-zoom">{{ zoomPercent }}%</span>
-          <button
-            type="button"
-            class="scan-icon-button scan-icon-button--bordered"
-            aria-label="Zoom in"
-            data-testid="scan-zoom-in"
-            :disabled="scale >= maxScale"
-            @click="zoomIn"
-          >
-            <ui-icon name="plus" :size="20" :stroke-width="2" />
-          </button>
+          <div class="scan-zoom">
+            <button
+              type="button"
+              class="scan-icon-button scan-icon-button--bordered"
+              aria-label="Zoom out"
+              data-testid="scan-zoom-out"
+              :disabled="scale <= minScale"
+              @click="zoomOut"
+            >
+              <ui-icon name="minus" :size="20" :stroke-width="2" />
+            </button>
+            <span class="zoom-level" data-testid="scan-zoom">{{ zoomPercent }}%</span>
+            <button
+              type="button"
+              class="scan-icon-button scan-icon-button--bordered"
+              aria-label="Zoom in"
+              data-testid="scan-zoom-in"
+              :disabled="scale >= maxScale"
+              @click="zoomIn"
+            >
+              <ui-icon name="plus" :size="20" :stroke-width="2" />
+            </button>
+          </div>
         </div>
 
         <div class="scan-stage">
@@ -446,7 +446,9 @@ export default {
 
 .scan-toolbar {
   flex: none;
-  display: flex;
+  /* Close | title, centred | zoom: the side columns share the room left */
+  display: grid;
+  grid-template-columns: 1fr minmax(0, auto) 1fr;
   align-items: center;
   gap: 14px;
   height: 64px;
@@ -455,10 +457,22 @@ export default {
   box-sizing: border-box;
 }
 
+.scan-close {
+  justify-self: start;
+}
+
 .scan-heading {
   min-width: 0;
   display: flex;
   align-items: baseline;
+  justify-content: center;
+  gap: 14px;
+}
+
+.scan-zoom {
+  justify-self: end;
+  display: flex;
+  align-items: center;
   gap: 14px;
 }
 
@@ -484,10 +498,6 @@ export default {
   height: 1px;
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
-}
-
-.scan-spacer {
-  flex: 1;
 }
 
 .scan-icon-button {
@@ -641,7 +651,11 @@ export default {
   /* "approximate" goes under the title */
   .scan-heading {
     flex-direction: column;
+    align-items: center;
     gap: 0;
+  }
+  .scan-zoom {
+    gap: 8px;
   }
   .scan-title {
     font-size: var(--text-base);
