@@ -1119,14 +1119,16 @@ export default {
     flex 1
     min-height 0
     align-items stretch
-    padding 10px 16px
+    padding 0 16px
     border-radius var(--radius-lg)
 
+  // The space above and below sits inside the textarea, which clips what
+  // overflows it: vowels like ི rise above the first line
   :deep(.ui-field__input)
     height 100%
     min-height 3rem
     resize none
-    padding 0
+    padding 10px 0
     font-size 1.875rem
     line-height 1.6
 
