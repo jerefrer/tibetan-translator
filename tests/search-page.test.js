@@ -1034,13 +1034,15 @@ describe('Search — grouped by term', () => {
   it('should not leave Search when the headword is tapped, only open then fold the row', async () => {
     await mountAt('/search/wakefulness')
 
-    await find('search-group-term').trigger('click')
+    // The toggle is stretched over the whole row, headword included: a tap
+    // on the headword lands on it
+    await find('search-group-header').trigger('click')
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/search/wakefulness')
     expect(findAll('search-result')).toHaveLength(3)
 
-    await find('search-group-term').trigger('click')
+    await find('search-group-header').trigger('click')
     expect(findAll('search-result')).toHaveLength(0)
   })
 
