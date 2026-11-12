@@ -56,6 +56,9 @@ importers:
       tibetan-ansi-to-unicode:
         specifier: ^1.8.0
         version: 1.8.0
+      tibetan-ewts-converter:
+        specifier: ^1.0.1
+        version: 1.0.1
       tibetan-normalizer:
         specifier: ^0.1.0
         version: 0.1.0
@@ -144,9 +147,6 @@ importers:
       stylus:
         specifier: ^0.62.0
         version: 0.62.0
-      tibetan-ewts-converter:
-        specifier: ^1.0.1
-        version: 1.0.1
       vite:
         specifier: ^5.0.0
         version: 5.4.21(@types/node@25.1.0)(sass@1.77.4)(stylus@0.62.0)(terser@5.44.1)
