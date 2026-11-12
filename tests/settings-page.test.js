@@ -1,5 +1,6 @@
 /**
- * Settings screen (ConfigurePage) and its cards.
+ * The Settings cards, which Library shows (tests/library-page.test.js covers
+ * the page around them).
  *
  * Services are mocked; `env` switches between the browser build and the app
  * (Tauri), and between desktop and phone widths.
@@ -123,7 +124,6 @@ vi.mock('../src/services/audio-service', () => {
 })
 
 import Storage from '../src/services/storage'
-import ConfigurePage from '../src/components/ConfigurePage.vue'
 import AudioCard from '../src/components/settings/AudioCard.vue'
 import AppearanceCard from '../src/components/settings/AppearanceCard.vue'
 import GlobalLookupCard, { DEFAULT_HOTKEY } from '../src/components/settings/GlobalLookupCard.vue'
@@ -215,141 +215,6 @@ describe('pack summary', () => {
   it('pluralises', () => {
     expect(plural(1, 'entry', 'entries')).toBe('1 entry')
     expect(plural(3, 'entry', 'entries')).toBe('3 entries')
-  })
-})
-
-describe('ConfigurePage', () => {
-  it('shows the Settings cards and no dictionary catalog', async () => {
-    seedDictionaries()
-    await mountWith(ConfigurePage)
-    expect(byTestId('appearance-card').exists()).toBe(true)
-    expect(byTestId('dictionary-preferences').exists()).toBe(true)
-    expect(byTestId('scanned-card').exists()).toBe(true)
-    expect(byTestId('audio-card').exists()).toBe(true)
-    expect(wrapper.find('.dictionary-catalog').exists()).toBe(false)
-    expect(wrapper.html()).not.toContain('v-card')
-  })
-
-  it('leaves out the app-only cards in a browser', async () => {
-    await mountWith(ConfigurePage)
-    expect(byTestId('global-lookup-card').exists()).toBe(false)
-    expect(byTestId('about-card').exists()).toBe(false)
-    expect(byTestId('pack-manager-card').exists()).toBe(false)
-  })
-
-  it('shows the app-only cards in the app', async () => {
-    env.tauri = true
-    await mountWith(ConfigurePage)
-    expect(byTestId('global-lookup-card').exists()).toBe(true)
-    expect(byTestId('about-card').exists()).toBe(true)
-    expect(byTestId('pack-manager-card').exists()).toBe(true)
-    // Managing your own dictionaries lives on the Glossary page
-    expect(wrapper.findComponent({ name: 'CustomPackSection' }).exists()).toBe(false)
-  })
-
-  it('should credit Christian Steinert for the dictionary data when in the app', async () => {
-    env.tauri = true
-    await mountWith(ConfigurePage)
-    expect(byTestId('about-credits').text()).toContain('Christian Steinert')
-  })
-
-  it('forwards the old catalog links to Dictionaries', async () => {
-    await mountWith(ConfigurePage, { path: '/settings?status=available' })
-    await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/dictionaries')
-    expect(router.currentRoute.value.query).toEqual({ status: 'available' })
-  })
-
-  describe('on a phone', () => {
-    beforeEach(() => {
-      env.mobile = true
-    })
-
-    it('opens My glossary and Dictionaries from the first rows', async () => {
-      await mountWith(ConfigurePage)
-      const rows = wrapper.findAll('.settings-row')
-      expect(rows[0].text()).toContain('My glossary')
-      expect(rows[1].text()).toContain('Dictionaries')
-
-      await byTestId('settings-row-glossary').find('button').trigger('click')
-      await flushPromises()
-      expect(router.currentRoute.value.path).toBe('/glossary')
-
-      await router.push('/settings')
-      await byTestId('settings-row-dictionaries').find('button').trigger('click')
-      await flushPromises()
-      expect(router.currentRoute.value.path).toBe('/dictionaries')
-    })
-
-    it('should list a Help row per page and open that page\'s help when tapped', async () => {
-      await mountWith(ConfigurePage)
-      expect(byTestId('settings-row-help-define').exists()).toBe(true)
-      expect(byTestId('settings-row-help-search').exists()).toBe(true)
-      expect(byTestId('settings-row-help-split').exists()).toBe(true)
-      expect(inBody('search-help')).toBeNull()
-
-      await byTestId('settings-row-help-search').find('button').trigger('click')
-      await nextTick()
-      expect(inBody('search-help')).not.toBeNull()
-    })
-
-    it('should open the Define and Split help from their rows', async () => {
-      await mountWith(ConfigurePage)
-      await byTestId('settings-row-help-define').find('button').trigger('click')
-      await nextTick()
-      expect(inBody('define-help')).not.toBeNull()
-      document.body.querySelector('[data-testid="define-help-close"]').click()
-      await nextTick()
-      await byTestId('settings-row-help-split').find('button').trigger('click')
-      await nextTick()
-      expect(inBody('split-help')).not.toBeNull()
-    })
-
-    it('should show no floating help button next to the rows', async () => {
-      await mountWith(ConfigurePage)
-      expect(wrapper.find('.help-button').exists()).toBe(false)
-    })
-
-    it('summarises glossary entries and installed packs', async () => {
-      env.tauri = true
-      mocks.packs.state.customPacks = [
-        { id: 'custom-mine', manifest: { name: 'Mine', dictionaries: [{ name: 'A', entriesCount: 2 }, { name: 'B', entriesCount: 1 }] } },
-      ]
-      await mountWith(ConfigurePage)
-      expect(byTestId('settings-row-glossary').text()).toContain('3 entries')
-      expect(byTestId('settings-row-dictionaries').text()).toMatch(/\d+ installed · 1 of 3 packs/)
-    })
-
-    it('opens Dictionary preferences as a sub-screen and comes back', async () => {
-      seedDictionaries()
-      await mountWith(ConfigurePage)
-      expect(byTestId('dictionary-preferences').exists()).toBe(false)
-
-      await byTestId('settings-row-preferences').find('button').trigger('click')
-      await flushPromises()
-      expect(router.currentRoute.value.query.view).toBe('preferences')
-      expect(byTestId('dictionary-preferences').exists()).toBe(true)
-      expect(byTestId('appearance-card').exists()).toBe(false)
-
-      await byTestId('settings-back').trigger('click')
-      await flushPromises()
-      expect(router.currentRoute.value.fullPath).toBe('/settings')
-      expect(byTestId('appearance-card').exists()).toBe(true)
-    })
-
-    it('lists What’s new and the update check as rows in the app', async () => {
-      env.tauri = true
-      await mountWith(ConfigurePage)
-      expect(byTestId('about-whats-new-row').text()).toContain('Tibetan Translator 1.12.0')
-      expect(byTestId('about-check-row').exists()).toBe(true)
-      expect(byTestId('about-card').exists()).toBe(false)
-    })
-
-    it('should credit Christian Steinert for the dictionary data as a row', async () => {
-      env.tauri = true
-      await mountWith(ConfigurePage)
-      expect(byTestId('about-credits-row').text()).toContain('Christian Steinert')
-    })
   })
 })
 

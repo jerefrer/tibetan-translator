@@ -3,7 +3,7 @@ import { convertWylieInText } from '../../utils';
 import { mayNeedLegacyRepair } from '../../services/legacy-to-unicode';
 import { UiButton, UiIcon, UiTextField } from '../../ui';
 
-// The Reader's text area, with the Split page's rules (SegmentPage.vue):
+// The Reader's text area, with the rules of the former Split page:
 // Wylie converts when Space or a tsheg is released, Space types a tsheg,
 // Shift+Space a real space (a word break), Ctrl/Cmd+Enter splits, a paste is
 // converted (and repaired when set in a pre-Unicode font) and split.

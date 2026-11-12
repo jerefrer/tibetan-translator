@@ -1,5 +1,6 @@
 /**
- * The help button and dialog of the Search page.
+ * The "Searching the definitions" help dialog, opened from Library's help
+ * rows.
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
@@ -18,16 +19,11 @@ const body = (testid) => document.body.querySelector(`[data-testid="${testid}"]`
 const tabLabels = () =>
   Array.from(document.body.querySelectorAll('.ui-tabs__trigger')).map((tab) => tab.textContent.trim())
 
-async function openHelp(path = '/search/wakefulness') {
-  wrapper = mount(SearchPageHelpDialogWithButton, {
-    attachTo: document.body,
-    global: { mocks: { $route: { path } } },
-  })
-  const button = wrapper.find('[data-testid="search-help-button"]')
-  if (button.exists()) {
-    await button.trigger('click')
-    await flushPromises()
-  }
+// Library opens the dialog from its help rows with open()
+async function openHelp() {
+  wrapper = mount(SearchPageHelpDialogWithButton, { attachTo: document.body })
+  wrapper.vm.open()
+  await flushPromises()
   return wrapper
 }
 
@@ -38,9 +34,10 @@ afterEach(() => {
 })
 
 describe('Search help', () => {
-  it('should only show its button on the Search page', async () => {
-    await openHelp('/define/x')
-    expect(wrapper.find('[data-testid="search-help-button"]').exists()).toBe(false)
+  it('should render no button of its own, only the dialog Library opens', async () => {
+    wrapper = mount(SearchPageHelpDialogWithButton, { attachTo: document.body })
+    expect(wrapper.find('button').exists()).toBe(false)
+    expect(body('search-help')).toBeNull()
   })
 
   it('should open on how to search in Lookup, with every tab of the old help', async () => {

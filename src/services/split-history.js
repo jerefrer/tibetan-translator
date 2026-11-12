@@ -1,6 +1,7 @@
 import { createRecents } from './recents';
 
-// The passages the user split on the Split page, most recent first.
+// The passages the user split in the Reader (formerly the Split page), most
+// recent first.
 export const SPLIT_HISTORY_LIMIT = 10;
 
 // Splitting rewrites the spaces and users edit them by hand, so two texts that

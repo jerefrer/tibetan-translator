@@ -1,5 +1,5 @@
 /**
- * The help button and dialog of the Define page.
+ * The "Looking up a word" help dialog, opened from Library's help rows.
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
@@ -19,16 +19,11 @@ const body = (testid) => document.body.querySelector(`[data-testid="${testid}"]`
 const tabLabels = () =>
   Array.from(document.body.querySelectorAll('.ui-tabs__trigger')).map((tab) => tab.textContent.trim())
 
-async function openHelp(path = '/define/ཀ་') {
-  wrapper = mount(DefinePageHelpDialogWithButton, {
-    attachTo: document.body,
-    global: { mocks: { $route: { path } } },
-  })
-  const button = wrapper.find('[data-testid="define-help-button"]')
-  if (button.exists()) {
-    await button.trigger('click')
-    await flushPromises()
-  }
+// Library opens the dialog from its help rows with open()
+async function openHelp() {
+  wrapper = mount(DefinePageHelpDialogWithButton, { attachTo: document.body })
+  wrapper.vm.open()
+  await flushPromises()
   return wrapper
 }
 
@@ -40,9 +35,10 @@ afterEach(() => {
 })
 
 describe('Define help', () => {
-  it('should only show its button on the Define page', async () => {
-    await openHelp('/search/x')
-    expect(wrapper.find('[data-testid="define-help-button"]').exists()).toBe(false)
+  it('should render no button of its own, only the dialog Library opens', async () => {
+    wrapper = mount(DefinePageHelpDialogWithButton, { attachTo: document.body })
+    expect(wrapper.find('button').exists()).toBe(false)
+    expect(body('define-help')).toBeNull()
   })
 
   it('should open on how to look up a word, with the Quick Lookup and Navigation tabs in the desktop app', async () => {

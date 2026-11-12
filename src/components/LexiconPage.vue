@@ -353,7 +353,7 @@ export default {
     // mounted()/beforeUnmount() each fire exactly once per component instance,
     // even under App.vue's <keep-alive> (only activated()/deactivated() repeat
     // on navigation), so a single add here can never double-register — same
-    // pattern as DefinePage.vue's 'all-terms-updated' listener.
+    // pattern as LookupPage.vue's 'all-terms-updated' listener.
     window.addEventListener('dictionaries-updated', this.syncSelection);
     ResizeService.subscribe('lexicon-page', () => {
       this.isPhone = ResizeService.isMobile();

@@ -148,7 +148,7 @@ export function buildSearchSql({ regular = [], strictVariants = [], looseVariant
  *  relevant group first; inside a group the entries follow the user's
  *  dictionary order. `dictionaries` carry id, position and enabled. */
 export function groupSearchEntries(entries, { dictionaries, regular, phoneticsStrict, phoneticsLoose }) {
-  // The user's customised dictionary order (the same that drives DefinePage
+  // The user's customised dictionary order (the same that drives the entry
   // and the settings drag-drop). The SQL row's `dictionaryPosition` is the
   // build-time order, which doesn't reflect user preferences.
   const userDictPositions = {};

@@ -82,8 +82,8 @@ export function entriesForEnabledDictionaries(entries, dictionaries) {
 
 /**
  * Full-text results: terms starting with the query first, then shorter
- * terms, then the dictionary's position. Mirrors the Search page's sort
- * without BM25, which pack_search_entries does not return.
+ * terms, then the dictionary's position. Mirrors groupSearchEntries' sort
+ * (Lookup's English results) without BM25, which pack_search_entries does not return.
  */
 export function sortSearchEntries(entries, query) {
   const q = (query || '').toLowerCase();

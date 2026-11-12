@@ -56,7 +56,7 @@ export function readPreviousQueries() {
   return Array.isArray(stored) ? stored : [];
 }
 
-/** As SearchPage.storeQuery: the query goes first, once, and the list is
+/** As the former Search page: the query goes first, once, and the list is
  *  cut at MAX_PREVIOUS_QUERIES. */
 export function storePreviousQuery(query) {
   if (!query) return;

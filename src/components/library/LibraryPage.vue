@@ -186,9 +186,9 @@ export default {
           </ui-list-item>
           <about-card rows />
         </ui-list>
-        <define-page-help-dialog-with-button ref="lookupHelp" hide-button />
-        <search-page-help-dialog-with-button ref="searchHelp" hide-button />
-        <split-page-help-dialog-with-button ref="readerHelp" hide-button />
+        <define-page-help-dialog-with-button ref="lookupHelp" />
+        <search-page-help-dialog-with-button ref="searchHelp" />
+        <split-page-help-dialog-with-button ref="readerHelp" />
       </section>
     </div>
   </div>

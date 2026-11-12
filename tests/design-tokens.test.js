@@ -45,12 +45,12 @@ describe('design tokens', () => {
   })
 
   it('should draw the Search hits with those tokens', () => {
-    // The hits are drawn by the term cards (TermEntries), which Search shows
-    const search = fs.readFileSync(path.resolve(__dirname, '../src/components/TermEntries.vue'), 'utf8')
-    expect(search).toContain('background: var(--hit-bg);\n  color: var(--on-hit-bg)')
-    expect(search).not.toContain('--logo-bg')
-    const page = fs.readFileSync(path.resolve(__dirname, '../src/components/SearchPage.vue'), 'utf8')
-    expect(page).not.toContain('--logo-bg')
+    // The hits of an English search are drawn in the entry (TermEntry)
+    const entry = fs.readFileSync(path.resolve(__dirname, '../src/components/entry/TermEntry.vue'), 'utf8')
+    expect(entry).toContain('background: var(--hit-bg);\n  color: var(--on-hit-bg)')
+    expect(entry).not.toContain('--logo-bg')
+    const results = fs.readFileSync(path.resolve(__dirname, '../src/components/lookup/DefinitionResults.vue'), 'utf8')
+    expect(results).not.toContain('--logo-bg')
   })
 
   it('should keep the scan viewer dark in both themes, on the neutral dark ground', () => {

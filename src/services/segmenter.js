@@ -2,7 +2,7 @@ import { MAX_MERGE_TERM_COUNT } from "../config/constants";
 import { withTrailingTshek } from "../utils";
 
 // Word splitting and expression detection for Tibetan text, shared by the
-// Split page and anything else that has to cut a passage into words.
+// Reader and anything else that has to cut a passage into words.
 
 // The tokenizer is built once from the Botok dictionary in the public folder.
 // A session holds that tokenizer and the last load error; callers that need

@@ -255,7 +255,7 @@ const database = {
       const inv = await getInvoke();
       return await inv("pack_get_entries_for_term", { term });
     } else if (mode === "tauri-packs") {
-      // Use exact term matching (not FTS) for Define page
+      // Use exact term matching (not FTS) for an entry's definitions
       // Escape single quotes for SQL safety
       const escapedTerm = term.replace(/'/g, "''");
 

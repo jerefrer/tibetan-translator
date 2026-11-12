@@ -1,24 +1,20 @@
 <script>
-  import { UiAlert, UiButton, UiDialog, UiIcon, UiTabs } from '../ui'
+  import { UiAlert, UiButton, UiDialog, UiTabs } from '../ui'
   import DictionariesMenuHelp from './DictionariesMenuHelp.vue'
   import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS } from '../config/platform'
 
-  // The "?" in the navigation while Search is shown, and the help it opens.
-  // The button and the panels take their look from the Define help
-  // (.define-help-button, .define-help-content in
-  // DefinePageHelpDialogWithButton.vue), so the two read as one.
+  // How to search the definitions in Lookup (EN), opened from Library's
+  // help rows. The panels take their look from the Lookup help
+  // (.define-help-content in DefinePageHelpDialogWithButton.vue), so the two
+  // read as one. The file keeps the name it had when a "?" button opened it
+  // on the Search page.
   export default {
-    props: {
-      // Settings (phone) opens the dialog from its own row
-      hideButton: { type: Boolean, default: false }
-    },
     components: {
       DictionariesMenuHelp,
       UiAlert,
       UiButton,
       UiDialog,
-      UiIcon,
       UiTabs
     },
     data () {
@@ -80,17 +76,6 @@
 
 <template>
   <span class="search-help">
-    <button
-      v-if="!hideButton && $route.path.includes('/search')"
-      type="button"
-      class="help-button define-help-button"
-      aria-label="How to use the Search page"
-      title="Help"
-      data-testid="search-help-button"
-      @click.stop.prevent="dialog = true"
-    >
-      <ui-icon name="circle-help" :size="24" />
-    </button>
 
     <ui-dialog v-model="dialog" title="Searching the definitions" :max-width="1024">
       <div class="define-help-content search-help-content" data-testid="search-help">

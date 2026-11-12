@@ -26,13 +26,6 @@ describe('Hit areas', () => {
     expect(css).toContain('inset: min(0px, calc((1.125rem - 44px) / 2 - 2px));')
   })
 
-  it("should give Split's merge buttons (28px) a hit area 44px tall and 30px wide, the spacing of the lanes", () => {
-    const css = source('src/components/SegmentPage.vue')
-    expect(css).toMatch(/const MERGE_LANE_WIDTH = 30;/)
-    expect(css).toContain("  &::before\n    content ''\n    position absolute\n    top -9.5px\n    bottom -9.5px\n    left -2.5px\n    right -2.5px")
-  })
-
-  // Ported from Split's merge buttons: the Reader's expression brackets
   it("should give the Reader's expression brackets a hit area beyond their lane, 24px tall on a phone", () => {
     const css = source('src/components/reader/ReaderText.vue')
     expect(css).toContain(".reader-merge::before {\n  content: '';\n  position: absolute;\n  inset: calc(-1 * var(--hit-extend)) 0;\n}")

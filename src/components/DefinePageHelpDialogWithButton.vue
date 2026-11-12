@@ -4,13 +4,9 @@
   import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS, isTauri, isMobile } from '../config/platform'
 
-  // The "?" in the navigation (rail on a desktop, floating above the bar on a
-  // phone) and the help it opens while Define is shown.
+  // How to look up a word in Lookup, opened from Library's help rows. The file
+  // keeps the name it had when a "?" button opened it on the Define page.
   export default {
-    props: {
-      // Settings (phone) opens the dialog from its own row
-      hideButton: { type: Boolean, default: false }
-    },
     components: {
       DictionariesMenuHelp,
       UiButton,
@@ -67,17 +63,6 @@
 
 <template>
   <span class="define-help">
-    <button
-      v-if="!hideButton && $route.path.includes('/define')"
-      type="button"
-      class="help-button define-help-button"
-      aria-label="How to use the Define page"
-      title="Help"
-      data-testid="define-help-button"
-      @click.stop.prevent="dialog = true"
-    >
-      <ui-icon name="circle-help" :size="24" />
-    </button>
 
     <ui-dialog v-model="dialog" title="Looking up a word" :max-width="1024">
       <div class="define-help-content" data-testid="define-help">
@@ -196,37 +181,6 @@
 </template>
 
 <style>
-/* The button: accent in the sidebar, a floating disc above the phone's bar */
-.define-help-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.75rem;
-  height: 2.75rem;
-  border: 0;
-  border-radius: var(--radius-xl);
-  background: none;
-  color: var(--accent);
-  cursor: pointer;
-}
-.define-help-button:hover {
-  background: var(--ring);
-}
-.define-help-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-.app-nav--bar .define-help-button {
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--accent);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow-card);
-}
-.app-nav--bar .define-help-button:hover {
-  background: var(--soft);
-}
-
 /* Shared by the help panels (the dialog is rendered outside this component) */
 .define-help-content {
   font-size: var(--text-base);

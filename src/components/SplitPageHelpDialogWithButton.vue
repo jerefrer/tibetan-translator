@@ -4,14 +4,10 @@
   import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS } from '../config/platform'
 
-  // The "?" in the navigation (rail on a desktop, floating above the bar on a
-  // phone) and the help it opens while Split is shown. The button and the
-  // panels use the styles of DefinePageHelpDialogWithButton.vue (global).
+  // How to read a text in Reader, opened from Library's help rows. The panels
+  // use the styles of DefinePageHelpDialogWithButton.vue (global). The file
+  // keeps the name it had when a "?" button opened it on the Split page.
   export default {
-    props: {
-      // Settings (phone) opens the dialog from its own row
-      hideButton: { type: Boolean, default: false }
-    },
     components: {
       DictionariesMenuHelp,
       UiButton,
@@ -66,17 +62,6 @@
 
 <template>
   <span class="split-help">
-    <button
-      v-if="!hideButton && $route.path.includes('/segment')"
-      type="button"
-      class="help-button define-help-button"
-      aria-label="How to use the Split page"
-      title="Help"
-      data-testid="split-help-button"
-      @click.stop.prevent="dialog = true"
-    >
-      <ui-icon name="circle-help" :size="24" />
-    </button>
 
     <ui-dialog v-model="dialog" title="Reading a text" :max-width="1024">
       <div class="define-help-content" data-testid="split-help">

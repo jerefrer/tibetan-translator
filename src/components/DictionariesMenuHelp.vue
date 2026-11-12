@@ -2,8 +2,8 @@
 import { UiIcon } from '../ui';
 import { isMacOS } from '../config/platform';
 
-// How the Dictionaries menu works, for the Define, Search and Split help
-// dialogs.
+// How the Dictionaries menu works, for the Lookup, Search and Reader help
+// dialogs (written for the menu of the former Define, Search and Split pages).
 export default {
   name: 'DictionariesMenuHelp',
   components: { UiIcon },

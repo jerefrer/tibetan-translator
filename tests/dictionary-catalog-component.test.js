@@ -1,5 +1,5 @@
 /**
- * DictionaryCatalog, UninstalledPacksNotice and SearchInsteadHint.
+ * DictionaryCatalog and UninstalledPacksNotice.
  *
  * These run against the real dictionary details and pack definitions, so they
  * also guard the subject tags: if "archaic" stops finding the dictionaries John
@@ -42,7 +42,6 @@ vi.mock('../src/services/sql-database', () => ({
 
 import DictionaryCatalog from '../src/components/DictionaryCatalog.vue'
 import UninstalledPacksNotice from '../src/components/UninstalledPacksNotice.vue'
-import SearchInsteadHint from '../src/components/SearchInsteadHint.vue'
 
 const snackbar = { open: vi.fn() }
 
@@ -497,16 +496,3 @@ describe('UninstalledPacksNotice', () => {
   })
 })
 
-describe('SearchInsteadHint', () => {
-  it('should carry the text as typed to the Search page', async () => {
-    const push = vi.fn()
-    const wrapper = mount(SearchInsteadHint, {
-      props: { text: 'kākiṇī' },
-      global: { mocks: { $router: { push } } },
-    })
-
-    await wrapper.find('button').trigger('click')
-
-    expect(push).toHaveBeenCalledWith('/search/' + encodeURIComponent('kākiṇī'))
-  })
-})

@@ -56,7 +56,7 @@ export default {
     toggleBuilder() {
       this.builderVisible = !this.builderVisible;
     },
-    // As SearchPage.onPaste: the English field converts nothing, so a paste
+    // As the former Search page: the English field converts nothing, so a paste
     // in a pre-Unicode Tibetan font is repaired and every other paste is
     // left to the browser
     async onEnglishPaste(event) {

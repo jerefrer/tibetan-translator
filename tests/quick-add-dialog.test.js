@@ -1,7 +1,8 @@
 /**
  * QuickAddDialog Component Tests
  *
- * Covers the quick-add gesture wired into DefinePage and SearchPage (Task 9),
+ * Covers the quick-add gesture (wired into DefinePage and SearchPage in
+ * Task 9, now into TermEntry's Add my definition),
  * plus the review-round fixes on top of it:
  *  - Lexicon.saveEntry() returning null (unusable input) must not be treated
  *    as a successful save — same guard already proven for LexiconEntryDialog
