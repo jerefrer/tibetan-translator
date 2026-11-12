@@ -991,9 +991,10 @@ export default {
     border-radius var(--radius-sm)
 
 // One column: the field, the builder, the results header and the results
-// share their left and right edges
+// share their left and right edges. Wide, as the results' own columns (term,
+// dictionary, definition) keep the definitions' lines short enough to read
 .search-page > *
-  max-width 60rem
+  max-width 80rem
 
 // The field: 60px, accent ring when focused (UiTextField does the focus)
 .search-top

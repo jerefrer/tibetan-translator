@@ -125,6 +125,11 @@
 
 <style scoped>
 .term-entries {
+  /* The columns every row shares, collapsed or open: the term (wider on a
+     wide screen, so fewer terms wrap) and the dictionary, then the
+     definitions all start at the same place */
+  --term-column: clamp(11rem, 22%, 18rem);
+  --dictionary-column: 11rem;
   border-bottom: 1px solid var(--soft);
   /* overflow: hidden drops a flex item's minimum height to 0: in Search's
      scrolling column the rows would shrink to their borders */
@@ -132,11 +137,11 @@
   overflow: hidden;
 }
 
-/* The line: headword | preview | count and chevron */
+/* The line: headword | dictionary | definition | count and chevron */
 .term-entries__header {
   display: grid;
-  grid-template-columns: 11rem minmax(0, 1fr) auto;
-  grid-template-areas: 'title preview meta';
+  grid-template-columns: var(--term-column) var(--dictionary-column) minmax(0, 1fr) auto;
+  grid-template-areas: 'title chip text meta';
   align-items: center;
   column-gap: 18px;
   width: 100%;
@@ -168,19 +173,17 @@
   overflow-wrap: anywhere;
 }
 
-/* One line, cut with an ellipsis. The line height keeps the vowels above the
+/* The preview's chip and text take the dictionary and definition columns.
+   One line, cut with an ellipsis. The line height keeps the vowels above the
    Tibetan from being clipped by the overflow. */
 .term-entries__preview {
-  grid-area: preview;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-  line-height: 1.9;
+  display: contents;
 }
 .term-entries__chip {
-  flex: none;
-  max-width: 40%;
+  grid-area: chip;
+  justify-self: start;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -195,6 +198,7 @@
   line-height: 1;
 }
 .term-entries__preview-text {
+  grid-area: text;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -242,6 +246,37 @@
   border-bottom: 0;
 }
 
+/* Open, each definition on the row's columns: its dictionary under the
+   preview's, its text under the preview's text, the copy button last. The
+   label sits beside the text instead of above it. */
+@media (min-width: 601px) {
+  .term-entries > :deep(.entry-row) {
+    display: grid;
+    grid-template-columns: var(--term-column) var(--dictionary-column) minmax(0, 1fr) auto;
+    column-gap: 18px;
+    align-items: start;
+    padding: 10px 22px;
+  }
+  .term-entries > :deep(.entry-row .entry-header) {
+    display: contents;
+  }
+  .term-entries > :deep(.entry-row .dictionary-label) {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: start;
+    margin-top: 2px;
+  }
+  .term-entries > :deep(.entry-row .copy-button) {
+    grid-column: 4;
+    grid-row: 1;
+  }
+  .term-entries > :deep(.entry-row .definition),
+  .term-entries > :deep(.entry-row .scanned-entry) {
+    grid-column: 3;
+    grid-row: 1;
+  }
+}
+
 .term-entries__footer {
   display: flex;
   align-items: center;
@@ -267,12 +302,15 @@
 /* Phone: the term, the count and the chevron on a line, the preview under */
 @media (max-width: 600px) {
   .term-entries__header {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      'title meta'
-      'preview preview';
+      'title title meta'
+      'chip text text';
     column-gap: 12px;
     padding: 8px 16px;
+  }
+  .term-entries__chip {
+    max-width: 40vw;
   }
   .term-entries__footer {
     padding: 2px 16px 8px;
