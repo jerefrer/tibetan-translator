@@ -1,5 +1,5 @@
 # Phase 06 — Finish
-Status: PENDING
+Status: ACTIVE
 
 ## Goal
 The rest of the app on the new look, the old pages removed, docs updated.
