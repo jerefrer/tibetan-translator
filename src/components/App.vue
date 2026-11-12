@@ -247,7 +247,7 @@ export default {
 </script>
 
 <template>
-  <div class="app">
+  <div class="app" :class="{ 'app--bottom-bar': isMobile && !showOnboarding }">
     <transition name="ui-fade">
       <div v-if="loading" class="app-loading" data-testid="app-loading">
         <div class="app-loading__mark">
@@ -301,6 +301,11 @@ export default {
 </template>
 
 <style>
+/* Phone: toasts sit above the bottom bar, not over it (bar height as AppNav) */
+.app--bottom-bar .ui-toast__viewport {
+  bottom: calc(var(--bottom-bar-height) - 14px + max(14px, var(--safe-bottom)) + var(--space-2));
+}
+
 /* Start-up overlay while the database loads: the logo inside a large ring. */
 .app-loading {
   position: fixed;

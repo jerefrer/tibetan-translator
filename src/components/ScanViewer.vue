@@ -416,15 +416,9 @@ export default {
 </template>
 
 <style scoped>
-/* Fixed colours: the viewer is dark in both themes (they are the dark
-   theme's own surface, line and muted values). */
+/* The viewer is dark in both themes: the --scan-* tokens do not change
+   with the theme (tokens.css). */
 .scan-viewer {
-  --scan-bg: #1b1512;
-  --scan-ink: #F3E8D6;
-  --scan-muted: #B8A998;
-  --scan-line: #3D312B;
-  --scan-line-strong: #54453B;
-
   position: fixed;
   inset: 0;
   z-index: 2400;
@@ -517,7 +511,7 @@ export default {
   border: 1.5px solid var(--scan-line-strong);
 }
 .scan-icon-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--scan-hover);
 }
 .scan-icon-button:disabled,
 .scan-nav-button:disabled,
@@ -563,7 +557,7 @@ export default {
   cursor: pointer;
 }
 .scan-nav-button:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--scan-hover);
 }
 
 .scan-content {
@@ -628,7 +622,7 @@ export default {
   height: auto;
   display: block;
   margin: 0 auto;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   /* Prevent drag */
   -webkit-user-drag: none;
   user-drag: none;

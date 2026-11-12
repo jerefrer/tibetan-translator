@@ -515,7 +515,8 @@ export default {
 </template>
 
 <style>
-/* Mockup: Onboarding board (B). A 640px card centred on the app background. */
+/* Mockup: Onboarding board (B). A 640px card centred on the quiet ground
+   (the white page would swallow the white card). */
 .onboarding {
   position: fixed;
   inset: 0;
@@ -524,7 +525,7 @@ export default {
   display: flex;
   overflow-y: auto;
   padding: var(--space-8) var(--space-6);
-  background: var(--bg);
+  background: var(--bg-quiet);
   color: var(--ink);
   font-family: var(--font-ui);
   font-size: var(--text-base);
@@ -596,7 +597,7 @@ export default {
   border: 1px solid var(--line-strong);
   border-bottom-width: 2px;
   border-radius: var(--radius-xs);
-  background: var(--bg);
+  background: var(--bg-quiet);
   color: var(--ink);
   font: 600 var(--text-xs) / 1.5 var(--font-ui);
   text-align: center;
@@ -711,7 +712,7 @@ export default {
   border: 1px solid var(--line);
   border-radius: var(--radius-xl);
   overflow: hidden;
-  background: var(--bg);
+  background: var(--bg-quiet);
 }
 .onboarding-lookup__video video {
   display: block;
@@ -724,7 +725,7 @@ export default {
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-xl);
-  background: var(--bg);
+  background: var(--bg-quiet);
   font-size: var(--text-sm);
   color: var(--muted);
 }
@@ -778,7 +779,7 @@ export default {
 
 /* Phone: the card becomes the screen */
 @media (max-width: 600px) {
-  .onboarding { padding: 0; }
+  .onboarding { padding: 0; background: var(--surface); }
   .onboarding__card {
     max-width: none;
     min-height: 100%;
@@ -788,7 +789,7 @@ export default {
     border-radius: 0;
     box-shadow: none;
   }
-  .onboarding__title { font-size: 1.5rem; }
+  .onboarding__title { font-size: var(--text-heading); }
   .onboarding__packs { gap: var(--space-3); }
 }
 </style>

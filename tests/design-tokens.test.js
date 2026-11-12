@@ -54,6 +54,15 @@ describe('design tokens', () => {
     expect(page).not.toContain('--logo-bg')
   })
 
+  it('should keep the scan viewer dark in both themes, on the neutral dark ground', () => {
+    expect(light['--scan-bg']).toBe(dark['--bg'])
+    expect(light['--scan-ink']).toBe(dark['--ink'])
+    expect(dark['--scan-bg']).toBe(light['--scan-bg'])
+    expect(dark['--scan-ink']).toBe(light['--scan-ink'])
+    const viewer = fs.readFileSync(path.resolve(__dirname, '../src/components/ScanViewer.vue'), 'utf8')
+    expect(viewer.match(/#[0-9A-Fa-f]{6}\b/g)).toBeNull()
+  })
+
   it('should use Inter for the interface', () => {
     expect(light['--font-ui']).toMatch(/^'Inter'/)
   })

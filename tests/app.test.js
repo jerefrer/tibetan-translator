@@ -208,6 +208,31 @@ describe('app-level toast', () => {
     expect(snackbar.show).toBe(false)
   })
 
+  it('should lift the toast above the bottom bar when the app is in its phone layout', async () => {
+    const width = window.innerWidth
+    window.innerWidth = 390
+    try {
+      await mountApp()
+      await finishLoading()
+      snackbar.open('Copied')
+      await flushPromises()
+
+      const viewport = document.querySelector('.ui-toast__viewport')
+      expect(viewport.closest('.app').classList).toContain('app--bottom-bar')
+      const css = await import('../src/components/App.vue?raw').then((m) => m.default)
+      expect(css).toMatch(/\.app--bottom-bar \.ui-toast__viewport\s*\{[^}]*bottom:[^}]*--bottom-bar-height/)
+    } finally {
+      window.innerWidth = width
+    }
+  })
+
+  it('should leave the toast at the bottom edge when the app is on desktop', async () => {
+    await mountApp()
+    await finishLoading()
+
+    expect(wrapper.find('.app').classes()).not.toContain('app--bottom-bar')
+  })
+
   it('announces a downloaded update', async () => {
     await mountApp()
     await finishLoading()
