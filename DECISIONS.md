@@ -35,11 +35,12 @@
 **Revisit if:** the archives grow large enough that resuming an interrupted download matters.
 
 ---
+
 ## 2026-11-12 — Folio redesign on its own branch
 **Chosen:** User decision: the Folio redesign (`docs/superpowers/specs/2026-11-12-folio-redesign-design.md`) is built on `feature/folio-redesign`. The app gets three destinations, Lookup, Reader and Library, in place of Define, Search, Split and Settings. Lookup has one field with a **བོད / EN** switch: བོད looks up Tibetan headwords with Define's Tibetan field unchanged (Wylie converted as typed), EN searches the definitions with everything Search supported (`&`, `{…}`, `[…]`, Wylie in parentheses, the query builder behind Advanced). The old routes redirect to the new ones.
 **Alternatives:** Detecting the language of the field automatically (option A of the mockups); changing the Wylie converter to convert only valid Tibetan syllables, so that English typed in the Tibetan field stays English.
 **Why:** Define and Search answered the same question from two pages, and users had to know which one to open. Automatic detection cannot tell Wylie from English reliably (`bde ba`, `ma`, `la`, `buddha` are both), and a wrong guess would mangle what the user typed; an explicit switch is one tap, and hints under the field offer the other mode when the text fits it better (Latin diacritics, no headword starting with the text, a query that reads as Wylie). Changing the converter would touch the most tested part of the app, which the quick lookup popup shares, and Sanskrit typed in Wylie (`buddha`) has to keep converting.
-**Trade-offs:** One more control next to the field, and the user has to pick the mode; a word typed in the wrong mode is converted (བོད) or searched as is (EN) until the switch or a hint is used. The pages' own tests went with them; what they covered and still exists was ported to the Lookup, Reader, TermEntry and Library tests first.
+**Trade-offs:** One more control next to the field, and the user has to pick the mode; a word typed in the wrong mode is converted (བོད) or searched as is (EN) until the switch or a hint is used. The pages' own tests went with them. What they covered and still exists was ported first to the Lookup, Reader, TermEntry, Library and service tests; one gap found in review (Wylie in parentheses in an English query) was covered afterwards in the search-query and utils tests.
 **Revisit if:** users keep typing English in བོད mode (or Wylie in EN) despite the hints, or a reliable language detector becomes available.
 
 ---
