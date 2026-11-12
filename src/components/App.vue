@@ -10,7 +10,7 @@ import GlobalLookup from "../services/global-lookup";
 import UpdateService from "../services/update-service";
 import AudioPlayerService from "../services/audio-player-service";
 import ResizeService from "../services/resize-service";
-import { supportsModularPacks } from "../config/platform";
+import { isTauri, supportsModularPacks } from "../config/platform";
 import { shortcutPaths } from "../config/navigation";
 import { initDocumentTheme, watchSystemTheme } from "../services/theme";
 import * as ScrollMemory from "../services/scroll-memory";
@@ -58,6 +58,10 @@ export default {
       loading: true,
       showOnboarding: false,
       isMobile: ResizeService.isMobile(),
+      // Selecting Tibetan opens a card of its entries only in a web browser:
+      // on a desktop the hotkey looks the selection up in the quick lookup
+      // window, and on a phone the card got in the way of selecting to copy
+      selectionPopup: !isTauri(),
     };
   },
   computed: {
@@ -250,7 +254,7 @@ export default {
       </div>
     </transition>
 
-    <selected-tibetan-entries-popup />
+    <selected-tibetan-entries-popup v-if="selectionPopup" />
 
     <onboarding-screen
       v-if="showOnboarding"

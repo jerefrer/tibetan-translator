@@ -11,11 +11,16 @@ import Storage from './storage';
 // Default hotkey: Cmd+Shift+C on Mac, Ctrl+Shift+C on Windows/Linux
 const DEFAULT_HOTKEY = 'CommandOrControl+Shift+C';
 
-// Popup window configuration
+// Popup window configuration: the smallest default size, and the largest
 const POPUP_WIDTH = 650;
 const POPUP_HEIGHT = 500;
+const POPUP_MAX_WIDTH = 820;
+const POPUP_MAX_HEIGHT = 600;
 
 let isInitialized = false;
+// The default size is applied on the first show of each launch only, so a
+// window the user resized keeps its size until the app restarts
+let popupSizedThisLaunch = false;
 let currentShortcut = null;
 let onLookupCallback = null;
 let popupWindow = null;
@@ -152,9 +157,31 @@ export function keyEventToHotkeyString(event) {
 }
 
 /**
- * Show the popup window with clipboard text
+ * The quick lookup window's default size on a screen of this size (logical
+ * px): wider than the minimum when the screen allows, so the terms list and
+ * the definitions both have room.
  */
-async function showPopupWindow(text) {
+export function defaultPopupSize(screenWidth, screenHeight) {
+  return {
+    width: Math.round(Math.max(POPUP_WIDTH, Math.min(POPUP_MAX_WIDTH, screenWidth * 0.6))),
+    height: Math.round(Math.max(POPUP_HEIGHT, Math.min(POPUP_MAX_HEIGHT, screenHeight * 0.7))),
+  };
+}
+
+/**
+ * The text selected in the main window, when it has the focus: the hotkey
+ * pressed there looks it up without copying it first. '' otherwise.
+ */
+export function appSelectionText() {
+  if (!document.hasFocus()) return '';
+  return (document.getSelection()?.toString() || '').trim();
+}
+
+/**
+ * Show the popup window. `selection`, when given, is looked up instead of
+ * the clipboard.
+ */
+async function showPopupWindow(text, selection = '') {
   try {
     const { WebviewWindow } = await import('@tauri-apps/api/webviewWindow');
     const { currentMonitor } = await import('@tauri-apps/api/window');
@@ -165,21 +192,36 @@ async function showPopupWindow(text) {
 
     // Get current monitor to center the popup
     const monitor = await currentMonitor();
+    const scaleFactor = monitor?.scaleFactor || 1;
+    let size = { width: POPUP_WIDTH, height: POPUP_HEIGHT };
     let x = 100;
     let y = 100;
 
     if (monitor) {
-      const scaleFactor = monitor.scaleFactor || 1;
       const screenWidth = monitor.size.width / scaleFactor;
       const screenHeight = monitor.size.height / scaleFactor;
-      x = Math.round((screenWidth - POPUP_WIDTH) / 2);
-      y = Math.round((screenHeight - POPUP_HEIGHT) / 3); // Position in upper third
+      if (existingWindow && !popupSizedThisLaunch) {
+        const { LogicalSize } = await import('@tauri-apps/api/dpi');
+        size = defaultPopupSize(screenWidth, screenHeight);
+        await existingWindow.setSize(new LogicalSize(size.width, size.height));
+        popupSizedThisLaunch = true;
+      } else if (existingWindow) {
+        const outer = await existingWindow.outerSize();
+        size = { width: outer.width / scaleFactor, height: outer.height / scaleFactor };
+      }
+      x = Math.round((screenWidth - size.width) / 2);
+      y = Math.round((screenHeight - size.height) / 3); // Position in upper third
     }
 
     if (existingWindow) {
       console.log('[GlobalLookup] Using existing popup window');
+      if (selection) {
+        // Before showing it: the window reads its text when it is shown
+        const { emitTo } = await import('@tauri-apps/api/event');
+        await emitTo('global-lookup-popup', 'lookup-selection', selection);
+      }
       // Window exists, position it and use the panel-aware show command
-      await existingWindow.setPosition({ type: 'Physical', x: Math.round(x * (monitor?.scaleFactor || 1)), y: Math.round(y * (monitor?.scaleFactor || 1)) });
+      await existingWindow.setPosition({ type: 'Physical', x: Math.round(x * scaleFactor), y: Math.round(y * scaleFactor) });
       // Use our custom show command that properly handles NSPanel key window status
       const { invoke } = await import('@tauri-apps/api/core');
       await invoke('show_lookup_panel');
@@ -333,11 +375,12 @@ export async function registerShortcut(hotkey) {
 
       console.log('Global lookup hotkey triggered');
       try {
-        const text = await readText();
-        console.log('Clipboard text:', text);
+        // Pressed over a selection in the app, it looks that up: no copy needed
+        const selection = appSelectionText();
+        const text = selection || (await readText());
+        console.log('Lookup text:', text);
         if (text) {
-          // Show popup window with the clipboard text
-          await showPopupWindow(text);
+          await showPopupWindow(text, selection);
         }
       } catch (err) {
         console.error('Error reading clipboard:', err);

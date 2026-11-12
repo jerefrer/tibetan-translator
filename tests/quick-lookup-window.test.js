@@ -586,6 +586,36 @@ describe('closing and the window', () => {
     expect(find('ql-field').find('input').element.value).toBe('སངས་རྒྱས་')
   })
 
+  it('should look up the text selected in the main window instead of the clipboard', async () => {
+    await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
+    listeners['lookup-selection']({ payload: 'སངས་རྒྱས་' })
+    listeners['panel-shown']()
+    await settle()
+    expect(find('ql-field').find('input').element.value).toBe('སངས་རྒྱས་')
+    expect(find('ql-title').text()).toBe('From your selection')
+  })
+
+  it('should keep the selection when the window then regains focus with the clipboard unchanged', async () => {
+    await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
+    listeners['lookup-selection']({ payload: 'སངས་རྒྱས་' })
+    listeners['panel-shown']()
+    await settle()
+    onFocusChanged.mock.calls[0][0]({ payload: true })
+    await settle()
+    expect(find('ql-field').find('input').element.value).toBe('སངས་རྒྱས་')
+  })
+
+  it('should go back to the clipboard on the next hotkey press without a selection', async () => {
+    await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
+    listeners['lookup-selection']({ payload: 'སངས་རྒྱས་' })
+    listeners['panel-shown']()
+    await settle()
+    listeners['panel-shown']()
+    await settle()
+    expect(find('ql-field').find('input').element.value).toBe('ཡེ་ཤེས་')
+    expect(find('ql-title').text()).toBe('From your clipboard')
+  })
+
   it('removes its document listeners when unmounted', async () => {
     await mountWindow()
     wrapper.unmount()

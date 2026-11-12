@@ -42,9 +42,10 @@ function hasTauri() {
 }
 
 // Board "B · Quick lookup" (PopupB): the window the global hotkey opens with
-// the clipboard's text. A bar (where it came from, Define/Search, Esc), the
+// the clipboard's text, or with the text selected in the main window when the
+// hotkey is pressed there. A bar (where it came from, Define/Search, Esc), the
 // field, then in Define the terms starting with the text beside the selected
-// term in large Tibetan and its definitions; in Search the full-text results.
+// term as a headword and its definitions; in Search the full-text results.
 // A separate Tauri window with its own Vue instance (src/popup.js); on macOS
 // an NSPanel that does not take the focus from the app you copied from.
 export default {
@@ -81,8 +82,10 @@ export default {
       searchDisplayCount: SEARCH_BATCH_SIZE,
       // Last Define value of this session, restored when Search holds Latin text
       lastDefineTerm: '',
-      // The field's text came from the clipboard (not typed since)
+      // The field's text came from the clipboard, or from a selection in the
+      // main window (not typed since)
       fromClipboard: false,
+      textSource: 'clipboard',
       // The Wylie the clipboard held, when the field shows it converted
       clipboardWylie: '',
       lastClipboardText: null,
@@ -106,7 +109,8 @@ export default {
   },
   computed: {
     title() {
-      return this.fromClipboard ? 'From your clipboard' : 'Quick lookup';
+      if (!this.fromClipboard) return 'Quick lookup';
+      return this.textSource === 'selection' ? 'From your selection' : 'From your clipboard';
     },
     // Tibetan is valid in Search too; it then gets the Tibetan font and size
     searchHasTibetan() {
@@ -286,10 +290,22 @@ export default {
      */
     async readClipboardAndSetSearch({ onlyIfChanged = false } = {}) {
       try {
-        const text = await readText();
-        if (!text || !text.trim()) return;
-        if (onlyIfChanged && text === this.lastClipboardText) return;
-        this.lastClipboardText = text;
+        // The hotkey pressed over a selection in the main window sends the
+        // selection first: it wins over the clipboard, once
+        const selection = this._pendingSelection;
+        this._pendingSelection = null;
+        let text;
+        if (selection) {
+          text = selection;
+          // The clipboard as it is now counts as seen, or the focus fallback
+          // would put it back over the selection
+          this.lastClipboardText = await readText().catch(() => null);
+        } else {
+          text = await readText();
+          if (!text || !text.trim()) return;
+          if (onlyIfChanged && text === this.lastClipboardText) return;
+          this.lastClipboardText = text;
+        }
 
         let raw = text.trim();
         // The Tauri clipboard exposes no HTML flavour, so a term copied out of
@@ -306,6 +322,7 @@ export default {
         this.mode = result.mode;
         this.setText(result.text);
         this.fromClipboard = true;
+        this.textSource = selection ? 'selection' : 'clipboard';
         this.clipboardWylie = result.wylie;
         // A clipboard landing in Search starts the session's Define memory afresh
         this.lastDefineTerm = result.mode === 'define' ? result.text : '';
@@ -464,6 +481,10 @@ export default {
       // Emitted by show_lookup_panel on every hotkey press; more reliable than
       // focus events for an NSPanel
       this._unlistenPanelShown = await listen('panel-shown', () => this.onPanelShown());
+      // Sent by the main window just before it shows this one
+      this._unlistenSelection = await listen('lookup-selection', ({ payload }) => {
+        this._pendingSelection = payload;
+      });
 
       // Fallback when panel-shown does not come
       this._unlistenFocus = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
@@ -481,6 +502,7 @@ export default {
     document.removeEventListener('click', this.handleDefinitionClick);
     this.runFullTextSearchDebounced?.cancel();
     this._unlistenPanelShown?.();
+    this._unlistenSelection?.();
     this._unlistenFocus?.();
   },
 };

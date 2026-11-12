@@ -5,7 +5,8 @@ import SettingsCard from './SettingsCard.vue';
 
 export const DEFAULT_HOTKEY = 'CommandOrControl+Shift+D';
 
-// Desktop only: the system-wide hotkey that looks up the clipboard.
+// Desktop only: the system-wide hotkey that looks up the clipboard, or the
+// selection when pressed in this app.
 // Renders nothing where GlobalLookup is not supported.
 export default {
   name: 'GlobalLookupCard',
@@ -144,7 +145,7 @@ export default {
         </ui-button>
         <ui-button variant="ghost" data-testid="hotkey-reset" @click="resetToDefault">Reset</ui-button>
       </div>
-      <p class="global-lookup-card__hint">Copy Tibetan text anywhere, then press the hotkey to look it up</p>
+      <p class="global-lookup-card__hint">Copy Tibetan text anywhere, then press the hotkey to look it up. In this app, selecting it is enough.</p>
     </div>
   </settings-card>
 </template>

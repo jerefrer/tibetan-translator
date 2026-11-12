@@ -282,3 +282,18 @@ describe('no Vuetify', () => {
     expect(document.body.innerHTML).not.toMatch(/class="v-/)
   })
 })
+
+describe('selection popup', () => {
+  it('should look up selected Tibetan with a popup in a web browser', async () => {
+    await mountApp()
+    await finishLoading()
+    expect(wrapper.findComponent({ name: 'SelectedTibetanEntriesPopup' }).exists()).toBe(true)
+  })
+
+  it('should leave the popup out of the apps, where the hotkey looks up the selection', async () => {
+    env.modularPacks = true
+    await mountApp()
+    await finishLoading()
+    expect(wrapper.findComponent({ name: 'SelectedTibetanEntriesPopup' }).exists()).toBe(false)
+  })
+})
