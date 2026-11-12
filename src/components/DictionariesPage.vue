@@ -6,7 +6,7 @@ import { supportsModularPacks } from '../config/platform';
 import { UiButton, UiIcon, UiProgress } from '../ui';
 
 // "Dictionaries" in the app shell: the searchable catalog, with the packs and
-// the user's glossary beside it. On a phone it is a sub-screen of Settings.
+// the user's glossary beside it. A sub-page of Library.
 export default {
   name: 'DictionariesPage',
   components: { DictionaryCatalog, UiButton, UiIcon, UiProgress },
@@ -50,9 +50,9 @@ export default {
 <template>
   <div class="dictionaries-page-wrapper" data-testid="dictionaries-page">
     <div class="dictionaries-page">
-      <router-link to="/settings" class="dictionaries-back" data-testid="dictionaries-back">
+      <router-link to="/library" class="dictionaries-back" data-testid="dictionaries-back">
         <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />
-        Settings
+        Library
       </router-link>
 
       <dictionary-catalog
@@ -95,8 +95,8 @@ export default {
               />
               <span class="pack-row__meta">{{ pack.meta }}</span>
             </div>
-            <router-link to="/settings" class="side-card__link">
-              Updates and removal are in Settings
+            <router-link to="/library#library-device" class="side-card__link">
+              Updates and removal are in Library
             </router-link>
           </section>
 
@@ -112,7 +112,7 @@ export default {
                 variant="outline"
                 size="sm"
                 data-testid="open-glossary"
-                @click="$router.push('/glossary')"
+                @click="$router.push('/library/glossary')"
               >
                 Open My glossary
               </ui-button>
@@ -143,9 +143,18 @@ eyebrow()
   font-family var(--font-ui)
   color var(--ink)
 
-// A phone reaches this page from Settings, so it gets a way back
+// The way back to Library, on every layout
 .dictionaries-back
-  display none
+  display inline-flex
+  align-items center
+  gap 6px
+  min-height 44px
+  margin 0 -6px 2px
+  padding-right 8px
+  color var(--accent)
+  font-size 0.9375rem
+  font-weight 600
+  text-decoration none
 
 .side-card
   box-sizing border-box
@@ -227,15 +236,4 @@ eyebrow()
   .dictionaries-page
     padding 16px 16px 24px
 
-  .dictionaries-back
-    display inline-flex
-    align-items center
-    gap 6px
-    min-height 44px
-    margin 0 -6px 2px
-    padding-right 8px
-    color var(--accent)
-    font-size 0.9375rem
-    font-weight 600
-    text-decoration none
 </style>

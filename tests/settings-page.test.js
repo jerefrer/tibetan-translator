@@ -141,6 +141,7 @@ function makeRouter() {
     routes: [
       { path: '/settings', component: Stub },
       { path: '/dictionaries', component: Stub },
+      { path: '/library/dictionaries', component: Stub },
       { path: '/glossary', component: Stub },
     ],
   })
@@ -675,7 +676,7 @@ describe('PackManagerCard', () => {
     await mountWith(PackManagerCard)
     await byTestId('manage-in-dictionaries').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/dictionaries')
+    expect(router.currentRoute.value.path).toBe('/library/dictionaries')
   })
 })
 

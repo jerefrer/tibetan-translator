@@ -151,7 +151,7 @@ describe('DictionariesPage', () => {
 
     await wrapper.get('[data-testid="open-glossary"]').trigger('click')
 
-    expect(push).toHaveBeenCalledWith('/glossary')
+    expect(push).toHaveBeenCalledWith('/library/glossary')
 
     wrapper.unmount()
   })
@@ -167,13 +167,13 @@ describe('DictionariesPage', () => {
     wrapper.unmount()
   })
 
-  it('should link back to Settings, which a phone shows above the title', () => {
+  it('should link back to Library above the title', () => {
     const wrapper = mountPage()
 
     const back = wrapper
       .findAllComponents(RouterLinkStub)
-      .find((link) => link.text() === 'Settings')
-    expect(back.props('to')).toBe('/settings')
+      .find((link) => link.text() === 'Library')
+    expect(back.props('to')).toBe('/library')
 
     wrapper.unmount()
   })

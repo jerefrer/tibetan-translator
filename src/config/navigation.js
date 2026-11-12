@@ -30,6 +30,15 @@ export function activeNavId(path, isMobile) {
   return item.id;
 }
 
+/** The page shortcuts, as the help dialogs list them (Cmd/Ctrl + key). */
+export const HELP_SHORTCUTS = [
+  { key: 'D', text: 'Go to Lookup' },
+  { key: 'S', text: 'Search the definitions (Lookup in EN)' },
+  { key: 'K', text: 'Put the cursor in the Lookup field' },
+  { key: 'T', text: 'Go to Reader' },
+  { key: 'G', text: 'Go to Library settings' },
+];
+
 /**
  * Keyboard shortcut (Cmd/Ctrl + key) -> route path. `S` opens Lookup in
  * English mode; `K` is the action 'focus-lookup' (App.vue routes to Lookup,

@@ -493,7 +493,7 @@ describe('UninstalledPacksNotice', () => {
 
     await wrapper.find('button').trigger('click')
 
-    expect(push).toHaveBeenCalledWith({ path: '/dictionaries', query: { status: 'available' } })
+    expect(push).toHaveBeenCalledWith({ path: '/library/dictionaries', query: { status: 'available' } })
   })
 })
 

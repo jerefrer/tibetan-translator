@@ -299,7 +299,7 @@ describe('CustomPackSection — list and empty state', () => {
     expect(row.text()).toContain('v1.0.0')
 
     await wrapper.get('[data-testid="custom-pack-manage"]').trigger('click')
-    expect(router.push).toHaveBeenCalledWith('/glossary/custom-mine')
+    expect(router.push).toHaveBeenCalledWith('/library/glossary/custom-mine')
     wrapper.unmount()
   })
 

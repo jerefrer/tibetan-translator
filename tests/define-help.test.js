@@ -45,11 +45,16 @@ describe('Define help', () => {
     expect(wrapper.find('[data-testid="define-help-button"]').exists()).toBe(false)
   })
 
-  it('should open on the dictionaries filter, with the Quick Lookup and Navigation tabs in the desktop app', async () => {
+  it('should open on how to look up a word, with the Quick Lookup and Navigation tabs in the desktop app', async () => {
     await openHelp()
 
-    expect(document.body.querySelector('.ui-dialog__title').textContent).toBe('How to use the Define page')
-    expect(tabLabels()).toEqual(['Dictionaries filter', 'Quick Lookup', 'Navigation'])
+    expect(document.body.querySelector('.ui-dialog__title').textContent).toBe('Looking up a word')
+    expect(tabLabels()).toEqual(['Looking up', 'Dictionaries filter', 'Quick Lookup', 'Navigation'])
+    const lookup = body('define-help').textContent
+    for (const text of ['བོད', 'EN', 'sangs rgyas', 'In short', 'Recent', 'Saved']) expect(lookup).toContain(text)
+
+    wrapper.vm.tab = 'dictionaries'
+    await flushPromises()
     expect(body('dictionaries-menu-help').textContent).toContain('Ctrl + click on a dictionary')
     expect(body('dictionaries-menu-help').textContent).toContain('Keyboard shortcuts')
   })
@@ -57,7 +62,7 @@ describe('Define help', () => {
   it('should leave out Quick Lookup outside the desktop app', async () => {
     platform.tauri = false
     await openHelp()
-    expect(tabLabels()).toEqual(['Dictionaries filter', 'Navigation'])
+    expect(tabLabels()).toEqual(['Looking up', 'Dictionaries filter', 'Navigation'])
   })
 
   it('should leave out Navigation and keyboard shortcuts on a phone, and explain the long press', async () => {
@@ -65,6 +70,8 @@ describe('Define help', () => {
     await openHelp()
 
     expect(tabLabels()).not.toContain('Navigation')
+    wrapper.vm.tab = 'dictionaries'
+    await flushPromises()
     expect(body('dictionaries-menu-help').textContent).toContain('Long press on a dictionary')
     expect(body('dictionaries-menu-help').textContent).not.toContain('Keyboard shortcuts')
   })
@@ -76,8 +83,9 @@ describe('Define help', () => {
 
     const text = body('define-help').textContent
     expect(text).toContain('Select previous entry in results')
-    expect(text).toContain('Go to Define page')
-    expect(text).toContain('Go to Settings page')
+    expect(text).toContain('Go to Lookup')
+    expect(text).toContain('Search the definitions (Lookup in EN)')
+    expect(text).toContain('Go to Library settings')
   })
 
   it('should close from its Close button', async () => {

@@ -1,6 +1,7 @@
 <script>
   import { UiAlert, UiButton, UiDialog, UiIcon, UiTabs } from '../ui'
   import DictionariesMenuHelp from './DictionariesMenuHelp.vue'
+  import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS } from '../config/platform'
 
   // The "?" in the navigation while Search is shown, and the help it opens.
@@ -23,7 +24,7 @@
     data () {
       return {
         dialog: false,
-        tab: 'builder',
+        tab: 'overview',
         isMobile: window.innerWidth <= 600,
         isMac: isMacOS()
       }
@@ -34,7 +35,8 @@
       },
       tabs() {
         return [
-          { value: 'builder', label: 'Query Builder' },
+          { value: 'overview', label: 'In Lookup' },
+          { value: 'builder', label: 'Advanced builder' },
           { value: 'syntax', label: 'Syntax Examples' },
           { value: 'phonetics', label: 'Phonetic search' },
           { value: 'wylie', label: 'Wylie support' },
@@ -51,17 +53,12 @@
         ]
       },
       pageShortcuts() {
-        return [
-          { key: 'D', html: 'Go to <u>D</u>efine page' },
-          { key: 'S', html: 'Go to <u>S</u>earch page' },
-          { key: 'T', html: 'Go to Spli<u>t</u> page' },
-          { key: 'G', html: 'Go to Settin<u>g</u>s page' }
-        ]
+        return HELP_SHORTCUTS
       }
     },
     watch: {
       tabs(tabs) {
-        if (!tabs.some((tab) => tab.value === this.tab)) this.tab = 'builder'
+        if (!tabs.some((tab) => tab.value === this.tab)) this.tab = 'overview'
       }
     },
     methods: {
@@ -95,13 +92,48 @@
       <ui-icon name="circle-help" :size="24" />
     </button>
 
-    <ui-dialog v-model="dialog" title="How to use the search page" :max-width="1024">
+    <ui-dialog v-model="dialog" title="Searching the definitions" :max-width="1024">
       <div class="define-help-content search-help-content" data-testid="search-help">
         <ui-tabs v-model="tab" :items="tabs">
-          <template #panel-builder>
-            <h3 class="help-heading">Visual Query Builder</h3>
+          <template #panel-overview>
+            <h3 class="help-heading">Searching the definitions</h3>
             <p>
-              The Query Builder provides a visual way to build search queries
+              Switch the Lookup field to <strong>EN</strong> to search the text of the definitions.
+              A few marks refine the search:
+            </p>
+            <table class="help-table" data-testid="search-help-overview">
+              <tbody>
+                <tr>
+                  <td><code>seven &amp; limbs</code></td>
+                  <td>Both words, in any order</td>
+                </tr>
+                <tr>
+                  <td><code>(sangs rgyas)</code></td>
+                  <td>Wylie in parentheses is read as Tibetan
+                    (see <button type="button" class="help-link" @click="tab = 'wylie'">Wylie support</button>)</td>
+                </tr>
+                <tr>
+                  <td><code>[trenpa]</code></td>
+                  <td>Tibetan words that sound exactly like it
+                    (see <button type="button" class="help-link" @click="tab = 'phonetics'">Phonetic search</button>)</td>
+                </tr>
+                <tr>
+                  <td><code>{trenpa}</code></td>
+                  <td>Tibetan words that sound more or less like it</td>
+                </tr>
+              </tbody>
+            </table>
+            <p>
+              <strong>Advanced</strong>, beside the field, opens a builder that writes these queries for
+              you (<button type="button" class="help-link" @click="tab = 'builder'">Advanced builder</button>);
+              <button type="button" class="help-link" @click="tab = 'syntax'">Syntax Examples</button> lists more.
+            </p>
+          </template>
+
+          <template #panel-builder>
+            <h3 class="help-heading">Advanced builder</h3>
+            <p>
+              The builder, which Advanced opens, provides a visual way to build search queries
               without memorizing syntax.
             </p>
 
@@ -316,8 +348,7 @@
                     <kbd class="help-key">{{ modifierKey }}</kbd>
                     <kbd class="help-key">{{ shortcut.key }}</kbd>
                   </td>
-                  <!-- eslint-disable-next-line vue/no-v-html -- static text above -->
-                  <td v-html="shortcut.html" />
+                  <td>{{ shortcut.text }}</td>
                 </tr>
               </tbody>
             </table>

@@ -43,18 +43,25 @@ describe('Search help', () => {
     expect(wrapper.find('[data-testid="search-help-button"]').exists()).toBe(false)
   })
 
-  it('should open on the query builder, with every tab of the old help', async () => {
+  it('should open on how to search in Lookup, with every tab of the old help', async () => {
     await openHelp()
 
-    expect(document.body.querySelector('.ui-dialog__title').textContent).toBe('How to use the search page')
+    expect(document.body.querySelector('.ui-dialog__title').textContent).toBe('Searching the definitions')
+    const overview = body('search-help-overview').textContent
+    for (const text of ['&', '(sangs rgyas)', '[trenpa]', '{trenpa}']) expect(overview).toContain(text)
+    expect(body('search-help').textContent).toContain('EN')
+    expect(body('search-help').textContent).toContain('Advanced')
     expect(tabLabels()).toEqual([
-      'Query Builder',
+      'In Lookup',
+      'Advanced builder',
       'Syntax Examples',
       'Phonetic search',
       'Wylie support',
       'Dictionaries filter',
       'Navigation',
     ])
+    wrapper.vm.tab = 'builder'
+    await flushPromises()
     const modes = body('search-help-modes').textContent
     for (const text of ['contains (Wylie)', 'sounds precisely like', 'sounds more or less like', '[term]', '{term}', '(term)'])
       expect(modes).toContain(text)
@@ -95,7 +102,7 @@ describe('Search help', () => {
     await openHelp()
     wrapper.vm.tab = 'navigation'
     await flushPromises()
-    expect(body('search-help').textContent).toContain('Go to Search page')
+    expect(body('search-help').textContent).toContain('Search the definitions (Lookup in EN)')
     wrapper.unmount()
     document.body.innerHTML = ''
 

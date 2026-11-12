@@ -1,6 +1,7 @@
 <script>
   import { UiButton, UiDialog, UiIcon, UiTabs } from '../ui'
   import DictionariesMenuHelp from './DictionariesMenuHelp.vue'
+  import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS } from '../config/platform'
 
   // The "?" in the navigation (rail on a desktop, floating above the bar on a
@@ -21,7 +22,7 @@
     data () {
       return {
         dialog: false,
-        tab: 'dictionaries',
+        tab: 'text',
         isMobile: window.innerWidth <= 600,
         isMac: isMacOS()
       }
@@ -32,22 +33,18 @@
       },
       tabs() {
         return [
+          { value: 'text', label: 'Reading' },
           { value: 'dictionaries', label: 'Dictionaries filter' },
           !this.isMobile && { value: 'navigation', label: 'Navigation' }
         ].filter(Boolean)
       },
       pageShortcuts() {
-        return [
-          { key: 'D', html: 'Go to <u>D</u>efine page' },
-          { key: 'S', html: 'Go to <u>S</u>earch page' },
-          { key: 'T', html: 'Go to Spli<u>t</u> page' },
-          { key: 'G', html: 'Go to Settin<u>g</u>s page' }
-        ]
+        return HELP_SHORTCUTS
       }
     },
     watch: {
       tabs(tabs) {
-        if (!tabs.some((tab) => tab.value === this.tab)) this.tab = 'dictionaries'
+        if (!tabs.some((tab) => tab.value === this.tab)) this.tab = 'text'
       }
     },
     methods: {
@@ -81,9 +78,33 @@
       <ui-icon name="circle-help" :size="24" />
     </button>
 
-    <ui-dialog v-model="dialog" title="How to use the Split page" :max-width="1024">
+    <ui-dialog v-model="dialog" title="Reading a text" :max-width="1024">
       <div class="define-help-content" data-testid="split-help">
         <ui-tabs v-model="tab" :items="tabs">
+          <template #panel-text>
+            <h3 class="help-heading">Read a Tibetan text word by word</h3>
+            <p>
+              Paste a text into Reader, or type it (Wylie becomes Tibetan as you go), then split it.
+              Each word is shown with its entry beside it.
+            </p>
+            <ul class="help-list" data-testid="reader-help-tips">
+              <li>
+                <strong>Shift+Space</strong> types a space, which marks a word break. A plain Space types a
+                tsheg. Your word breaks are kept when the text is split again.
+              </li>
+              <li>
+                <strong>Tap a word</strong> to see its entry. A line under several words marks a longer
+                expression: tap the line to look the expression up.
+              </li>
+              <li>
+                <strong>Show Wylie</strong> writes the Wylie under each word.
+              </li>
+              <li>
+                Recent texts are offered when the editor is empty.
+              </li>
+            </ul>
+          </template>
+
           <template #panel-dictionaries>
             <DictionariesMenuHelp :is-mobile="isMobile" />
           </template>
@@ -129,8 +150,7 @@
                     <kbd class="help-key">{{ modifierKey }}</kbd>
                     <kbd class="help-key">{{ shortcut.key }}</kbd>
                   </td>
-                  <!-- eslint-disable-next-line vue/no-v-html -- static text above -->
-                  <td v-html="shortcut.html" />
+                  <td>{{ shortcut.text }}</td>
                 </tr>
               </tbody>
             </table>

@@ -1,7 +1,7 @@
 <script>
 import { UiCard } from '../../ui';
 
-// One section of the Settings screen (the mockup's <section> cards): a title,
+// One section of the Library (and of Settings): a title,
 // an optional muted subtitle, an `aside` slot on the right of the header
 // (switch, button) and the body below.
 export default {
@@ -32,12 +32,19 @@ export default {
 </template>
 
 <style>
-/* Mockup: padding 20px 24px, 14px between header and body rows */
+/* Library frame. Desktop: a hairline section, no box. Phone: a small
+   uppercase label above a white group on the grey ground. */
 .settings-card.ui-card {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  padding: var(--space-5) var(--space-6);
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 }
 .settings-card .ui-card__header,
 .settings-card .ui-card__body {
@@ -76,15 +83,26 @@ export default {
 }
 
 @media (max-width: 600px) {
-  /* Phone board: padding 14px 16px, 12px gaps, 15.5px titles */
   .settings-card.ui-card {
-    padding: 14px var(--space-4);
-    gap: var(--space-3);
+    gap: var(--space-2);
+    padding: 0;
+    border-top: 0;
   }
-  .settings-card .ui-card__body { gap: var(--space-3); }
+  .settings-card__heading {
+    padding: 0 var(--space-1);
+  }
   .settings-card__title {
-    font-size: 0.9688rem;
-    font-weight: 500;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .settings-card .ui-card__body {
+    gap: var(--space-3);
+    padding: 14px var(--space-4);
+    border-radius: var(--radius-group);
+    background: var(--surface);
   }
 }
 </style>

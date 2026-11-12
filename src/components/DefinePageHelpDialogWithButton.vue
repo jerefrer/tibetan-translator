@@ -1,6 +1,7 @@
 <script>
   import { UiButton, UiDialog, UiIcon, UiTabs } from '../ui'
   import DictionariesMenuHelp from './DictionariesMenuHelp.vue'
+  import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS, isTauri, isMobile } from '../config/platform'
 
   // The "?" in the navigation (rail on a desktop, floating above the bar on a
@@ -20,7 +21,7 @@
     data () {
       return {
         dialog: false,
-        tab: 'dictionaries',
+        tab: 'word',
         isMobile: window.innerWidth <= 600,
         isMac: isMacOS(),
         isDesktop: isTauri() && !isMobile()
@@ -32,23 +33,19 @@
       },
       tabs() {
         return [
+          { value: 'word', label: 'Looking up' },
           { value: 'dictionaries', label: 'Dictionaries filter' },
           this.isDesktop && { value: 'lookup', label: 'Quick Lookup' },
           !this.isMobile && { value: 'navigation', label: 'Navigation' }
         ].filter(Boolean)
       },
       pageShortcuts() {
-        return [
-          { key: 'D', html: 'Go to <u>D</u>efine page' },
-          { key: 'S', html: 'Go to <u>S</u>earch page' },
-          { key: 'T', html: 'Go to Spli<u>t</u> page' },
-          { key: 'G', html: 'Go to Settin<u>g</u>s page' }
-        ]
+        return HELP_SHORTCUTS
       }
     },
     watch: {
       tabs(tabs) {
-        if (!tabs.some((tab) => tab.value === this.tab)) this.tab = 'dictionaries'
+        if (!tabs.some((tab) => tab.value === this.tab)) this.tab = 'word'
       }
     },
     methods: {
@@ -82,9 +79,41 @@
       <ui-icon name="circle-help" :size="24" />
     </button>
 
-    <ui-dialog v-model="dialog" title="How to use the Define page" :max-width="1024">
+    <ui-dialog v-model="dialog" title="Looking up a word" :max-width="1024">
       <div class="define-help-content" data-testid="define-help">
         <ui-tabs v-model="tab" :items="tabs">
+          <template #panel-word>
+            <h3 class="help-heading">One field, two languages</h3>
+            <p>
+              Type in the field and the results follow. The <strong>བོད</strong> / <strong>EN</strong>
+              switch beside it tells Lookup what you are typing.
+            </p>
+            <ul class="help-list" data-testid="lookup-help-modes">
+              <li>
+                <strong>བོད</strong> looks up Tibetan terms. Type Wylie and it becomes Tibetan as you
+                go (<code>sangs rgyas</code> followed by a space gives <span class="tibetan">སངས་རྒྱས་</span>),
+                or paste Tibetan.
+              </li>
+              <li>
+                <strong>EN</strong> searches the English text of the definitions.
+              </li>
+            </ul>
+            <p>
+              When what you typed fits the other mode better, a hint under the field offers to switch,
+              for instance to search the definitions when no Tibetan term starts with your text.
+            </p>
+            <h3 class="help-heading">What you get</h3>
+            <p>
+              Open a result to read its entry: <strong>In short</strong> gathers the meanings several
+              dictionaries agree on, and the definitions follow, dictionary by dictionary. Links inside a
+              definition open that term.
+            </p>
+            <p>
+              Before you type anything, Lookup lists your <strong>Recent</strong> terms and the ones you
+              <strong>Saved</strong>. Tap one to open it again.
+            </p>
+          </template>
+
           <template #panel-dictionaries>
             <DictionariesMenuHelp :is-mobile="isMobile" />
           </template>
@@ -124,7 +153,7 @@
                   </tbody>
                 </table>
                 <p class="help-note">
-                  You can change this hotkey in Settings, under Global Lookup.
+                  You can change this hotkey in the Library, under Settings.
                 </p>
               </div>
             </div>
@@ -151,8 +180,7 @@
                     <kbd class="help-key">{{ modifierKey }}</kbd>
                     <kbd class="help-key">{{ shortcut.key }}</kbd>
                   </td>
-                  <!-- eslint-disable-next-line vue/no-v-html -- static text above -->
-                  <td v-html="shortcut.html" />
+                  <td>{{ shortcut.text }}</td>
                 </tr>
               </tbody>
             </table>
@@ -246,6 +274,23 @@
   margin: 0 8px 0 4px;
   font-size: var(--text-xs);
   color: var(--muted);
+}
+.define-help-content .help-list {
+  margin: 0 0 1em;
+  padding-left: 1.25em;
+}
+.define-help-content .help-list li {
+  margin-bottom: 0.4em;
+}
+.define-help-content code {
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  background: var(--soft);
+  font-size: 0.92em;
+}
+.define-help-content .tibetan {
+  font-family: var(--font-tibetan);
+  font-size: 1.2em;
 }
 .define-help-content .help-note {
   font-size: var(--text-sm);

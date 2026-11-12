@@ -45,7 +45,7 @@ export default {
         },
         {
           keys: [[{ icon: 'arrow-big-up' }, 'R'], ['Ctrl', 'R']],
-          html: '<u>R</u>estores the dictionaries as defined on the Settings page',
+          html: '<u>R</u>estores the dictionaries as set in the Library settings',
         },
       ];
     },
@@ -62,7 +62,7 @@ export default {
       </span>
       <p>
         The Dictionaries button lets you choose which dictionaries to show
-        results from, even those disabled on the Settings page. The choice
+        results from, even those disabled in the Library settings. The choice
         lasts for the current lookup.
       </p>
     </div>

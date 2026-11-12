@@ -33,7 +33,7 @@ export default {
   },
   methods: {
     browse() {
-      this.$router.push({ path: '/dictionaries', query: { status: 'available' } });
+      this.$router.push({ path: '/library/dictionaries', query: { status: 'available' } });
     },
   },
 };

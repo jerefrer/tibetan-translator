@@ -62,11 +62,16 @@ describe('Split help', () => {
     expect(button.classes()).toContain('help-button')
   })
 
-  it('should open on the dictionaries filter, with a Navigation tab on a desktop', async () => {
+  it('should open on how to read a text, with a Navigation tab on a desktop', async () => {
     await openHelp()
 
-    expect(document.body.querySelector('.ui-dialog__title').textContent).toBe('How to use the Split page')
-    expect(tabLabels()).toEqual(['Dictionaries filter', 'Navigation'])
+    expect(document.body.querySelector('.ui-dialog__title').textContent).toBe('Reading a text')
+    expect(tabLabels()).toEqual(['Reading', 'Dictionaries filter', 'Navigation'])
+    const tips = body('reader-help-tips').textContent
+    for (const text of ['Shift+Space', 'Tap a word', 'expression', 'Show Wylie']) expect(tips).toContain(text)
+
+    wrapper.vm.tab = 'dictionaries'
+    await flushPromises()
     expect(body('dictionaries-menu-help').textContent).toContain('Ctrl + click on a dictionary')
   })
 
@@ -74,7 +79,9 @@ describe('Split help', () => {
     window.innerWidth = 390
     await openHelp()
 
-    expect(tabLabels()).toEqual(['Dictionaries filter'])
+    expect(tabLabels()).toEqual(['Reading', 'Dictionaries filter'])
+    wrapper.vm.tab = 'dictionaries'
+    await flushPromises()
     expect(body('dictionaries-menu-help').textContent).toContain('Long press on a dictionary')
   })
 
@@ -87,7 +94,7 @@ describe('Split help', () => {
     expect(text).toContain('Split the text into words')
     expect(text).toContain('Types a tsheg in the text')
     expect(text).toContain('Types a space, which separates two words')
-    for (const page of ['Define', 'Search', 'Split', 'Settings']) expect(text).toContain(`Go to ${page} page`)
+    for (const label of ['Go to Lookup', 'Go to Reader', 'Go to Library settings']) expect(text).toContain(label)
     expect(text).toContain('Ctrl')
   })
 
