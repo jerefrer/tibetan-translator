@@ -21,6 +21,7 @@ export { default as UiListItem } from './UiListItem.vue';
 export { default as UiMenu } from './UiMenu.vue';
 export { default as UiPagination } from './UiPagination.vue';
 export { default as UiProgress } from './UiProgress.vue';
+export { default as UiSegmented } from './UiSegmented.vue';
 export { default as UiSelect } from './UiSelect.vue';
 export { default as UiSlider } from './UiSlider.vue';
 export { default as UiSpinner } from './UiSpinner.vue';
