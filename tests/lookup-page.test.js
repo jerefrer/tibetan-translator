@@ -411,6 +411,20 @@ describe('Lookup — layout', () => {
     expect(home().text()).toContain('Type sangs rgyas for སངས་རྒྱས་, or switch to EN to search the definitions.')
   })
 
+  it('should give the home its phone layout when the page is in its phone layout', async () => {
+    window.innerWidth = 390
+    await mountAt('/lookup')
+
+    expect(home().classes()).toContain('lookup-home--phone')
+  })
+
+  it('should keep the home in its desktop layout when the page is on desktop', async () => {
+    await mountAt('/lookup')
+
+    expect(home().exists()).toBe(true)
+    expect(home().classes()).not.toContain('lookup-home--phone')
+  })
+
   it('should hide Saved when nothing is saved', async () => {
     window.innerWidth = 390
     await mountAt('/lookup')

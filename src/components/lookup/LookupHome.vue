@@ -12,6 +12,10 @@ const RECENT_ROWS = 8;
 // desktop in the entry pane while no term is selected.
 export default {
   name: 'LookupHome',
+  props: {
+    // The page's phone layout (MobileResponsiveMixin), not a CSS breakpoint
+    phone: { type: Boolean, default: false },
+  },
   emits: ['open'],
   data() {
     return {
@@ -69,7 +73,7 @@ export default {
 </script>
 
 <template>
-  <div class="lookup-home" data-testid="lookup-home">
+  <div class="lookup-home" :class="{ 'lookup-home--phone': phone }" data-testid="lookup-home">
     <section v-if="recent.length" class="lookup-home__section" aria-labelledby="lookup-home-recent">
       <div class="lookup-home__head">
         <h2 id="lookup-home-recent" class="lookup-home__label">Recent</h2>
@@ -162,10 +166,8 @@ export default {
 }
 
 /* Phone: white groups on the grouped ground, no border (board MobileHome) */
-@media (max-width: 600px) {
-  .lookup-home__group {
-    border: 0;
-  }
+.lookup-home--phone .lookup-home__group {
+  border: 0;
 }
 
 .lookup-home__group li + li {

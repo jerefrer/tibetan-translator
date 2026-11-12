@@ -448,7 +448,7 @@ export default {
             :refresh-key="refreshKey"
             @select="onSelectHeadword"
           />
-          <lookup-home v-else-if="isMobile" @open="onOpenFromHome" />
+          <lookup-home v-else-if="isMobile" phone @open="onOpenFromHome" />
         </template>
         <template v-else>
           <definition-results
@@ -460,7 +460,7 @@ export default {
             @search="searchPrevious"
             @count="definitionCount = $event"
           />
-          <lookup-home v-if="isMobile && !text" @open="onOpenFromHome" />
+          <lookup-home v-if="isMobile && !text" phone @open="onOpenFromHome" />
         </template>
       </div>
     </div>
