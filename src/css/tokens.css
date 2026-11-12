@@ -101,6 +101,7 @@
   --text-headword-xl: 3.25rem;     /* 52px: desktop entry */
   --text-headword-lg: 2.5rem;      /* 40px: phone entry, Reader panel */
   --text-result-tibetan: 1.3125rem; /* 21px: result rows */
+  --text-reader-word: 2.125rem;     /* 34px: Reader words on desktop (phone: --text-tibetan-lg) */
 
   /* Control heights */
   --control-sm: 2.125rem;  /* 34px */
