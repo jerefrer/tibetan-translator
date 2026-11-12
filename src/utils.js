@@ -77,6 +77,18 @@ export const phoneticsFor = function(setting, text) {
   ).join(' ')
 }
 
+// The whole text converted at once, so a multi-syllable term reads as one word.
+// Same "reuse the last converter" rule as phoneticsFor. 'default' stands for
+// the library's own default setting.
+export const phoneticsForWord = function(setting, text) {
+  const resolved = setting === 'default' ? Settings.defaultSettingId : setting;
+  if (!lastConverter || lastSetting !== resolved) {
+    lastConverter = new TibetanToPhonetics({ setting: resolved });
+    lastSetting = resolved;
+  }
+  return lastConverter.convert(tibetanWithPunctuationAsTsheks(text));
+}
+
 export const convertWylieButKeepNonTibetanParts = function (text, wylieToUnicode) {
   var result = '';
   var tokenizer = new Tokenizer(

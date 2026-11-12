@@ -76,6 +76,7 @@
     "reka-ui": "^2.11.0",
     "tauri-plugin-macos-permissions-api": "^2.3.0",
     "tibetan-ansi-to-unicode": "^1.8.0",
+    "tibetan-ewts-converter": "^1.0.1",
     "tibetan-normalizer": "^0.1.0",
     "tibetan-regexps": "^1.0.3",
     "tibetan-to-phonetics": "^0.8.5",
@@ -107,7 +108,6 @@
     "replace": "^1.2.2",
     "sql.js": "^1.8.0",
     "stylus": "^0.62.0",
-    "tibetan-ewts-converter": "^1.0.1",
     "vite": "^5.0.0",
     "vitest": "^4.0.16"
   },
