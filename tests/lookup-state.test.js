@@ -8,6 +8,7 @@ import { readLookupState, writeLookupState, switchLookupMode } from '../src/serv
 
 beforeEach(() => {
   Storage.delete('lookupState')
+  Storage.delete('selectedTerm')
 })
 
 describe('lookup state', () => {
@@ -19,6 +20,17 @@ describe('lookup state', () => {
     writeLookupState({ term: 'ཀ་' })
     writeLookupState({ mode: 'en', query: 'wisdom' })
     expect(readLookupState()).toEqual({ mode: 'en', term: 'ཀ་', query: 'wisdom' })
+  })
+
+  it("should start on Define's last term when nothing was stored by Lookup yet", () => {
+    Storage.set('selectedTerm', 'ཀ་')
+    expect(readLookupState()).toEqual({ mode: 'bo', term: 'ཀ་', query: '' })
+  })
+
+  it("should prefer Lookup's own term to Define's", () => {
+    Storage.set('selectedTerm', 'ཀ་')
+    Storage.set('lookupState', { mode: 'bo', term: 'ཁ་' })
+    expect(readLookupState().term).toBe('ཁ་')
   })
 
   it('should fall back to Tibetan mode when the stored mode is unknown', () => {

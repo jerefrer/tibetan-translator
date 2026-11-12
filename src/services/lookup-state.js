@@ -17,11 +17,14 @@ export function isLookupMode(value) {
 }
 
 export function readLookupState() {
-  const stored = Storage.get(STORAGE_KEY) || {};
+  const stored = Storage.get(STORAGE_KEY);
+  // Before Lookup stored anything, it opens on the term Define showed last
+  // (its `selectedTerm`), so the first launch after the update starts there
+  const term = stored ? stored.term : Storage.get('selectedTerm');
   return {
-    mode: isLookupMode(stored.mode) ? stored.mode : 'bo',
-    term: typeof stored.term === 'string' ? stored.term : '',
-    query: typeof stored.query === 'string' ? stored.query : '',
+    mode: isLookupMode(stored?.mode) ? stored.mode : 'bo',
+    term: typeof term === 'string' ? term : '',
+    query: typeof stored?.query === 'string' ? stored.query : '',
   };
 }
 
@@ -41,3 +44,4 @@ export function switchLookupMode({ mode, text, typedWylie }, newMode) {
   if (newMode === 'en') return typedWylie || value;
   return LATIN.test(value) ? wylieToTibetan(value) : value;
 }
+
