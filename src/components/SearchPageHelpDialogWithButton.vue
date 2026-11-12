@@ -4,7 +4,7 @@
   import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS } from '../config/platform'
 
-  // How to search the definitions in Lookup (EN), opened from Library's
+  // How to search the definitions in Lookup (EN), opened from Settings'
   // help rows. The panels take their look from the Lookup help
   // (.define-help-content in DefinePageHelpDialogWithButton.vue), so the two
   // read as one. The file keeps the name it had when a "?" button opened it

@@ -62,10 +62,9 @@ export default {
     tibdictInstallerState() {
       return TibdictInstaller.state;
     },
-    // Library holds several pages under one segment: they need their own cache keys
+    // Every page has its own first path segment, so that is its cache key
     pageKey() {
-      const parts = _.compact(this.$route.path.split("/"));
-      return parts[0] === "library" ? parts.slice(0, 2).join("/") : parts[0];
+      return _.compact(this.$route.path.split("/"))[0];
     },
     updateReady() {
       return UpdateService.state.updateReady;

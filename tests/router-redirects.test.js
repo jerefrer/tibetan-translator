@@ -4,17 +4,17 @@ import router from '../src/router.js'
 describe('router', () => {
   it('should redirect the old glossary route, keeping pack and dictionary', async () => {
     await router.push('/lexicon/custom-a/2')
-    expect(router.currentRoute.value.fullPath).toBe('/library/glossary/custom-a/2')
+    expect(router.currentRoute.value.fullPath).toBe('/glossary/custom-a/2')
   })
 
   it('should redirect the bare old glossary route', async () => {
     await router.push('/lexicon')
-    expect(router.currentRoute.value.path).toBe('/library/glossary')
+    expect(router.currentRoute.value.path).toBe('/glossary')
   })
 
   it('should keep the query string when redirecting', async () => {
     await router.push('/lexicon/custom-a?x=1')
-    expect(router.currentRoute.value.fullPath).toBe('/library/glossary/custom-a?x=1')
+    expect(router.currentRoute.value.fullPath).toBe('/glossary/custom-a?x=1')
   })
 
   it('should open Lookup when the app starts at the root', async () => {
@@ -62,53 +62,53 @@ describe('router', () => {
     expect(router.currentRoute.value.path).toBe('/reader')
   })
 
-  it('should open Library settings when the old Settings page is followed', async () => {
+  it('should keep the Settings page at /settings', async () => {
     await router.push('/settings')
-    const route = router.currentRoute.value
-    expect(route.path).toBe('/library')
-    expect(route.hash).toBe('#settings')
+    expect(router.currentRoute.value.fullPath).toBe('/settings')
   })
 
   it('should open the dictionary order when the old preferences view is followed', async () => {
+    // beforeEnter only runs when entering the route, not when already on it
+    await router.push('/lookup')
     await router.push('/settings?view=preferences')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/library')
+    expect(route.path).toBe('/settings')
     expect(route.hash).toBe('#dictionary-order')
+    expect(route.query.view).toBeUndefined()
   })
 
   it('should open the dictionaries page with the filters when old Settings links carry them', async () => {
+    // beforeEnter only runs when entering the route, not when already on it
+    await router.push('/lookup')
     await router.push('/settings?find=abc&status=installed')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/library/dictionaries')
+    expect(route.path).toBe('/dictionaries')
     expect(route.query).toEqual({ find: 'abc', status: 'installed' })
   })
 
-  it('should open Library settings when the library settings route is followed', async () => {
-    await router.push('/library/settings')
+  it('should open Settings when the former Library routes are followed', async () => {
+    await router.push('/library')
+    expect(router.currentRoute.value.fullPath).toBe('/settings')
+    await router.push('/library/settings?x=1#dictionary-order')
+    expect(router.currentRoute.value.fullPath).toBe('/settings?x=1#dictionary-order')
+  })
+
+  it('should open the glossary when the former Library glossary route is followed', async () => {
+    await router.push('/library/glossary/x/1')
+    expect(router.currentRoute.value.fullPath).toBe('/glossary/x/1')
+    await router.push('/library/glossary?x=1')
+    expect(router.currentRoute.value.fullPath).toBe('/glossary?x=1')
+  })
+
+  it('should open the dictionaries when the former Library dictionaries route is followed', async () => {
+    await router.push('/library/dictionaries?find=a&status=installed')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/library')
-    expect(route.hash).toBe('#settings')
-  })
-
-  it('should redirect the old glossary route to the library glossary', async () => {
-    await router.push('/glossary/custom-a/2')
-    expect(router.currentRoute.value.fullPath).toBe('/library/glossary/custom-a/2')
-  })
-
-  it('should keep the query string when redirecting the glossary', async () => {
-    await router.push('/glossary/custom-a?x=1')
-    expect(router.currentRoute.value.fullPath).toBe('/library/glossary/custom-a?x=1')
-  })
-
-  it('should redirect the old dictionaries route, keeping its filters', async () => {
-    await router.push('/dictionaries?find=a&status=installed')
-    const route = router.currentRoute.value
-    expect(route.path).toBe('/library/dictionaries')
+    expect(route.path).toBe('/dictionaries')
     expect(route.query).toEqual({ find: 'a', status: 'installed' })
   })
 
-  it('should resolve the new page routes', () => {
-    for (const path of ['/lookup', '/lookup/abc', '/reader', '/library', '/library/dictionaries', '/library/glossary', '/library/glossary/a/1', '/tests']) {
+  it('should resolve the page routes', () => {
+    for (const path of ['/lookup', '/lookup/abc', '/reader', '/settings', '/dictionaries', '/glossary', '/glossary/a/1', '/tests']) {
       expect(router.resolve(path).matched.length, path).toBe(1)
     }
   })

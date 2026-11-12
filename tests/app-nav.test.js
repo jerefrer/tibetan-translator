@@ -10,7 +10,7 @@ const stub = { template: '<div />' }
 async function mountNav(path, props = {}, slots = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: ['/lookup', '/reader', '/library', '/library/glossary', '/library/dictionaries'].map(
+    routes: ['/lookup', '/reader', '/settings', '/glossary', '/dictionaries'].map(
       (route) => ({ path: route, component: stub })
     ),
   })
@@ -21,26 +21,26 @@ async function mountNav(path, props = {}, slots = {}) {
 }
 
 describe('AppNav', () => {
-  it('should ask Library to scroll back when the Settings link is followed on #settings', async () => {
-    const { wrapper, router } = await mountNav('/library#settings')
+  it('should ask Settings to scroll back when the Settings link is followed on /settings', async () => {
+    const { wrapper, router } = await mountNav('/settings')
     const spy = vi.spyOn(window, 'dispatchEvent')
 
     await wrapper.find('[data-testid="nav-settings"]').trigger('click')
     await flushPromises()
 
     expect(spy.mock.calls.some(([e]) => e.type === 'route-refollowed')).toBe(true)
-    expect(router.currentRoute.value.fullPath).toBe('/library#settings')
+    expect(router.currentRoute.value.fullPath).toBe('/settings')
     spy.mockRestore()
   })
 
-  it('should navigate to Library settings from another page without asking to scroll', async () => {
+  it('should navigate to Settings from another page without asking to scroll', async () => {
     const { wrapper, router } = await mountNav('/lookup')
     const spy = vi.spyOn(window, 'dispatchEvent')
 
     await wrapper.find('[data-testid="nav-settings"]').trigger('click')
     await flushPromises()
 
-    expect(router.currentRoute.value.fullPath).toBe('/library#settings')
+    expect(router.currentRoute.value.fullPath).toBe('/settings')
     expect(spy.mock.calls.some(([e]) => e.type === 'route-refollowed')).toBe(false)
     spy.mockRestore()
   })
@@ -49,14 +49,26 @@ describe('AppNav', () => {
     localStorage.clear()
   })
 
-  it('should show the three destinations on desktop and phone', async () => {
+  it('should list the glossary and dictionaries on desktop, three tabs on a phone', async () => {
     const desktop = await mountNav('/lookup')
     const ids = (w) => w.findAll('[data-testid^="nav-"][href]').map((a) => a.attributes('data-testid'))
-    expect(ids(desktop.wrapper).slice(0, 3)).toEqual(['nav-lookup', 'nav-reader', 'nav-library'])
+    expect(ids(desktop.wrapper)).toEqual([
+      'nav-lookup', 'nav-reader', 'nav-glossary', 'nav-dictionaries', 'nav-settings',
+    ])
     expect(desktop.wrapper.classes()).toContain('app-nav--sidebar')
     const phone = await mountNav('/lookup', { isMobile: true })
-    expect(ids(phone.wrapper)).toEqual(['nav-lookup', 'nav-reader', 'nav-library'])
+    expect(ids(phone.wrapper)).toEqual(['nav-lookup', 'nav-reader', 'nav-settings'])
     expect(phone.wrapper.find('[role="separator"]').exists()).toBe(false)
+  })
+
+  it('should separate the tools from the collections in the sidebar only', async () => {
+    const desktop = await mountNav('/lookup')
+    const children = [...desktop.wrapper.find('.app-nav__items').element.children].map((el) =>
+      el.getAttribute('role') === 'separator' ? 'separator' : el.getAttribute('data-testid')
+    )
+    expect(children).toEqual(['nav-lookup', 'nav-reader', 'separator', 'nav-glossary', 'nav-dictionaries'])
+    const phone = await mountNav('/lookup', { isMobile: true })
+    expect(phone.wrapper.find('[data-testid="nav-separator"]').exists()).toBe(false)
   })
 
   it('should keep the bottom bar class the dictionaries menu relies on', async () => {
@@ -92,14 +104,13 @@ describe('AppNav', () => {
     expect(wrapper.find('[data-testid="nav-saved"]').text()).toContain('སངས་རྒྱས་')
   })
 
-  it('should put the update dot on Settings (desktop) and Library (phone)', async () => {
+  it('should put the update dot on Settings, at the bottom on desktop and as a tab on a phone', async () => {
     const desktop = await mountNav('/lookup', { updateReady: true })
     const dot = desktop.wrapper.find('[data-testid="nav-update-dot"]')
     expect(desktop.wrapper.find('[data-testid="nav-settings"]').element.contains(dot.element)).toBe(true)
-    expect(desktop.wrapper.find('[data-testid="nav-library"] [data-testid="nav-update-dot"]').exists()).toBe(false)
-    expect(desktop.wrapper.find('[data-testid="nav-settings"]').attributes('href')).toBe('/library#settings')
+    expect(desktop.wrapper.find('[data-testid="nav-settings"]').attributes('href')).toBe('/settings')
     const phone = await mountNav('/lookup', { isMobile: true, updateReady: true })
-    expect(phone.wrapper.find('[data-testid="nav-library"] [data-testid="nav-update-dot"]').exists()).toBe(true)
+    expect(phone.wrapper.find('[data-testid="nav-settings"] [data-testid="nav-update-dot"]').exists()).toBe(true)
   })
 
   it('should mark the current page with aria-current', async () => {
@@ -108,9 +119,9 @@ describe('AppNav', () => {
     expect(wrapper.find('[data-testid="nav-lookup"]').attributes('aria-current')).toBeUndefined()
   })
 
-  it('should highlight Library on a phone while Glossary is open', async () => {
-    const { wrapper } = await mountNav('/library/glossary/custom-a/1', { isMobile: true })
-    expect(wrapper.find('[data-testid="nav-library"]').attributes('aria-current')).toBe('page')
+  it('should highlight Settings on a phone while Glossary is open', async () => {
+    const { wrapper } = await mountNav('/glossary/custom-a/1', { isMobile: true })
+    expect(wrapper.find('[data-testid="nav-settings"]').attributes('aria-current')).toBe('page')
   })
 
   it('should show the app icon as the logo on the desktop sidebar only', async () => {

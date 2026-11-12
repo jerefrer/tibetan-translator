@@ -1,6 +1,6 @@
 /**
- * Library: the glossary and dictionaries rows, the device section, Settings,
- * and the help dialogs.
+ * The Settings page: the glossary and dictionaries rows (phone), the general
+ * cards, the downloads, the dictionary preferences and the help dialogs.
  *
  * Services are mocked; `env` switches between the browser build and the app
  * (Tauri), and between desktop and phone widths.
@@ -124,7 +124,7 @@ vi.mock('../src/services/audio-service', () => {
 })
 
 import Storage from '../src/services/storage'
-import LibraryPage from '../src/components/library/LibraryPage.vue'
+import SettingsPage from '../src/components/settings/SettingsPage.vue'
 import DictionariesPage from '../src/components/DictionariesPage.vue'
 import { packSummary } from '../src/components/settings/pack-summary'
 
@@ -134,9 +134,9 @@ function makeRouter() {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/library', component: LibraryPage },
-      { path: '/library/glossary/:packId?/:dictionaryId?', component: Stub },
-      { path: '/library/dictionaries', component: DictionariesPage },
+      { path: '/settings', component: SettingsPage },
+      { path: '/glossary/:packId?/:dictionaryId?', component: Stub },
+      { path: '/dictionaries', component: DictionariesPage },
     ],
   })
 }
@@ -145,7 +145,7 @@ let wrapper
 let router
 const scrolled = []
 
-async function mountLibrary(path = '/library') {
+async function mountSettings(path = '/settings') {
   router = makeRouter()
   await router.push(path)
   await router.isReady()
@@ -186,93 +186,111 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('LibraryPage', () => {
-  it('should list the collections with their status', async () => {
+describe('SettingsPage', () => {
+  it('should leave the collections to the sidebar on desktop', async () => {
+    await mountSettings()
+    expect(byTestId('settings-collections').exists()).toBe(false)
+  })
+
+  it('should list the collections with their status on a phone', async () => {
+    env.mobile = true
     Storage.set('dictionaries', [
       { id: 1, name: 'Hopkins2015', position: 1, enabled: true },
       { id: 2, name: 'RangjungYeshe', position: 2, enabled: true },
     ])
-    await mountLibrary()
+    await mountSettings()
 
-    expect(wrapper.find('h1').text()).toBe('Library')
-    const collections = byTestId('library-collections')
-    expect(collections.find('[data-testid="library-row-glossary"]').text()).toContain('My glossary')
-    expect(collections.find('[data-testid="library-row-glossary"]').text()).toContain('Your own definitions')
-    expect(collections.find('[data-testid="library-row-dictionaries"]').text()).toContain('2 on this device')
+    expect(wrapper.find('h1').text()).toBe('Settings')
+    const collections = byTestId('settings-collections')
+    expect(collections.find('[data-testid="settings-row-glossary"]').text()).toContain('My glossary')
+    expect(collections.find('[data-testid="settings-row-glossary"]').text()).toContain('Your own definitions')
+    expect(collections.find('[data-testid="settings-row-dictionaries"]').text()).toContain('2 on this device')
 
-    await collections.find('[data-testid="library-row-glossary"] button').trigger('click')
+    await collections.find('[data-testid="settings-row-glossary"] button').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/library/glossary')
+    expect(router.currentRoute.value.path).toBe('/glossary')
 
-    await router.push('/library')
+    await router.push('/settings')
     await flushPromises()
-    await byTestId('library-row-dictionaries').find('button').trigger('click')
+    await byTestId('settings-row-dictionaries').find('button').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/library/dictionaries')
+    expect(router.currentRoute.value.path).toBe('/dictionaries')
   })
 
   it('should count the dictionaries of the installed packs in the app', async () => {
     env.tauri = true
-    await mountLibrary()
+    env.mobile = true
+    await mountSettings()
 
     const { dictionaries } = packSummary(['core'])
-    expect(byTestId('library-row-dictionaries').text()).toContain(`${dictionaries} on this device`)
+    expect(byTestId('settings-row-dictionaries').text()).toContain(`${dictionaries} on this device`)
   })
 
-  it('should show the device section only where packs are supported', async () => {
-    await mountLibrary()
-    expect(byTestId('library-device').exists()).toBe(false)
+  it('should show the pack manager under Downloads only where packs are supported', async () => {
+    await mountSettings()
+    const downloads = byTestId('settings-downloads')
+    expect(downloads.find('[data-testid="pack-manager-card"]').exists()).toBe(false)
+    expect(downloads.find('h2').text()).toBe('Scans and recordings')
     wrapper.unmount()
 
     env.tauri = true
-    await mountLibrary()
-    const device = byTestId('library-device')
-    expect(device.exists()).toBe(true)
-    expect(device.find('[data-testid="pack-manager-card"]').exists()).toBe(true)
-    expect(device.text()).toContain('Add to this device')
+    await mountSettings()
+    const app = byTestId('settings-downloads')
+    expect(app.find('[data-testid="pack-manager-card"]').exists()).toBe(true)
+    expect(app.find('h2').text()).toBe('Downloads')
   })
 
   it('should show Quick lookup settings only in the desktop app', async () => {
-    await mountLibrary()
+    await mountSettings()
     expect(byTestId('global-lookup-card').exists()).toBe(false)
     wrapper.unmount()
 
     env.tauri = true
-    await mountLibrary()
-    expect(byTestId('library-settings').find('[data-testid="global-lookup-card"]').exists()).toBe(true)
+    await mountSettings()
+    expect(byTestId('settings-general').find('[data-testid="global-lookup-card"]').exists()).toBe(true)
   })
 
-  it('should land on Settings from the sidebar link', async () => {
-    await mountLibrary('/library#settings')
+  it('should land on the dictionary order from a link to its section', async () => {
+    await mountSettings('/settings#dictionary-order')
 
-    expect(byTestId('library-settings').attributes('id')).toBe('settings')
-    expect(byTestId('library-settings').find('[data-testid="appearance-card"]').exists()).toBe(true)
-    expect(scrolled).toContain('settings')
+    expect(byTestId('settings-dictionaries').find('#dictionary-order').exists()).toBe(true)
+    expect(scrolled).toContain('dictionary-order')
   })
 
-  it('should land on Settings when Library is already alive and the link is followed again', async () => {
-    await mountLibrary('/library')
-    expect(scrolled).not.toContain('settings')
+  it('should land on the dictionary order when Settings is already alive and the link is followed', async () => {
+    await mountSettings('/settings')
+    expect(scrolled).not.toContain('dictionary-order')
 
-    await router.push('/library#settings')
+    await router.push('/settings#dictionary-order')
     await flushPromises()
 
-    expect(scrolled).toContain('settings')
+    expect(scrolled).toContain('dictionary-order')
   })
 
-  it('should scroll back to Settings when its link is followed again from further down', async () => {
-    await mountLibrary('/library#settings')
+  it('should scroll back to the section when its link is followed again from further down', async () => {
+    await mountSettings('/settings#dictionary-order')
     scrolled.length = 0
 
     window._triggerEvent('route-refollowed')
     await flushPromises()
 
-    expect(scrolled).toEqual(['settings'])
+    expect(scrolled).toEqual(['dictionary-order'])
   })
 
-  it('should leave the scroll alone on a refollow while Library is not the active route', async () => {
-    await mountLibrary('/library#settings')
-    await router.push('/library/glossary')
+  it('should scroll back to the top when the bare Settings link is followed again', async () => {
+    await mountSettings('/settings')
+    const page = byTestId('settings-page').element
+    page.scrollTo = vi.fn()
+
+    window._triggerEvent('route-refollowed')
+    await flushPromises()
+
+    expect(page.scrollTo).toHaveBeenCalledWith({ top: 0 })
+  })
+
+  it('should leave the scroll alone on a refollow while Settings is not the active route', async () => {
+    await mountSettings('/settings#dictionary-order')
+    await router.push('/glossary')
     await flushPromises()
     scrolled.length = 0
 
@@ -283,34 +301,44 @@ describe('LibraryPage', () => {
   })
 
   it('should read a hash with quotes as an id, never as a selector', async () => {
-    await mountLibrary('/library')
+    await mountSettings('/settings')
     scrolled.length = 0
-    // Read as a selector, it would also match the Settings section (and a
+    // Read as a selector, it would also match the dictionary order (and a
     // browser throws on most quotes)
-    await router.push('/library#x"],[id="settings')
+    await router.push('/settings#x"],[id="dictionary-order')
     await flushPromises()
 
-    await expect(wrapper.findComponent(LibraryPage).vm.scrollToHash()).resolves.toBeUndefined()
+    await expect(wrapper.findComponent(SettingsPage).vm.scrollToHash()).resolves.toBeUndefined()
     expect(scrolled).toEqual([])
   })
 
-  it('should land on dictionary order from an old preferences link', async () => {
-    await mountLibrary('/library#dictionary-order')
+  it('should list Appearance, then Downloads, then the dictionary order and help, top to bottom', async () => {
+    env.tauri = true
+    await mountSettings()
+    const order = [...byTestId('settings-page').element.querySelectorAll(
+      '[data-testid="appearance-card"], [data-testid="settings-downloads"], [data-testid="dictionary-preferences"], [data-testid="settings-help"]'
+    )].map((el) => el.getAttribute('data-testid') || el.id)
+    expect(order).toEqual(['appearance-card', 'settings-downloads', 'dictionary-preferences', 'settings-help'])
+  })
 
-    expect(byTestId('library-settings').find('#dictionary-order').exists()).toBe(true)
-    expect(scrolled).toContain('dictionary-order')
+  it('should put the dictionary preferences and the help in the same section', async () => {
+    await mountSettings()
+    const section = byTestId('settings-dictionaries')
+    expect(section.find('h2').text()).toBe('Dictionaries')
+    expect(section.find('#dictionary-order').exists()).toBe(true)
+    expect(section.find('[data-testid="settings-help"]').text()).toContain('Help and about')
   })
 
   it('should open each help dialog', async () => {
-    await mountLibrary()
-    const help = byTestId('library-help')
+    await mountSettings()
+    const help = byTestId('settings-help')
     const cases = [
       ['lookup', 'Looking up a word', 'define-help'],
       ['search', 'Searching the definitions', 'search-help'],
       ['reader', 'Reading a text', 'split-help'],
     ]
     for (const [id, title, dialog] of cases) {
-      const row = help.find(`[data-testid="library-help-${id}"]`)
+      const row = help.find(`[data-testid="settings-help-${id}"]`)
       expect(row.text()).toContain(title)
       expect(inBody(dialog)).toBeNull()
 
@@ -325,55 +353,51 @@ describe('LibraryPage', () => {
     }
   })
 
-  it('should go back to Library from the glossary and the dictionaries', async () => {
-    await mountLibrary('/library/dictionaries')
+  it('should go back to Settings from the dictionaries on a phone', async () => {
+    env.mobile = true
+    await mountSettings('/dictionaries')
 
     const back = byTestId('dictionaries-back')
-    expect(back.text()).toContain('Library')
+    expect(back.text()).toContain('Settings')
     await back.trigger('click')
     await flushPromises()
 
-    expect(router.currentRoute.value.path).toBe('/library')
+    expect(router.currentRoute.value.path).toBe('/settings')
+  })
+
+  it('should not offer a way back to Settings on desktop, where the sidebar lists the dictionaries', async () => {
+    await mountSettings('/dictionaries')
+    expect(byTestId('dictionaries-back').exists()).toBe(false)
   })
 })
 
 // Ported from tests/settings-page.test.js (the ConfigurePage shell): the
 // cards Settings showed, the About rows and the help rows
-describe('LibraryPage — ported from Settings', () => {
+describe('SettingsPage — ported from the former Settings page', () => {
   it('should show the Settings cards and no dictionary catalog', async () => {
     Storage.set('dictionaries', [
       { id: 1, name: 'Hopkins2015', position: 2, enabled: true },
       { id: 2, name: 'RangjungYeshe', position: 1, enabled: true },
     ])
-    await mountLibrary()
-    const settings = byTestId('library-settings')
-    expect(settings.find('[data-testid="appearance-card"]').exists()).toBe(true)
-    expect(settings.find('[data-testid="dictionary-preferences"]').exists()).toBe(true)
+    await mountSettings()
+    expect(byTestId('settings-general').find('[data-testid="appearance-card"]').exists()).toBe(true)
+    expect(byTestId('settings-dictionaries').find('[data-testid="dictionary-preferences"]').exists()).toBe(true)
     expect(wrapper.find('.dictionary-catalog').exists()).toBe(false)
   })
 
-  // Settings showed them in a browser too, marked online only: Library keeps
-  // them there, under Settings, since a browser has no "this device" section
-  it('should show the scanned dictionaries and audio cards under Settings in a browser', async () => {
-    await mountLibrary()
-    const settings = byTestId('library-settings')
-    expect(byTestId('library-device').exists()).toBe(false)
-    expect(settings.find('[data-testid="scanned-card"]').exists()).toBe(true)
-    expect(settings.find('[data-testid="audio-card"]').exists()).toBe(true)
-  })
-
-  it('should show the scanned dictionaries and audio cards on the device in the app', async () => {
-    env.tauri = true
-    await mountLibrary()
-    const device = byTestId('library-device')
-    expect(device.find('[data-testid="scanned-card"]').exists()).toBe(true)
-    expect(device.find('[data-testid="audio-card"]').exists()).toBe(true)
-    expect(byTestId('library-settings').find('[data-testid="scanned-card"]').exists()).toBe(false)
-    expect(byTestId('library-settings').find('[data-testid="audio-card"]').exists()).toBe(false)
+  it('should show the scanned dictionaries and audio cards under Downloads in a browser and in the app', async () => {
+    for (const tauri of [false, true]) {
+      env.tauri = tauri
+      await mountSettings()
+      const downloads = byTestId('settings-downloads')
+      expect(downloads.find('[data-testid="scanned-card"]').exists()).toBe(true)
+      expect(downloads.find('[data-testid="audio-card"]').exists()).toBe(true)
+      wrapper.unmount()
+    }
   })
 
   it('should leave out the app-only cards in a browser', async () => {
-    await mountLibrary()
+    await mountSettings()
     expect(byTestId('global-lookup-card').exists()).toBe(false)
     expect(byTestId('pack-manager-card').exists()).toBe(false)
     expect(byTestId('about-whats-new-row').exists()).toBe(false)
@@ -381,14 +405,14 @@ describe('LibraryPage — ported from Settings', () => {
 
   it('should list What’s new, the update check and the credits as rows in the app', async () => {
     env.tauri = true
-    await mountLibrary()
+    await mountSettings()
     expect(byTestId('about-whats-new-row').text()).toContain('Tibetan Translator 1.12.0')
     expect(byTestId('about-check-row').exists()).toBe(true)
     expect(byTestId('about-credits-row').text()).toContain('Christian Steinert')
   })
 
   it('should show no help button of its own next to the help rows', async () => {
-    await mountLibrary()
+    await mountSettings()
     expect(wrapper.find('.help-button').exists()).toBe(false)
     expect(document.body.querySelector('[aria-label^="How to use the"]')).toBeNull()
   })

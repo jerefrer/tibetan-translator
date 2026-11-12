@@ -1,5 +1,5 @@
 /**
- * The Settings cards, which Library shows (tests/library-page.test.js covers
+ * The Settings cards, which Settings shows (tests/settings-page-layout.test.js covers
  * the page around them).
  *
  * Services are mocked; `env` switches between the browser build and the app
@@ -141,7 +141,6 @@ function makeRouter() {
     routes: [
       { path: '/settings', component: Stub },
       { path: '/dictionaries', component: Stub },
-      { path: '/library/dictionaries', component: Stub },
       { path: '/glossary', component: Stub },
     ],
   })
@@ -541,7 +540,7 @@ describe('PackManagerCard', () => {
     await mountWith(PackManagerCard)
     await byTestId('manage-in-dictionaries').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/library/dictionaries')
+    expect(router.currentRoute.value.path).toBe('/dictionaries')
   })
 })
 

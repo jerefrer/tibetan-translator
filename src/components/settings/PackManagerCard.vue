@@ -153,7 +153,7 @@ export default {
     data-testid="pack-manager-card"
   >
     <template #aside>
-      <ui-button variant="outline" class="pack-manager-card__manage" data-testid="manage-in-dictionaries" @click="$router.push('/library/dictionaries')">
+      <ui-button variant="outline" class="pack-manager-card__manage" data-testid="manage-in-dictionaries" @click="$router.push('/dictionaries')">
         Manage in Dictionaries
       </ui-button>
     </template>

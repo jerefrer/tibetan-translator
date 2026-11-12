@@ -59,3 +59,27 @@
 **Revisit if:** users ask to share links to English results, need the text's lines in the Reader, or find Library too long.
 
 ---
+
+---
+
+## 2026-11-12 — Folio: glossary and dictionaries in the desktop sidebar, no "Look up as Tibetan" hint
+**Chosen:** User decision, after trying the branch:
+- The desktop sidebar lists My glossary and Dictionaries next to Lookup, Reader and Library. On a phone they stay rows of Library, and the tab bar keeps three tabs. Their "‹ Library" back link shows only on a phone.
+- EN mode no longer offers "Look up `<tibetan>` as Tibetan". The བོད to EN hint stays.
+- Lookup's results column grows with the window (`--results-width: clamp(380px, 38%, 600px)`), and the query builder stacks its match above its term when it is narrower than 30rem.
+- Library on desktop is a 72rem column with each section's cards two by two; Settings puts the short cards in one column and the dictionary order in the other.
+**Alternatives:** Three destinations on every layout, as the spec had it; keeping the EN hint for queries that read as Wylie.
+**Why:** The three destinations came from the phone's tab bar, and the desktop sidebar has room to spare: the glossary and the catalog are used often enough to deserve one click. The EN hint fired for any English word that is also valid Wylie (`buddha`, `ma`, `la`), so it drew the eye on ordinary searches and offered nothing useful. The fixed 380px column left the entry with wide empty margins on a large window while the results and the query builder were cramped.
+**Trade-offs:** Desktop and phone navigation now differ. A Wylie query typed in EN mode by mistake has to be switched to བོད by hand.
+**Revisit if:** users often type Wylie in EN mode, or the sidebar grows crowded.
+
+---
+
+## 2026-11-12 — Folio: Library becomes Settings
+**Chosen:** User decision: the Library page is renamed Settings (`/settings`, `SettingsPage`) everywhere. My glossary and Dictionaries get their own top-level routes (`/glossary/...`, `/dictionaries`); the old `/library...` and `/lexicon/...` routes redirect, keeping query and hash. On a phone the tab bar reads Lookup, Reader, Settings, with the glossary and dictionaries still rows of Settings. On desktop the sidebar separates Lookup and Reader from My glossary and Dictionaries with a hairline, and keeps Settings as its bottom link. The page is laid out as General (Appearance, Quick lookup), Downloads (pack manager, scanned dictionaries, audio), then Dictionary preferences beside Help and about.
+**Alternatives:** Keeping the name Library; a Settings page that stays under `/library/settings`; dropping the sidebar separator.
+**Why:** Once the desktop sidebar listed My glossary and Dictionaries, Library only held downloads, settings and help on desktop, so the name no longer described the page ("why not just Settings?"). Giving each page its own first path segment also removes the keep-alive special case for `library/<second>`.
+**Trade-offs:** Old links and bookmarks depend on the redirects; the `#settings` anchor is gone, so a link into the page now targets `#dictionary-order` or the top; a phone's Settings tab holds the collections as well as the settings.
+**Revisit if:** the collections grow beyond what a Settings row suits, or users look for downloads under another name.
+
+---

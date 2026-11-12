@@ -1,5 +1,5 @@
 /**
- * The "Searching the definitions" help dialog, opened from Library's help
+ * The "Searching the definitions" help dialog, opened from Settings' help
  * rows.
  */
 
@@ -19,7 +19,7 @@ const body = (testid) => document.body.querySelector(`[data-testid="${testid}"]`
 const tabLabels = () =>
   Array.from(document.body.querySelectorAll('.ui-tabs__trigger')).map((tab) => tab.textContent.trim())
 
-// Library opens the dialog from its help rows with open()
+// Settings opens the dialog from its help rows with open()
 async function openHelp() {
   wrapper = mount(SearchPageHelpDialogWithButton, { attachTo: document.body })
   wrapper.vm.open()
@@ -34,7 +34,7 @@ afterEach(() => {
 })
 
 describe('Search help', () => {
-  it('should render no button of its own, only the dialog Library opens', async () => {
+  it('should render no button of its own, only the dialog Settings opens', async () => {
     wrapper = mount(SearchPageHelpDialogWithButton, { attachTo: document.body })
     expect(wrapper.find('button').exists()).toBe(false)
     expect(body('search-help')).toBeNull()
@@ -93,7 +93,7 @@ describe('Search help', () => {
     wrapper.vm.tab = 'dictionaries'
     await flushPromises()
     const menuHelp = body('dictionaries-menu-help').textContent
-    for (const text of ['All', 'More…', 'Dictionary preferences', 'Library', 'Alt']) expect(menuHelp).toContain(text)
+    for (const text of ['All', 'More…', 'Dictionary preferences', 'Settings', 'Alt']) expect(menuHelp).toContain(text)
     expect(menuHelp).not.toContain('Ctrl + click')
     expect(menuHelp).not.toContain('B for Browse')
   })

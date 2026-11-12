@@ -4,7 +4,7 @@
   import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS, isTauri, isMobile } from '../config/platform'
 
-  // How to look up a word in Lookup, opened from Library's help rows. The file
+  // How to look up a word in Lookup, opened from Settings' help rows. The file
   // keeps the name it had when a "?" button opened it on the Define page.
   export default {
     components: {
@@ -138,7 +138,7 @@
                   </tbody>
                 </table>
                 <p class="help-note">
-                  You can change this hotkey in the Library, under Settings.
+                  You can change this hotkey in Settings.
                 </p>
               </div>
             </div>

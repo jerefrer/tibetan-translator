@@ -243,7 +243,7 @@ export default {
       if (this._termToRecord) recordTerm(this._termToRecord);
       this._termToRecord = null;
     },
-    // The dictionaries switched on or off or reordered in Library, or packs
+    // The dictionaries switched on or off or reordered in Settings, or packs
     // installed or removed, since the results were read: read them again
     refreshIfStale() {
       const signature = dictionariesSignature();

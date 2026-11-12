@@ -1,5 +1,5 @@
 /**
- * The "Reading a text" help dialog, opened from Library's help rows (it was
+ * The "Reading a text" help dialog, opened from Settings' help rows (it was
  * the Split page's help, H1 in docs/redesign/reports/split.md).
  */
 
@@ -21,7 +21,7 @@ const body = (testid) => document.body.querySelector(`[data-testid="${testid}"]`
 const tabLabels = () =>
   Array.from(document.body.querySelectorAll('.ui-tabs__trigger')).map((tab) => tab.textContent.trim())
 
-// Library opens the dialog from its help rows with open()
+// Settings opens the dialog from its help rows with open()
 async function openHelp() {
   wrapper = mount(SplitPageHelpDialogWithButton, { attachTo: document.body })
   wrapper.vm.open()
@@ -44,7 +44,7 @@ afterEach(() => {
 })
 
 describe('Split help', () => {
-  it('should render no button of its own, only the dialog Library opens', async () => {
+  it('should render no button of its own, only the dialog Settings opens', async () => {
     wrapper = mount(SplitPageHelpDialogWithButton, { attachTo: document.body })
     expect(wrapper.find('button').exists()).toBe(false)
     expect(body('split-help')).toBeNull()
@@ -61,7 +61,7 @@ describe('Split help', () => {
     wrapper.vm.tab = 'dictionaries'
     await flushPromises()
     const menuHelp = body('dictionaries-menu-help').textContent
-    for (const text of ['All', 'More…', 'Dictionary preferences', 'Library', 'Alt']) expect(menuHelp).toContain(text)
+    for (const text of ['All', 'More…', 'Dictionary preferences', 'Settings', 'Alt']) expect(menuHelp).toContain(text)
     expect(menuHelp).not.toContain('Ctrl + click')
     expect(menuHelp).not.toContain('B for Browse')
   })
@@ -88,7 +88,7 @@ describe('Split help', () => {
     expect(text).toContain('Split the text into words')
     expect(text).toContain('Types a tsheg in the text')
     expect(text).toContain('Types a space, which separates two words')
-    for (const label of ['Look up a Tibetan term (Lookup in བོད)', 'Go to Reader', 'Go to Library settings']) expect(text).toContain(label)
+    for (const label of ['Look up a Tibetan term (Lookup in བོད)', 'Go to Reader', 'Go to Settings']) expect(text).toContain(label)
     expect(text).toContain('Ctrl')
   })
 

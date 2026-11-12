@@ -11,8 +11,8 @@
  *  - Critical 1 regression (round 2): the fix for the above — a
  *    '$route.params.packId' watcher writing into a separate `selectedKey`
  *    data field — only compared against the IMMEDIATELY PRECEDING watched
- *    value. Leaving /library/glossary/A for /settings fired the watcher with
- *    `undefined` (harmlessly guarded); returning to /library/glossary/A fired it
+ *    value. Leaving /glossary/A for /settings fired the watcher with
+ *    `undefined` (harmlessly guarded); returning to /glossary/A fired it
  *    again with 'A', indistinguishable from a fresh navigation, so it
  *    unconditionally clobbered a manual dropdown choice of B made earlier in
  *    the same session. This is why LexiconPage now derives `selected`
@@ -127,9 +127,9 @@ function makeRouter(initialPath) {
     history: createMemoryHistory(),
     routes: [
       { path: '/', component: { template: '<div />' } },
-      { path: '/library', component: { template: '<div class="settings-stub" />' } },
+      { path: '/settings', component: { template: '<div class="settings-stub" />' } },
       // Matches src/router.js exactly.
-      { path: '/library/glossary/:packId?/:dictionaryId?', component: LexiconPage },
+      { path: '/glossary/:packId?/:dictionaryId?', component: LexiconPage },
     ],
   })
   router.push(initialPath)
@@ -139,7 +139,7 @@ function makeRouter(initialPath) {
 // Mirrors App.vue:342-346 exactly: <router-view> handing its resolved
 // Component to a <keep-alive> keyed on the first path segment. This is what
 // makes LexiconPage genuinely activate/deactivate as the route moves in and
-// out of "/library/glossary/...", instead of just being patched in place or torn down
+// out of "/glossary/...", instead of just being patched in place or torn down
 // — the real mechanics a bare mount() cannot exercise.
 const Shell = {
   name: 'Shell',
@@ -152,9 +152,9 @@ const Shell = {
   `,
   computed: {
     currentTabId() {
-      // Mirrors App.vue pageKey: library pages are cached per page
+      // Mirrors App.vue pageKey: a page is cached per first path segment
       const parts = this.$route.path.split('/').filter(Boolean)
-      return parts[0] === 'library' ? parts.slice(0, 2).join('/') : parts[0] || ''
+      return parts[0] || ''
     },
   },
 }
@@ -177,7 +177,7 @@ async function mountShell(initialPath, dictionaries) {
   })
   mountedShells.push(wrapper)
   // One tick for the initial render. If the initial route requires
-  // syncSelection() to fall back and navigate (e.g. bare /library/glossary — scenario
+  // syncSelection() to fall back and navigate (e.g. bare /glossary — scenario
   // d), that navigation is fire-and-forget from activated()'s point of view
   // as far as this helper is concerned; callers that depend on its outcome
   // wait on the actual condition via vi.waitFor rather than assuming this
@@ -210,26 +210,26 @@ describe('LexiconPage', () => {
 
   describe('route-driven selection', () => {
     it('(a) follows a route change to a second pack while the page is already showing the first', async () => {
-      const { wrapper, router } = await mountShell('/library/glossary/custom-a', [PACK_A, PACK_B])
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
 
-      // Mirrors CustomPackSection.vue's onManage(pack): router.push(`/library/glossary/${pack.id}`).
+      // Mirrors CustomPackSection.vue's onManage(pack): router.push(`/glossary/${pack.id}`).
       // Directly awaited by the test, so the navigation itself is not the
       // uncertain part here — `selected` is a computed reading $route.params
       // and is live the instant the awaited push() resolves.
-      await router.push('/library/glossary/custom-b')
+      await router.push('/glossary/custom-b')
 
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
     })
 
     it('(b) preserves a manual dropdown choice across a real deactivate/reactivate round trip through Settings', async () => {
-      const { wrapper, router } = await mountShell('/library/glossary/custom-a', [PACK_A, PACK_B])
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
 
       // Manual choice via the dropdown navigates rather than mutating local
       // state, and the test awaits that navigation directly.
       await lexiconPage(wrapper).vm.onSelectDictionary('custom-b:1')
-      expect(router.currentRoute.value.path).toBe('/library/glossary/custom-b/1')
+      expect(router.currentRoute.value.path).toBe('/glossary/custom-b/1')
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
 
       // Leave to Settings. This must be a REAL deactivation — the whole
@@ -239,13 +239,13 @@ describe('LexiconPage', () => {
       // queue rather than returned by router.push()'s promise, so this is
       // exactly a "result of a navigation the test cannot await directly" —
       // wait on the condition, not an assumed tick count.
-      await router.push('/library')
+      await router.push('/settings')
       await vi.waitFor(() => {
         expect(lexiconPage(wrapper).exists()).toBe(false)
       })
 
       // Come back to exactly the URL the dropdown pick left behind.
-      await router.push('/library/glossary/custom-b/1')
+      await router.push('/glossary/custom-b/1')
       await vi.waitFor(() => {
         expect(lexiconPage(wrapper).exists()).toBe(true)
       })
@@ -254,7 +254,7 @@ describe('LexiconPage', () => {
     })
 
     it('(c) falls back to a remaining pack, and the route follows, when the selected dictionary is deleted', async () => {
-      const { wrapper, router } = await mountShell('/library/glossary/custom-a', [PACK_A, PACK_B])
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
 
       // Pack A is removed elsewhere (e.g. from Settings); only B remains.
@@ -267,38 +267,38 @@ describe('LexiconPage', () => {
       window._triggerEvent('dictionaries-updated')
 
       await vi.waitFor(() => {
-        expect(router.currentRoute.value.path).toBe('/library/glossary/custom-b/1')
+        expect(router.currentRoute.value.path).toBe('/glossary/custom-b/1')
       })
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-b')
     })
 
-    it('(d) picks the first available dictionary, and navigates there, when arriving at bare /library/glossary', async () => {
-      const { wrapper, router } = await mountShell('/library/glossary', [PACK_A, PACK_B])
+    it('(d) picks the first available dictionary, and navigates there, when arriving at bare /glossary', async () => {
+      const { wrapper, router } = await mountShell('/glossary', [PACK_A, PACK_B])
 
       // The fix for this exact test's flakiness (round 4): syncSelection()'s
       // fallback navigation is fired from activated(), which the test never
       // calls or awaits itself — only vi.waitFor's retrying, not a fixed
       // tick count, reliably observes when it has actually settled.
       await vi.waitFor(() => {
-        expect(router.currentRoute.value.path).toBe('/library/glossary/custom-a/1')
+        expect(router.currentRoute.value.path).toBe('/glossary/custom-a/1')
       })
       expect(lexiconPage(wrapper).vm.selected?.packId).toBe('custom-a')
     })
 
     it('(e) a multi-dictionary pack: selecting its second dictionary survives a deactivate/reactivate round trip', async () => {
-      const { wrapper, router } = await mountShell('/library/glossary/custom-c/1', [PACK_C_D1, PACK_C_D2])
+      const { wrapper, router } = await mountShell('/glossary/custom-c/1', [PACK_C_D1, PACK_C_D2])
       expect(lexiconPage(wrapper).vm.selected?.dictionaryId).toBe(1)
 
       await lexiconPage(wrapper).vm.onSelectDictionary('custom-c:2')
-      expect(router.currentRoute.value.path).toBe('/library/glossary/custom-c/2')
+      expect(router.currentRoute.value.path).toBe('/glossary/custom-c/2')
 
-      await router.push('/library')
+      await router.push('/settings')
       await vi.waitFor(() => {
         expect(lexiconPage(wrapper).exists()).toBe(false)
       })
 
       // A packId-only route could not have distinguished this from volume 1.
-      await router.push('/library/glossary/custom-c/2')
+      await router.push('/glossary/custom-c/2')
       await vi.waitFor(() => {
         expect(lexiconPage(wrapper).exists()).toBe(true)
       })
@@ -322,7 +322,7 @@ describe('LexiconPage', () => {
       })
       deleteEntryMock.mockResolvedValue(undefined)
 
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
       const page = lexiconPage(wrapper)
 
       // Simulate having been on page 2 of what was, before the delete, a
@@ -352,7 +352,7 @@ describe('LexiconPage', () => {
         total: 10,
         entries: [{ id: 1, term: 'a', definition: 'b' }],
       })
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A, PACK_B])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       const page = lexiconPage(wrapper)
 
       page.vm.page = 3
@@ -380,7 +380,7 @@ describe('LexiconPage', () => {
 
     it('lists the entries with the dictionary name and the count', async () => {
       entriesMock.mockResolvedValue({ total: 2, entries: ROWS })
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
       await vi.waitFor(() => expect(wrapper.findAll('[data-testid="lexicon-entry"]')).toHaveLength(2))
 
       expect(wrapper.find('.page-title').text()).toBe('A')
@@ -392,12 +392,12 @@ describe('LexiconPage', () => {
     })
 
     it('offers the switcher once there is more than one dictionary', async () => {
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A, PACK_B])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
       expect(testid(wrapper, 'lexicon-switcher').exists()).toBe(true)
     })
 
     it('says why the list is empty', async () => {
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
       expect(testid(wrapper, 'lexicon-empty-list').text()).toContain('This dictionary is empty')
 
       lexiconPage(wrapper).vm.search = 'zzz'
@@ -408,7 +408,7 @@ describe('LexiconPage', () => {
 
     it('opens the entry dialog on a row from its Edit button', async () => {
       entriesMock.mockResolvedValue({ total: 2, entries: ROWS })
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
       await vi.waitFor(() => expect(wrapper.findAll('[data-testid="lexicon-edit"]')).toHaveLength(2))
 
       await wrapper.findAll('[data-testid="lexicon-edit"]')[1].trigger('click')
@@ -421,7 +421,7 @@ describe('LexiconPage', () => {
     it('asks before deleting a row, then deletes it', async () => {
       entriesMock.mockResolvedValue({ total: 2, entries: ROWS })
       deleteEntryMock.mockResolvedValue(undefined)
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
       await vi.waitFor(() => expect(wrapper.findAll('[data-testid="lexicon-delete"]')).toHaveLength(2))
 
       await wrapper.findAll('[data-testid="lexicon-delete"]')[0].trigger('click')
@@ -438,7 +438,7 @@ describe('LexiconPage', () => {
 
     it('exports in the format picked from the Export menu', async () => {
       saveDialogMock.mockResolvedValue(null)
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
       const page = lexiconPage(wrapper)
 
       await page.vm.onExport({ key: 'xlsx' })
@@ -449,14 +449,14 @@ describe('LexiconPage', () => {
     })
 
     it('hosts the list of the user\'s own dictionaries', async () => {
-      const { wrapper } = await mountShell('/library/glossary/custom-a', [PACK_A])
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
       expect(testid(wrapper, 'custom-pack-section').exists()).toBe(true)
     })
 
     it('on a phone, shows rows as cards that open the entry, with Delete in the dialog', async () => {
       window.innerWidth = 390
       entriesMock.mockResolvedValue({ total: 2, entries: ROWS })
-      const { wrapper, router } = await mountShell('/library/glossary/custom-a', [PACK_A])
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A])
       await vi.waitFor(() => expect(wrapper.findAll('[data-testid="lexicon-entry"]')).toHaveLength(2))
 
       expect(testid(wrapper, 'lexicon-edit').exists()).toBe(false)
@@ -471,7 +471,7 @@ describe('LexiconPage', () => {
       expect(lexiconPage(wrapper).vm.removeOpen).toBe(true)
 
       await testid(wrapper, 'lexicon-back').trigger('click')
-      await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/library'))
+      await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/settings'))
     })
   })
 })

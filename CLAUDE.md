@@ -97,9 +97,8 @@ src/
   components/          # Screens and app components (Options API with mixins); App.vue is the root
     lookup/            # Lookup: LookupPage, LookupField (བོད / EN switch), results, hints, home
     reader/            # Reader: editor, words with their expressions, word panel / sheet
-    library/           # LibraryPage (collections, device, settings, help)
     entry/             # TermEntry: one term's page (In short, dictionary tabs, definitions), shared by Lookup and Reader
-    settings/          # Settings cards, shown inline in Library
+    settings/          # SettingsPage (collections on a phone, general, downloads, dictionary preferences, help) and its cards
     mixins/            # MobileResponsiveMixin, InfiniteScrollMixin
   ui/                  # Component library (UiButton, UiDialog, UiTibetanField...), icons.js, showcase at /ui-showcase (dev only)
   services/            # Core services (database, packs, search, theme, etc.)
@@ -123,15 +122,16 @@ vendor/                # Third-party dictionary source files
 
 ### Routing & Page Lifecycle
 
-Routes are defined in `src/router.js`. Three destinations (the Folio navigation, `src/config/navigation.js`):
+Routes are defined in `src/router.js`. Lookup, Reader and Settings on a phone (the Folio navigation, `src/config/navigation.js`); the desktop sidebar lists Lookup and Reader, then My glossary and Dictionaries, and ends with a Settings link. On a phone the glossary and dictionaries are rows of Settings:
 
 - `/lookup/:term?` - LookupPage: one field with a **བོད / EN** switch. `/lookup/<term>` selects a Tibetan term (བོད); `/lookup?mode=en&q=<query>` searches the definitions (EN). What was looked up last is kept under `lookupState`
 - `/reader` - ReaderPage (paste or type a text, read it word by word)
-- `/library` - LibraryPage (My glossary, Dictionaries, packs on this device, settings at `#settings`, help); `/library/glossary/...` (LexiconPage) and `/library/dictionaries` (DictionariesPage) are its sub-pages
+- `/settings` - SettingsPage (general, downloads, dictionary preferences at `#dictionary-order`, help; on a phone also the My glossary and Dictionaries rows)
+- `/glossary/:packId?/:dictionaryId?` - LexiconPage; `/dictionaries` - DictionariesPage
 
-The former routes redirect, keeping query and hash: `/define/<term>` to `/lookup/<term>`, `/search/<query>` to `/lookup?mode=en&q=<query>`, `/segment` to `/reader`, `/settings` to `/library#settings`. Links inside definitions are still `/define/<term>` (decorator.js and App.vue rely on it), so they open Lookup on that term.
+The former routes redirect, keeping query and hash: `/define/<term>` to `/lookup/<term>`, `/search/<query>` to `/lookup?mode=en&q=<query>`, `/segment` to `/reader`, `/lexicon/...` to `/glossary/...`, and the former Library routes (`/library`, `/library/settings`, `/library/glossary/...`, `/library/dictionaries`) to `/settings`, `/glossary/...` and `/dictionaries`. The former Settings links `/settings?view=preferences` and `/settings?find=...` land on `/settings#dictionary-order` and `/dictionaries`. Links inside definitions are still `/define/<term>` (decorator.js and App.vue rely on it), so they open Lookup on that term.
 
-App.vue uses `<keep-alive>` for all route components, keyed on the first path segment (`library/<second>` for Library's sub-pages). This means pages are **not destroyed** when navigating away. Use the `activated()` lifecycle hook (not `mounted()`) for actions that should run each time a page becomes visible, and guard route watchers on the page's own path (`this.$route.path.startsWith('/lookup')`): a page kept alive still sees the other pages' routes.
+App.vue uses `<keep-alive>` for all route components, keyed on the first path segment (every page has its own). This means pages are **not destroyed** when navigating away. Use the `activated()` lifecycle hook (not `mounted()`) for actions that should run each time a page becomes visible, and guard route watchers on the page's own path (`this.$route.path.startsWith('/lookup')`): a page kept alive still sees the other pages' routes.
 
 ### Database Layer
 
@@ -166,7 +166,7 @@ Pack lifecycle is managed by `PackManager` (`src/services/pack-manager.js`). Aft
 All components use **Options API** with **mixins** for shared logic:
 
 - `DictionariesDetailsMixin` - Dictionary metadata and abbreviation lookups
-- `DictionariesMenuMixin` - The dictionaries of the current results, as enabled and ordered in Library (TermEntry)
+- `DictionariesMenuMixin` - The dictionaries of the current results, as enabled and ordered in Settings (TermEntry)
 - `mixins/MobileResponsiveMixin`, `mixins/InfiniteScrollMixin` - phone layout and infinite scroll
 
 Screens are built from the `src/ui` components (`import { UiButton, UiDialog } from '../ui'`), never from raw Reka UI. They are styled only with the tokens (`var(--accent)`, `var(--space-4)`, `var(--text-sm)`...), so light and dark both work; the theme is `data-theme="light|dark"` on `<html>`, set by `src/services/theme.js`. Icons are `<ui-icon name="...">` with Lucide names; `src/ui/icons.js` registers each one used (and keeps `mdi-*` aliases only for custom-pack manifests). The app-level toast is the injected `snackbar` (`this.snackbar.open(html)`), rendered by `UiToast` in App.vue.
@@ -212,7 +212,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 - **Styles**: `src/ui` and new code use plain CSS (`<style>`, sometimes `scoped`) on the tokens; some older components still use `lang="stylus"`. Both are fine, do not convert for the sake of it. `src/css/reset.css` is the base reset of the main window (formerly Vuetify's); the quick lookup window does not load it
 - **jQuery** is used in older code (App.vue event delegation, scroll management)
 - **Underscore.js** for debounce, utility functions
-- Keyboard shortcuts: `Cmd/Ctrl+D` (Lookup, Tibetan mode), `Cmd/Ctrl+S` (Lookup, English mode), `Cmd/Ctrl+K` (focus the Lookup field), `Cmd/Ctrl+T` (Reader), `Cmd/Ctrl+G` (Library settings)
+- Keyboard shortcuts: `Cmd/Ctrl+D` (Lookup, Tibetan mode), `Cmd/Ctrl+S` (Lookup, English mode), `Cmd/Ctrl+K` (focus the Lookup field), `Cmd/Ctrl+T` (Reader), `Cmd/Ctrl+G` (Settings)
 - Mobile breakpoint: `600px` (`window.innerWidth <= 600`)
 - Theme: light/dark with system preference detection, stored as `themePreference` in localStorage and applied by `src/services/theme.js`; Text size is `fontSize` (a percentage of the root font size), so sizes in rem follow it
 

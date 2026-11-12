@@ -118,7 +118,7 @@ async function mountPage() {
     routes: [
       { path: '/reader', component: ReaderPage },
       { path: '/lookup/:term?', component: Placeholder },
-      { path: '/library', component: Placeholder },
+      { path: '/settings', component: Placeholder },
     ],
   })
   router.push('/reader')
@@ -534,7 +534,7 @@ describe('Reader — text', () => {
     await nextTick()
     expect(selectedWords()).toEqual([BCOMLDANDAS])
 
-    await router.push('/library')
+    await router.push('/settings')
     await flushPromises()
     window._triggerEvent('keydown', { key: 'ArrowDown', target: document.body, defaultPrevented: false, preventDefault: vi.fn() })
     await router.push('/reader')
@@ -553,7 +553,7 @@ describe('Reader — text', () => {
     const listening = () => lastCall(added, handler) > lastCall(removed, handler)
     expect(listening()).toBe(true)
 
-    await router.push('/library')
+    await router.push('/settings')
     await flushPromises()
     expect(listening()).toBe(false)
 

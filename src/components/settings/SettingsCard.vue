@@ -1,7 +1,7 @@
 <script>
 import { UiCard } from '../../ui';
 
-// One section of the Library (and of Settings): a title,
+// One section of Settings: a title,
 // an optional muted subtitle, an `aside` slot on the right of the header
 // (switch, button) and the body below.
 export default {
@@ -32,7 +32,7 @@ export default {
 </template>
 
 <style>
-/* Library frame. Desktop: a hairline section, no box. Phone: a small
+/* Settings frame. Desktop: a hairline section, no box. Phone: a small
    uppercase label above a white group on the grey ground. */
 .settings-card.ui-card {
   display: flex;

@@ -3,13 +3,26 @@ import DictionaryCatalog from './DictionaryCatalog.vue';
 import PackManager from '../services/pack-manager';
 import { PACK_DEFINITIONS } from '../config/pack-definitions';
 import { supportsModularPacks } from '../config/platform';
+import ResizeService from '../services/resize-service';
 import { UiButton, UiIcon, UiProgress } from '../ui';
 
 // "Dictionaries" in the app shell: the searchable catalog, with the packs and
-// the user's glossary beside it. A sub-page of Library.
+// the user's glossary beside it. A row of Settings on a phone, an item of the
+// sidebar on desktop.
 export default {
   name: 'DictionariesPage',
   components: { DictionaryCatalog, UiButton, UiIcon, UiProgress },
+  data() {
+    return { isPhone: ResizeService.isMobile() };
+  },
+  created() {
+    ResizeService.subscribe('dictionaries-page', () => {
+      this.isPhone = ResizeService.isMobile();
+    });
+  },
+  unmounted() {
+    ResizeService.unsubscribe('dictionaries-page');
+  },
   computed: {
     catalogQuery() {
       return String(this.$route.query.find || '');
@@ -50,9 +63,9 @@ export default {
 <template>
   <div class="dictionaries-page-wrapper" data-testid="dictionaries-page">
     <div class="dictionaries-page">
-      <router-link to="/library" class="dictionaries-back" data-testid="dictionaries-back">
+      <router-link v-if="isPhone" to="/settings" class="dictionaries-back" data-testid="dictionaries-back">
         <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />
-        Library
+        Settings
       </router-link>
 
       <dictionary-catalog
@@ -95,8 +108,8 @@ export default {
               />
               <span class="pack-row__meta">{{ pack.meta }}</span>
             </div>
-            <router-link to="/library#library-device" class="side-card__link">
-              Updates and removal are in Library
+            <router-link to="/settings#settings-downloads" class="side-card__link">
+              Updates and removal are in Settings
             </router-link>
           </section>
 
@@ -112,7 +125,7 @@ export default {
                 variant="outline"
                 size="sm"
                 data-testid="open-glossary"
-                @click="$router.push('/library/glossary')"
+                @click="$router.push('/glossary')"
               >
                 Open My glossary
               </ui-button>
@@ -143,7 +156,7 @@ eyebrow()
   font-family var(--font-ui)
   color var(--ink)
 
-// The way back to Library, on every layout
+// The way back to Settings, on a phone
 .dictionaries-back
   display inline-flex
   align-items center

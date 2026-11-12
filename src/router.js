@@ -4,7 +4,7 @@ import Storage from './services/storage'
 
 import LookupPage from './components/lookup/LookupPage.vue'
 import ReaderPage from './components/reader/ReaderPage.vue'
-import LibraryPage from './components/library/LibraryPage.vue'
+import SettingsPage from './components/settings/SettingsPage.vue'
 import TestsPage from './components/TestsPage.vue'
 import LexiconPage from './components/LexiconPage.vue'
 import DictionariesPage from './components/DictionariesPage.vue'
@@ -12,16 +12,28 @@ import DictionariesPage from './components/DictionariesPage.vue'
 // Redirects keep the query string and the hash of the old link
 const withTerm = (base, term) => (term ? `${base}/${encodeURIComponent(term)}` : base)
 
+// Links of the former Settings page: its dictionary filters now belong to
+// /dictionaries, and `view=preferences` is the `#dictionary-order` section
+function oldSettingsLink(to) {
+  if ('find' in to.query || 'status' in to.query) {
+    return { path: '/dictionaries', query: to.query, hash: to.hash }
+  }
+  if ('view' in to.query) {
+    const { view, ...query } = to.query
+    return { path: '/settings', query, hash: view === 'preferences' ? '#dictionary-order' : to.hash }
+  }
+  return true
+}
+
 const routes = [
   { path: '/', redirect: '/lookup' },
   // Lookup: query `mode` is `bo` or `en`, `q` is the English-mode query
   { path: '/lookup/:term?', component: LookupPage },
   { path: '/reader', component: ReaderPage },
-  { path: '/library', component: LibraryPage },
-  { path: '/library/settings', redirect: (to) => ({ path: '/library', query: to.query, hash: '#settings' }) },
+  { path: '/settings', component: SettingsPage, beforeEnter: oldSettingsLink },
   // "My glossary": the user's own dictionaries (LexiconPage)
-  { path: '/library/glossary/:packId?/:dictionaryId?', component: LexiconPage },
-  { path: '/library/dictionaries', component: DictionariesPage },
+  { path: '/glossary/:packId?/:dictionaryId?', component: LexiconPage },
+  { path: '/dictionaries', component: DictionariesPage },
 
   // Former routes
   {
@@ -41,39 +53,24 @@ const routes = [
     },
   },
   { path: '/segment', redirect: (to) => ({ path: '/reader', query: to.query, hash: to.hash }) },
+  // Library, which held Settings, My glossary and Dictionaries, is gone
+  { path: '/library', redirect: (to) => ({ path: '/settings', query: to.query, hash: to.hash }) },
+  { path: '/library/settings', redirect: (to) => ({ path: '/settings', query: to.query, hash: to.hash }) },
   {
-    path: '/settings',
-    redirect: (to) => {
-      if ('find' in to.query || 'status' in to.query) {
-        return { path: '/library/dictionaries', query: to.query, hash: to.hash }
-      }
-      const { view, ...query } = to.query
-      return {
-        path: '/library',
-        query,
-        hash: view === 'preferences' ? '#dictionary-order' : '#settings',
-      }
-    },
+    path: '/library/glossary/:packId?/:dictionaryId?',
+    redirect: (to) => ({ path: to.path.slice('/library'.length), query: to.query, hash: to.hash }),
   },
   {
-    path: '/glossary/:packId?/:dictionaryId?',
-    redirect: (to) => ({
-      path: '/library' + to.path,
-      query: to.query,
-      hash: to.hash,
-    }),
+    path: '/library/dictionaries',
+    redirect: (to) => ({ path: '/dictionaries', query: to.query, hash: to.hash }),
   },
   {
     path: '/lexicon/:packId?/:dictionaryId?',
     redirect: (to) => ({
-      path: '/library/glossary' + to.path.slice('/lexicon'.length),
+      path: '/glossary' + to.path.slice('/lexicon'.length),
       query: to.query,
       hash: to.hash,
     }),
-  },
-  {
-    path: '/dictionaries',
-    redirect: (to) => ({ path: '/library/dictionaries', query: to.query, hash: to.hash }),
   },
   { path: '/tests', component: TestsPage },
 ]

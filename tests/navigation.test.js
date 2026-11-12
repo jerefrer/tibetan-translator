@@ -8,14 +8,14 @@ import {
 } from '../src/config/navigation.js'
 
 describe('navigation config', () => {
-  it('should list Lookup, Reader and Library on desktop', () => {
+  it('should list Lookup, Reader, the glossary and the dictionaries on desktop, Settings apart', () => {
     const ids = navItemsFor(false).map((item) => item.id)
-    expect(ids).toEqual(['lookup', 'reader', 'library'])
+    expect(ids).toEqual(['lookup', 'reader', 'glossary', 'dictionaries'])
   })
 
-  it('should keep the same three destinations on a phone', () => {
+  it('should keep three destinations on a phone, the glossary and dictionaries inside Settings', () => {
     const ids = navItemsFor(true).map((item) => item.id)
-    expect(ids).toEqual(['lookup', 'reader', 'library'])
+    expect(ids).toEqual(['lookup', 'reader', 'settings'])
   })
 
   it('should read the first path segment of a route', () => {
@@ -26,11 +26,23 @@ describe('navigation config', () => {
   it('should highlight the item matching the route on desktop', () => {
     expect(activeNavId('/lookup/abc', false)).toBe('lookup')
     expect(activeNavId('/reader', false)).toBe('reader')
-    expect(activeNavId('/library/glossary/custom-a/1', false)).toBe('library')
+    expect(activeNavId('/settings', false)).toBe('settings')
   })
 
-  it('should highlight Library on a phone while a library section is open', () => {
-    expect(activeNavId('/library/dictionaries', true)).toBe('library')
+  it('should highlight the glossary or the dictionaries on desktop while one is open', () => {
+    expect(activeNavId('/glossary/custom-a/1', false)).toBe('glossary')
+    expect(activeNavId('/dictionaries', false)).toBe('dictionaries')
+  })
+
+  it('should highlight Settings on a phone while the glossary or the dictionaries are open', () => {
+    expect(activeNavId('/dictionaries', true)).toBe('settings')
+    expect(activeNavId('/glossary', true)).toBe('settings')
+    expect(activeNavId('/glossary/custom-a/1', true)).toBe('settings')
+  })
+
+  it('should group the glossary and the dictionaries apart from Lookup and Reader', () => {
+    const groups = navItemsFor(false).map((item) => item.group)
+    expect(groups).toEqual(['tools', 'tools', 'collections', 'collections'])
   })
 
   it('should highlight nothing for a route that has no entry', () => {
@@ -41,7 +53,7 @@ describe('navigation config', () => {
     const paths = shortcutPaths()
     expect(paths.d).toBe('/lookup?mode=bo')
     expect(paths.t).toBe('/reader')
-    expect(paths.g).toBe('/library#settings')
+    expect(paths.g).toBe('/settings')
   })
 
   it('should map Cmd+D to Lookup in Tibetan mode', () => {

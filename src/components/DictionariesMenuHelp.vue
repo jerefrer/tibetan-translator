@@ -4,7 +4,7 @@ import { isMacOS } from '../config/platform';
 
 // How to choose the dictionaries shown, for the Lookup, Search and Reader help
 // dialogs ("Dictionaries filter" tab): the dictionary tabs of an entry
-// (TermEntry's DictionaryTabs) and the dictionary preferences in Library. The
+// (TermEntry's DictionaryTabs) and the dictionary preferences in Settings. The
 // file keeps the name it had when it explained the Dictionaries menu of the
 // former Define, Search and Split pages.
 export default {
@@ -57,7 +57,7 @@ export default {
     <h3 class="help-heading">Which dictionaries, in which order</h3>
     <ul class="menu-help__tips">
       <li>
-        In <strong>Library</strong>, under Settings, <strong>Dictionary preferences</strong>
+        In <strong>Settings</strong>, <strong>Dictionary preferences</strong>
         lists every dictionary. Switch one off to leave it out of Lookup and the
         Reader; drag it by its handle to change the order the tabs and definitions follow.
       </li>

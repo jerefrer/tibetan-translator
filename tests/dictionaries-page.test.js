@@ -151,7 +151,7 @@ describe('DictionariesPage', () => {
 
     await wrapper.get('[data-testid="open-glossary"]').trigger('click')
 
-    expect(push).toHaveBeenCalledWith('/library/glossary')
+    expect(push).toHaveBeenCalledWith('/glossary')
 
     wrapper.unmount()
   })
@@ -167,14 +167,23 @@ describe('DictionariesPage', () => {
     wrapper.unmount()
   })
 
-  it('should link back to Library above the title', () => {
+  it('should link back to Settings above the title on a phone', () => {
+    const width = window.innerWidth
+    window.innerWidth = 390
     const wrapper = mountPage()
 
     const back = wrapper
       .findAllComponents(RouterLinkStub)
-      .find((link) => link.text() === 'Library')
-    expect(back.props('to')).toBe('/library')
+      .find((link) => link.text() === 'Settings')
+    expect(back.props('to')).toBe('/settings')
 
+    wrapper.unmount()
+    window.innerWidth = width
+  })
+
+  it('should leave the way back to the sidebar on desktop', () => {
+    const wrapper = mountPage()
+    expect(wrapper.find('[data-testid="dictionaries-back"]').exists()).toBe(false)
     wrapper.unmount()
   })
 })

@@ -80,7 +80,7 @@ async function mountApp() {
       { path: '/define', component: Page },
       { path: '/search', component: Page },
       { path: '/lookup', component: Page },
-      { path: '/library', component: Page },
+      { path: '/settings', component: Page },
     ],
   })
   router.push('/define')
@@ -335,19 +335,19 @@ describe('keyboard shortcuts', () => {
     expect(wrapper.vm.$route.path).toBe('/lookup')
   })
 
-  it('should go to Library settings on Cmd+G, and ask Library to scroll back when already there', async () => {
+  it('should go to Settings on Cmd+G, and ask Settings to scroll back when already there', async () => {
     await mountApp()
     await finishLoading()
     const spy = vi.spyOn(window, 'dispatchEvent')
     const refollowed = () => spy.mock.calls.filter(([e]) => e.type === 'route-refollowed').length
 
     $(window).trigger($.Event('keydown', { key: 'g', metaKey: true }))
-    await vi.waitFor(() => expect(wrapper.vm.$route.fullPath).toBe('/library#settings'))
+    await vi.waitFor(() => expect(wrapper.vm.$route.fullPath).toBe('/settings'))
     expect(refollowed()).toBe(0)
 
     $(window).trigger($.Event('keydown', { key: 'g', metaKey: true }))
     await vi.waitFor(() => expect(refollowed()).toBe(1))
-    expect(wrapper.vm.$route.fullPath).toBe('/library#settings')
+    expect(wrapper.vm.$route.fullPath).toBe('/settings')
     spy.mockRestore()
   })
 })

@@ -6,15 +6,15 @@ import { savedTerms } from '../services/saved-terms';
 
 const RECENT_LIMIT = 8;
 
-// Desktop: a sidebar with the app name, Lookup / Reader / Library, the recent
+// Desktop: a sidebar with the app name, Lookup / Reader, My glossary / Dictionaries, the recent
 // and saved terms, and Settings at the bottom.
-// Phone: a bottom bar with the same three tabs.
+// Phone: a bottom bar with Lookup, Reader and Settings.
 export default {
   name: 'AppNav',
   components: { UiIcon },
   props: {
     isMobile: { type: Boolean, default: false },
-    // Shows a dot on Settings (Library on a phone) when an update is waiting for a restart
+    // Shows a dot on Settings (a tab on a phone) when an update is waiting for a restart
     updateReady: { type: Boolean, default: false },
   },
   data() {
@@ -28,9 +28,7 @@ export default {
       return navItemsFor(this.isMobile);
     },
     activeId() {
-      return this.$route.path.startsWith('/library') && this.$route.hash === '#settings'
-        ? 'settings'
-        : activeNavId(this.$route.path, this.isMobile);
+      return activeNavId(this.$route.path, this.isMobile);
     },
     currentTerm() {
       const match = this.$route.path.match(/^\/lookup\/(.+)$/);
@@ -43,10 +41,10 @@ export default {
     },
   },
   methods: {
-    // Already on /library#settings: vue-router ignores the link, so ask the
-    // page to scroll back to the section itself
+    // Already on /settings: vue-router ignores the link, so ask the page to
+    // scroll back to the top itself
     followSettings(event, navigate) {
-      if (this.$route.fullPath === '/library#settings') {
+      if (this.$route.fullPath === '/settings') {
         event.preventDefault();
         window.dispatchEvent(new CustomEvent(REFOLLOW_EVENT));
         return;
@@ -90,9 +88,14 @@ export default {
     </div>
 
     <div class="app-nav__items">
+      <template v-for="(item, index) in items" :key="item.id">
+      <span
+        v-if="!isMobile && index > 0 && item.group !== items[index - 1].group"
+        class="app-nav__separator"
+        role="separator"
+        data-testid="nav-separator"
+      />
       <router-link
-        v-for="item in items"
-        :key="item.id"
         v-slot="{ href, navigate }"
         :to="item.path"
         custom
@@ -109,7 +112,7 @@ export default {
           <span class="app-nav__icon">
             <ui-icon :name="item.icon" :size="isMobile ? 24 : 18" />
             <span
-              v-if="isMobile && item.id === 'library' && updateReady"
+              v-if="isMobile && item.id === 'settings' && updateReady"
               class="app-nav__dot"
               data-testid="nav-update-dot"
             />
@@ -117,6 +120,7 @@ export default {
           {{ item.label }}
         </a>
       </router-link>
+      </template>
     </div>
 
     <template v-if="!isMobile">
@@ -158,7 +162,7 @@ export default {
 
       <div class="app-nav__spacer" />
 
-      <router-link v-slot="{ href, navigate }" to="/library#settings" custom>
+      <router-link v-slot="{ href, navigate }" to="/settings" custom>
         <a
           :href="href"
           class="app-nav__item"
@@ -246,6 +250,12 @@ export default {
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--ink);
+}
+.app-nav__separator {
+  display: block;
+  height: 1px;
+  margin: var(--space-2) var(--space-2);
+  background: var(--line);
 }
 .app-nav--sidebar .app-nav__items {
   display: flex;

@@ -4,7 +4,7 @@
   import { HELP_SHORTCUTS } from '../config/navigation'
   import { isMacOS } from '../config/platform'
 
-  // How to read a text in Reader, opened from Library's help rows. The panels
+  // How to read a text in Reader, opened from Settings' help rows. The panels
   // use the styles of DefinePageHelpDialogWithButton.vue (global). The file
   // keeps the name it had when a "?" button opened it on the Split page.
   export default {

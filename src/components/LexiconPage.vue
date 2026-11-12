@@ -1,14 +1,17 @@
 <template>
   <div class="lexicon-page-wrapper" :class="{ 'is-phone': isPhone }" data-testid="lexicon-page">
     <div class="lexicon-page">
+      <!-- On a phone the glossary is a row of Settings; the desktop sidebar
+           lists it directly -->
       <button
+        v-if="isPhone"
         type="button"
         class="back-link"
         data-testid="lexicon-back"
-        @click="$router.push('/library')"
+        @click="$router.push('/settings')"
       >
         <span class="back-link__icon"><ui-icon name="chevron-left" :size="22" :stroke-width="2.4" /></span>
-        Library
+        Settings
       </button>
 
       <div v-if="!isSupported" class="unsupported" data-testid="lexicon-unsupported">
@@ -288,7 +291,7 @@ export default {
     // mirroring the route into local state and reconciling the two with a
     // '$route.params.packId' watcher was unsound: the watcher only sees the
     // immediately preceding value, so a round trip through an unrelated
-    // route (e.g. /library/glossary/A -> /library -> /library/glossary/A) looks identical,
+    // route (e.g. /glossary/A -> /settings -> /glossary/A) looks identical,
     // from that one watcher's perspective, to a fresh navigation back to A —
     // there is no way to tell "the user pressed back" apart from "the user
     // clicked Manage entries on A again" from route state alone. Deriving
@@ -387,7 +390,7 @@ export default {
       if (option) return this.navigateTo(option);
     },
     navigateTo(option) {
-      const path = `/library/glossary/${option.packId}/${option.dictionaryId}`;
+      const path = `/glossary/${option.packId}/${option.dictionaryId}`;
       if (this.$route.path === path) return; // avoid a redundant-navigation warning
       return this.$router.replace(path);
     },

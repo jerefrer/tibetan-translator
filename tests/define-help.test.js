@@ -1,5 +1,5 @@
 /**
- * The "Looking up a word" help dialog, opened from Library's help rows.
+ * The "Looking up a word" help dialog, opened from Settings' help rows.
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
@@ -19,7 +19,7 @@ const body = (testid) => document.body.querySelector(`[data-testid="${testid}"]`
 const tabLabels = () =>
   Array.from(document.body.querySelectorAll('.ui-tabs__trigger')).map((tab) => tab.textContent.trim())
 
-// Library opens the dialog from its help rows with open()
+// Settings opens the dialog from its help rows with open()
 async function openHelp() {
   wrapper = mount(DefinePageHelpDialogWithButton, { attachTo: document.body })
   wrapper.vm.open()
@@ -35,7 +35,7 @@ afterEach(() => {
 })
 
 describe('Define help', () => {
-  it('should render no button of its own, only the dialog Library opens', async () => {
+  it('should render no button of its own, only the dialog Settings opens', async () => {
     wrapper = mount(DefinePageHelpDialogWithButton, { attachTo: document.body })
     expect(wrapper.find('button').exists()).toBe(false)
     expect(body('define-help')).toBeNull()
@@ -52,7 +52,7 @@ describe('Define help', () => {
     wrapper.vm.tab = 'dictionaries'
     await flushPromises()
     const menuHelp = body('dictionaries-menu-help').textContent
-    for (const text of ['All', 'More…', 'Dictionary preferences', 'Library', 'Alt']) expect(menuHelp).toContain(text)
+    for (const text of ['All', 'More…', 'Dictionary preferences', 'Settings', 'Alt']) expect(menuHelp).toContain(text)
     expect(menuHelp).not.toContain('Ctrl + click')
     expect(menuHelp).not.toContain('B for Browse')
   })
@@ -85,7 +85,7 @@ describe('Define help', () => {
     expect(text).toContain('Select previous entry in results')
     expect(text).toContain('Look up a Tibetan term (Lookup in བོད)')
     expect(text).toContain('Search the definitions (Lookup in EN)')
-    expect(text).toContain('Go to Library settings')
+    expect(text).toContain('Go to Settings')
   })
 
   it('should close from its Close button', async () => {
