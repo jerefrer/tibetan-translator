@@ -406,6 +406,20 @@ describe('Search Query Builder', () => {
   })
 })
 
+describe('Wylie in parentheses', () => {
+  it('should read Wylie inside parentheses as Tibetan', () => {
+    expect(parseSearchQuery('(sangs rgyas)').regular).toEqual(['སངས་རྒྱས'])
+  })
+
+  it('should read it as Tibetan next to other conditions', () => {
+    expect(parseSearchQuery('buddha & (sangs rgyas)').regular).toEqual(['buddha', 'སངས་རྒྱས'])
+  })
+
+  it('should leave an unclosed parenthesis untouched', () => {
+    expect(parseSearchQuery('(sangs rgyas').regular).toEqual(['(sangs rgyas'])
+  })
+})
+
 describe('SQL of a search', () => {
   // Captured from SearchPage.performSearch before the code moved here
   const EXPECTED = {
@@ -417,6 +431,11 @@ describe('SQL of a search', () => {
   // Captured from buildSearchSql when Lookup became its second caller: a
   // query of Tibetan only uses LIKE, without the FTS join
   EXPECTED['ཡེ་ཤེས་'] = "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition, 0 AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            WHERE (entries.term LIKE '%ཡེ་ཤེས་%' ESCAPE '\\' OR entries.definition LIKE '%ཡེ་ཤེས་%' ESCAPE '\\')\n            ORDER BY length(entries.term), dictionaryPosition\n            LIMIT 5000\n          "
+
+  // Wylie in parentheses is read as Tibetan (ported from tests/search-page.test.js,
+  // F2): captured from buildSearchSql
+  EXPECTED['(sangs rgyas)'] = "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition, 0 AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            WHERE (entries.term LIKE '%སངས་རྒྱས%' ESCAPE '\\' OR entries.definition LIKE '%སངས་རྒྱས%' ESCAPE '\\')\n            ORDER BY length(entries.term), dictionaryPosition\n            LIMIT 5000\n          "
+  EXPECTED['buddha & (sangs rgyas)'] = "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,\n                   bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            INNER JOIN entries_fts ON entries.id = entries_fts.rowid\n            WHERE (entries_fts MATCH 'term:\"buddha\" OR definition:\"buddha\"') AND (entries.term LIKE '%སངས་རྒྱས%' ESCAPE '\\' OR entries.definition LIKE '%སངས་རྒྱས%' ESCAPE '\\')\n            ORDER BY rank\n            LIMIT 5000\n          "
 
   for (const [query, expected] of Object.entries(EXPECTED)) {
     it(`should build the same SQL as the Search page did for ${query}`, () => {
