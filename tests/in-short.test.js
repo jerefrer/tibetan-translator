@@ -53,3 +53,21 @@ describe('inShort', () => {
     expect(inShort(entries, { max: 2 })).toEqual(['a', 'b'])
   })
 })
+
+describe('inShort and HTML entities', () => {
+  it('should decode entities before splitting so &nbsp; and &amp; do not break a gloss', () => {
+    const entries = [
+      { dictionaryId: 1, definition: 'Blessed&nbsp;One; fire &amp; water' },
+      { dictionaryId: 2, definition: 'blessed one; fire&nbsp;&amp;&nbsp;water' },
+    ]
+    expect(inShort(entries)).toEqual(['Blessed One'])
+  })
+
+  it('should read &#39; as an apostrophe', () => {
+    const entries = [
+      { dictionaryId: 1, definition: 'Buddha&#39;s word' },
+      { dictionaryId: 2, definition: "buddha's word" },
+    ]
+    expect(inShort(entries)).toEqual(['Buddha\'s word'])
+  })
+})

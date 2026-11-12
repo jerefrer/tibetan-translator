@@ -1,6 +1,7 @@
 // One-line glosses for the rows of a result list: the first words of the
 // definition of the first enabled dictionary that has the term.
 import SqlDatabase from './sql-database';
+import { decodeEntities } from './html-entities';
 
 const cache = new Map();
 
@@ -15,8 +16,7 @@ if (typeof window !== 'undefined') {
 
 /** The definition as one line of plain text, cut on a word with an ellipsis. */
 export function plainGloss(definitionHtml, maxLength = 120) {
-  const text = (definitionHtml || '')
-    .replace(/<[^>]*>/g, ' ')
+  const text = decodeEntities((definitionHtml || '').replace(/<[^>]*>/g, ' '))
     .replace(/\s+/g, ' ')
     .trim();
   if (text.length <= maxLength) return text;

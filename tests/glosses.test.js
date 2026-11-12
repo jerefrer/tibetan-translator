@@ -62,6 +62,10 @@ describe('loadGlosses', () => {
 })
 
 describe('plainGloss', () => {
+  it('should decode HTML entities', () => {
+    expect(plainGloss('fire&nbsp;&amp;&nbsp;water, Buddha&#39;s')).toBe("fire & water, Buddha's")
+  })
+
   it('should strip tags and cut on a word', () => {
     expect(plainGloss('<b>hello</b>   world')).toBe('hello world')
     expect(plainGloss('alpha beta gamma delta', 12)).toBe('alpha beta…')

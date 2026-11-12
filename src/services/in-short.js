@@ -1,10 +1,11 @@
 // "In short": the short glosses several dictionaries agree on for a term.
 // Pure functions, no Vue, no database.
+import { decodeEntities } from './html-entities';
 
 const WORD = /^[\p{Script=Latin}'-]+$/u;
 
 function stripNotes(text) {
-  let out = text.replace(/<[^>]*>/g, ' ');
+  let out = decodeEntities(text.replace(/<[^>]*>/g, ' '));
   // Repeat so that nested notes disappear too
   let previous;
   do {
