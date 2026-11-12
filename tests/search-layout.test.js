@@ -51,6 +51,12 @@ describe('Search — layout', () => {
     expect(read('TermEntries.vue')).toContain('--term-column: clamp(11rem, 22%, 18rem);')
   })
 
+  it('should leave room above and below the preview line for stacked Tibetan vowels, without moving it', () => {
+    expect(read('TermEntries.vue')).toMatch(
+      /\n\.term-entries__preview-text \{\n(  .*\n)*  padding-block: 0\.35em;\n  margin-block: -0\.35em;\n/
+    )
+  })
+
   it('should show the first definition where the preview stood when the row opens', async () => {
     const wrapper = mountRow()
     const body = wrapper.find('.term-entries__body')

@@ -251,8 +251,9 @@
   z-index: 1;
 }
 
-/* The preview: one line, cut with an ellipsis. The line height keeps the
-   vowels above the Tibetan from being clipped by the overflow. */
+/* The preview: one line, cut with an ellipsis. The overflow would clip the
+   vowels above the Tibetan and the stacks below it: the padding widens the
+   clip, the margin keeps the line where it was. */
 .term-entries__preview {
   display: grid;
   grid-template-columns: var(--dictionary-column) minmax(0, 1fr) 2rem;
@@ -285,6 +286,8 @@
   font-family: var(--font-serif);
   font-size: var(--text-entry);
   line-height: 1.9;
+  padding-block: 0.35em;
+  margin-block: -0.35em;
 }
 /* A definition can hold paragraphs, breaks, links and players: flatten them
    to run in one line */
