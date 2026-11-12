@@ -533,6 +533,62 @@ describe('Lookup — layout', () => {
     expect(shown(resultsPane())).toBe(true)
   })
 
+  it('should open the entry on a phone when another page links to a term', async () => {
+    window.innerWidth = 390
+    await mountAt('/lookup')
+    await go('/reader')
+    await go('/lookup/' + encodeURIComponent(KAKA))
+    expect(wrapper.find('[data-testid="lookup-back"]').exists()).toBe(true)
+    expect(shown(entryPane())).toBe(true)
+    expect(shown(resultsPane())).toBe(false)
+    expect(headword().text()).toBe(KAKA)
+  })
+
+  it('should open the entry on a phone when Lookup is first opened by a link from another page', async () => {
+    window.innerWidth = 390
+    await mountAt('/reader')
+    await go('/lookup/' + encodeURIComponent(KAKA))
+    expect(wrapper.find('[data-testid="lookup-back"]').exists()).toBe(true)
+    expect(shown(entryPane())).toBe(true)
+    expect(headword().text()).toBe(KAKA)
+  })
+
+  it('should open the entry on a phone for a cold Define deep link', async () => {
+    window.innerWidth = 390
+    await mountAt('/define/' + encodeURIComponent(KAKA))
+    expect(wrapper.find('[data-testid="lookup-back"]').exists()).toBe(true)
+    expect(shown(entryPane())).toBe(true)
+    expect(shown(resultsPane())).toBe(false)
+  })
+
+  it('should come back to the list from an entry another page linked to', async () => {
+    window.innerWidth = 390
+    await mountAt('/reader')
+    await go('/lookup/' + encodeURIComponent(KAKA))
+    await wrapper.get('[data-testid="lookup-back"]').trigger('click')
+    await flushPromises()
+    expect(shown(resultsPane())).toBe(true)
+    expect(shown(entryPane())).toBe(false)
+    expect(input().element.value).toBe(KAKA)
+  })
+
+  it('should keep the list on a phone while typing after arriving by a link', async () => {
+    window.innerWidth = 390
+    await mountAt('/reader')
+    await go('/lookup/' + encodeURIComponent(KAKA))
+    await wrapper.get('[data-testid="lookup-back"]').trigger('click')
+    await flushPromises()
+    await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
+    await flushPromises()
+    await typeWylie('ka ')
+    await vi.waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+    )
+    await flushPromises()
+    expect(shown(resultsPane())).toBe(true)
+    expect(shown(entryPane())).toBe(false)
+  })
+
   it('should size the phone results to the visible height', async () => {
     window.innerWidth = 390
     await mountAt('/lookup')

@@ -153,10 +153,14 @@ export default {
         this.debouncedSelectFirst();
       }
     },
-    $route(route) {
+    $route(route, from) {
       // Kept alive while another page is open: its routes are not Lookup's
       if (!route.path.startsWith('/lookup')) return;
       this.applyRoute(route);
+      // A term another page links to (Reader's "Open entry"): on a phone the
+      // entry opens, not the list. Typing and tapping inside Lookup decide
+      // for themselves.
+      if (route.params.term && !from?.path.startsWith('/lookup')) this.setMobileShowDefinition(true);
     },
   },
   created() {
@@ -165,7 +169,12 @@ export default {
     this.debouncedRecordTerm = _.debounce(this.recordSelectedTerm, DEBOUNCE_SEARCH_MS);
     this.shownDictionaries = dictionariesSignature();
     this.packsChanged = false;
-    if (this.$route.path.startsWith('/lookup')) this.applyRoute(this.$route);
+    if (this.$route.path.startsWith('/lookup')) {
+      this.applyRoute(this.$route);
+      // Created on a term: a deep link (/define/<term>) or a link from
+      // another page, so on a phone the entry opens
+      if (this.$route.params.term) this.setMobileShowDefinition(true);
+    }
   },
   mounted() {
     this._onFocusLookup = () => this.focusField();
