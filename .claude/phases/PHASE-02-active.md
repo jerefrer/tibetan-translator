@@ -1,5 +1,5 @@
 # Phase 02 — Shell
-Status: PENDING
+Status: ACTIVE
 
 ## Goal
 Three destinations (Lookup, Reader, Library) with redirects from every old route, a sidebar on desktop and three tabs on phones.
