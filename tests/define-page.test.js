@@ -542,6 +542,12 @@ describe('Define — layout', () => {
     const source = fs.readFileSync(path.resolve(__dirname, '../src/components/DefinePage.vue'), 'utf8')
     expect(source).toMatch(/\n\.terms-pane\n  width unquote\('min\(22\.5rem, 40%\)'\)\n/)
   })
+
+  it('should end the terms list on its last term, without a line of white under it', () => {
+    const source = fs.readFileSync(path.resolve(__dirname, '../src/components/DefinePage.vue'), 'utf8')
+    expect(source).toMatch(/\n  &:empty\n    min-height 1px\n    margin-top -1px\n/)
+    expect(source).toMatch(/\n\.term-item:has\(\+ \.terms-load-more-sentinel:empty\)\n  border-bottom-color transparent\n/)
+  })
 })
 
 describe('Define — recent terms and the Wylie tip', () => {

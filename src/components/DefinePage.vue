@@ -715,6 +715,10 @@ export default {
     color var(--accent)
     border-bottom-color transparent
 
+// The card's border closes the list: the last term draws no line of its own
+.term-item:has(+ .terms-load-more-sentinel:empty)
+  border-bottom-color transparent
+
 .terms-load-more-sentinel
   display flex
   justify-content center
@@ -722,8 +726,11 @@ export default {
   min-height 2.75rem
   color var(--muted)
 
+  // Without its spinner it is a 1px line left for the infinite scroll: it
+  // overlaps the last term rather than drawing a white line under it
   &:empty
     min-height 1px
+    margin-top -1px
 
 .no-results
   @extend .card
