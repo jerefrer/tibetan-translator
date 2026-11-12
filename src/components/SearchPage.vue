@@ -1,28 +1,23 @@
 <script>
-import _ from 'underscore';
-
-import TibetanRegExps from 'tibetan-regexps';
-
 import {
-  MAX_ENTRIES_PER_REQUEST,
   SEARCH_GROUPS_BATCH_SIZE,
   SEARCH_OPEN_DEFINITIONS_LIMIT,
   MAX_PREVIOUS_QUERIES,
   INFINITE_SCROLL_ROOT_MARGIN_LARGE,
 } from '../config/constants';
 import Decorator from '../services/decorator';
-import PhoneticSearch from '../services/phonetic-search';
 import SqlDatabase from '../services/sql-database';
 import Storage from '../services/storage';
 import { mayNeedLegacyRepair } from '../services/legacy-to-unicode';
 import { supportsModularPacks } from '../config/platform';
 import {
-  convertWylieInParentheses,
-  phoneticsLooseFor,
-  phoneticsStrictFor,
-  replaceTibetanGroups,
-  syllablesFor,
-} from '../utils.js';
+  buildSearchSql,
+  containsTibetan,
+  groupSearchEntries,
+  highlightSearchTerms,
+  isPlainTibetanQuery,
+  parseSearchQuery,
+} from '../services/search-query';
 import { UiButton, UiIcon, UiSpinner, UiTextField, UiTooltip } from '../ui';
 import DictionariesMenuMixin from './DictionariesMenuMixin';
 import InfiniteScrollMixin from './mixins/InfiniteScrollMixin';
@@ -35,11 +30,6 @@ import ResultsAndPaginationAndDictionaries from './ResultsAndPaginationAndDictio
 import TermEntries from './TermEntries.vue';
 import SearchBuilder from './SearchBuilder.vue';
 import { getScanInfo } from '../services/scan-service';
-
-// tibetanGroups carries the g flag, so its test() resumes where the previous
-// call stopped and answers false every other time on the same text. A copy
-// without it gives the same answer each time.
-const TIBETAN = new RegExp(TibetanRegExps.tibetanGroups.source, 'iu');
 
 // Board "B · Search" (and its Empty, query builder, Dictionaries and Phone
 // variants): the query field on top, the query builder under it when shown,
@@ -164,9 +154,7 @@ export default {
      *  (multi-term '&' queries and phonetic [..]/{..} syntax stay editable
      *  in the dialog's own field instead of being pre-filled here). */
     quickAddTerm() {
-      const trimmed = (this.searchQuery || '').trim();
-      if (!trimmed || trimmed.includes('&') || /[[\]{}]/.test(trimmed)) return '';
-      return this.containsTibetan(trimmed) ? trimmed : '';
+      return isPlainTibetanQuery(this.searchQuery) ? this.searchQuery.trim() : '';
     },
     // InfiniteScrollMixin configuration
     infiniteScrollRootMargin() {
@@ -192,80 +180,12 @@ export default {
     // first; inside a group the entries follow the user's dictionary order.
     groups() {
       // Use cached terms to avoid re-sorting on input change (only on search)
-      const searchTermLower = this.cachedRegularTerms[0]?.toLowerCase() || '';
-
-      // Read the user's customised dictionary order from localStorage (the same
-      // order that drives DefinePage and the settings drag-drop). The SQL row's
-      // `dictionaryPosition` is the build-time order, which doesn't reflect
-      // user preferences.
-      const userDictPositions = {};
-      for (const d of this.dictionaries) userDictPositions[d.id] = d.position;
-
-      const pad = (x) => x.toString().padStart(10, '0');
-      const byTerm = new Map();
-      for (const entry of this.entriesForEnabledDictionaries) {
-        if (!byTerm.has(entry.term)) byTerm.set(entry.term, []);
-        byTerm.get(entry.term).push(entry);
-      }
-
-      const groups = [];
-      for (const [term, entries] of byTerm) {
-        // Dictionary position first, so reordering dictionaries in Settings
-        // reorders the definitions; then BM25 rank (negative, closer to 0 =
-        // better; offset to stay positive for string comparison)
-        const sorted = _.sortBy(entries, (entry) =>
-          [userDictPositions[entry.dictionaryId] || 999, (entry.rank || 0) + 1000].map(pad)
-        );
-        groups.push({
-          term,
-          entries: sorted,
-          bestRank: Math.min(...entries.map((entry) => entry.rank || 0)),
-        });
-      }
-
-      // Looking up a Tibetan word (typed in Tibetan, or by its sound) wants
-      // the terms that ARE that word first, then terms that contain it, and
-      // only then terms found through their definitions; within each, shorter
-      // terms before BM25 rank, which otherwise favours terms with many
-      // definitions. Searching English words in the definitions is ranked by
-      // BM25 first.
-      const tibetanQueries = this.cachedRegularTerms.filter((term) => this.containsTibetan(term));
-      const { strict, loose } = this.termPhoneticVariants;
-      const lookingUpTibetan = tibetanQueries.length > 0 || strict.length > 0 || loose.length > 0;
-
-      // 0: the term starts with the query, 1: contains it, 2: neither
-      const termMatch = (group) => {
-        const [entry] = group.entries;
-        const candidates = [
-          ...tibetanQueries.map((query) => [group.term, query]),
-          ...strict.map((variant) => [entry.termPhoneticsStrict || '', variant]),
-          ...loose.map((variant) => [entry.termPhoneticsLoose || '', variant]),
-        ];
-        if (candidates.some(([text, query]) => text.startsWith(query))) return 0;
-        if (candidates.some(([text, query]) => text.includes(query))) return 1;
-        return 2;
-      };
-
-      return _.sortBy(groups, (group) => {
-        const startsWithBonus = group.term.toLowerCase().startsWith(searchTermLower) ? 0 : 1;
-        const rank = group.bestRank + 1000;
-        const length = group.term.length;
-        return (lookingUpTibetan ? [termMatch(group), length, rank] : [startsWithBonus, rank, length]).map(pad);
+      return groupSearchEntries(this.entries, {
+        dictionaries: this.dictionaries,
+        regular: this.cachedRegularTerms,
+        phoneticsStrict: this.cachedPhoneticsStrictTerms,
+        phoneticsLoose: this.cachedPhoneticsLooseTerms,
       });
-    },
-    // The phonetic queries of the last search, prepared the way performSearch
-    // matches them against termPhoneticsStrict / termPhoneticsLoose
-    termPhoneticVariants() {
-      const prepare = (terms, prepareTerm) =>
-        terms.flatMap((raw) =>
-          (raw.includes(' ') ? [raw] : PhoneticSearch.processSpacelessPhoneticSearch(raw)).map((variant) =>
-            prepareTerm.call(PhoneticSearch, variant)
-          )
-        ).filter(Boolean);
-      return {
-        strict: prepare(this.cachedPhoneticsStrictTerms, PhoneticSearch.prepareTermForStrictMatching),
-        loose: prepare(this.cachedPhoneticsLooseTerms, PhoneticSearch.prepareTermForLooseMatching),
-      };
     },
     visibleGroups() {
       // Decorate here, not in the template: a computed only re-runs when its
@@ -308,25 +228,19 @@ export default {
     totalNumberOfEntriesForEnabledDictionaries() {
       return this.entriesForEnabledDictionaries?.length || 0;
     },
-    searchTerms() {
-      if (!this.searchQuery) return [];
-      else
-        return _.compact(
-          this.substituteWylieTerms(this.searchQuery)
-            .split('&')
-            .map((t) => t.trim())
-        );
+    // What the query means: its terms, regular and phonetic
+    parsedQuery() {
+      return parseSearchQuery(this.searchQuery);
     },
     regularSearchTerms() {
-      return this.searchTerms.filter((term) => !term.match(/^[\[\{].*[\]\}]$/));
+      return this.parsedQuery.regular;
     },
     phoneticsStrictSearchTerms() {
-      // Return raw terms - spaceless processing happens in performSearch
-      return this.phoneticsTerms(/^\[.*\]$/, phoneticsStrictFor);
+      // Raw terms - spaceless processing happens in the search service
+      return this.parsedQuery.phoneticsStrict;
     },
     phoneticsLooseSearchTerms() {
-      // Return raw terms - spaceless processing happens in performSearch
-      return this.phoneticsTerms(/^\{.*\}$/, phoneticsLooseFor);
+      return this.parsedQuery.phoneticsLoose;
     },
   },
   methods: {
@@ -356,102 +270,18 @@ export default {
       this.expandedTerms = { ...this.expandedTerms, [term]: !this.expandedTerms[term] };
     },
     containsTibetan(text) {
-      // Check if text contains any Tibetan Unicode characters
-      return TIBETAN.test(text);
-    },
-    substituteWylieTerms(text) {
-      return convertWylieInParentheses(text);
-    },
-    phoneticsTerms(regexp, convert) {
-      return _.chain(this.searchTerms.map((term) => term.match(regexp)))
-        .compact()
-        .flatten()
-        .value()
-        .map((term) => term.slice(1, -1))
-        .map((term) =>
-          replaceTibetanGroups(term, (tibetan) => convert(tibetan) + ' ')
-        );
+      return containsTibetan(text);
     },
     wrapAllTibetanWithSpansAndAddTshekIfMissing(definition) {
       return Decorator.wrapAllTibetanWithSpansAndAddTshekIfMissing(definition);
     },
     highlightSearchTerms(definition) {
-      // Split by HTML tags - the regex captures tags so they're included in the result
-      const parts = definition.split(/(<[^>]+>)/);
-
-      return parts
-        .map((part) => {
-          // Skip HTML tags - only process text nodes
-          if (part.startsWith('<') && part.endsWith('>')) {
-            return part;
-          }
-          // Apply highlighting to text nodes only
-          // Use cached terms (frozen at search time) to avoid re-rendering on input change
-          let highlighted = part;
-          this.cachedRegularTerms.forEach((term) => {
-            var escapedTerm = this.escapeForRegExp(term);
-            var regexp = new RegExp('(' + escapedTerm + ')', 'ig');
-            highlighted = highlighted.replace(regexp, '<em>$1</em>');
-          });
-          this.cachedPhoneticsStrictTerms.forEach((term) => {
-            highlighted = this.highlightTibetanMatchingPhonetics(
-              highlighted,
-              term,
-              phoneticsStrictFor
-            );
-          });
-          this.cachedPhoneticsLooseTerms.forEach((term) => {
-            highlighted = this.highlightTibetanMatchingPhonetics(
-              highlighted,
-              term,
-              phoneticsLooseFor
-            );
-          });
-          return highlighted;
-        })
-        .join('');
-    },
-    highlightTibetanMatchingPhonetics(definition, term, convert) {
-      var numberOfSyllablesForTerm = term.split(' ').length;
-      return replaceTibetanGroups(definition, (group) => {
-        var combinations = this.everySyllablesCombinationsOfGivenLengthFor(
-          group,
-          numberOfSyllablesForTerm
-        );
-        var match = combinations.find((subgroup) => {
-          var groupInPhonetics = convert(subgroup);
-          return groupInPhonetics.includes(term);
-        });
-        if (match) {
-          var matchWithoutEndingTshek = match.replace(/་$/, '');
-          return group.replace(
-            new RegExp(`(${matchWithoutEndingTshek}[་།༎༑༔]?)`, 'g'),
-            '<em>$1</em>'
-          );
-        } else return group;
+      // Use cached terms (frozen at search time) to avoid re-rendering on input change
+      return highlightSearchTerms(definition, {
+        regular: this.cachedRegularTerms,
+        phoneticsStrict: this.cachedPhoneticsStrictTerms,
+        phoneticsLoose: this.cachedPhoneticsLooseTerms,
       });
-    },
-    everySyllablesCombinationsOfGivenLengthFor(
-      source,
-      numberOfSyllablesForTerm
-    ) {
-      var syllables = syllablesFor(source);
-      var numberOfSyllables = syllables.length;
-      var combinations = [];
-      for (var i = 0; i + numberOfSyllablesForTerm <= numberOfSyllables; i++) {
-        var slice = syllables.slice(i, i + numberOfSyllablesForTerm);
-        combinations.push(slice.join('་') + '་');
-      }
-      return _.chain(combinations).uniq().sortBy('length').value();
-    },
-    escapeForRegExp(text) {
-      return (
-        text
-          .replace(/([\[\]\{\}\.\*\?])/g, '\\$1')
-          // Treat ASCII apostrophe and curly right-single-quote as interchangeable
-          // so "d'après" highlights "d'après" in the text and vice-versa.
-          .replace(/['’]/g, "['’]")
-      );
     },
     async onPaste(event) {
       const clipboard = {
@@ -530,13 +360,6 @@ export default {
       this.$refs.input?.focus(options);
     },
 
-    prepareTerm(term) {
-      return `"${term.replace(/'/g, "''").replace(/"/g, '""')}"`;
-    },
-    prepareTermForLike(term) {
-      // Escape special SQL LIKE characters and single quotes
-      return term.replace(/'/g, "''").replace(/%/g, '\\%').replace(/_/g, '\\_');
-    },
     storeQuery() {
       this.previousQueries = this.previousQueries.filter(
         (query) => query != this.searchQuery
@@ -571,114 +394,18 @@ export default {
         this.cachedPhoneticsStrictTerms = [...this.phoneticsStrictSearchTerms];
         this.cachedPhoneticsLooseTerms = [...this.phoneticsLooseSearchTerms];
 
-        var params = [];
-
-        // Hybrid search: FTS for English/phonetics, LIKE for Tibetan
-        // FTS unicode61 tokenizer strips Tibetan combining characters, causing incorrect matches
-        // LIKE preserves exact Tibetan text for accurate results
-
-        // Split regular terms into Tibetan and non-Tibetan
-        const tibetanRegularTerms = this.regularSearchTerms.filter((t) =>
-          this.containsTibetan(t)
-        );
-        const nonTibetanRegularTerms = this.regularSearchTerms.filter(
-          (t) => !this.containsTibetan(t)
-        );
-
-        // Build FTS conditions for non-Tibetan regular terms
-        var ftsConditions = [];
-        nonTibetanRegularTerms.forEach((term) => {
-          ftsConditions.push(
-            `(entries_fts MATCH 'term:${this.prepareTerm(
-              term
-            )} OR definition:${this.prepareTerm(term)}')`
-          );
+        const query = buildSearchSql({
+          regular: this.regularSearchTerms,
+          strictVariants: this.phoneticsStrictSearchTerms,
+          looseVariants: this.phoneticsLooseSearchTerms,
         });
-
-        // Add phonetic search conditions to FTS
-        this.phoneticsStrictSearchTerms.forEach((rawTerm) => {
-          // First generate spaceless variants if input has no spaces
-          const variants = rawTerm.includes(' ')
-            ? [rawTerm]
-            : PhoneticSearch.processSpacelessPhoneticSearch(rawTerm);
-
-          // Then apply prepareTermForStrictMatching to each variant and build OR conditions
-          const termConditions = variants
-            .map((variant) => PhoneticSearch.prepareTermForStrictMatching(variant))
-            .map((prepared) => `termPhoneticsStrict:${this.prepareTerm(prepared)}`)
-            .join(' OR ');
-
-          ftsConditions.push(
-            `(entries_fts MATCH '(${termConditions}) OR definitionPhoneticsWordsStrict:${this.prepareTerm(
-              PhoneticSearch.prepareTermForStrictMatching(rawTerm)
-            )}')`
-          );
-        });
-        this.phoneticsLooseSearchTerms.forEach((rawTerm) => {
-          // First generate spaceless variants if input has no spaces
-          const variants = rawTerm.includes(' ')
-            ? [rawTerm]
-            : PhoneticSearch.processSpacelessPhoneticSearch(rawTerm);
-
-          // Then apply prepareTermForLooseMatching to each variant and build OR conditions
-          const termConditions = variants
-            .map((variant) => PhoneticSearch.prepareTermForLooseMatching(variant))
-            .map((prepared) => `termPhoneticsLoose:${this.prepareTerm(prepared)}`)
-            .join(' OR ');
-
-          ftsConditions.push(
-            `(entries_fts MATCH '(${termConditions}) OR definitionPhoneticsWordsLoose:${this.prepareTerm(
-              PhoneticSearch.prepareTermForLooseMatching(rawTerm)
-            )}')`
-          );
-        });
-
-        // Build LIKE conditions for Tibetan terms (searches both term and definition)
-        var likeConditions = [];
-        tibetanRegularTerms.forEach((term) => {
-          const escaped = this.prepareTermForLike(term);
-          likeConditions.push(
-            `(entries.term LIKE '%${escaped}%' ESCAPE '\\' OR entries.definition LIKE '%${escaped}%' ESCAPE '\\')`
-          );
-        });
-
-        // Build the appropriate query based on what types of conditions we have
-        const hasFtsConditions = ftsConditions.length > 0;
-        var query;
-
-        if (!hasFtsConditions && likeConditions.length > 0) {
-          // Pure Tibetan search - use LIKE only (no FTS join needed)
-          // Sort by term length (shorter = more specific match) and dictionary position
-          query = `
-            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition, 0 AS rank
-            FROM entries
-            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
-            WHERE ${likeConditions.join(' AND ')}
-            ORDER BY length(entries.term), dictionaryPosition
-            LIMIT ${MAX_ENTRIES_PER_REQUEST}
-          `;
-        } else if (hasFtsConditions) {
-          // Has FTS conditions - use FTS with optional LIKE additions for mixed searches
-          // BM25 column weights: term(10), termPhoneticsStrict(8), termPhoneticsLoose(8),
-          // definition(1), definitionPhoneticsWordsStrict(1), definitionPhoneticsWordsLoose(1)
-          // Higher weights = more important for ranking. Term matches weighted 10x over definition.
-          const allConditions = [...ftsConditions, ...likeConditions];
-          query = `
-            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,
-                   bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank
-            FROM entries
-            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId
-            INNER JOIN entries_fts ON entries.id = entries_fts.rowid
-            WHERE ${allConditions.join(' AND ')}
-            ORDER BY rank
-            LIMIT ${MAX_ENTRIES_PER_REQUEST}
-          `;
-        } else {
+        if (!query) {
           // No valid search terms
           this.entries = [];
           this.loading = false;
           return;
         }
+        const params = [];
         SqlDatabase.exec(query, params)
           .then((rows) => {
             this.entries = rows;

@@ -11,93 +11,68 @@
  * These tests validate the query generation logic extracted from SearchPage.vue
  */
 
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import PhoneticSearch from '../src/services/phonetic-search.js'
 import {
-  phoneticsStrictFor,
-  phoneticsLooseFor,
-  replaceTibetanGroups,
-} from '../src/utils.js'
+  parseSearchQuery,
+  phoneticVariants,
+  buildSearchSql,
+  groupSearchEntries,
+  highlightSearchTerms,
+  isPlainTibetanQuery,
+} from '../src/services/search-query.js'
 
 /**
- * Simulates the search query parsing logic from SearchPage.vue
+ * A thin view on the real query model (src/services/search-query.js): the
+ * parsed terms, their prepared phonetic variants and the SQL conditions.
  */
 class SearchQueryBuilder {
   constructor(query) {
     this.searchQuery = query
-    this.searchTerms = this.parseSearchTerms()
-  }
-
-  parseSearchTerms() {
-    if (!this.searchQuery) return []
-    return this.searchQuery
-      .split('&')
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0)
+    this.parsed = parseSearchQuery(query)
+    this.searchTerms = [
+      ...this.parsed.regular,
+      ...this.parsed.phoneticsStrict,
+      ...this.parsed.phoneticsLoose,
+    ]
   }
 
   get regularSearchTerms() {
-    return this.searchTerms.filter((term) => !term.match(/^[\[\{].*[\]\}]$/))
+    return this.parsed.regular
   }
 
+  // Prepared the way they are matched against the phonetics columns
   get phoneticsStrictSearchTerms() {
-    const terms = this.phoneticsTerms(/^\[.*\]$/, phoneticsStrictFor)
-    return terms.map((term) =>
+    return this.parsed.phoneticsStrict.map((term) =>
       PhoneticSearch.prepareTermForStrictMatching(term)
     )
   }
 
   get phoneticsLooseSearchTerms() {
-    const terms = this.phoneticsTerms(/^\{.*\}$/, phoneticsLooseFor)
-    return terms.map((term) =>
+    return this.parsed.phoneticsLoose.map((term) =>
       PhoneticSearch.prepareTermForLooseMatching(term)
     )
   }
 
-  phoneticsTerms(regexp, convert) {
-    return this.searchTerms
-      .map((term) => term.match(regexp))
-      .filter((match) => match !== null)
-      .flat()
-      .map((term) => term.slice(1, -1)) // Remove brackets
-      .map((term) =>
-        replaceTibetanGroups(term, (tibetan) => convert(tibetan) + ' ')
-      )
+  get sql() {
+    return buildSearchSql({
+      regular: this.parsed.regular,
+      strictVariants: this.parsed.phoneticsStrict,
+      looseVariants: this.parsed.phoneticsLoose,
+    })
   }
 
-  prepareTerm(term) {
-    return `"${term.replace(/'/g, "''").replace(/"/g, '""')}"`
-  }
-
+  // The WHERE conditions, which the SQL joins with AND
   buildFTS5Conditions() {
-    const conditions = []
-
-    // Regular search terms
-    this.regularSearchTerms.forEach((term) => {
-      conditions.push(
-        `(entries_fts MATCH 'term:${this.prepareTerm(term)} OR definition:${this.prepareTerm(term)}')`
-      )
-    })
-
-    // Strict phonetics search terms
-    this.phoneticsStrictSearchTerms.forEach((phoneticsStrictTerm) => {
-      const mergedTerm = phoneticsStrictTerm.replace(/ /g, '')
-      conditions.push(
-        `(entries_fts MATCH 'termPhoneticsStrict:${this.prepareTerm(phoneticsStrictTerm)} OR termPhoneticsMergedStrict:${this.prepareTerm(mergedTerm)} OR definitionPhoneticsWordsStrict:${this.prepareTerm(phoneticsStrictTerm)}')`
-      )
-    })
-
-    // Loose phonetics search terms
-    this.phoneticsLooseSearchTerms.forEach((phoneticsLooseTerm) => {
-      const mergedTerm = phoneticsLooseTerm.replace(/ /g, '')
-      conditions.push(
-        `(entries_fts MATCH 'termPhoneticsLoose:${this.prepareTerm(phoneticsLooseTerm)} OR termPhoneticsMergedLoose:${this.prepareTerm(mergedTerm)} OR definitionPhoneticsWordsLoose:${this.prepareTerm(phoneticsLooseTerm)}')`
-      )
-    })
-
-    return conditions
+    const where = /WHERE (.*)\n/.exec(this.sql)?.[1]
+    return where ? where.split(/(?<=\)) AND (?=\()/) : []
   }
 }
+
+// A spaceless sound ("sangye") is tried split every plausible way, in the same
+// termPhonetics column: "sang gye" is found by it
+const MANY_STRICT_VARIANTS = /termPhoneticsStrict:"[^"]*" OR termPhoneticsStrict:"[^"]*"/
+const MANY_LOOSE_VARIANTS = /termPhoneticsLoose:"[^"]*" OR termPhoneticsLoose:"[^"]*"/
 
 describe('Search Query Builder', () => {
 
@@ -173,24 +148,24 @@ describe('Search Query Builder', () => {
       expect(conditions[0]).toMatch(/definition:.*buddha/)
     })
 
-    it('generates strict phonetics condition with merged variant', () => {
+    it('generates strict phonetics condition with spaceless variants', () => {
       const builder = new SearchQueryBuilder('[sangye]')
       const conditions = builder.buildFTS5Conditions()
 
       expect(conditions.length).toBe(1)
-      // Should search both spaced and merged columns
+      // Tries the spaceless sound split every plausible way
       expect(conditions[0]).toMatch(/termPhoneticsStrict:/)
-      expect(conditions[0]).toMatch(/termPhoneticsMergedStrict:/)
+      expect(conditions[0]).toMatch(MANY_STRICT_VARIANTS)
       expect(conditions[0]).toMatch(/definitionPhoneticsWordsStrict:/)
     })
 
-    it('generates loose phonetics condition with merged variant', () => {
+    it('generates loose phonetics condition with spaceless variants', () => {
       const builder = new SearchQueryBuilder('{sangye}')
       const conditions = builder.buildFTS5Conditions()
 
       expect(conditions.length).toBe(1)
       expect(conditions[0]).toMatch(/termPhoneticsLoose:/)
-      expect(conditions[0]).toMatch(/termPhoneticsMergedLoose:/)
+      expect(conditions[0]).toMatch(MANY_LOOSE_VARIANTS)
       expect(conditions[0]).toMatch(/definitionPhoneticsWordsLoose:/)
     })
 
@@ -217,29 +192,29 @@ describe('Search Query Builder', () => {
     })
   })
 
-  describe('Merged syllable matching', () => {
-    it('[sangye] generates both spaced and merged search terms', () => {
+  describe('Spaceless syllable matching', () => {
+    it('[sangye] generates the spaceless variants of the term', () => {
       const builder = new SearchQueryBuilder('[sangye]')
       const conditions = builder.buildFTS5Conditions()
 
-      // The condition should include both the spaced version and merged version
-      expect(conditions[0]).toMatch(/termPhoneticsMergedStrict:/)
+      // The condition tries several splits of the spaceless sound
+      expect(conditions[0]).toMatch(MANY_STRICT_VARIANTS)
     })
 
     it('{sanggye} should work for finding sang gye', () => {
       const builder = new SearchQueryBuilder('{sanggye}')
       const conditions = builder.buildFTS5Conditions()
 
-      // Merged search should be included
-      expect(conditions[0]).toMatch(/termPhoneticsMergedLoose:/)
+      // Several splits of the sound are tried
+      expect(conditions[0]).toMatch(MANY_LOOSE_VARIANTS)
     })
 
-    it('complex terms generate proper merged variants', () => {
+    it('complex terms generate spaceless variants', () => {
       const builder = new SearchQueryBuilder('[jangchub]')
       const conditions = builder.buildFTS5Conditions()
 
-      // Should include merged column search
-      expect(conditions[0]).toMatch(/termPhoneticsMergedStrict:/)
+      // Should try several splits
+      expect(conditions[0]).toMatch(MANY_STRICT_VARIANTS)
     })
   })
 
@@ -322,7 +297,7 @@ describe('Search Query Builder', () => {
 
       expect(conditions.length).toBe(1)
       expect(conditions[0]).toMatch(/termPhoneticsStrict:/)
-      expect(conditions[0]).toMatch(/termPhoneticsMergedStrict:/)
+      expect(conditions[0]).toMatch(MANY_STRICT_VARIANTS)
     })
 
     it('searching for "enlightenment" AND phonetics: enlightenment & [jangchub]', () => {
@@ -428,5 +403,116 @@ describe('Search Query Builder', () => {
 
       expect(conditions[0]).toMatch(/Buddha''s/)
     })
+  })
+})
+
+describe('SQL of a search', () => {
+  // Captured from SearchPage.performSearch before the code moved here
+  const EXPECTED = {
+    "wakefulness": "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,\n                   bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            INNER JOIN entries_fts ON entries.id = entries_fts.rowid\n            WHERE (entries_fts MATCH 'term:\"wakefulness\" OR definition:\"wakefulness\"')\n            ORDER BY rank\n            LIMIT 5000\n          ",
+    "ཡེ་ཤེས་ & wisdom": "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,\n                   bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            INNER JOIN entries_fts ON entries.id = entries_fts.rowid\n            WHERE (entries_fts MATCH 'term:\"wisdom\" OR definition:\"wisdom\"') AND (entries.term LIKE '%ཡེ་ཤེས་%' ESCAPE '\\' OR entries.definition LIKE '%ཡེ་ཤེས་%' ESCAPE '\\')\n            ORDER BY rank\n            LIMIT 5000\n          ",
+    "{jomden}": "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,\n                   bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            INNER JOIN entries_fts ON entries.id = entries_fts.rowid\n            WHERE (entries_fts MATCH '(termPhoneticsLoose:\"cho mten\" OR termPhoneticsLoose:\"chom ten\" OR termPhoneticsLoose:\"chomten\" OR termPhoneticsLoose:\"cho mmten\" OR termPhoneticsLoose:\"chom mten\" OR termPhoneticsLoose:\"chommten\" OR termPhoneticsLoose:\"chommten\" OR termPhoneticsLoose:\"cho mtten\" OR termPhoneticsLoose:\"chom tten\" OR termPhoneticsLoose:\"chomtten\" OR termPhoneticsLoose:\"chomtten\" OR termPhoneticsLoose:\"cho mtenn\" OR termPhoneticsLoose:\"chom tenn\" OR termPhoneticsLoose:\"chomt enn\") OR definitionPhoneticsWordsLoose:\"chom ten\"')\n            ORDER BY rank\n            LIMIT 5000\n          "
+  }
+
+  for (const [query, expected] of Object.entries(EXPECTED)) {
+    it(`should build the same SQL as the Search page did for ${query}`, () => {
+      expect(new SearchQueryBuilder(query).sql).toBe(expected)
+    })
+  }
+
+  it('should return no SQL when the query holds nothing to search', () => {
+    expect(new SearchQueryBuilder('&').sql).toBe('')
+  })
+})
+
+describe('phoneticVariants', () => {
+  it('should keep a term with a space as is, prepared for matching', () => {
+    expect(phoneticVariants(['sang gye'], 'strict')).toEqual([
+      PhoneticSearch.prepareTermForStrictMatching('sang gye'),
+    ])
+  })
+
+  it('should try a spaceless term split several ways', () => {
+    expect(phoneticVariants(['sangye'], 'loose').length).toBeGreaterThan(1)
+  })
+})
+
+describe('groupSearchEntries', () => {
+  const dictionaries = [
+    { id: 1, position: 2, enabled: true },
+    { id: 2, position: 1, enabled: true },
+    { id: 3, position: 3, enabled: false },
+  ]
+  const terms = { regular: ['wisdom'], phoneticsStrict: [], phoneticsLoose: [] }
+
+  it('should leave out the entries of disabled dictionaries', () => {
+    const entries = [
+      { term: 'a', dictionaryId: 1, rank: -1 },
+      { term: 'b', dictionaryId: 3, rank: -5 },
+    ]
+    expect(groupSearchEntries(entries, { dictionaries, ...terms }).map((g) => g.term)).toEqual(['a'])
+  })
+
+  it('should order the entries of a group by the user dictionary order', () => {
+    const entries = [
+      { term: 'a', dictionaryId: 1, rank: -9 },
+      { term: 'a', dictionaryId: 2, rank: -1 },
+    ]
+    const [group] = groupSearchEntries(entries, { dictionaries, ...terms })
+    expect(group.entries.map((e) => e.dictionaryId)).toEqual([2, 1])
+  })
+
+  it('should rank a term starting with the query first, then by BM25, for English', () => {
+    const entries = [
+      { term: 'unwise', dictionaryId: 1, rank: -9 },
+      { term: 'wisdom', dictionaryId: 1, rank: -1 },
+    ]
+    expect(groupSearchEntries(entries, { dictionaries, ...terms }).map((g) => g.term)).toEqual(['wisdom', 'unwise'])
+  })
+
+  it('should put the term that is the Tibetan query before longer terms containing it', () => {
+    const entries = [
+      { term: 'ཡེ་ཤེས་ཀྱི་', dictionaryId: 1, rank: -9 },
+      { term: 'ཡེ་ཤེས་', dictionaryId: 1, rank: -1 },
+    ]
+    const query = { regular: ['ཡེ་ཤེས་'], phoneticsStrict: [], phoneticsLoose: [] }
+    expect(groupSearchEntries(entries, { dictionaries, ...query }).map((g) => g.term)).toEqual([
+      'ཡེ་ཤེས་',
+      'ཡེ་ཤེས་ཀྱི་',
+    ])
+  })
+})
+
+describe('highlightSearchTerms', () => {
+  const none = { regular: [], phoneticsStrict: [], phoneticsLoose: [] }
+
+  it('should wrap a regular term in em, ignoring case', () => {
+    expect(highlightSearchTerms('Wisdom of wisdom', { ...none, regular: ['wisdom'] })).toBe(
+      '<em>Wisdom</em> of <em>wisdom</em>'
+    )
+  })
+
+  it('should not touch the inside of tags', () => {
+    expect(highlightSearchTerms('<a href="/define/wisdom">wisdom</a>', { ...none, regular: ['wisdom'] })).toBe(
+      '<a href="/define/wisdom"><em>wisdom</em></a>'
+    )
+  })
+
+  it('should treat the curly and the straight apostrophe alike', () => {
+    expect(highlightSearchTerms('d\u2019apr\u00e8s', { ...none, regular: ["d'apr\u00e8s"] })).toBe(
+      '<em>d\u2019apr\u00e8s</em>'
+    )
+  })
+})
+
+describe('isPlainTibetanQuery', () => {
+  it('should accept a single Tibetan term', () => {
+    expect(isPlainTibetanQuery(' ཡེ་ཤེས་ ')).toBe(true)
+  })
+
+  it('should refuse English, empty, multi-term and phonetic queries', () => {
+    for (const query of ['wisdom', '', undefined, 'ཡེ་ཤེས་ & wisdom', '[ཡེ་ཤེས་]', '{ཡེ་ཤེས་}']) {
+      expect(isPlainTibetanQuery(query)).toBe(false)
+    }
   })
 })

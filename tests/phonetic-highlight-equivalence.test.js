@@ -19,7 +19,10 @@ vi.mock('../src/services/sql-database', () => ({
 }))
 vi.mock('../src/services/scan-service', () => ({ getScanInfo: () => null }))
 
-import SearchPage from '../src/components/SearchPage.vue'
+import {
+  everySyllablesCombinationsOfGivenLengthFor,
+  highlightTibetanMatchingPhonetics,
+} from '../src/services/search-query'
 import {
   phoneticsStrictFor,
   phoneticsLooseFor,
@@ -75,13 +78,8 @@ const legacyHighlight = function (definition, term, convert) {
 
 // ---- New implementations under test ----------------------------------------
 
-const newCombinations = (source, n) =>
-  SearchPage.methods.everySyllablesCombinationsOfGivenLengthFor.call({}, source, n)
-const newHighlight = (definition, term, convert) =>
-  SearchPage.methods.highlightTibetanMatchingPhonetics.call(
-    { everySyllablesCombinationsOfGivenLengthFor: newCombinations },
-    definition, term, convert
-  )
+const newCombinations = everySyllablesCombinationsOfGivenLengthFor
+const newHighlight = highlightTibetanMatchingPhonetics
 
 // ---- Corpus ----------------------------------------------------------------
 
