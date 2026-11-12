@@ -22,20 +22,19 @@ const light = block("[data-theme='light']")
 const dark = block("[data-theme='dark']")
 
 describe('design tokens', () => {
-  it('should use palette 6 in light', () => {
+  it('should use the Folio palette in light', () => {
     expect(light['--bg']).toBe('#FFFFFF')
     expect(light['--surface']).toBe('#FFFFFF')
     expect(light['--accent']).toBe('#1F5BB8')
-    expect(light['--rail-bg']).toBe('#FFFFFF')
-    expect(light['--rail-active-ink']).toBe('#1F5BB8')
+    expect(light['--bg-quiet']).toBe('#F7F7F6')
     expect(light['--amber-solid']).toBe('#8F6200')
   })
 
-  it('should use palette 6 in dark', () => {
+  it('should use the Folio palette in dark', () => {
     expect(dark['--bg']).toBe('#161618')
     expect(dark['--surface']).toBe('#202023')
     expect(dark['--accent']).toBe('#7AA7F0')
-    expect(dark['--rail-bg']).toBe('#1C1C1F')
+    expect(dark['--bg-quiet']).toBe('#1C1C1F')
   })
 
   it('should highlight Search hits in the logo yellow in light and in the amber of notices in dark', () => {

@@ -54,7 +54,7 @@ input, textarea {
   min-width: 0;
   min-height: 0; /* Important for flex children to shrink */
   overflow: hidden;
-  /* Clear the notch. The rail and the bottom bar handle their own insets. */
+  /* Clear the notch. The sidebar and the bottom bar handle their own insets. */
   padding-top: var(--safe-top) !important;
 }
 /* Android - status bar doesn't report via env() */

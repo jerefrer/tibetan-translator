@@ -64,13 +64,6 @@
   --success-soft: #E3F1E4;
   --success-line: #A9D2AC;
 
-  /* Navigation rail and bottom bar */
-  --rail-bg: #FFFFFF;
-  --rail-line: #E4E4E2;
-  --rail-ink: #5F6368;
-  --rail-active-bg: #E6EEFA;
-  --rail-active-ink: #1F5BB8;
-
   /* Scan viewer: dark in both themes (the dark theme's ground, ink, muted
      and lines), the same values in the dark block */
   --scan-bg: #161618;
@@ -92,7 +85,7 @@
   --font-tibetan: 'DDC_Uchen', serif;
 
   /* Type scale (rem; 1rem = 16px at the default Text size) */
-  --text-caption: 0.7188rem;  /* 11.5px: rail and tab labels */
+  --text-caption: 0.7188rem;  /* 11.5px: bottom bar and tab labels */
   --text-xs: 0.75rem;         /* 12px */
   --text-chip: 0.7813rem;     /* 12.5px: chips, small meta */
   --text-sm: 0.8125rem;       /* 13px */
@@ -143,7 +136,6 @@
   --results-width: 380px;
   --entry-max-width: 45rem;
   --reader-panel-width: 440px;
-  --rail-width: 88px;
   --bottom-bar-height: 76px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
@@ -192,12 +184,6 @@
   --success-ink: #8FD694;
   --success-soft: #1F3322;
   --success-line: #386B3C;
-
-  --rail-bg: #1C1C1F;
-  --rail-line: #2E2E33;
-  --rail-ink: #A1A1AA;
-  --rail-active-bg: #1C2A44;
-  --rail-active-ink: #7AA7F0;
 
   --scan-bg: #161618;
   --scan-ink: #EDEDEF;

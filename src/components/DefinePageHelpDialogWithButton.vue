@@ -196,7 +196,7 @@
 </template>
 
 <style>
-/* The button: yellow in the rail, a floating disc above the phone's bar */
+/* The button: accent in the sidebar, a floating disc above the phone's bar */
 .define-help-button {
   display: inline-flex;
   align-items: center;
@@ -206,14 +206,14 @@
   border: 0;
   border-radius: var(--radius-xl);
   background: none;
-  color: var(--rail-active-ink);
+  color: var(--accent);
   cursor: pointer;
 }
 .define-help-button:hover {
-  background: var(--rail-active-bg);
+  background: var(--ring);
 }
 .define-help-button:focus-visible {
-  outline: 2px solid var(--rail-active-ink);
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 .app-nav--bar .define-help-button {
