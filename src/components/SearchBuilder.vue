@@ -254,7 +254,6 @@ export default {
   flex-direction column
   gap 10px
   margin-top 12px
-  max-width 55rem
 
 .search-builder__footer
   display flex

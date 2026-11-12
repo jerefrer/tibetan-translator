@@ -974,6 +974,11 @@ export default {
     outline 2px solid var(--accent)
     border-radius var(--radius-sm)
 
+// One column: the field, the builder, the results header and the results
+// share their left and right edges
+.search-page > *
+  max-width 60rem
+
 // The field: 60px, accent ring when focused (UiTextField does the focus)
 .search-top
   flex none
@@ -983,7 +988,6 @@ export default {
 
 .search-field
   flex 1
-  max-width 55rem
 
   :deep(.ui-field__control)
     min-height var(--control-lg)
@@ -1214,8 +1218,6 @@ export default {
   -webkit-overflow-scrolling touch
 
   .search-field
-    max-width none
-
     :deep(.ui-field__control)
       min-height 3.375rem
       padding 0 6px 0 16px
