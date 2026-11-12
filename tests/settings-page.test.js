@@ -126,8 +126,6 @@ import Storage from '../src/services/storage'
 import ConfigurePage from '../src/components/ConfigurePage.vue'
 import AudioCard from '../src/components/settings/AudioCard.vue'
 import AppearanceCard from '../src/components/settings/AppearanceCard.vue'
-import SearchCard from '../src/components/settings/SearchCard.vue'
-import UiSelect from '../src/ui/UiSelect.vue'
 import GlobalLookupCard, { DEFAULT_HOTKEY } from '../src/components/settings/GlobalLookupCard.vue'
 import AboutCard from '../src/components/settings/AboutCard.vue'
 import PackManagerCard from '../src/components/settings/PackManagerCard.vue'
@@ -388,43 +386,6 @@ describe('AppearanceCard', () => {
     expect(Storage.get('fontSize')).toBe(100)
     expect(document.documentElement.style.fontSize).toBe('100%')
     expect(byTestId('font-size-reset').exists()).toBe(false)
-  })
-})
-
-describe('SearchCard', () => {
-  it('should offer 3 definitions per term when nothing was chosen', async () => {
-    Storage.delete('searchDefinitionsPerTerm')
-    await mountWith(SearchCard)
-    const select = wrapper.findComponent(UiSelect)
-    expect(select.props('modelValue')).toBe('3')
-    expect(select.props('label')).toBe('Definitions per term in Search')
-    expect(select.props('options').map((option) => option.label)).toEqual(['1', '3', '5', '10', 'All'])
-  })
-
-  it('should save the chosen number as a number', async () => {
-    await mountWith(SearchCard)
-    wrapper.findComponent(UiSelect).vm.$emit('update:modelValue', '10')
-    await flushPromises()
-    expect(Storage.get('searchDefinitionsPerTerm')).toBe(10)
-  })
-
-  it('should save "all" as all', async () => {
-    await mountWith(SearchCard)
-    wrapper.findComponent(UiSelect).vm.$emit('update:modelValue', 'all')
-    await flushPromises()
-    expect(Storage.get('searchDefinitionsPerTerm')).toBe('all')
-  })
-
-  it('should show the saved choice when opened again', async () => {
-    Storage.set('searchDefinitionsPerTerm', 'all')
-    await mountWith(SearchCard)
-    expect(wrapper.findComponent(UiSelect).props('modelValue')).toBe('all')
-  })
-
-  it('should sit among the Settings cards', async () => {
-    seedDictionaries()
-    await mountWith(ConfigurePage)
-    expect(byTestId('search-card').exists()).toBe(true)
   })
 })
 

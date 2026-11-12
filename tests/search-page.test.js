@@ -113,6 +113,10 @@ const findAll = (testid) => wrapper.findAll(`[data-testid="${testid}"]`)
 const openRow = (index = 0) => findAll('search-group-header')[index].trigger('click')
 const field = () => wrapper.find('[data-testid="search-field"] input')
 const lastSql = () => database.exec.mock.calls.at(-1)?.[0] || ''
+// One term holding `count` definitions, to cross the limit of an open row
+const manyDefinitions = (count) => Array.from({ length: count }, (_, i) => ({
+  term: 'ཡེ་ཤེས་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: -i,
+}))
 const searchFor = (query) => '/search/' + encodeURIComponent(query)
 
 // happy-dom has no ClipboardEvent; the handler only reads the two flavours
@@ -137,7 +141,6 @@ beforeEach(() => {
   Storage.delete('searchQuery')
   Storage.delete('previousQueries')
   Storage.delete('searchBuilderVisible')
-  Storage.delete('searchDefinitionsPerTerm')
 })
 
 afterEach(() => {
@@ -307,10 +310,9 @@ describe('Search — coming back to the page', () => {
     await flushPromises()
 
     expect(database.exec).toHaveBeenCalledTimes(1)
-    // the fourth definition of the term is behind "Show 1 more"
+    // the fourth definition of the term is on again
     await openRow()
-    expect(findAll('search-result')).toHaveLength(3)
-    expect(find('term-entries-more').text()).toBe('Show 1 more')
+    expect(findAll('search-result')).toHaveLength(4)
   })
 
   it('should run the query when it is another one than the query shown', async () => {
@@ -943,46 +945,45 @@ describe('Search — grouped by term', () => {
     expect(findAll('search-group-term').map((term) => term.text())).toEqual(['བཅོམ་ལྡན་', 'བཅོམ་'])
   })
 
-  it('should show 3 definitions of a term and "Show N more" by default', async () => {
+  it('should show every definition of an open term and no "Show N more" when it has 50 or fewer', async () => {
+    database.exec = vi.fn(async () => manyDefinitions(50))
     await mountAt('/search/wakefulness')
-    database.exec = vi.fn(async () => Array.from({ length: 7 }, (_, i) => ({
-      term: 'ཡེ་ཤེས་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: -i,
-    })))
-    await router.push('/search/dharma')
-    await flushPromises()
 
     await openRow()
-    expect(findAll('search-result')).toHaveLength(3)
-    expect(find('term-entries-more').text()).toBe('Show 4 more')
+
+    expect(findAll('search-result')).toHaveLength(50)
+    expect(find('term-entries-more').exists()).toBe(false)
   })
 
   it('should unfold the other definitions in place when "Show N more" is tapped', async () => {
-    Storage.set('searchDefinitionsPerTerm', 1)
+    database.exec = vi.fn(async () => manyDefinitions(53))
     await mountAt('/search/wakefulness')
     await openRow()
+    expect(findAll('search-result')).toHaveLength(50)
+    expect(find('term-entries-more').text()).toBe('Show 3 more')
 
     await find('term-entries-more').trigger('click')
     await flushPromises()
 
-    expect(findAll('search-result')).toHaveLength(3)
+    expect(findAll('search-result')).toHaveLength(53)
     expect(router.currentRoute.value.path).toBe('/search/wakefulness')
     expect(find('term-entries-more').text()).toBe('Show less')
   })
 
   it('should fold the definitions back when "Show less" is tapped', async () => {
-    Storage.set('searchDefinitionsPerTerm', 1)
+    database.exec = vi.fn(async () => manyDefinitions(53))
     await mountAt('/search/wakefulness')
     await openRow()
     await find('term-entries-more').trigger('click')
 
     await find('term-entries-more').trigger('click')
 
-    expect(findAll('search-result')).toHaveLength(1)
-    expect(find('term-entries-more').text()).toBe('Show 2 more')
+    expect(findAll('search-result')).toHaveLength(50)
+    expect(find('term-entries-more').text()).toBe('Show 3 more')
   })
 
   it('should fold every row and its unfolded definitions back on a new search', async () => {
-    Storage.set('searchDefinitionsPerTerm', 1)
+    database.exec = vi.fn(async () => manyDefinitions(53))
     await mountAt('/search/wakefulness')
     await openRow()
     await find('term-entries-more').trigger('click')
@@ -994,31 +995,16 @@ describe('Search — grouped by term', () => {
 
     expect(findAll('search-result')).toHaveLength(0)
     await openRow()
-    expect(findAll('search-result')).toHaveLength(1)
+    expect(findAll('search-result')).toHaveLength(50)
   })
 
-  it('should show every definition and no link when the setting is All', async () => {
-    Storage.set('searchDefinitionsPerTerm', 'all')
+  it('should show every definition and no link when the term holds fewer than the limit', async () => {
     Storage.set('dictionaries', DICTIONARIES.map((dictionary) => ({ ...dictionary, enabled: true })))
     await mountAt('/search/wakefulness')
     await openRow()
 
     expect(findAll('search-result')).toHaveLength(4)
     expect(find('term-entries-more').exists()).toBe(false)
-  })
-
-  it('should follow the setting changed in Settings while the page was kept', async () => {
-    await mountAt('/search/wakefulness')
-    await openRow()
-    expect(findAll('search-result')).toHaveLength(3)
-
-    await router.push('/settings')
-    await flushPromises()
-    Storage.set('searchDefinitionsPerTerm', 1)
-    await router.push('/search/wakefulness')
-    await flushPromises()
-
-    expect(findAll('search-result')).toHaveLength(1)
   })
 
   it('should open Define on the term when "Open in Define" is tapped', async () => {
@@ -1120,27 +1106,49 @@ describe('Search — rows that unfold', () => {
   })
 
   it('should unfold and fold the other definitions with "Show N more" and "Show less" in an open row', async () => {
-    Storage.set('searchDefinitionsPerTerm', 1)
+    database.exec = vi.fn(async () => manyDefinitions(52))
     await mountAt(searchFor('ཡེ་ཤེས་'))
     await openRow()
     const first = () => rows()[0]
 
-    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(1)
-    expect(first().find('[data-testid="term-entries-more"]').text()).toBe('Show 1 more')
+    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(50)
+    expect(first().find('[data-testid="term-entries-more"]').text()).toBe('Show 2 more')
 
     await first().find('[data-testid="term-entries-more"]').trigger('click')
-    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(2)
+    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(52)
     expect(first().find('[data-testid="term-entries-more"]').text()).toBe('Show less')
 
     await first().find('[data-testid="term-entries-more"]').trigger('click')
-    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(1)
+    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(50)
   })
 
-  it('should not offer "Show more" when the row holds no more than the setting shows', async () => {
+  it('should not offer "Show more" when the row holds no more than the limit shows', async () => {
     await mountAt(searchFor('ཡེ་ཤེས་'))
     await openRow()
 
     expect(rows()[0].find('[data-testid="term-entries-more"]').exists()).toBe(false)
+  })
+
+  it('should fold an open row when "Fold" is tapped', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+    await openRow()
+    expect(rows()[0].findAll('[data-testid="search-result"]')).toHaveLength(2)
+
+    await rows()[0].find('[data-testid="search-group-fold"]').trigger('click')
+
+    expect(rows()[0].findAll('[data-testid="search-result"]')).toHaveLength(0)
+    expect(rows()[0].find('[data-testid="search-group-preview"]').exists()).toBe(true)
+  })
+
+  it('should hide the count visually but keep it for screen readers while the row is open', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+    const count = () => rows()[0].find('[data-testid="search-group-count"]')
+    expect(count().classes()).not.toContain('ui-visually-hidden')
+
+    await openRow()
+
+    expect(count().exists()).toBe(true)
+    expect(count().classes()).toContain('ui-visually-hidden')
   })
 
   it('should open Define on the term of an open row when "Open in Define" is tapped', async () => {

@@ -3,7 +3,6 @@ import { COOKIE_EXPIRY_HOURS } from '../config/constants';
 const defaults = {
   themePreference: 'light',
   fontSize: 100,
-  searchDefinitionsPerTerm: 3,
 };
 
 export default {

@@ -11,12 +11,14 @@
   // the preview unfolds in place into the first definition, the others below
   // it, each drawn by EntriesEntry the way Define draws the entries of the
   // selected term (dictionary label, the definition or the scanned page, copy
-  // button), then a footer. The row eases between its two heights. The entries
-  // arrive already decorated. The caller passes the `preview` entry only while
-  // the row is collapsed and the `entries` to show only while it is open (so
-  // the others are never decorated) and, when it held some back, the `total`:
-  // a "Show N more" button follows, asking the caller to unfold the row. Once
-  // `expanded`, the same button offers "Show less".
+  // button), then a footer that can fold the row again. Open, the count gives
+  // way to the definitions themselves: it stays for screen readers only. The
+  // row eases between its two heights. The entries arrive already decorated.
+  // The caller passes the `preview` entry only while the row is collapsed and
+  // the `entries` to show only while it is open (so the others are never
+  // decorated) and, when it held some back, the `total`: a "Show N more"
+  // button follows, asking the caller to unfold the row. Once `expanded`, the
+  // same button offers "Show less".
   //
   // An open definition holds links and buttons, which a button cannot: the
   // toggle is the count and chevron, stretched over the whole row, and the
@@ -36,7 +38,7 @@
       expanded: { type: Boolean, default: false },
       titleTestid: { type: String, default: 'term-entries-title' },
       entryTestid: { type: String, default: 'entry' },
-      // `<prefix>-header`, `-preview`, `-count` and `-open-define`
+      // `<prefix>-header`, `-preview`, `-count`, `-fold` and `-open-define`
       testidPrefix: { type: String, default: 'term-entries' }
     },
     emits: ['toggle-open', 'open-term', 'show-about', 'toggle-more'],
@@ -91,6 +93,12 @@
         // Folding a long row would leave the reader far below it: keep the
         // button they pressed in view (jsdom has no scrollIntoView)
         if (folding) this.$nextTick(() => this.$refs.more?.scrollIntoView?.({ block: 'nearest' }));
+      },
+      fold () {
+        this.$emit('toggle-open');
+        // Folded from the bottom of a long row, the headword may be far above:
+        // bring it back in view
+        this.$nextTick(() => this.$refs.title?.scrollIntoView?.({ block: 'nearest' }));
       }
     }
   }
@@ -100,6 +108,7 @@
   <section class="term-entries" :class="{ 'is-open': open }" data-testid="term-entries">
     <span
       :id="titleId"
+      ref="title"
       class="term-entries__title result-term tibetan"
       :data-testid="titleTestid"
       v-html="term"
@@ -112,7 +121,11 @@
       :data-testid="`${testidPrefix}-header`"
       @click="$emit('toggle-open')"
     >
-      <span :id="countId" class="term-entries__count" :data-testid="`${testidPrefix}-count`">{{ count }}</span>
+      <span
+        :id="countId"
+        class="term-entries__count"
+        :class="{ 'ui-visually-hidden': open }"
+        :data-testid="`${testidPrefix}-count`">{{ count }}</span>
       <ui-icon class="term-entries__chevron" name="chevron-down" :size="18" />
     </button>
     <div class="term-entries__body">
@@ -147,7 +160,16 @@
           </button>
           <button
             type="button"
-            class="term-entries__link term-entries__define"
+            class="term-entries__link term-entries__fold"
+            :data-testid="`${testidPrefix}-fold`"
+            @click="fold"
+          >
+            Fold
+            <ui-icon name="chevron-up" :size="16" />
+          </button>
+          <button
+            type="button"
+            class="term-entries__link"
             :data-testid="`${testidPrefix}-open-define`"
             @click="$emit('open-term')"
           >
@@ -367,7 +389,10 @@
 .term-entries__link:hover {
   text-decoration: underline;
 }
-.term-entries__define {
+.term-entries__fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   margin-left: auto;
 }
 

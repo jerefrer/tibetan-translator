@@ -24,6 +24,8 @@ export const ENTRIES_PER_PAGE = 25;
 export const ENTRIES_BATCH_SIZE = 50;
 // Search shows its results by term: this many terms per batch
 export const SEARCH_GROUPS_BATCH_SIZE = 20;
+// An open Search row shows every definition up to this many, then "Show N more"
+export const SEARCH_OPEN_DEFINITIONS_LIMIT = 50;
 export const TERMS_BATCH_SIZE = 100;
 
 // Search history
@@ -54,6 +56,7 @@ export default {
   ENTRIES_PER_PAGE,
   ENTRIES_BATCH_SIZE,
   SEARCH_GROUPS_BATCH_SIZE,
+  SEARCH_OPEN_DEFINITIONS_LIMIT,
   TERMS_BATCH_SIZE,
   MAX_PREVIOUS_QUERIES,
   DATABASE_LOAD_TIMEOUT_MS,

@@ -6,6 +6,7 @@ import TibetanRegExps from 'tibetan-regexps';
 import {
   MAX_ENTRIES_PER_REQUEST,
   SEARCH_GROUPS_BATCH_SIZE,
+  SEARCH_OPEN_DEFINITIONS_LIMIT,
   MAX_PREVIOUS_QUERIES,
   INFINITE_SCROLL_ROOT_MARGIN_LARGE,
 } from '../config/constants';
@@ -71,12 +72,11 @@ export default {
       // Counted in terms (groups of definitions), not in definitions
       displayedCount: SEARCH_GROUPS_BATCH_SIZE,
       batchSize: SEARCH_GROUPS_BATCH_SIZE,
-      // 1, 3, 5, 10 or 'all' (Settings)
-      definitionsPerTerm: Storage.get('searchDefinitionsPerTerm'),
       // The rows opened, until the next search. All start collapsed: an open
       // first row with long definitions hid the other terms
       openTerms: {},
-      // The terms unfolded with "Show N more", until the next search
+      // The terms with more definitions than an open row shows, unfolded
+      // with "Show N more", until the next search
       expandedTerms: {},
       searchQuery: this.$route.params.query,
       previousQueries: Storage.get('previousQueries', []),
@@ -188,9 +188,6 @@ export default {
     hasMore() {
       return this.displayedCount < this.groups.length;
     },
-    definitionLimit() {
-      return this.definitionsPerTerm === 'all' ? Infinity : Number(this.definitionsPerTerm) || 3;
-    },
     // The entries grouped by Tibetan term. The groups come most relevant
     // first; inside a group the entries follow the user's dictionary order.
     groups() {
@@ -285,7 +282,7 @@ export default {
         this._decoratedTerms = new Map();
         this._decoratedFor = terms;
       }
-      const limit = this.definitionLimit;
+      const limit = SEARCH_OPEN_DEFINITIONS_LIMIT;
       return this.groups.slice(0, this.displayedCount).map((group) => {
         const open = !!this.openTerms[group.term];
         let decoratedTerm = this._decoratedTerms.get(group.term);
@@ -721,8 +718,6 @@ export default {
     if (this.searchQuery) this.performSearch();
   },
   activated() {
-    // Changed in Settings while the page was kept
-    this.definitionsPerTerm = Storage.get('searchDefinitionsPerTerm');
     // The Dictionaries menu was just read again from Settings, without the
     // counts of the results kept from before
     if (this.entries && !this.loading) this.resetDictionariesToDefaultAndSetNumberOfEntries();
