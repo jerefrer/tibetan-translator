@@ -39,9 +39,13 @@ describe('navigation config', () => {
 
   it('should keep the existing shortcuts D, T and G pointing at the new destinations', () => {
     const paths = shortcutPaths()
-    expect(paths.d).toBe('/lookup')
+    expect(paths.d).toBe('/lookup?mode=bo')
     expect(paths.t).toBe('/reader')
     expect(paths.g).toBe('/library#settings')
+  })
+
+  it('should map Cmd+D to Lookup in Tibetan mode', () => {
+    expect(shortcutPaths().d).toBe('/lookup?mode=bo')
   })
 
   it('should map Cmd+S to Lookup in English mode', () => {

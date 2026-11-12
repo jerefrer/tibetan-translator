@@ -7,7 +7,7 @@
  */
 
 export const NAV_ITEMS = [
-  { id: 'lookup', label: 'Lookup', path: '/lookup', icon: 'search', group: 'tools', mobile: true, shortcut: 'D' },
+  { id: 'lookup', label: 'Lookup', path: '/lookup', icon: 'search', group: 'tools', mobile: true, shortcut: 'D', shortcutPath: '/lookup?mode=bo' },
   { id: 'reader', label: 'Reader', path: '/reader', icon: 'align-left', group: 'tools', mobile: true, shortcut: 'T' },
   { id: 'library', label: 'Library', path: '/library', icon: 'library', group: 'tools', mobile: true, shortcut: 'G', shortcutPath: '/library#settings' },
 ];
@@ -56,9 +56,10 @@ export const HELP_SHORTCUTS = [
 ];
 
 /**
- * Keyboard shortcut (Cmd/Ctrl + key) -> route path. `S` opens Lookup in
- * English mode; `K` is the action 'focus-lookup' (App.vue routes to Lookup,
- * then fires the `focus-lookup` window event).
+ * Keyboard shortcut (Cmd/Ctrl + key) -> route path. `D` opens Lookup in
+ * Tibetan mode and `S` in English mode (LookupPage switches with its usual
+ * rules, keeping what the field holds); `K` is the action 'focus-lookup'
+ * (App.vue routes to Lookup, then fires the `focus-lookup` window event).
  */
 export function shortcutPaths() {
   const map = {};

@@ -180,6 +180,35 @@ describe('Lookup — modes', () => {
   })
 })
 
+describe('Lookup — the Cmd+D route', () => {
+  it('should switch to Tibetan with the Latin read as Wylie when coming back from another page', async () => {
+    await mountAt('/lookup?mode=en')
+    await input().setValue('sangs rgyas')
+    await go('/reader')
+    await go('/lookup?mode=bo')
+    expect(checkedMode()).toBe('Tibetan')
+    expect(input().element.value).toBe(SANGS_RGYAS)
+  })
+
+  it('should keep the term shown when it is already in Tibetan mode', async () => {
+    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await go('/reader')
+    await go('/lookup?mode=bo')
+    expect(checkedMode()).toBe('Tibetan')
+    expect(input().element.value).toBe(KA)
+    expect(Storage.get('lookupState')).toMatchObject({ mode: 'bo', term: KA })
+  })
+
+  it('should open the last Tibetan term when the field is empty', async () => {
+    Storage.set('lookupState', { mode: 'en', term: KA, query: '' })
+    await mountAt('/reader')
+    await go('/lookup?mode=bo')
+    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+    expect(checkedMode()).toBe('Tibetan')
+    expect(input().element.value).toBe(KA)
+  })
+})
+
 describe('Lookup — remembering', () => {
   it('should restore the last mode and term when opened bare', async () => {
     Storage.set('lookupState', { mode: 'bo', term: KA, query: 'wisdom' })
