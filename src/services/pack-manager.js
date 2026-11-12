@@ -21,7 +21,7 @@ import { PACK_DEFINITIONS, getRequiredPackIds, SUPPORTED_SCHEMA_VERSION } from '
  * - Re-queries `pack_get_dictionaries` so the settings list and search registry
  *   match what's actually installed on disk (the settings list is driven by
  *   localStorage entries that loadDictionariesFromNative rewrites).
- * - Re-queries `pack_get_all_terms` so the Define-page autocomplete picks up
+ * - Re-queries `pack_get_all_terms` so the Lookup headword results pick up
  *   the new terms.
  * - Dispatches `dictionaries-updated` (fired inside loadDictionariesFromNative)
  *   and `all-terms-updated` so components that listen react immediately.
@@ -627,7 +627,7 @@ export const PackManager = {
    * Refresh everything after a lexicon write (create, edit, delete, import).
    * Re-reads the custom pack list so manifests (name, entriesCount) are current,
    * then rebuilds the dictionary registry and allTerms so the new entries are
-   * searchable and the Define autocomplete picks them up.
+   * searchable and the Lookup headword results pick them up.
    */
   async refreshAfterLexiconChange() {
     if (!supportsModularPacks()) return;

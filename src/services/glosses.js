@@ -4,9 +4,13 @@ import SqlDatabase from './sql-database';
 import { decodeEntities } from './html-entities';
 
 const cache = new Map();
+// Bumped on each clear: a read started before a clear does not refill the
+// cache with glosses of the dictionaries in use before
+let generation = 0;
 
 export function clearGlossCache() {
   cache.clear();
+  generation++;
 }
 
 if (typeof window !== 'undefined') {
@@ -43,6 +47,7 @@ const quote = (term) => `'${term.replace(/'/g, "''")}'`;
 export async function loadGlosses(terms, dictionaries) {
   const missing = [...new Set(terms)].filter((term) => !cache.has(term));
   if (missing.length) {
+    const startedIn = generation;
     const rows = await SqlDatabase.exec(
       `SELECT term, definition, dictionaryId FROM entries WHERE term IN (${missing.map(quote).join(', ')})`
     );
@@ -55,9 +60,9 @@ export async function loadGlosses(terms, dictionaries) {
         best.set(row.term, row);
       }
     }
-    for (const term of missing) {
-      cache.set(term, best.has(term) ? plainGloss(best.get(term).definition) : '');
-    }
+    const fresh = new Map(missing.map((term) => [term, best.has(term) ? plainGloss(best.get(term).definition) : '']));
+    if (startedIn !== generation) return new Map(terms.map((term) => [term, fresh.get(term) ?? cache.get(term)]));
+    for (const [term, gloss] of fresh) cache.set(term, gloss);
   }
   return new Map(terms.map((term) => [term, cache.get(term)]));
 }

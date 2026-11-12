@@ -156,8 +156,8 @@ export const strippedTibetanText = function (text) {
  *
  * It is not, as of this writing, the only place it's ALREADY expressed —
  * a known, tracked divergence predates this function and is out of scope
- * for the lexicon work to touch (a second one, in the Split page, went with
- * that page):
+ * for the lexicon work to touch (a second one, in the former Split page, went
+ * with that page when the Reader replaced it):
  *   - decorator.js's wrapAllTibetanWithSpansAndAddTshekIfMissing holds a
  *     fifth, partial copy that only appends a tsheg when no ending
  *     punctuation is present at all, rather than replacing whatever is

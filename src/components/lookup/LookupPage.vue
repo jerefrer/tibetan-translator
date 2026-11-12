@@ -227,7 +227,7 @@ export default {
       }
     },
     // As Define's setSearchTerm: what was typed stays when the selected term
-    // starts with it (picking ཀ་ཀ་ after typing ཀ keeps ཀ in the field)
+    // contains it (picking ཀ་ཀ་ after typing ཀ keeps ཀ in the field)
     selectTerm(term) {
       if (this.mode !== 'bo' || !this.text || !term.includes(this.text)) this.text = term;
       this.mode = 'bo';

@@ -282,6 +282,18 @@ describe('LibraryPage', () => {
     expect(scrolled).toEqual([])
   })
 
+  it('should read a hash with quotes as an id, never as a selector', async () => {
+    await mountLibrary('/library')
+    scrolled.length = 0
+    // Read as a selector, it would also match the Settings section (and a
+    // browser throws on most quotes)
+    await router.push('/library#x"],[id="settings')
+    await flushPromises()
+
+    await expect(wrapper.findComponent(LibraryPage).vm.scrollToHash()).resolves.toBeUndefined()
+    expect(scrolled).toEqual([])
+  })
+
   it('should land on dictionary order from an old preferences link', async () => {
     await mountLibrary('/library#dictionary-order')
 

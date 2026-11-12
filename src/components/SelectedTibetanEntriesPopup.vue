@@ -83,7 +83,7 @@
         if (closestElement(selection.anchorNode, INPUT_SELECTOR))
           return false;
 
-        // Don't open the popup on the Segment page (it has its own term lookup)
+        // Don't open the popup in the Reader (it has its own term lookup)
         if (closestElement(selection.anchorNode, '.segment-page'))
           return false;
 

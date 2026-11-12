@@ -107,8 +107,9 @@ export default {
       const id = this.$route.hash.replace(/^#/, '');
       if (!id) return;
       await this.$nextTick();
-      const section = this.$refs.page?.querySelector(`[id="${id}"]`);
-      if (section) section.scrollIntoView({ block: 'start' });
+      // The hash is read as an id, never built into a selector
+      const section = document.getElementById(id);
+      if (section && this.$refs.page?.contains(section)) section.scrollIntoView({ block: 'start' });
     },
   },
 };

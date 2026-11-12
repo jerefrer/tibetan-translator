@@ -2,6 +2,9 @@ import Decorator from '../services/decorator'
 import DICTIONARIES_DETAILS from '../services/dictionaries-details'
 import { substituteLinksWithATags } from '../utils'
 
+const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (char) => HTML_ESCAPES[char]);
+
 export default {
   methods: {
     shortLabelFor(dictionary) {
@@ -19,7 +22,9 @@ export default {
       if (label)
         return Decorator.wrapAllTibetanWithSpansAndAddTshekIfMissing(label);
       else
-        return dictionaryName; // Return original name if not in config
+        // Not in config (a custom dictionary): the name as typed, as text.
+        // Labels go to v-html, and only the configured ones are markup.
+        return escapeHtml(dictionaryName);
     },
     dictionaryAboutFor (dictionaryName) {
       var about = DICTIONARIES_DETAILS[dictionaryName]?.about;

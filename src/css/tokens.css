@@ -108,7 +108,6 @@
   /* Control heights */
   --control-sm: 2.125rem;  /* 34px */
   --control-md: 2.5rem;    /* 40px */
-  --control-lg: 3.75rem;   /* 60px: the main search field */
 
   /* Radii */
   --radius-xs: 4px;

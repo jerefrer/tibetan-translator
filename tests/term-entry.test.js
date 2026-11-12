@@ -497,3 +497,16 @@ describe('TermEntry — ported from Define', () => {
     expect(wrapper.find('[aria-label*="audio" i]').exists()).toBe(false)
   })
 })
+
+describe('TermEntry — custom dictionary names', () => {
+  it('should show a custom dictionary name as text in the tabs and the sections', async () => {
+    const NAME = '<img src=x onerror=alert(1)>'
+    const CUSTOM = { id: 9, name: NAME, position: 4, enabled: true }
+    Storage.set('dictionaries', [RY, CUSTOM])
+    await mountEntry({}, [row(RY, 'Blessed One'), row(CUSTOM, 'my own definition')])
+
+    expect(wrapper.find('img').exists()).toBe(false)
+    expect(tabs().map((tab) => tab.text())).toContain(NAME)
+    expect(sourceNames()).toContain(NAME)
+  })
+})

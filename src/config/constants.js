@@ -12,7 +12,7 @@ export const MOBILE_BREAKPOINT = 600;
 export const POPUP_WIDTH = 650;
 export const POPUP_HEIGHT = 500;
 
-// Segment page merge detection
+// Reader merge detection
 export const MAX_MERGE_TERM_COUNT = 5;
 
 // Pack download configuration

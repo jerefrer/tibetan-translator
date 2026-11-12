@@ -349,7 +349,7 @@
 </template>
 
 <style>
-/* Only what the Define help does not already draw */
+/* Only what the Tibetan Lookup help does not already draw */
 .search-help-content .help-subheading {
   margin: 1.25em 0 6px;
   font-size: var(--text-base);

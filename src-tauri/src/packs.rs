@@ -614,7 +614,7 @@ fn get_all_pack_db_paths(app: &AppHandle) -> Result<Vec<(String, PathBuf)>, Stri
     Ok(pack_paths)
 }
 
-/// Get all unique terms from all installed packs (for Define page autocomplete)
+/// Get all unique terms from all installed packs (for the Lookup headword results)
 #[tauri::command]
 pub async fn pack_get_all_terms(app: AppHandle) -> Result<Vec<String>, String> {
     println!("[pack_get_all_terms] Starting...");

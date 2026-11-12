@@ -51,14 +51,19 @@ export default {
       this.loadMissingGlosses();
     },
     reloadGlosses() {
+      // A read still running was made for the dictionaries before: its
+      // glosses are dropped
+      this._glossRun = (this._glossRun || 0) + 1;
       this.glosses = {};
       this.loadMissingGlosses();
     },
     async loadMissingGlosses() {
       const missing = [...this.recent, ...this.saved].filter((term) => !(term in this.glosses));
       if (!missing.length) return;
+      const run = this._glossRun;
       try {
         const loaded = await loadGlosses(missing, Storage.get('dictionaries') || []);
+        if (run !== this._glossRun) return;
         this.glosses = { ...this.glosses, ...Object.fromEntries(loaded) };
       } catch (error) {
         console.warn('[Lookup] Glosses not loaded', error);
