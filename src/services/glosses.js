@@ -17,6 +17,8 @@ if (typeof window !== 'undefined') {
 /** The definition as one line of plain text, cut on a word with an ellipsis. */
 export function plainGloss(definitionHtml, maxLength = 120) {
   const text = decodeEntities((definitionHtml || '').replace(/<[^>]*>/g, ' '))
+    // Some definitions hold a literal "\n" (backslash, n) left by their import
+    .replace(/\\n/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
   if (text.length <= maxLength) return text;

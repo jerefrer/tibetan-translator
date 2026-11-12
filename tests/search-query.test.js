@@ -490,6 +490,16 @@ describe('groupSearchEntries', () => {
 describe('highlightSearchTerms', () => {
   const none = { regular: [], phoneticsStrict: [], phoneticsLoose: [] }
 
+  it('should mark a query holding an unclosed parenthesis or regex characters as plain text', () => {
+    expect(highlightSearchTerms('read (ye shes and c++ or a|b^$', { ...none, regular: ['(ye shes', 'c++', 'a|b^$'] })).toBe(
+      'read <em>(ye shes</em> and <em>c++</em> or <em>a|b^$</em>'
+    )
+  })
+
+  it('should not match backslashes as escapes', () => {
+    expect(highlightSearchTerms('a\\d and 1', { ...none, regular: ['\\d'] })).toBe('a<em>\\d</em> and 1')
+  })
+
   it('should wrap a regular term in em, ignoring case', () => {
     expect(highlightSearchTerms('Wisdom of wisdom', { ...none, regular: ['wisdom'] })).toBe(
       '<em>Wisdom</em> of <em>wisdom</em>'

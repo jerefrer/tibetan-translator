@@ -20,8 +20,8 @@ import UninstalledPacksNotice from '../UninstalledPacksNotice.vue';
 const GLOSS_LENGTH = 240;
 // Stand-ins for < and > while the hits are marked, so that a definition's
 // own angle brackets are never read as tags
-const LT = '';
-const GT = '';
+const LT = '\uE000';
+const GT = '\uE001';
 
 /** The definition as plain text with the hits in <em>, every other
  *  character escaped: safe for v-html. */
@@ -109,6 +109,10 @@ export default {
   },
   activated() {
     this.previousQueries = readPreviousQueries();
+  },
+  beforeUnmount() {
+    // A search still running when the list goes is dropped on return
+    this._searchToken = (this._searchToken || 0) + 1;
   },
   methods: {
     async search() {

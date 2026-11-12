@@ -238,7 +238,9 @@ export function highlightTibetanMatchingPhonetics(definition, term, convert) {
 function escapeForRegExp(text) {
   return (
     text
-      .replace(/([\[\]\{\}\.\*\?])/g, '\\$1')
+      // Every character a RegExp reads specially: a query typed so far
+      // ("(ye shes" before its closing parenthesis, "c++") is plain text
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
       // Treat ASCII apostrophe and curly right-single-quote as interchangeable
       // so "d'après" highlights "d'après" in the text and vice-versa.
       .replace(/['’]/g, "['’]")

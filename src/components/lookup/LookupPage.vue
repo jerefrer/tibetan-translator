@@ -105,7 +105,7 @@ export default {
   created() {
     this.debouncedSelectFirst = _.debounce(this.selectFirstMatch, DEBOUNCE_SEARCH_MS);
     this.debouncedRunQuery = _.debounce(this.runTypedQuery, DEBOUNCE_SEARCH_MS);
-    this.debouncedRecordTerm = _.debounce(recordTerm, DEBOUNCE_SEARCH_MS);
+    this.debouncedRecordTerm = _.debounce(this.recordSelectedTerm, DEBOUNCE_SEARCH_MS);
     this.shownDictionaries = dictionariesSignature();
     this.packsChanged = false;
     if (this.$route.path.startsWith('/lookup')) this.applyRoute(this.$route);
@@ -131,8 +131,12 @@ export default {
     // A pause that ends on another page selects nothing
     this.debouncedSelectFirst.cancel();
     this.debouncedRunQuery.cancel();
+    // The term selected before leaving is recorded now rather than lost
+    this.debouncedRecordTerm.cancel();
+    this.recordSelectedTerm();
   },
   beforeUnmount() {
+    this.debouncedRecordTerm.cancel();
     window.removeEventListener('focus-lookup', this._onFocusLookup);
     window.removeEventListener('all-terms-updated', this._onAllTermsUpdated);
     window.removeEventListener('dictionaries-updated', this._onDictionariesUpdated);
@@ -165,8 +169,13 @@ export default {
         this.selectedTerm = term;
         // As Define: only the term the user stays on goes to Recent, not
         // every one Up and Down pass through
+        this._termToRecord = term;
         this.debouncedRecordTerm(term);
       }
+    },
+    recordSelectedTerm() {
+      if (this._termToRecord) recordTerm(this._termToRecord);
+      this._termToRecord = null;
     },
     // The dictionaries switched on or off or reordered in Library, or packs
     // installed or removed, since the results were read: read them again

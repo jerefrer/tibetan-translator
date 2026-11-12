@@ -70,4 +70,8 @@ describe('plainGloss', () => {
     expect(plainGloss('<b>hello</b>   world')).toBe('hello world')
     expect(plainGloss('alpha beta gamma delta', 12)).toBe('alpha beta…')
   })
+
+  it('should read a literal backslash-n left in a definition as a space', () => {
+    expect(plainGloss('developed through\\nsincere practice')).toBe('developed through sincere practice')
+  })
 })

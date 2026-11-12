@@ -68,6 +68,9 @@ const JOMDEN_ROWS = [
   { term: 'བཅོམ་ལྡན་', termPhoneticsStrict: 'chom den', termPhoneticsLoose: 'chom ten', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'conqueror; victor', rank: -1 },
 ]
 
+// tests/search-query.test.js's golden SQL for {jomden}, as Search built it
+const JOMDEN_SQL = "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,\n                   bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            INNER JOIN entries_fts ON entries.id = entries_fts.rowid\n            WHERE (entries_fts MATCH '(termPhoneticsLoose:\"cho mten\" OR termPhoneticsLoose:\"chom ten\" OR termPhoneticsLoose:\"chomten\" OR termPhoneticsLoose:\"cho mmten\" OR termPhoneticsLoose:\"chom mten\" OR termPhoneticsLoose:\"chommten\" OR termPhoneticsLoose:\"chommten\" OR termPhoneticsLoose:\"cho mtten\" OR termPhoneticsLoose:\"chom tten\" OR termPhoneticsLoose:\"chomtten\" OR termPhoneticsLoose:\"chomtten\" OR termPhoneticsLoose:\"cho mtenn\" OR termPhoneticsLoose:\"chom tenn\" OR termPhoneticsLoose:\"chomt enn\") OR definitionPhoneticsWordsLoose:\"chom ten\"')\n            ORDER BY rank\n            LIMIT 5000\n          "
+
 let searchRows
 const isGlossQuery = (sql) => /WHERE term IN/.test(sql)
 const searchCalls = () => database.exec.mock.calls.filter(([sql]) => !isGlossQuery(sql))
@@ -223,6 +226,12 @@ describe('Lookup results — Tibetan', () => {
     await vi.waitFor(() => expect(recentTerms()).toEqual([KARA]), { timeout: 2000 })
   })
 
+  it('should record the selected term at once when leaving Lookup before the pause ends', async () => {
+    await mountAt('/lookup/' + encodeURIComponent(KAKA))
+    await go('/reader')
+    expect(recentTerms()[0]).toBe(KAKA)
+  })
+
   it('should select the term clicked', async () => {
     await mountAt('/lookup')
     await typeTibetan('ཀ')
@@ -315,8 +324,21 @@ describe('Lookup results — English', () => {
     searchRows = JOMDEN_ROWS
     await mountAt('/lookup?mode=en&q=' + encodeURIComponent('{jomden}'))
 
-    expect(searchCalls().at(-1)[0]).toContain('termPhoneticsLoose')
+    // The raw phonetic term reaches buildSearchSql: the SQL Search built
+    expect(searchCalls().at(-1)[0]).toBe(JOMDEN_SQL)
     expect(resultTerms()).toEqual(['བཅོམ་ལྡན་', 'བཅོམ་ལྡན་འདས་མ་', 'ད་'])
+  })
+
+  it.each([
+    ['(ye shes', 'the (ye shes of the text'],
+    ['c++', 'code in c++'],
+  ])('should list the results of a query with regex characters (%s) while it is typed', async (query, definition) => {
+    searchRows = [{ term: 'ཡེ་ཤེས་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition, rank: -1 }]
+    await mountAt('/lookup?mode=en')
+    await input().setValue(query)
+
+    await vi.waitFor(() => expect(results()).toHaveLength(1), { timeout: 2000 })
+    expect(results()[0].find('[data-testid="lookup-result-gloss"] em').text()).toBe(query)
   })
 
   it('should show previous queries before any English search', async () => {
