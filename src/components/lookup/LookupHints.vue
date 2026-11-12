@@ -56,18 +56,14 @@ export default {
 
 <template>
   <section v-if="searchText" class="lookup-hint" data-testid="hint-search-definitions">
-    <p class="lookup-hint__text">
-      <template v-if="headwordCount === 0">
-        No Tibetan term starts with <span class="lookup-hint__tibetan">{{ text }}</span>.
-      </template>
-      <template v-else>Looking for a Sanskrit or English word?</template>
+    <p v-if="headwordCount === 0" class="lookup-hint__text">
+      No Tibetan term starts with <span class="lookup-hint__tibetan">{{ text }}</span>.
     </p>
     <ui-button class="lookup-hint__button" size="sm" @click="$emit('switch', { mode: 'en', text: searchText })">
       Search “{{ searchText }}” in the definitions
     </ui-button>
   </section>
   <section v-else-if="tibetanLookup" class="lookup-hint" data-testid="hint-look-up-tibetan">
-    <p class="lookup-hint__text">That reads as Wylie.</p>
     <ui-button
       class="lookup-hint__button"
       size="sm"
