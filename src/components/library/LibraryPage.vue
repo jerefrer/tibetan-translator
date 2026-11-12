@@ -165,6 +165,13 @@ export default {
         <appearance-card />
         <global-lookup-card />
         <dictionary-preferences-card id="dictionary-order" />
+        <!-- Without packs (a browser) there is no "this device" section: the
+             scans and recordings, online only there, stay with the settings
+             as the old Settings page had them -->
+        <template v-if="!modular">
+          <scanned-dictionaries-card />
+          <audio-card />
+        </template>
       </section>
 
       <section id="library-help" class="library-section" data-testid="library-help">

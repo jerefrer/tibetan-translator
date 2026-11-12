@@ -340,14 +340,24 @@ describe('LibraryPage — ported from Settings', () => {
     expect(wrapper.find('.dictionary-catalog').exists()).toBe(false)
   })
 
-  // The spec puts them under "Add to this device", Tauri only; Settings
-  // showed them in a browser too
+  // Settings showed them in a browser too, marked online only: Library keeps
+  // them there, under Settings, since a browser has no "this device" section
+  it('should show the scanned dictionaries and audio cards under Settings in a browser', async () => {
+    await mountLibrary()
+    const settings = byTestId('library-settings')
+    expect(byTestId('library-device').exists()).toBe(false)
+    expect(settings.find('[data-testid="scanned-card"]').exists()).toBe(true)
+    expect(settings.find('[data-testid="audio-card"]').exists()).toBe(true)
+  })
+
   it('should show the scanned dictionaries and audio cards on the device in the app', async () => {
     env.tauri = true
     await mountLibrary()
     const device = byTestId('library-device')
     expect(device.find('[data-testid="scanned-card"]').exists()).toBe(true)
     expect(device.find('[data-testid="audio-card"]').exists()).toBe(true)
+    expect(byTestId('library-settings').find('[data-testid="scanned-card"]').exists()).toBe(false)
+    expect(byTestId('library-settings').find('[data-testid="audio-card"]').exists()).toBe(false)
   })
 
   it('should leave out the app-only cards in a browser', async () => {
