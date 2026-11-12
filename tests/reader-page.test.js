@@ -394,6 +394,48 @@ describe('Reader — text', () => {
     expect(testid('reader-sheet').exists()).toBe(false)
   })
 
+  it('should mark the words again after a pack install, never from an older lookup', async () => {
+    let releaseOld
+    const gate = new Promise((resolve) => (releaseOld = resolve))
+    let installed = false
+    database.getEntriesFor = vi.fn(async (term) => {
+      if (term === PHAROL) {
+        if (!installed) {
+          await gate
+          return []
+        }
+        return [entry(PHAROL, 1, 'beyond')]
+      }
+      return (ENTRIES[term] || []).map((row) => ({ ...row }))
+    })
+    await mountPage()
+    await splitText()
+
+    // A pack gives ཕ་རོལ་ an entry while its first lookup is still running
+    installed = true
+    window._triggerEvent('all-terms-updated')
+    await flushPromises()
+    releaseOld()
+    await flushPromises()
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(wordButtons()[4].classes()).not.toContain('is-unknown')
+  })
+
+  it('should unmark a word that a pack install gives an entry', async () => {
+    let installed = false
+    database.getEntriesFor = vi.fn(async (term) =>
+      term === PHAROL && installed ? [entry(PHAROL, 1, 'beyond')] : (ENTRIES[term] || []).map((row) => ({ ...row })))
+    await mountPage()
+    await splitText()
+    await vi.waitFor(() => expect(wordButtons()[4].classes()).toContain('is-unknown'))
+
+    installed = true
+    window._triggerEvent('all-terms-updated')
+
+    await vi.waitFor(() => expect(wordButtons()[4].classes()).not.toContain('is-unknown'))
+  })
+
   it('should look up a detected expression', async () => {
     await mountPage()
     await splitText()

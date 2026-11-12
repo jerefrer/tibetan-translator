@@ -61,8 +61,7 @@ export default {
       // null, a word's index, or an expression's { start, count }
       selection: null,
       merges: [],
-      // Words looked up, and those of them with no entry
-      checkedWords: new Set(),
+      // The words found in no dictionary
       wordsWithoutEntry: new Set(),
       showWylie: false,
       sheetOpen: false,
@@ -102,6 +101,9 @@ export default {
     // Not reactive: it holds the tokenizer, which is large
     this.tokenizerSession = createTokenizerSession();
     this.mergeRun = 0;
+    this.wordsRun = 0;
+    // word -> whether it has entries; emptied when packs or dictionaries change
+    this.entryCache = new Map();
     this.lookupsStale = false;
   },
   mounted() {
@@ -130,6 +132,7 @@ export default {
     window.removeEventListener('all-terms-updated', this._onDatabaseChanged);
     window.removeEventListener('dictionaries-updated', this._onDatabaseChanged);
     this.mergeRun++;
+    this.wordsRun++;
   },
   methods: {
     isShown() {
@@ -180,17 +183,27 @@ export default {
       return !!rows && rows.length > 0;
     },
 
-    // Marks the words found in no dictionary, each looked up once
+    // Marks the words found in no dictionary. Each run starts the marks
+    // afresh; a run overtaken by a newer one (a new text, packs changed)
+    // stops and writes nothing more. Answers are cached per word.
     async checkWords() {
-      const pending = [...new Set(this.words)].filter((word) => !this.checkedWords.has(word));
-      for (const word of pending) {
+      const run = ++this.wordsRun;
+      const cache = this.entryCache;
+      const words = [...new Set(this.words)];
+      // The words already known are marked at once, the others as they come
+      this.wordsWithoutEntry = new Set(words.filter((word) => cache.get(word) === false));
+      for (const word of words.filter((word) => !cache.has(word))) {
+        let found;
         try {
-          const found = await this.hasEntries(word);
-          this.checkedWords.add(word);
-          if (!found) this.wordsWithoutEntry.add(word);
+          found = await this.hasEntries(word);
         } catch (error) {
           // A word that cannot be looked up is not marked
+          if (run !== this.wordsRun) return;
+          continue;
         }
+        if (run !== this.wordsRun) return;
+        cache.set(word, found);
+        if (!found) this.wordsWithoutEntry.add(word);
       }
     },
 
@@ -213,8 +226,7 @@ export default {
     // Packs installed or removed, dictionaries switched on or off
     refreshLookups() {
       if (!this.words.length) return;
-      this.checkedWords = new Set();
-      this.wordsWithoutEntry = new Set();
+      this.entryCache = new Map();
       this.checkWords();
       this.findExpressions();
     },
@@ -236,7 +248,7 @@ export default {
       this.editing = true;
       this.respectSpaces = false;
       this.sheetOpen = false;
-      this.checkedWords = new Set();
+      this.wordsRun++;
       this.wordsWithoutEntry = new Set();
       this.recent = recentTexts();
       this.$nextTick(() => this.focusEditor());
