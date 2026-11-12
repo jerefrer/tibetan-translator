@@ -1,5 +1,5 @@
 # Phase 05 — Library
-Status: PENDING
+Status: ACTIVE
 
 ## Goal
 Glossary, dictionaries, downloads, settings and help in one Library.
