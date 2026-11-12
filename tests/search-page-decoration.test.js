@@ -65,6 +65,9 @@ async function mountPage() {
   await flushPromises()
   wrapper.vm.cachedRegularTerms = ['ཀ']
   wrapper.vm.entries = fakeEntries(20)
+  // Every row starts collapsed: open the first so its entries are decorated
+  // and the test can read them
+  wrapper.vm.openTerms = { [wrapper.vm.groups[0].term]: true }
   await nextTick()
   return wrapper
 }
@@ -93,6 +96,9 @@ describe('SearchPage decoration', () => {
       expect(group.decoratedTerm).toEqual(expect.any(String))
       expect(group.decoratedTerm.length).toBeGreaterThan(0)
       expect(group.term).not.toContain('<')
+      // A collapsed row carries only the preview, an open one its entries
+      if (group.open) expect(group.preview).toBeNull()
+      else expect(group.preview.decoratedDefinition).toEqual(expect.any(String))
       for (const entry of group.entries) {
         expect(entry.decoratedDefinition).toEqual(expect.any(String))
         expect(entry.decoratedDefinition.length).toBeGreaterThan(0)

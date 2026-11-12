@@ -73,6 +73,9 @@ export default {
       batchSize: SEARCH_GROUPS_BATCH_SIZE,
       // 1, 3, 5, 10 or 'all' (Settings)
       definitionsPerTerm: Storage.get('searchDefinitionsPerTerm'),
+      // The rows opened, until the next search. All start collapsed: an open
+      // first row with long definitions hid the other terms
+      openTerms: {},
       // The terms unfolded with "Show N more", until the next search
       expandedTerms: {},
       searchQuery: this.$route.params.query,
@@ -284,6 +287,7 @@ export default {
       }
       const limit = this.definitionLimit;
       return this.groups.slice(0, this.displayedCount).map((group) => {
+        const open = !!this.openTerms[group.term];
         let decoratedTerm = this._decoratedTerms.get(group.term);
         if (decoratedTerm === undefined) {
           decoratedTerm = this.highlightSearchTerms(group.term);
@@ -291,10 +295,14 @@ export default {
         }
         // Only a term with definitions held back can unfold
         const expanded = !!this.expandedTerms[group.term] && group.entries.length > limit;
+        // A collapsed row only needs its first definition, for the preview;
+        // an open one the definitions shown
         return {
           term: group.term,
           decoratedTerm,
-          entries: group.entries.slice(0, expanded ? undefined : limit).map((entry) => this.decoratedEntry(entry)),
+          open,
+          preview: open ? null : this.decoratedEntry(group.entries[0]),
+          entries: open ? group.entries.slice(0, expanded ? undefined : limit).map((entry) => this.decoratedEntry(entry)) : [],
           totalEntries: group.entries.length,
           expanded,
         };
@@ -343,6 +351,9 @@ export default {
     },
     openTerm(term) {
       this.$router.push('/define/' + encodeURIComponent(term));
+    },
+    toggleOpen(term) {
+      this.openTerms = { ...this.openTerms, [term]: !this.openTerms[term] };
     },
     toggleTerm(term) {
       this.expandedTerms = { ...this.expandedTerms, [term]: !this.expandedTerms[term] };
@@ -676,6 +687,7 @@ export default {
             this.entries = rows;
             this.displayedCount = this.batchSize; // Reset to initial batch
             this.expandedTerms = {};
+            this.openTerms = {};
             this.resetDictionariesToDefaultAndSetNumberOfEntries();
           })
           .finally(() => {
@@ -900,12 +912,16 @@ export default {
           v-for="group in visibleGroups"
           :key="group.term"
           :term="group.decoratedTerm"
+          :open="group.open"
+          :preview="group.preview"
           :entries="group.entries"
           :total="group.totalEntries"
           :expanded="group.expanded"
           title-testid="search-group-term"
           entry-testid="search-result"
+          testid-prefix="search-group"
           data-testid="search-group"
+          @toggle-open="toggleOpen(group.term)"
           @open-term="openTerm(group.term)"
           @toggle-more="toggleTerm(group.term)"
           @show-about="openDictionaryAbout"
@@ -1179,16 +1195,19 @@ export default {
   line-height 1.5
   color var(--muted)
 
-// Results: one card per term (TermEntries), the list scrolls on a desktop
+// Results: one card of rows that unfold (TermEntries), which scrolls on a desktop
 .results-list
   flex 0 1 auto
   min-height 0
   display flex
   flex-direction column
-  gap 14px
   margin-bottom 28px
   overflow-y auto
   overscroll-behavior contain
+  background var(--surface)
+  border 1px solid var(--line)
+  border-radius var(--radius-card)
+  box-shadow var(--shadow-card)
 
 .load-more-sentinel
   display flex
@@ -1209,7 +1228,7 @@ export default {
   margin 0 0 28px
 
 // Phone (board "B · Search on a phone"): the whole page scrolls, each
-// term is a card of its own.
+// term is a row of the results card.
 .search-page.is-phone
   gap 14px
   // Room for the floating help button after the last result
@@ -1262,7 +1281,6 @@ export default {
 
   .results-list
     flex none
-    gap 10px
     margin-bottom 0
     overflow visible
 

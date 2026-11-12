@@ -109,6 +109,8 @@ async function mountAt(path) {
 const page = () => wrapper.findComponent(SearchPage)
 const find = (testid) => wrapper.find(`[data-testid="${testid}"]`)
 const findAll = (testid) => wrapper.findAll(`[data-testid="${testid}"]`)
+// Every row is collapsed after a search: opens the one at `index`
+const openRow = (index = 0) => findAll('search-group-header')[index].trigger('click')
 const field = () => wrapper.find('[data-testid="search-field"] input')
 const lastSql = () => database.exec.mock.calls.at(-1)?.[0] || ''
 const searchFor = (query) => '/search/' + encodeURIComponent(query)
@@ -159,6 +161,7 @@ describe('Search — route and lifecycle', () => {
     expect(database.exec).toHaveBeenCalledTimes(1)
     expect(lastSql()).toContain("entries_fts MATCH 'term:\"wakefulness\" OR definition:\"wakefulness\"'")
     expect(findAll('search-group')).toHaveLength(1)
+    await openRow()
     expect(findAll('search-result')).toHaveLength(3)
   })
 
@@ -225,6 +228,7 @@ describe('Search — route and lifecycle', () => {
 
   it('should keep its query and results when another page is shown (R3, R5)', async () => {
     await mountAt('/search/wakefulness')
+    await openRow()
     const searchPage = page().vm
 
     await router.push('/define/' + encodeURIComponent(KA))
@@ -282,6 +286,7 @@ describe('Search — coming back to the page', () => {
   it('should not run it again when coming back through /search, which restores the stored query', async () => {
     Storage.set('searchQuery', 'wakefulness')
     await mountAt('/search/wakefulness')
+    await openRow()
     database.exec.mockClear()
 
     await leaveAndComeBackTo('/search')
@@ -303,6 +308,7 @@ describe('Search — coming back to the page', () => {
 
     expect(database.exec).toHaveBeenCalledTimes(1)
     // the fourth definition of the term is behind "Show 1 more"
+    await openRow()
     expect(findAll('search-result')).toHaveLength(3)
     expect(find('term-entries-more').text()).toBe('Show 1 more')
   })
@@ -521,6 +527,7 @@ describe('Search — running a query', () => {
   it('should show only the dictionaries on in Settings, in the Settings order (S5, S6)', async () => {
     await mountAt('/search/wakefulness')
 
+    await openRow()
     const chips = findAll('entry-dictionary').map((chip) => chip.text())
     expect(chips).toEqual(['Hopkins 2015', 'Rangjung Yeshe', 'Jäschke (scanned dictionary)'])
   })
@@ -537,6 +544,7 @@ describe('Search — running a query', () => {
 
   it('should give each query the Settings choice of dictionaries again (S5)', async () => {
     await mountAt('/search/wakefulness')
+    await openRow()
     page().vm.dictionaries.find((dictionary) => dictionary.id == 1).enabled = false
     await nextTick()
     expect(findAll('search-result')).toHaveLength(2)
@@ -544,6 +552,7 @@ describe('Search — running a query', () => {
     await router.push('/search/dharma')
     await flushPromises()
 
+    await openRow()
     expect(findAll('search-result')).toHaveLength(3)
   })
 
@@ -589,6 +598,7 @@ describe('Search — before any search (board "B · Search, empty")', () => {
 
     expect(router.currentRoute.value.path).toBe('/search/wakefulness')
     expect(Storage.get('previousQueries')).toEqual(['wakefulness', 'dharma'])
+    await openRow()
     expect(findAll('search-result')).toHaveLength(3)
   })
 
@@ -681,6 +691,7 @@ describe('Search — query builder', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/search/wakefulness')
+    await openRow()
     expect(findAll('search-result')).toHaveLength(3)
   })
 
@@ -751,6 +762,7 @@ describe('Search — results', () => {
 
   it('should decorate and highlight each definition, in an element App.vue listens on (L4, L5)', async () => {
     await mountAt('/search/wakefulness')
+    await openRow()
 
     const definition = findAll('search-result')[0].find('.definition')
     expect(definition.classes()).toContain('definition')
@@ -765,6 +777,7 @@ describe('Search — results', () => {
 
   it('should open the dictionary About dialog from its chip (L6)', async () => {
     await mountAt('/search/wakefulness')
+    await openRow()
 
     await findAll('entry-dictionary')[1].trigger('click')
 
@@ -775,6 +788,7 @@ describe('Search — results', () => {
 
   it('should show the page of a scanned dictionary and open the scan there (L7)', async () => {
     await mountAt('/search/wakefulness')
+    await openRow()
 
     const scanned = find('entry-scan')
     expect(scanned.text()).toContain('Page 505')
@@ -833,7 +847,7 @@ describe('Search — results', () => {
     expect(findAll('search-group')).toHaveLength(40)
     // the 20 new terms, headword and definition: 40 calls, not 80 and not 240
     expect(highlight).toHaveBeenCalledTimes(40)
-    expect(find('search-result').html()).toContain('<em>wakefulness</em>')
+    expect(find('search-group-preview').html()).toContain('<em>wakefulness</em>')
   })
 
   it('should watch the results card on a desktop and the page on a phone (L8)', async () => {
@@ -880,12 +894,18 @@ describe('Search — grouped by term', () => {
     expect(findAll('search-group-term').map((term) => term.text())).toEqual([
       'ཡེ་ཤེས་', 'ཡེ་ཤེས་ཅན་', 'བདེ་སྟོང་ཡེ་ཤེས་',
     ])
-    expect(findAll('search-group').map((group) => group.findAll('[data-testid="search-result"]').length)).toEqual([2, 1, 1])
+    // every row is collapsed and shows how many definitions it holds
+    expect(findAll('search-group').map((group) => group.findAll('[data-testid="search-result"]').length)).toEqual([0, 0, 0])
+    expect(findAll('search-group-count').map((count) => count.text())).toEqual(['2 definitions', '1 definition', '1 definition'])
+
+    await openRow()
+    expect(findAll('search-group').map((group) => group.findAll('[data-testid="search-result"]').length)).toEqual([2, 0, 0])
   })
 
   it('should order the definitions of a term by the dictionary order of Settings', async () => {
     database.exec = vi.fn(async () => MIXED.map((row) => ({ ...row })))
     await mountAt(searchFor('ཡེ་ཤེས་'))
+    await openRow()
 
     const definitions = findAll('search-group')[0].findAll('[data-testid="search-result"] .definition')
     expect(definitions.map((definition) => definition.text())).toEqual(['second, position 1', 'first, position 2'])
@@ -931,6 +951,7 @@ describe('Search — grouped by term', () => {
     await router.push('/search/dharma')
     await flushPromises()
 
+    await openRow()
     expect(findAll('search-result')).toHaveLength(3)
     expect(find('term-entries-more').text()).toBe('Show 4 more')
   })
@@ -938,6 +959,7 @@ describe('Search — grouped by term', () => {
   it('should unfold the other definitions in place when "Show N more" is tapped', async () => {
     Storage.set('searchDefinitionsPerTerm', 1)
     await mountAt('/search/wakefulness')
+    await openRow()
 
     await find('term-entries-more').trigger('click')
     await flushPromises()
@@ -950,6 +972,7 @@ describe('Search — grouped by term', () => {
   it('should fold the definitions back when "Show less" is tapped', async () => {
     Storage.set('searchDefinitionsPerTerm', 1)
     await mountAt('/search/wakefulness')
+    await openRow()
     await find('term-entries-more').trigger('click')
 
     await find('term-entries-more').trigger('click')
@@ -958,9 +981,10 @@ describe('Search — grouped by term', () => {
     expect(find('term-entries-more').text()).toBe('Show 2 more')
   })
 
-  it('should fold every term back on a new search', async () => {
+  it('should fold every row and its unfolded definitions back on a new search', async () => {
     Storage.set('searchDefinitionsPerTerm', 1)
     await mountAt('/search/wakefulness')
+    await openRow()
     await find('term-entries-more').trigger('click')
 
     await router.push('/search/dharma')
@@ -968,22 +992,16 @@ describe('Search — grouped by term', () => {
     await router.push('/search/wakefulness')
     await flushPromises()
 
+    expect(findAll('search-result')).toHaveLength(0)
+    await openRow()
     expect(findAll('search-result')).toHaveLength(1)
-  })
-
-  it('should still open Define on the term when its title is tapped', async () => {
-    await mountAt('/search/wakefulness')
-
-    await find('search-group-term').trigger('click')
-    await flushPromises()
-
-    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('ཡེ་ཤེས་'))
   })
 
   it('should show every definition and no link when the setting is All', async () => {
     Storage.set('searchDefinitionsPerTerm', 'all')
     Storage.set('dictionaries', DICTIONARIES.map((dictionary) => ({ ...dictionary, enabled: true })))
     await mountAt('/search/wakefulness')
+    await openRow()
 
     expect(findAll('search-result')).toHaveLength(4)
     expect(find('term-entries-more').exists()).toBe(false)
@@ -991,6 +1009,7 @@ describe('Search — grouped by term', () => {
 
   it('should follow the setting changed in Settings while the page was kept', async () => {
     await mountAt('/search/wakefulness')
+    await openRow()
     expect(findAll('search-result')).toHaveLength(3)
 
     await router.push('/settings')
@@ -1002,13 +1021,27 @@ describe('Search — grouped by term', () => {
     expect(findAll('search-result')).toHaveLength(1)
   })
 
-  it('should open Define on the term when its headword is tapped', async () => {
+  it('should open Define on the term when "Open in Define" is tapped', async () => {
+    await mountAt('/search/wakefulness')
+    await openRow()
+
+    await find('search-group-open-define').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('ཡེ་ཤེས་'))
+  })
+
+  it('should not leave Search when the headword is tapped, only open then fold the row', async () => {
     await mountAt('/search/wakefulness')
 
     await find('search-group-term').trigger('click')
     await flushPromises()
 
-    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('ཡེ་ཤེས་'))
+    expect(router.currentRoute.value.path).toBe('/search/wakefulness')
+    expect(findAll('search-result')).toHaveLength(3)
+
+    await find('search-group-term').trigger('click')
+    expect(findAll('search-result')).toHaveLength(0)
   })
 
   it('should not decorate the definitions of groups not yet shown', async () => {
@@ -1020,6 +1053,126 @@ describe('Search — grouped by term', () => {
     await mountAt('/search/wakefulness')
 
     expect(page().vm._decorated.has(page().vm.groups[30].entries[0])).toBe(false)
+  })
+})
+
+describe('Search — rows that unfold', () => {
+  const TWO_TERMS = [
+    { term: 'ཡེ་ཤེས་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'primordial wakefulness', rank: -2 },
+    { term: 'ཡེ་ཤེས་', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'exalted wisdom; wakefulness', rank: -1 },
+    { term: 'ཡེ་ཤེས་ཅན་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'endowed with wakefulness', rank: -1 },
+    { term: 'ཡེ་ཤེས་ཀ', dictionaryId: 3, dictionary: 'Jaeschke_Scan', definition: '552', rank: -1 },
+  ]
+  const rows = () => findAll('search-group')
+
+  beforeEach(() => {
+    database.exec = vi.fn(async () => TWO_TERMS.map((row) => ({ ...row })))
+  })
+
+  it('should show the term, the first definition as a preview and the count when a row is collapsed', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+
+    const collapsed = rows()[2]
+    expect(collapsed.find('[data-testid="search-group-term"]').text()).toBe('ཡེ་ཤེས་ཅན་')
+    expect(collapsed.find('[data-testid="search-group-preview"]').text()).toContain('endowed with wakefulness')
+    expect(collapsed.find('[data-testid="search-group-count"]').text()).toBe('1 definition')
+    expect(collapsed.find('[data-testid="search-group-header"]').attributes('aria-expanded')).toBe('false')
+    expect(collapsed.findAll('[data-testid="search-result"]')).toHaveLength(0)
+  })
+
+  it('should preview the page of a scanned dictionary when its entry comes first', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+
+    expect(rows()[1].find('[data-testid="search-group-preview"]').text()).toContain('Page 552')
+  })
+
+  it('should have every row collapsed after a search, even the first', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+
+    expect(rows().map((row) => row.findAll('[data-testid="search-result"]').length)).toEqual([0, 0, 0])
+    expect(rows().map((row) => row.find('[data-testid="search-group-header"]').attributes('aria-expanded'))).toEqual(['false', 'false', 'false'])
+    expect(rows()[0].find('[data-testid="search-group-preview"]').exists()).toBe(true)
+    expect(rows()[0].find('[data-testid="search-group-count"]').text()).toBe('2 definitions')
+  })
+
+  it('should open a collapsed row when it is clicked and fold it when it is clicked again', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+    const header = () => rows()[1].find('[data-testid="search-group-header"]')
+
+    await header().trigger('click')
+    expect(rows()[1].findAll('[data-testid="search-result"]')).toHaveLength(1)
+    expect(rows()[1].find('[data-testid="search-group-preview"]').exists()).toBe(false)
+    expect(header().attributes('aria-expanded')).toBe('true')
+
+    await header().trigger('click')
+    expect(rows()[1].findAll('[data-testid="search-result"]')).toHaveLength(0)
+    expect(rows()[1].find('[data-testid="search-group-preview"]').exists()).toBe(true)
+  })
+
+  it('should keep the other rows as they are when one is opened', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+
+    await rows()[2].find('[data-testid="search-group-header"]').trigger('click')
+
+    expect(rows().map((row) => row.findAll('[data-testid="search-result"]').length)).toEqual([0, 0, 1])
+  })
+
+  it('should unfold and fold the other definitions with "Show N more" and "Show less" in an open row', async () => {
+    Storage.set('searchDefinitionsPerTerm', 1)
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+    await openRow()
+    const first = () => rows()[0]
+
+    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(1)
+    expect(first().find('[data-testid="term-entries-more"]').text()).toBe('Show 1 more')
+
+    await first().find('[data-testid="term-entries-more"]').trigger('click')
+    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(2)
+    expect(first().find('[data-testid="term-entries-more"]').text()).toBe('Show less')
+
+    await first().find('[data-testid="term-entries-more"]').trigger('click')
+    expect(first().findAll('[data-testid="search-result"]')).toHaveLength(1)
+  })
+
+  it('should not offer "Show more" when the row holds no more than the setting shows', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+    await openRow()
+
+    expect(rows()[0].find('[data-testid="term-entries-more"]').exists()).toBe(false)
+  })
+
+  it('should open Define on the term of an open row when "Open in Define" is tapped', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+    await rows()[2].find('[data-testid="search-group-header"]').trigger('click')
+
+    await rows()[2].find('[data-testid="search-group-open-define"]').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('ཡེ་ཤེས་ཅན་'))
+  })
+
+  it('should fold every row back on a new search', async () => {
+    await mountAt(searchFor('ཡེ་ཤེས་'))
+    await rows()[0].find('[data-testid="search-group-header"]').trigger('click')
+    await rows()[2].find('[data-testid="search-group-header"]').trigger('click')
+    expect(rows().map((row) => row.findAll('[data-testid="search-result"]').length)).toEqual([2, 0, 1])
+
+    await router.push('/search/dharma')
+    await flushPromises()
+
+    expect(rows().map((row) => row.findAll('[data-testid="search-result"]').length)).toEqual([0, 0, 0])
+  })
+
+  it('should only decorate the preview of a collapsed row, not the rest of its definitions', async () => {
+    database.exec = vi.fn(async () => Array.from({ length: 4 }, (_, i) => ({
+      term: 'ཀ', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: `wakefulness ${i}`, rank: -i,
+    })).concat({ term: 'ཁ', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'wakefulness a', rank: 0 },
+      { term: 'ཁ', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'wakefulness b', rank: 0 }))
+    await mountAt('/search/wakefulness')
+
+    const collapsed = page().vm.groups.find((group) => group.term === 'ཁ')
+    expect(page().vm._decorated.has(collapsed.entries[0])).toBe(true)
+    expect(page().vm._decorated.has(collapsed.entries[1])).toBe(false)
   })
 })
 

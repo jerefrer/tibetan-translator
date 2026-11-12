@@ -12,7 +12,7 @@ export const DEFINITIONS_PER_TERM_OPTIONS = [
   { value: 'all', label: 'All' },
 ];
 
-// How many definitions Search shows under each term before "Show N more".
+// How many definitions Search shows when a term is opened, before "Show N more".
 export default {
   name: 'SearchCard',
   components: { SettingsCard, UiSelect },
@@ -33,7 +33,7 @@ export default {
 <template>
   <settings-card
     title="Search"
-    subtitle="Every matching term is listed. This only sets how many of its definitions show at first; the rest unfold with Show more."
+    subtitle="Every matching term is listed on one line. This sets how many of its definitions show when you open it; the rest unfold with Show more."
     class="search-card"
     data-testid="search-card"
   >
