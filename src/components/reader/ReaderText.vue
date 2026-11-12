@@ -164,6 +164,8 @@ export default {
 .reader-text {
   --word-gap: 2px;
   --lane-height: 7px;
+  --bracket-tick: 5px;
+  --hit-extend: 2px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px var(--word-gap);
@@ -173,7 +175,10 @@ export default {
   color: var(--ink);
 }
 .reader-text.is-phone {
-  --lane-height: 9px;
+  /* Tall enough to tap: 16px lanes, hit areas of 24px */
+  --lane-height: 16px;
+  --bracket-tick: 6px;
+  --hit-extend: 4px;
   gap: var(--space-1) var(--word-gap);
   font-size: var(--text-tibetan-lg);
 }
@@ -236,43 +241,58 @@ export default {
 
 /* A piece of an expression's bracket: a line under the word, with an end
    turned up at the first and the last word; it runs on into the gap after
-   the word so that the pieces join */
+   the word so that the pieces join. The piece is a whole lane tall and
+   tappable; the line is drawn at its bottom (::after) and the hit area
+   reaches past it (::before), at least 24px tall on a phone. */
 .reader-merge {
+  --bracket: var(--accent-line);
   position: absolute;
   left: 0;
   right: calc(-1 * var(--word-gap));
   top: calc(100% - var(--lanes) * var(--lane-height) + var(--lane) * var(--lane-height));
   box-sizing: border-box;
-  height: calc(var(--lane-height) - 2px);
+  height: var(--lane-height);
   margin: 0;
   padding: 0;
-  border: 0 solid var(--accent-line);
-  border-bottom-width: 2px;
+  border: 0;
   border-radius: 0;
   background: none;
   cursor: pointer;
 }
+.reader-merge::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 2px;
+  box-sizing: border-box;
+  height: var(--bracket-tick);
+  border: 0 solid var(--bracket);
+  border-bottom-width: 2px;
+}
 .reader-merge.is-start {
   left: 4px;
-  border-left-width: 2px;
-  border-bottom-left-radius: 4px;
 }
 .reader-merge.is-end {
   right: 4px;
+}
+.reader-merge.is-start::after {
+  border-left-width: 2px;
+  border-bottom-left-radius: 4px;
+}
+.reader-merge.is-end::after {
   border-right-width: 2px;
   border-bottom-right-radius: 4px;
 }
-/* A taller invisible hit area, within the lane's own row */
+/* The invisible hit area, a little beyond the lane */
 .reader-merge::before {
   content: '';
   position: absolute;
-  inset: -2px 0 -1px;
+  inset: calc(-1 * var(--hit-extend)) 0;
 }
-.reader-merge.is-hover {
-  border-color: var(--accent);
-}
+.reader-merge.is-hover,
 .reader-merge.is-active {
-  border-color: var(--accent);
+  --bracket: var(--accent);
 }
 .reader-merge:focus-visible {
   outline: 2px solid var(--accent);
