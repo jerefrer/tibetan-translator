@@ -129,3 +129,60 @@ describe('LookupField', () => {
     expect(wrapper.emitted('clear')).toHaveLength(1)
   })
 })
+
+// Ported from tests/define-page.test.js and tests/search-page.test.js (F1, F6,
+// B2, B6): the field's attributes, paste and the query builder wiring
+describe('LookupField — ported from Define and Search', () => {
+  it('should carry a placeholder and a search key in Tibetan mode', () => {
+    mountField({ mode: 'bo' })
+    expect(input().attributes('placeholder')).toBe('Type Tibetan or Wylie')
+    expect(input().attributes('enterkeyhint')).toBe('search')
+  })
+
+  it('should carry a placeholder, a search key and no spelling aids in English mode', () => {
+    mountField({ mode: 'en' })
+    expect(input().attributes('placeholder')).toBe('Search the definitions')
+    expect(input().attributes('enterkeyhint')).toBe('search')
+    expect(input().attributes('spellcheck')).toBe('false')
+    expect(input().attributes('autocomplete')).toBe('off')
+    expect(input().attributes('autocapitalize')).toBe('off')
+    expect(input().attributes('autocorrect')).toBe('off')
+  })
+
+  it('should leave an ordinary paste to the browser in English mode', async () => {
+    mountField({ mode: 'en' })
+    const event = pasteEvent({ text: 'wisdom' })
+    input().element.dispatchEvent(event)
+    await flushPromises()
+    expect(event.defaultPrevented).toBe(false)
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+  })
+
+  it('should give the query builder the query and take its rows back', async () => {
+    Storage.set('searchBuilderVisible', true)
+    mountField({ mode: 'en', modelValue: '(ye shes) & wakefulness' })
+    await flushPromises()
+    const terms = () => wrapper.findAll('[data-testid="search-builder-term"]')
+    expect(terms().map((term) => term.element.value)).toEqual(['ye shes', 'wakefulness'])
+
+    await terms()[1].setValue('wisdom')
+    await flushPromises()
+    expect(lastValue()).toBe('(ye shes) & wisdom')
+  })
+
+  it('should submit the query on Enter in a row of the builder', async () => {
+    Storage.set('searchBuilderVisible', true)
+    mountField({ mode: 'en', modelValue: 'wakefulness' })
+    await wrapper.get('[data-testid="search-builder-term"]').trigger('keyup', { key: 'Enter' })
+    expect(wrapper.emitted('submit')).toHaveLength(1)
+  })
+
+  it('should close the builder with its Hide button and remember it', async () => {
+    Storage.set('searchBuilderVisible', true)
+    mountField({ mode: 'en' })
+    await wrapper.get('[data-testid="search-builder-hide"]').trigger('click')
+    expect(wrapper.find('[data-testid="search-builder"]').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="lookup-advanced"]').attributes('aria-expanded')).toBe('false')
+    expect(Storage.get('searchBuilderVisible')).toBe(false)
+  })
+})

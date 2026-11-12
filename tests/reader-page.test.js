@@ -652,6 +652,74 @@ describe('Reader — recent texts', () => {
   })
 })
 
+// Ported from tests/split-page.test.js (empty state, Split words and the
+// tokenizer)
+describe('Reader — ported from Split', () => {
+  it('should fill the editor with the example and split it when Try it with is clicked', async () => {
+    await mountPage()
+    const example = testid('reader-example')
+    expect(example.text()).toContain('སངས་རྒྱས་')
+
+    await example.trigger('click')
+    await vi.waitFor(() => expect(wordButtons().length).toBeGreaterThan(0))
+
+    expect(words().join('')).toBe('སངས་རྒྱས་ཆོས་དང་ཚོགས་ཀྱི་མཆོག་རྣམས་ལ་')
+    expect(testid('reader-editor').exists()).toBe(false)
+  })
+
+  it('should load the tokenizer once, and keep the selected position on the next split', async () => {
+    await mountPage()
+    await splitText()
+    await wordButtons()[3].trigger('click')
+    await flushPromises()
+
+    await testid('reader-edit').trigger('click')
+    key(textarea().element, { key: 'Enter', metaKey: true })
+    await vi.waitFor(() => expect(words()).toEqual(WORDS))
+    await flushPromises()
+
+    expect(selectedWords()).toEqual([KYI])
+
+    await testid('reader-clear').trigger('click')
+    await nextTick()
+    await textarea().setValue('ཀ་ཁ་')
+    key(textarea().element, { key: 'Enter', metaKey: true })
+    await vi.waitFor(() => expect(words()).toEqual(['ཀ་', 'ཁ་']))
+    expect(tokenizer.created).toBe(1)
+  })
+
+  it('should show a spinner on Split while the tokenizer loads', async () => {
+    let respond
+    globalThis.fetch = vi.fn(() => new Promise((done) => (respond = done)))
+    await mountPage()
+    await textarea().setValue('ཀ་ཁ་')
+    key(textarea().element, { key: 'Enter', metaKey: true })
+    await vi.waitFor(() => expect(testid('reader-split').attributes('aria-busy')).toBe('true'))
+
+    respond({ ok: true, json: async () => ({}) })
+    await vi.waitFor(() => expect(words()).toEqual(['ཀ་', 'ཁ་']))
+  })
+
+  it('should try the tokenizer again on the next split after it failed', async () => {
+    globalThis.fetch = vi.fn(async () => ({ ok: false }))
+    await mountPage()
+    await textarea().setValue('ཤེས་རབ་ཀྱི།')
+    key(textarea().element, { key: 'Enter', metaKey: true })
+    await vi.waitFor(() => expect(testid('reader-tokenizer-error').exists()).toBe(true))
+    expect(tokenizer.created).toBe(0)
+
+    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({}) }))
+    await testid('reader-clear').trigger('click')
+    await nextTick()
+    await textarea().setValue('ཀ་ཁ་')
+    key(textarea().element, { key: 'Enter', metaKey: true })
+    await vi.waitFor(() => expect(words()).toEqual(['ཀ་', 'ཁ་']))
+
+    expect(tokenizer.created).toBe(1)
+    expect(testid('reader-tokenizer-error').exists()).toBe(false)
+  })
+})
+
 describe('Reader — phone', () => {
   beforeEach(() => {
     window.innerWidth = 390

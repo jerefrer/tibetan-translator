@@ -4,11 +4,18 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest'
 import Storage from '../src/services/storage'
-import { readLookupState, writeLookupState, switchLookupMode } from '../src/services/lookup-state'
+import {
+  readLookupState,
+  writeLookupState,
+  switchLookupMode,
+  readPreviousQueries,
+  storePreviousQuery,
+} from '../src/services/lookup-state'
 
 beforeEach(() => {
   Storage.delete('lookupState')
   Storage.delete('selectedTerm')
+  Storage.delete('previousQueries')
 })
 
 describe('lookup state', () => {
@@ -65,5 +72,28 @@ describe('switchLookupMode', () => {
   it('should keep an empty field empty', () => {
     expect(switchLookupMode({ mode: 'bo', text: '', typedWylie: '' }, 'en')).toBe('')
     expect(switchLookupMode({ mode: 'en', text: '', typedWylie: '' }, 'bo')).toBe('')
+  })
+})
+
+// Ported from tests/search-page.test.js (S3): the recent English searches
+describe('previous queries', () => {
+  it('should add each query to the front, once', () => {
+    storePreviousQuery('wisdom')
+    storePreviousQuery('compassion')
+    storePreviousQuery('wisdom')
+    expect(readPreviousQueries()).toEqual(['wisdom', 'compassion'])
+  })
+
+  it('should keep at most 100 queries', () => {
+    for (let i = 0; i < 105; i++) storePreviousQuery('query ' + i)
+    const queries = readPreviousQueries()
+    expect(queries).toHaveLength(100)
+    expect(queries[0]).toBe('query 104')
+    expect(queries.at(-1)).toBe('query 5')
+  })
+
+  it('should ignore an empty query', () => {
+    storePreviousQuery('')
+    expect(readPreviousQueries()).toEqual([])
   })
 })

@@ -564,4 +564,81 @@ describe('Lookup — layout', () => {
     await nextTick()
     expect(document.activeElement).toBe(input().element)
   })
+
+  // Ported from tests/define-page.test.js (recent terms and the Wylie tip)
+  it('should show at most eight recent terms', async () => {
+    window.innerWidth = 390
+    const { recordTerm } = await import('../src/services/history')
+    for (let i = 0; i < 12; i++) recordTerm('ཀ' + i + '་')
+    await mountAt('/lookup')
+    expect(wrapper.findAll('[data-testid="lookup-recent"] [data-testid="lookup-home-term"]')).toHaveLength(8)
+  })
+
+  it('should hide Recent when there is no history, and still show the Wylie tip', async () => {
+    window.innerWidth = 390
+    await mountAt('/lookup')
+    expect(wrapper.find('[data-testid="lookup-recent"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="lookup-tip"]').text()).toContain('sangs rgyas')
+  })
+})
+
+// Ported from tests/define-page.test.js and tests/search-page.test.js: the
+// heading, the focus on return, clearing an English query and the queries
+// reached by a link
+describe('Lookup — ported from Define and Search', () => {
+  beforeEach(() => {
+    Storage.delete('previousQueries')
+  })
+
+  it('should carry a visually hidden level-one heading on desktop', async () => {
+    await mountAt('/lookup')
+    const title = wrapper.get('h1')
+    expect(title.text()).toBe('Lookup')
+    expect(title.classes()).toContain('ui-visually-hidden')
+  })
+
+  it('should focus the field each time the page is shown again (keep-alive)', async () => {
+    await mountAt('/lookup')
+    const field = input().element
+    await go('/reader')
+    expect(document.activeElement).not.toBe(field)
+    await go('/lookup')
+    await nextTick()
+    expect(document.activeElement).toBe(input().element)
+  })
+
+  it('should clear the English query, the stored query, the route and the results', async () => {
+    await mountAt('/lookup?mode=en&q=wisdom')
+    expect(page().vm.query).toBe('wisdom')
+
+    await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
+    await flushPromises()
+
+    expect(input().element.value).toBe('')
+    expect(page().vm.query).toBe('')
+    expect(router.currentRoute.value.query).toEqual({ mode: 'en' })
+    expect(Storage.get('lookupState').query).toBe('')
+    expect(wrapper.find('[data-testid="lookup-no-results"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="lookup-definitions"]').exists()).toBe(false)
+  })
+
+  it('should not add a query reached by a link to the recent searches', async () => {
+    await mountAt('/search/wisdom')
+    expect(page().vm.query).toBe('wisdom')
+    expect(Storage.get('previousQueries', [])).toEqual([])
+  })
+
+  it('should show an earlier query again when Back returns to it', async () => {
+    await mountAt('/lookup?mode=en&q=wisdom')
+    await input().setValue('compassion')
+    await input().trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+    expect(page().vm.query).toBe('compassion')
+
+    router.back()
+    await vi.waitFor(() => expect(page().vm.query).toBe('wisdom'))
+    await flushPromises()
+    expect(input().element.value).toBe('wisdom')
+    expect(checkedMode()).toBe('English')
+  })
 })

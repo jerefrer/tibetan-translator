@@ -324,3 +324,50 @@ describe('LibraryPage', () => {
     expect(router.currentRoute.value.path).toBe('/library')
   })
 })
+
+// Ported from tests/settings-page.test.js (the ConfigurePage shell): the
+// cards Settings showed, the About rows and the help rows
+describe('LibraryPage — ported from Settings', () => {
+  it('should show the Settings cards and no dictionary catalog', async () => {
+    Storage.set('dictionaries', [
+      { id: 1, name: 'Hopkins2015', position: 2, enabled: true },
+      { id: 2, name: 'RangjungYeshe', position: 1, enabled: true },
+    ])
+    await mountLibrary()
+    const settings = byTestId('library-settings')
+    expect(settings.find('[data-testid="appearance-card"]').exists()).toBe(true)
+    expect(settings.find('[data-testid="dictionary-preferences"]').exists()).toBe(true)
+    expect(wrapper.find('.dictionary-catalog').exists()).toBe(false)
+  })
+
+  // The spec puts them under "Add to this device", Tauri only; Settings
+  // showed them in a browser too
+  it('should show the scanned dictionaries and audio cards on the device in the app', async () => {
+    env.tauri = true
+    await mountLibrary()
+    const device = byTestId('library-device')
+    expect(device.find('[data-testid="scanned-card"]').exists()).toBe(true)
+    expect(device.find('[data-testid="audio-card"]').exists()).toBe(true)
+  })
+
+  it('should leave out the app-only cards in a browser', async () => {
+    await mountLibrary()
+    expect(byTestId('global-lookup-card').exists()).toBe(false)
+    expect(byTestId('pack-manager-card').exists()).toBe(false)
+    expect(byTestId('about-whats-new-row').exists()).toBe(false)
+  })
+
+  it('should list What’s new, the update check and the credits as rows in the app', async () => {
+    env.tauri = true
+    await mountLibrary()
+    expect(byTestId('about-whats-new-row').text()).toContain('Tibetan Translator 1.12.0')
+    expect(byTestId('about-check-row').exists()).toBe(true)
+    expect(byTestId('about-credits-row').text()).toContain('Christian Steinert')
+  })
+
+  it('should show no help button of its own next to the help rows', async () => {
+    await mountLibrary()
+    expect(wrapper.find('.help-button').exists()).toBe(false)
+    expect(document.body.querySelector('[aria-label^="How to use the"]')).toBeNull()
+  })
+})

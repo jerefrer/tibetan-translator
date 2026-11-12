@@ -451,3 +451,49 @@ describe('TermEntry', () => {
     expect(sourceNames()).toHaveLength(4)
   })
 })
+
+// Ported from tests/define-page.test.js (Define — definitions)
+describe('TermEntry — ported from Define', () => {
+  const SCAN = { id: 4, name: 'Jaeschke_Scan', position: 4, enabled: true }
+
+  it('should hide Copy when only scanned entries are shown', async () => {
+    Storage.set('dictionaries', [SCAN])
+    await mountEntry({}, [row(SCAN, '479')])
+
+    expect(wrapper.find('[data-testid="entry-scan"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="entry-copy"]').exists()).toBe(false)
+  })
+
+  it('should leave the scanned entries out of what Copy copies', async () => {
+    Storage.set('dictionaries', [RY, SCAN])
+    await mountEntry({}, [row(RY, 'Blessed One'), row(SCAN, '479')])
+
+    await wrapper.find('.term-entry__actions [data-testid="entry-copy"]').trigger('click')
+    await flushPromises()
+
+    const text = writeToClipboard.mock.calls[0][0]
+    expect(text).toContain('Blessed One')
+    expect(text).not.toContain('479')
+  })
+
+  it('should open Add my definition with the term, then look it up again once saved', async () => {
+    tauri = true
+    await mountEntry()
+    const dialog = wrapper.findComponent({ name: 'QuickAddDialog' })
+    expect(dialog.props()).toMatchObject({ modelValue: false, term: TERM })
+
+    await wrapper.find('[data-testid="entry-add"]').trigger('click')
+    expect(dialog.props('modelValue')).toBe(true)
+
+    getEntriesFor.mockClear()
+    dialog.vm.$emit('saved', { id: 1, created: true })
+    expect(getEntriesFor).toHaveBeenCalledWith(TERM)
+  })
+
+  it('should have no headword audio button (audio plays from links in definitions)', async () => {
+    await mountEntry()
+
+    expect(wrapper.find('.audio-play-btn').exists()).toBe(false)
+    expect(wrapper.find('[aria-label*="audio" i]').exists()).toBe(false)
+  })
+})

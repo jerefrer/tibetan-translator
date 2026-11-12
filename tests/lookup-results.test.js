@@ -407,3 +407,101 @@ describe('Lookup results — English', () => {
     expect(wrapper.find('[data-testid="uninstalled-notice"]').exists()).toBe(true)
   })
 })
+
+// Ported from tests/define-page.test.js and tests/search-page.test.js
+describe('Lookup results — ported from Define and Search', () => {
+  it('should render enough terms for the term picked with the keyboard to be in the list', async () => {
+    const terms = Array.from({ length: 150 }, (_, i) => KA + String(i).padStart(3, '0'))
+    database.allTerms = terms
+    await mountAt('/lookup')
+    await typeTibetan(KA)
+    await waitForTerm(terms[0])
+    expect(results()).toHaveLength(100)
+
+    await go('/lookup/' + encodeURIComponent(terms[120]))
+    expect(results()).toHaveLength(150)
+    expect(selectedRow().find('[data-testid="lookup-result-term"]').text()).toBe(terms[120])
+  })
+
+  it('should show a spinner instead of the recent searches while the first search runs', async () => {
+    Storage.set('previousQueries', ['wisdom'])
+    let resolve
+    database.exec = vi.fn((sql) =>
+      isGlossQuery(sql) ? Promise.resolve([]) : new Promise((done) => (resolve = done))
+    )
+    await mountAt('/lookup?mode=en&q=wakefulness')
+
+    expect(wrapper.find('.lookup-results__loading').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="lookup-previous"]').exists()).toBe(false)
+
+    resolve(SEARCH_ROWS.map((row) => ({ ...row })))
+    await flushPromises()
+    expect(wrapper.find('.lookup-results__loading').exists()).toBe(false)
+    expect(results()).toHaveLength(2)
+  })
+
+  it('should list 20 terms, then 20 more as the end comes into view', async () => {
+    searchRows = Array.from({ length: 45 }, (_, i) => ({
+      term: 'ཀ' + String(i).padStart(2, '0') + '་',
+      dictionaryId: 1,
+      dictionary: 'RangjungYeshe',
+      definition: 'wakefulness ' + i,
+      rank: -1,
+    }))
+    await mountAt('/lookup?mode=en&q=wakefulness')
+    expect(results()).toHaveLength(20)
+
+    const list = wrapper.findComponent({ name: 'DefinitionResults' })
+    list.vm._infiniteScrollObserver._trigger(true)
+    await flushPromises()
+    expect(results()).toHaveLength(40)
+    list.vm._infiniteScrollObserver._trigger(true)
+    await flushPromises()
+    expect(results()).toHaveLength(45)
+  })
+
+  it('should not show the uninstalled packs notice before any search', async () => {
+    packManager.installedPacks = ['core']
+    await mountAt('/lookup?mode=en')
+    expect(wrapper.find('[data-testid="uninstalled-notice"]').exists()).toBe(false)
+  })
+
+  it('should empty the recent searches with their Clear', async () => {
+    Storage.set('previousQueries', ['wisdom', 'compassion'])
+    await mountAt('/lookup?mode=en')
+
+    await wrapper.get('[data-testid="lookup-previous-clear"]').trigger('click')
+
+    expect(wrapper.findAll('[data-testid="lookup-previous-query"]')).toHaveLength(0)
+    expect(Storage.get('previousQueries')).toEqual([])
+  })
+
+  it('should put the terms starting with the query first, then the others', async () => {
+    searchRows = [
+      { term: 'བདེ་སྟོང་ཡེ་ཤེས་', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'far', rank: -9 },
+      { term: 'ཡེ་ཤེས་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'first, position 2', rank: -1 },
+      { term: 'ཡེ་ཤེས་', dictionaryId: 2, dictionary: 'Hopkins2015', definition: 'second, position 1', rank: -5 },
+      { term: 'ཡེ་ཤེས་ཅན་', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'longer', rank: -1 },
+    ]
+    await mountAt('/lookup?mode=en&q=' + encodeURIComponent('ཡེ་ཤེས་'))
+
+    expect(resultTerms()).toEqual(['ཡེ་ཤེས་', 'ཡེ་ཤེས་ཅན་', 'བདེ་སྟོང་ཡེ་ཤེས་'])
+    expect(results().map((row) => row.find('[data-testid="lookup-result-count"]').text())).toEqual([
+      '2 definitions',
+      '1 definition',
+      '1 definition',
+    ])
+    // The first definition in the user's order: Hopkins2015 comes first
+    expect(results()[0].find('[data-testid="lookup-result-gloss"]').text()).toBe('second, position 1')
+  })
+
+  it('should order terms with the same start by their best rank, not by dictionary position', async () => {
+    searchRows = [
+      { term: 'ཡེ་ཤེས་ཀ', dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'a', rank: -1 },
+      { term: 'ཡེ་ཤེས་ཁ', dictionaryId: 3, dictionary: 'Jaeschke_Scan', definition: 'b', rank: -8 },
+    ]
+    await mountAt('/lookup?mode=en&q=' + encodeURIComponent('ཡེ་ཤེས་'))
+
+    expect(resultTerms()).toEqual(['ཡེ་ཤེས་ཁ', 'ཡེ་ཤེས་ཀ'])
+  })
+})
