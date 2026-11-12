@@ -8,6 +8,7 @@ import Storage from '../../services/storage';
 import { clearGlossCache } from '../../services/glosses';
 import { recordTerm } from '../../services/history';
 import { TIBETAN_CHAR_RE, plural, termsStartingWith } from '../../services/quick-lookup';
+import { highlightSearchTerms, parseSearchQuery } from '../../services/search-query';
 import { initialTypedWylie, nextTypedWylie, typedWylieFor } from '../../services/typed-wylie';
 import {
   isLookupMode,
@@ -16,10 +17,14 @@ import {
   switchLookupMode,
   writeLookupState,
 } from '../../services/lookup-state';
+import { UiIcon } from '../../ui';
+import MobileResponsiveMixin from '../mixins/MobileResponsiveMixin';
+import TermEntry from '../entry/TermEntry.vue';
 import DefinitionResults from './DefinitionResults.vue';
 import HeadwordResults from './HeadwordResults.vue';
 import LookupField from './LookupField.vue';
 import LookupHints from './LookupHints.vue';
+import LookupHome from './LookupHome.vue';
 
 // The dictionaries as they bear on results: which are on, in which order
 function dictionariesSignature() {
@@ -38,10 +43,27 @@ function dictionariesSignature() {
 // Results: in བོད the headwords starting with the field (the first selected
 // after a pause, as Define did), in EN the terms whose definitions match the
 // query (run on Enter or after a pause, as Search did).
-// (The layout comes with Task 11.)
+//
+// Layout (boards Main, MobileHome, MobileResults, MobileEntry). Desktop: the
+// results column with the field on top, and the entry pane (the selected
+// term, or LookupHome while there is none), each scrolling on its own.
+// Phone: the title, the field, then LookupHome while the field is empty or
+// the results; a tapped result shows its entry full screen with a back link
+// (MobileResponsiveMixin's mobileShowDefinition, as Define did).
+// Keyboard: Up/Down move through the results, Enter opens the English one
+// highlighted, Escape clears the field.
 export default {
   name: 'LookupPage',
-  components: { DefinitionResults, HeadwordResults, LookupField, LookupHints },
+  mixins: [MobileResponsiveMixin],
+  components: {
+    DefinitionResults,
+    HeadwordResults,
+    LookupField,
+    LookupHints,
+    LookupHome,
+    TermEntry,
+    UiIcon,
+  },
   beforeRouteEnter(to, from, next) {
     // Opened bare (sidebar, tab bar, app start): an instance kept alive goes
     // on showing what it shows; a new one takes back what was looked up last
@@ -61,6 +83,8 @@ export default {
       // The term selected in བོད (the route's) and in EN (local)
       selectedTerm: '',
       selectedDefinitionTerm: '',
+      // The English result Up and Down moved to, opened by Enter
+      activeDefinitionTerm: '',
       // The English query whose results are shown
       query: '',
       definitionCount: 0,
@@ -88,6 +112,25 @@ export default {
       if (!this.text) return '';
       const count = plural(this.matches.length, 'term');
       return this.typedWylie ? `Wylie ${this.typedWylie} → ${this.text} · ${count}` : count;
+    },
+    // The term whose entry is shown: a route term means བོད, an English
+    // result is chosen locally
+    entryTerm() {
+      return this.mode === 'en' ? this.selectedDefinitionTerm : this.selectedTerm;
+    },
+    // Phone: the entry full screen instead of the field and the results
+    showingEntry() {
+      return this.isMobile && this.mobileShowDefinition && !!this.entryTerm;
+    },
+    // The highlighted English result: the one moved to, else the one open
+    highlightedDefinition() {
+      return this.activeDefinitionTerm || this.selectedDefinitionTerm;
+    },
+    // In EN the hits of the query are marked in the entry too
+    entryHighlight() {
+      if (this.mode !== 'en' || !this.query) return null;
+      const terms = parseSearchQuery(this.query);
+      return (html) => highlightSearchTerms(html, terms);
     },
   },
   watch: {
@@ -211,15 +254,45 @@ export default {
     openTerm(term) {
       const path = '/lookup/' + encodeURIComponent(term);
       if (this.$route.path !== path) this.$router.push({ path });
+      // The route has the term, but it was unselected meanwhile (the field
+      // emptied by hand): select it again
+      else if (term !== this.selectedTerm) this.selectTerm(term);
     },
+    // A tap or a click on a result: on a phone the entry opens full screen
     onSelectHeadword(term) {
       this.openTerm(term);
+      this.setMobileShowDefinition(true);
     },
     onSelectDefinition(term) {
       this.selectedDefinitionTerm = term;
+      this.activeDefinitionTerm = term;
       recordTerm(term);
       // The query led somewhere: it is worth keeping
       storePreviousQuery(this.query);
+      this.setMobileShowDefinition(true);
+    },
+    // A recent or saved term: a Tibetan term, so it opens in བོད
+    onOpenFromHome(term) {
+      this.openTerm(term);
+      this.setMobileShowDefinition(true);
+    },
+    // The phone's back link: the field and the results as they were
+    backToResults() {
+      this.showTermsList();
+    },
+    // Up and Down in EN: the highlight moves, Enter opens the result
+    moveDefinitionHighlight(step) {
+      const terms = this.$refs.definitionResults?.resultTerms() || [];
+      if (!terms.length) return;
+      const index = terms.indexOf(this.highlightedDefinition);
+      const next = index === -1 ? (step > 0 ? 0 : -1) : index + step;
+      if (next >= 0 && next < terms.length) this.activeDefinitionTerm = terms[next];
+    },
+    // A click on བོད / EN: the new field takes the focus (it is another
+    // field, so its autofocus does not run again)
+    onChooseMode(mode) {
+      this.changeMode(mode);
+      this.$nextTick(() => this.focusField());
     },
     selectSibling(step) {
       const index = this.matches.indexOf(this.selectedTerm);
@@ -234,6 +307,7 @@ export default {
       if (!query || query === this.query) return;
       this.query = query;
       this.selectedDefinitionTerm = '';
+      this.activeDefinitionTerm = '';
       writeLookupState({ query });
       this.$router.replace({ path: '/lookup', query: { mode: 'en', q: query } });
     },
@@ -280,7 +354,10 @@ export default {
       const query = (this.text || '').trim();
       if (!query) return;
       this.debouncedRunQuery.cancel();
-      if (query !== this.query) this.selectedDefinitionTerm = '';
+      if (query !== this.query) {
+        this.selectedDefinitionTerm = '';
+        this.activeDefinitionTerm = '';
+      }
       this.query = query;
       storePreviousQuery(query);
       this.$router.push({ path: '/lookup', query: { mode: 'en', q: query } });
@@ -290,6 +367,7 @@ export default {
       if (this.mode === 'en') {
         this.query = '';
         this.selectedDefinitionTerm = '';
+        this.activeDefinitionTerm = '';
       } else {
         this.selectedTerm = '';
       }
@@ -298,11 +376,30 @@ export default {
       if (this.$route.fullPath !== this.$router.resolve(route).fullPath) this.$router.push(route);
     },
     onKeydown(event) {
-      if (this.mode === 'en') {
-        if (event.key === 'Enter') this.search();
-      } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
+      if (event.key === 'Escape') {
+        if (!this.text) return;
         event.preventDefault();
-        this.selectSibling(event.key === 'ArrowDown' ? 1 : -1);
+        this.clear();
+      } else if (this.mode === 'en') {
+        if (event.key === 'Enter') this.openHighlightedOrSearch();
+        else if (step) {
+          event.preventDefault();
+          this.moveDefinitionHighlight(step);
+        }
+      } else if (step) {
+        event.preventDefault();
+        this.selectSibling(step);
+      }
+    },
+    // Enter in EN: the result moved to with Up and Down opens; a query
+    // changed since is searched
+    openHighlightedOrSearch() {
+      const query = (this.text || '').trim();
+      if (this.activeDefinitionTerm && query === this.query) {
+        this.onSelectDefinition(this.activeDefinitionTerm);
+      } else {
+        this.search();
       }
     },
     focusField() {
@@ -313,54 +410,224 @@ export default {
 </script>
 
 <template>
-  <section class="lookup-page" data-testid="lookup-page">
-    <h1 class="ui-visually-hidden">Lookup</h1>
-    <lookup-field
-      ref="field"
-      v-model="text"
-      :mode="mode"
-      :typed-wylie="typedWylie"
-      :read-as="readAs"
-      @update:mode="changeMode"
-      @keydown="onKeydown"
-      @clear="clear"
-      @submit="search"
-    />
-    <lookup-hints
-      :mode="mode"
-      :text="text"
-      :typed-wylie="typedWylie"
-      :as-typed="asTyped"
-      :headword-count="matches.length"
-      :definition-count="definitionCount"
-      @switch="onHintSwitch"
-    />
-    <headword-results
-      v-if="mode === 'bo' && text"
-      :terms="matches"
-      :selected="selectedTerm"
-      :refresh-key="refreshKey"
-      @select="onSelectHeadword"
-    />
-    <definition-results
-      v-else-if="mode === 'en'"
-      :query="query"
-      :selected="selectedDefinitionTerm"
-      :refresh-key="refreshKey"
-      @select="onSelectDefinition"
-      @search="searchPrevious"
-      @count="definitionCount = $event"
-    />
+  <section
+    class="lookup-page"
+    :class="{ 'is-phone': isMobile, 'is-showing-entry': showingEntry }"
+    data-testid="lookup-page"
+  >
+    <div v-show="!showingEntry" class="lookup-results-pane" data-testid="lookup-results-pane">
+      <div class="lookup-page__head">
+        <h1 class="lookup-page__title" :class="{ 'ui-visually-hidden': !isMobile }">Lookup</h1>
+        <lookup-field
+          ref="field"
+          v-model="text"
+          :mode="mode"
+          :typed-wylie="typedWylie"
+          :read-as="readAs"
+          @update:mode="onChooseMode"
+          @keydown="onKeydown"
+          @clear="clear"
+          @submit="search"
+        />
+        <lookup-hints
+          :mode="mode"
+          :text="text"
+          :typed-wylie="typedWylie"
+          :as-typed="asTyped"
+          :headword-count="matches.length"
+          :definition-count="definitionCount"
+          @switch="onHintSwitch"
+        />
+      </div>
+      <div class="lookup-page__list">
+        <template v-if="mode === 'bo'">
+          <headword-results
+            v-if="text"
+            :terms="matches"
+            :selected="selectedTerm"
+            :refresh-key="refreshKey"
+            @select="onSelectHeadword"
+          />
+          <lookup-home v-else-if="isMobile" @open="onOpenFromHome" />
+        </template>
+        <template v-else>
+          <definition-results
+            ref="definitionResults"
+            :query="query"
+            :selected="highlightedDefinition"
+            :refresh-key="refreshKey"
+            @select="onSelectDefinition"
+            @search="searchPrevious"
+            @count="definitionCount = $event"
+          />
+          <lookup-home v-if="isMobile && !text" @open="onOpenFromHome" />
+        </template>
+      </div>
+    </div>
+
+    <div v-show="!isMobile || showingEntry" class="lookup-entry-pane" data-testid="lookup-entry-pane">
+      <div class="lookup-entry-pane__inner">
+        <term-entry v-if="entryTerm" :term="entryTerm" :highlight="entryHighlight">
+          <template v-if="isMobile" #leading>
+            <button type="button" class="lookup-back" data-testid="lookup-back" @click="backToResults">
+              <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />Lookup
+            </button>
+          </template>
+        </term-entry>
+        <lookup-home v-else-if="!isMobile" @open="onOpenFromHome" />
+      </div>
+    </div>
   </section>
 </template>
 
 <style scoped>
+/* Desktop: the results column (field on top) and the entry pane, each
+   scrolling on its own (board Main) */
 .lookup-page {
   box-sizing: border-box;
-  max-width: var(--entry-max-width);
-  padding: var(--space-6) var(--space-8);
+  display: flex;
+  height: 100%;
+  min-height: 0;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-ui);
+}
+
+.lookup-results-pane {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: var(--results-width);
+  min-height: 0;
+  border-right: 1px solid var(--line);
+}
+
+.lookup-page__head {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.lookup-page__title {
+  margin: 0;
+  font-size: var(--text-large-title);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.lookup-page__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.lookup-entry-pane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.lookup-entry-pane__inner {
+  box-sizing: border-box;
+  max-width: var(--entry-max-width);
+  margin: 0 auto;
+  padding: var(--space-8) calc(var(--space-8) + var(--space-2));
+}
+
+/* With nothing selected, the home sits in the entry pane */
+.lookup-entry-pane__inner > .lookup-home {
+  max-width: 30rem;
+}
+
+.lookup-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 2.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: var(--text-md) var(--font-ui);
+  cursor: pointer;
+}
+
+.lookup-back:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* A narrow entry pane (a small window): less padding, a smaller headword */
+@media (max-width: 1180px) {
+  .lookup-page:not(.is-phone) .lookup-entry-pane__inner {
+    padding: var(--space-6) var(--space-6);
+  }
+  .lookup-page:not(.is-phone) .lookup-entry-pane :deep(.term-entry__headword) {
+    font-size: var(--text-headword-lg);
+  }
+}
+
+/* Phone: one column on the grouped ground, as high as what the software
+   keyboard leaves visible (--visible-height, set from visualViewport) so it
+   never covers the results (boards MobileHome, MobileResults, MobileEntry) */
+.lookup-page.is-phone {
+  flex-direction: column;
+  height: min(100%, calc(var(--visible-height, 100dvh) - var(--safe-top)));
+  background: var(--bg-grouped);
+}
+
+.lookup-page.is-phone .lookup-results-pane {
+  flex: 1;
+  width: auto;
+  border-right: 0;
+}
+
+.lookup-page.is-phone .lookup-page__head {
+  gap: var(--space-3);
+  padding: 22px var(--space-4) 0;
+  border-bottom: 0;
+}
+
+.lookup-page.is-phone .lookup-page__list {
+  overflow-y: auto;
+  padding: 14px var(--space-4) var(--space-6);
+}
+
+/* The results as one white group */
+.lookup-page.is-phone .lookup-page__list :deep(.lookup-results__list) {
+  border-radius: var(--radius-group);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.lookup-page.is-phone .lookup-page__list :deep(.lookup-result) {
+  padding: 10px var(--space-4);
+}
+
+.lookup-page.is-phone .lookup-page__list :deep(.lookup-result:last-of-type) {
+  border-bottom: 0;
+}
+
+/* The recent searches line up with the home's sections */
+.lookup-page.is-phone .lookup-page__list :deep(.lookup-previous) {
+  padding: 0 var(--space-1);
+}
+
+.lookup-page.is-phone .lookup-page__list > .lookup-home {
+  margin-top: var(--space-2);
+}
+
+.lookup-page.is-phone .lookup-entry-pane {
+  flex: 1;
+}
+
+.lookup-page.is-phone .lookup-entry-pane__inner {
+  padding: 14px var(--space-4) var(--space-6);
 }
 </style>

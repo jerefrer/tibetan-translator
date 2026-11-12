@@ -77,6 +77,8 @@ beforeEach(() => {
   // Storage writes localStorage properties, which the setup's clear() keeps
   Storage.delete('lookupState')
   Storage.delete('searchBuilderVisible')
+  // The entry of a selected term reads them (the app has them once loaded)
+  Storage.set('dictionaries', [])
 })
 
 afterEach(() => {
@@ -332,5 +334,220 @@ describe('Lookup — hints between the modes', () => {
     page().vm.text = 'བཅོམ་'
     await nextTick()
     expect(page().vm.asTyped).toBe('')
+  })
+})
+
+describe('Lookup — layout', () => {
+  const DICTIONARIES = [{ id: 1, name: 'RangjungYeshe', position: 0, enabled: true }]
+  const KAKA = 'ཀ་ཀ་'
+  // What `SELECT … WHERE term IN (…)` finds for the glosses
+  const GLOSS_ROWS = [
+    { term: KA, dictionaryId: 1, definition: 'the first letter' },
+    { term: SANGS_RGYAS, dictionaryId: 1, definition: 'Buddha; awakened one' },
+  ]
+  // What a definitions search finds
+  const SEARCH_ROWS = [
+    { term: SANGS_RGYAS, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'the buddha nature', rank: -2 },
+    { term: KA, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'buddha letter', rank: -1 },
+  ]
+  const entryRows = (term) => [
+    { term, dictionaryId: 1, dictionary: 'RangjungYeshe', dictionaryPosition: 0, definition: `buddha nature of ${term}` },
+  ]
+
+  const home = () => wrapper.find('[data-testid="lookup-home"]')
+  const resultsPane = () => wrapper.find('[data-testid="lookup-results-pane"]')
+  const entryPane = () => wrapper.find('[data-testid="lookup-entry-pane"]')
+  const shown = (element) => element.exists() && element.element.style.display !== 'none'
+  const headword = () => wrapper.find('[data-testid="lookup-entry-pane"] [data-testid="entry-headword"]')
+
+  beforeEach(async () => {
+    Storage.set('dictionaries', DICTIONARIES)
+    Storage.delete('savedTerms')
+    const { clearHistory } = await import('../src/services/history')
+    clearHistory()
+    const { clearGlossCache } = await import('../src/services/glosses')
+    clearGlossCache()
+    vi.spyOn(SqlDatabase, 'exec').mockImplementation(async (sql) =>
+      /WHERE term IN/.test(sql) ? GLOSS_ROWS : SEARCH_ROWS
+    )
+    vi.spyOn(SqlDatabase, 'getEntriesFor').mockImplementation(async (term) => entryRows(term))
+    SqlDatabase.allTerms = [KA, KAKA, SANGS_RGYAS]
+  })
+
+  afterEach(() => {
+    SqlDatabase.allTerms = []
+    vi.restoreAllMocks()
+  })
+
+  it('should show three panes on desktop', async () => {
+    await mountAt('/lookup')
+    expect(resultsPane().find('[data-testid="lookup-field"]').exists()).toBe(true)
+    expect(entryPane().find('[data-testid="lookup-home"]').exists()).toBe(true)
+
+    await go('/lookup/' + encodeURIComponent(KA))
+    expect(shown(resultsPane())).toBe(true)
+    expect(shown(entryPane())).toBe(true)
+    expect(resultsPane().find('[data-testid="lookup-headwords"]').exists()).toBe(true)
+    expect(headword().text()).toBe(KA)
+    expect(entryPane().find('[data-testid="lookup-home"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="lookup-back"]').exists()).toBe(false)
+  })
+
+  it('should show Recent and Saved with glosses on an empty phone Lookup', async () => {
+    window.innerWidth = 390
+    const { recordTerm } = await import('../src/services/history')
+    recordTerm(KA)
+    Storage.set('savedTerms', [SANGS_RGYAS])
+    await mountAt('/lookup')
+
+    expect(wrapper.find('.lookup-page__title').text()).toBe('Lookup')
+    expect(resultsPane().find('[data-testid="lookup-home"]').exists()).toBe(true)
+    const recent = wrapper.find('[data-testid="lookup-recent"]')
+    expect(recent.text()).toContain(KA)
+    expect(recent.text()).toContain('the first letter')
+    const saved = wrapper.find('[data-testid="lookup-saved"]')
+    expect(saved.text()).toContain(SANGS_RGYAS)
+    expect(saved.text()).toContain('Buddha; awakened one')
+    expect(home().text()).toContain('Type sangs rgyas for སངས་རྒྱས་, or switch to EN to search the definitions.')
+  })
+
+  it('should hide Saved when nothing is saved', async () => {
+    window.innerWidth = 390
+    await mountAt('/lookup')
+    expect(home().exists()).toBe(true)
+    expect(wrapper.find('[data-testid="lookup-saved"]').exists()).toBe(false)
+  })
+
+  it('should show the glosses as text, never as markup', async () => {
+    window.innerWidth = 390
+    const { recordTerm } = await import('../src/services/history')
+    recordTerm(KA)
+    SqlDatabase.exec.mockImplementation(async () => [
+      { term: KA, dictionaryId: 1, definition: '&lt;img src=x onerror=alert(1)&gt;' },
+    ])
+    await mountAt('/lookup')
+    const recent = wrapper.find('[data-testid="lookup-recent"]')
+    expect(recent.find('img').exists()).toBe(false)
+    expect(recent.text()).toContain('<img src=x onerror=alert(1)>')
+  })
+
+  it('should clear Recent', async () => {
+    window.innerWidth = 390
+    const { recordTerm, recentTerms } = await import('../src/services/history')
+    recordTerm(KA)
+    await mountAt('/lookup')
+    await wrapper.get('[data-testid="lookup-recent-clear"]').trigger('click')
+    await flushPromises()
+    expect(recentTerms()).toEqual([])
+    expect(wrapper.find('[data-testid="lookup-recent"]').exists()).toBe(false)
+  })
+
+  it('should open a recent term from the home', async () => {
+    const { recordTerm } = await import('../src/services/history')
+    recordTerm(SANGS_RGYAS)
+    await mountAt('/lookup')
+    await wrapper.get('[data-testid="lookup-home-term"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+    expect(headword().text()).toBe(SANGS_RGYAS)
+  })
+
+  it('should open the entry full screen on a phone and come back with Lookup', async () => {
+    window.innerWidth = 390
+    await mountAt('/lookup')
+    await typeWylie('ka ')
+    expect(home().exists()).toBe(false)
+    const rows = wrapper.findAll('[data-testid="lookup-result"]')
+    expect(rows.length).toBe(2)
+    expect(shown(entryPane())).toBe(false)
+
+    await rows[1].trigger('click')
+    await flushPromises()
+    expect(shown(entryPane())).toBe(true)
+    expect(shown(resultsPane())).toBe(false)
+    expect(headword().text()).toBe(KAKA)
+    const back = wrapper.get('[data-testid="lookup-back"]')
+    expect(back.text()).toBe('Lookup')
+
+    await back.trigger('click')
+    await flushPromises()
+    expect(shown(resultsPane())).toBe(true)
+    expect(shown(entryPane())).toBe(false)
+    expect(input().element.value).toBe(KA)
+    expect(wrapper.findAll('[data-testid="lookup-result"]').length).toBe(2)
+  })
+
+  it('should not open the entry full screen when the first match is selected after a pause', async () => {
+    window.innerWidth = 390
+    await mountAt('/lookup')
+    await typeWylie('ka ')
+    await vi.waitFor(() =>
+      expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+    )
+    await flushPromises()
+    expect(page().vm.selectedTerm).toBe(KA)
+    expect(shown(entryPane())).toBe(false)
+    expect(shown(resultsPane())).toBe(true)
+  })
+
+  it('should size the phone results to the visible height', async () => {
+    window.innerWidth = 390
+    await mountAt('/lookup')
+    expect(page().classes()).toContain('is-phone')
+    // jsdom applies no styles: read the rule the phone page gets
+    const fs = await import('fs')
+    const path = await import('path')
+    const source = fs.readFileSync(path.resolve(__dirname, '../src/components/lookup/LookupPage.vue'), 'utf8')
+    const rule = source.match(/\.lookup-page\.is-phone\s*\{[^}]*\}/)
+    expect(rule?.[0]).toMatch(/height:[^;]*var\(--visible-height/)
+    expect(source).toMatch(/\.lookup-page\.is-phone \.lookup-page__list\s*\{[^}]*overflow-y:\s*auto/)
+  })
+
+  it('should show the typed Wylie on a phone', async () => {
+    window.innerWidth = 390
+    await mountAt('/lookup')
+    await typeWylie('sangs rgyas ')
+    expect(typed().text()).toBe('typed sangs rgyas')
+  })
+
+  it('should open the selected English result with Enter', async () => {
+    await mountAt('/lookup?mode=en')
+    await input().setValue('buddha')
+    await input().trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+    expect(wrapper.findAll('[data-testid="lookup-result"]').length).toBe(2)
+    expect(entryPane().find('[data-testid="term-entry"]').exists()).toBe(false)
+
+    await input().trigger('keydown', { key: 'ArrowDown' })
+    await input().trigger('keydown', { key: 'ArrowDown' })
+    await input().trigger('keydown', { key: 'ArrowUp' })
+    await nextTick()
+    const selected = wrapper.find('[data-testid="lookup-result"].is-selected')
+    expect(selected.find('[data-testid="lookup-result-term"]').text()).toBe(SANGS_RGYAS)
+
+    await input().trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+    expect(headword().text()).toBe(SANGS_RGYAS)
+    // The hits show in the entry
+    expect(entryPane().find('.definition em').text().toLowerCase()).toBe('buddha')
+    expect(checkedMode()).toBe('English')
+  })
+
+  it('should clear the field with Escape', async () => {
+    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await input().trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(input().element.value).toBe('')
+    expect(router.currentRoute.value.params.term).toBeFalsy()
+  })
+
+  it('should focus the new field after switching mode', async () => {
+    await mountAt('/lookup')
+    await chooseMode('English')
+    await nextTick()
+    expect(document.activeElement).toBe(input().element)
+    await chooseMode('Tibetan')
+    await nextTick()
+    expect(document.activeElement).toBe(input().element)
   })
 })

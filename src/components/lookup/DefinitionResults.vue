@@ -106,6 +106,14 @@ export default {
     displayedCount() {
       this.setupInfiniteScroll();
     },
+    // Moved to with Up and Down: shown, even further down than the rows shown
+    selected(term) {
+      const index = this.groups.findIndex((group) => group.term === term);
+      if (index >= this.displayedCount) this.displayedCount = index + SEARCH_GROUPS_BATCH_SIZE;
+      this.$nextTick(() =>
+        this.$el?.querySelector?.('.lookup-result.is-selected')?.scrollIntoView?.({ block: 'nearest' })
+      );
+    },
   },
   activated() {
     this.previousQueries = readPreviousQueries();
@@ -150,6 +158,10 @@ export default {
     },
     loadMore() {
       if (this.hasMore) this.displayedCount += SEARCH_GROUPS_BATCH_SIZE;
+    },
+    // Every result's term, in order (Lookup's Up and Down go through them)
+    resultTerms() {
+      return this.groups.map((group) => group.term);
     },
     clearHistory() {
       clearPreviousQueries();

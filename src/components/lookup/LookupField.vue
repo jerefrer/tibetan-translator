@@ -1,6 +1,7 @@
 <script>
 import Storage from '../../services/storage';
 import { mayNeedLegacyRepair } from '../../services/legacy-to-unicode';
+import { tibetanRuns } from '../../services/glosses';
 import { UiIcon, UiSegmented, UiTextField, UiTibetanField } from '../../ui';
 import SearchBuilder from '../SearchBuilder.vue';
 
@@ -48,6 +49,7 @@ export default {
     },
   },
   methods: {
+    tibetanRuns,
     focus() {
       this.$refs.input?.focus();
     },
@@ -133,7 +135,7 @@ export default {
 
     <div v-if="showTyped || readAs || !isTibetan" class="lookup-field__under">
       <span v-if="showTyped" class="lookup-field__typed" data-testid="lookup-typed">typed <b>{{ typedWylie }}</b></span>
-      <span v-if="readAs" class="lookup-field__read-as" data-testid="lookup-read-as">{{ readAs }}</span>
+      <span v-if="readAs" class="lookup-field__read-as" data-testid="lookup-read-as"><template v-for="(run, index) in tibetanRuns(readAs)" :key="index"><span v-if="run.tibetan" class="lookup-field__tibetan">{{ run.text }}</span><template v-else>{{ run.text }}</template></template></span>
       <button
         v-if="!isTibetan"
         type="button"
@@ -197,6 +199,13 @@ export default {
 .lookup-field__typed b {
   font-weight: 600;
   color: var(--ink);
+}
+
+.lookup-field__tibetan {
+  font-family: var(--font-tibetan);
+  font-size: 1.15em;
+  line-height: 1;
+  color: var(--rubric);
 }
 
 .lookup-field__advanced {

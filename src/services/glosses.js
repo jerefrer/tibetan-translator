@@ -27,6 +27,15 @@ export function plainGloss(definitionHtml, maxLength = 120) {
   return (atWord > 0 ? cut.slice(0, atWord) : cut).replace(/[\s,;:.]+$/, '') + '…';
 }
 
+/** Plain text cut into runs of Tibetan and of everything else, so that a
+ *  template can set the Tibetan in its own font (still as text, never markup). */
+export function tibetanRuns(text) {
+  return (text || '')
+    .split(/([ༀ-࿿]+)/)
+    .filter(Boolean)
+    .map((run) => ({ text: run, tibetan: /[ༀ-࿿]/.test(run) }));
+}
+
 const quote = (term) => `'${term.replace(/'/g, "''")}'`;
 
 /** term -> one-line gloss, for the enabled dictionary that comes first in the

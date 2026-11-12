@@ -1,7 +1,7 @@
 <script>
 import { TERMS_BATCH_SIZE } from '../../config/constants';
 import Storage from '../../services/storage';
-import { loadGlosses } from '../../services/glosses';
+import { loadGlosses, tibetanRuns } from '../../services/glosses';
 import { UiSpinner } from '../../ui';
 import InfiniteScrollMixin from '../mixins/InfiniteScrollMixin';
 import UninstalledPacksNotice from '../UninstalledPacksNotice.vue';
@@ -60,6 +60,7 @@ export default {
     },
   },
   methods: {
+    tibetanRuns,
     loadMore() {
       if (this.hasMore) this.displayedCount += TERMS_BATCH_SIZE;
     },
@@ -113,7 +114,7 @@ export default {
           v-if="term in glosses"
           class="lookup-result__gloss"
           data-testid="lookup-result-gloss"
-        >{{ glosses[term] }}</span>
+        ><template v-for="(run, index) in tibetanRuns(glosses[term])" :key="index"><span v-if="run.tibetan" class="lookup-result__gloss-tibetan">{{ run.text }}</span><template v-else>{{ run.text }}</template></template></span>
         <span v-else class="lookup-result__placeholder" aria-hidden="true" />
       </div>
       <!-- Sentinel for infinite scroll. Hidden from assistive technology:
@@ -168,6 +169,12 @@ export default {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.lookup-result__gloss-tibetan {
+  font-family: var(--font-tibetan);
+  font-size: 1.15em;
+  line-height: 1;
 }
 
 /* Until its gloss is read, a faint bar holds the row's height */

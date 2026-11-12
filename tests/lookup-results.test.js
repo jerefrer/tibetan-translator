@@ -25,6 +25,8 @@ const packManager = vi.hoisted(() => ({
   isInitialized: true,
   installedPacks: ['core'],
   downloadingPacks: {},
+  // Read by the entry's Add my definition dialog
+  customPacks: [],
 }))
 vi.mock('../src/services/pack-manager', () => ({ default: packManager }))
 

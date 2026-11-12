@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('../src/services/sql-database', () => ({ default: { exec: vi.fn() } }))
 
 import SqlDatabase from '../src/services/sql-database'
-import { loadGlosses, clearGlossCache, plainGloss } from '../src/services/glosses'
+import { loadGlosses, clearGlossCache, plainGloss, tibetanRuns } from '../src/services/glosses'
 
 const dictionaries = [
   { id: 1, enabled: true, position: 2 },
@@ -73,5 +73,19 @@ describe('plainGloss', () => {
 
   it('should read a literal backslash-n left in a definition as a space', () => {
     expect(plainGloss('developed through\\nsincere practice')).toBe('developed through sincere practice')
+  })
+})
+
+describe('tibetanRuns', () => {
+  it('should split plain text into its Tibetan and other runs', () => {
+    expect(tibetanRuns('n. of the world ཞི་མཆེད་ here')).toEqual([
+      { text: 'n. of the world ', tibetan: false },
+      { text: 'ཞི་མཆེད་', tibetan: true },
+      { text: ' here', tibetan: false },
+    ])
+  })
+
+  it('should give nothing for an empty text', () => {
+    expect(tibetanRuns('')).toEqual([])
   })
 })
