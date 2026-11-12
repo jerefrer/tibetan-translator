@@ -717,7 +717,8 @@ html, body
 </style>
 
 <style lang="stylus" scoped>
-// Board "B · Quick lookup" (PopupB.dc.html), 560 × 480 at the default size
+// Board "B · Quick lookup" (PopupB.dc.html). The window opens at up to
+// 820 × 600 (defaultPopupSize in src/services/global-lookup.js)
 .quick-lookup
   box-sizing border-box
   height 100vh
@@ -902,9 +903,10 @@ html, body
   gap 18px
   padding 12px 0 0 22px
 
+// Grows with the window, so widening it shows more of the long terms
 .ql-terms
   flex none
-  width 9.5rem
+  width unquote('clamp(9.5rem, 28%, 16rem)')
   min-height 0
   display flex
   flex-direction column
@@ -933,13 +935,6 @@ html, body
   overflow hidden
   cursor pointer
 
-// On the text itself: an ellipsis does not apply to the bare text of a flex
-// container, which cut long terms mid-letter
-.term-item__text
-  min-width 0
-  overflow hidden
-  text-overflow ellipsis
-
   &:hover
     background var(--soft)
 
@@ -947,6 +942,13 @@ html, body
     background var(--accent)
     color var(--on-accent)
     border-bottom-color transparent
+
+// On the text itself: an ellipsis does not apply to the bare text of a flex
+// container, which cut long terms mid-letter
+.term-item__text
+  min-width 0
+  overflow hidden
+  text-overflow ellipsis
 
 .ql-main
   flex 1
@@ -957,26 +959,30 @@ html, body
   padding-right 22px
   padding-bottom 12px
 
+// The selected term is also in the list, but cut there when long: the
+// headword shows it whole, at a size that leaves room for the definitions
 .ql-headword
   display flex
-  align-items center
+  align-items baseline
   flex-wrap wrap
-  column-gap 18px
-  row-gap 2px
+  column-gap 16px
 
+// The tall line keeps the vowels above the first line inside the scrolling
+// pane, which clips whatever rises above its top
 .ql-headword__term
   margin 0
   font-family var(--font-tibetan)
   font-weight 400
-  font-size 2.75rem
-  line-height 1.55
+  font-size 1.875rem
+  line-height 1.9
   color var(--rubric)
   overflow-wrap anywhere
 
 .ql-headword__meta
   display flex
-  flex-direction column
-  gap 2px
+  align-items baseline
+  flex-wrap wrap
+  column-gap 12px
   min-width 0
 
 .ql-headword__reading

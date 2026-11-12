@@ -8,6 +8,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { nextTick } from 'vue'
+import fs from 'fs'
+import path from 'path'
 
 const invoke = vi.fn()
 const readText = vi.fn()
@@ -623,5 +625,17 @@ describe('closing and the window', () => {
     invoke.mockClear()
     await press('Escape')
     expect(invoke).not.toHaveBeenCalled()
+  })
+})
+
+describe('Quick lookup — layout', () => {
+  const source = () => fs.readFileSync(path.resolve(__dirname, '../src/components/GlobalLookupWindow.vue'), 'utf8')
+
+  it('should highlight the selected term on its row, not on the row text', () => {
+    expect(source()).toMatch(/\n\.term-item\n((  .*)?\n)*  &\.is-active\n/)
+  })
+
+  it('should widen the terms list with the window', () => {
+    expect(source()).toMatch(/\n\.ql-terms\n  flex none\n  width unquote\('clamp\(/)
   })
 })
