@@ -5,12 +5,15 @@
  * starts no term.
  */
 import { describe, it, expect, vi } from 'vitest'
+import { nextTick } from 'vue'
 import { mount } from '@vue/test-utils'
 
 vi.mock('../src/services/sql-database', () => ({
   default: { allTerms: ['བཅོམ་', 'བཅོམ་ལྡན་', 'ཀ་'] },
 }))
 
+import SqlDatabase from '../src/services/sql-database'
+import { startsAnyTerm } from '../src/services/quick-lookup'
 import LookupHints from '../src/components/lookup/LookupHints.vue'
 import { switchLookupMode } from '../src/services/lookup-state'
 
@@ -111,5 +114,64 @@ describe('switchLookupMode — text as typed fallback', () => {
     expect(
       switchLookupMode({ mode: 'bo', text: 'ཀཱཀིṇī་', typedWylie: '', asTyped: 'kākiṇī' }, 'en')
     ).toBe('kākiṇī')
+  })
+})
+
+describe('startsAnyTerm', () => {
+  const terms = ['ཀ་', 'བཅོམ་', 'བཅོམ་ལྡན་']
+
+  it('should be false for an empty list', () => {
+    expect(startsAnyTerm([], 'བཅོམ་')).toBe(false)
+  })
+
+  it('should be false when no term starts with the prefix', () => {
+    expect(startsAnyTerm(terms, 'ག')).toBe(false)
+  })
+
+  it('should be true for an exact term', () => {
+    expect(startsAnyTerm(terms, 'ཀ་')).toBe(true)
+  })
+
+  it('should be true for the prefix of several terms', () => {
+    expect(startsAnyTerm(terms, 'བཅོམ')).toBe(true)
+  })
+
+  it('should be false for an empty prefix or no list', () => {
+    expect(startsAnyTerm(terms, '')).toBe(false)
+    expect(startsAnyTerm(undefined, 'ཀ')).toBe(false)
+  })
+
+  it('should not depend on the terms being sorted', () => {
+    expect(startsAnyTerm(['ཀ་', 'ཀ་ཀ་', 'ཁ་', 'ཀ'].reverse().concat(['བཅོམ་']), 'བཅོམ')).toBe(true)
+  })
+})
+
+describe('LookupHints — terms scan', () => {
+  it('should not scan the terms again when a miss is rendered again', async () => {
+    const original = SqlDatabase.allTerms
+    const terms = ['ཀ་']
+    const some = vi.spyOn(terms, 'some')
+    SqlDatabase.allTerms = terms
+    const wrapper = mountHints({ mode: 'en', text: 'zzzq' })
+    const scans = some.mock.calls.length
+    await wrapper.setProps({ headwordCount: 1 })
+    await wrapper.setProps({ definitionCount: 4 })
+    await wrapper.setProps({ typedWylie: 'x' })
+    expect(some.mock.calls.length).toBe(scans)
+    wrapper.unmount()
+    SqlDatabase.allTerms = original
+  })
+
+  it('should refresh the hint when the terms change', async () => {
+    const original = SqlDatabase.allTerms
+    SqlDatabase.allTerms = ['ཀ་']
+    const wrapper = mountHints({ mode: 'en', text: 'bcom' })
+    expect(tibetanHint(wrapper).exists()).toBe(false)
+    SqlDatabase.allTerms = ['ཀ་', 'བཅོམ་']
+    window._triggerEvent('all-terms-updated')
+    await nextTick()
+    expect(tibetanHint(wrapper).exists()).toBe(true)
+    wrapper.unmount()
+    SqlDatabase.allTerms = original
   })
 })

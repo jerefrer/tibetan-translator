@@ -12,6 +12,7 @@ import { h, KeepAlive, nextTick } from 'vue'
 import appRouter from '../src/router.js'
 import LookupPage from '../src/components/lookup/LookupPage.vue'
 import Storage from '../src/services/storage'
+import SqlDatabase from '../src/services/sql-database'
 
 const KA = 'ཀ་'
 const SANGS_RGYAS = 'སངས་རྒྱས་'
@@ -289,5 +290,47 @@ describe('Lookup — hints between the modes', () => {
     await typeWylie('bliss ')
     const hint = wrapper.find('[data-testid="hint-search-definitions"]')
     expect(hint.text()).toContain('“bliss”')
+  })
+
+  const searchHint = () => wrapper.find('[data-testid="hint-search-definitions"]')
+
+  it('should offer Search for a pasted word, which arrives converted', async () => {
+    await mountAt('/lookup')
+    input().element.dispatchEvent(pasteEvent({ text: 'ཀཱཀིṇī་' }))
+    await vi.waitFor(() => expect(page().vm.text).toBe('ཀཱཀིṇī་'))
+    await nextTick()
+    expect(searchHint().exists()).toBe(true)
+    expect(searchHint().text()).toContain('“ཀཱཀིṇī་”')
+  })
+
+  it('should not offer Search in the definitions for plain Wylie that matches headwords', async () => {
+    await mountAt('/lookup')
+    SqlDatabase.allTerms = [SANGS_RGYAS, KA]
+    try {
+      await typeWylie('sangs rgyas ')
+      expect(page().vm.matches.length).toBeGreaterThan(0)
+      expect(searchHint().exists()).toBe(false)
+    } finally {
+      SqlDatabase.allTerms = []
+    }
+  })
+
+  it('should stop offering Search once the field is cleared', async () => {
+    await mountAt('/lookup')
+    await typeWylie('kākiṇī ')
+    expect(searchHint().exists()).toBe(true)
+    await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
+    await flushPromises()
+    expect(searchHint().exists()).toBe(false)
+  })
+
+  it('should forget the text as typed when it is replaced by other Tibetan', async () => {
+    await mountAt('/lookup')
+    await typeWylie('kāka ')
+    expect(page().vm.asTyped).toBe('kāka')
+    // The text is replaced as a paste over a selection or a picked term would
+    page().vm.text = 'བཅོམ་'
+    await nextTick()
+    expect(page().vm.asTyped).toBe('')
   })
 })

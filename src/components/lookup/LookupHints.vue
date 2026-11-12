@@ -1,6 +1,6 @@
 <script>
 import SqlDatabase from '../../services/sql-database';
-import { wylieToTibetan } from '../../services/quick-lookup';
+import { startsAnyTerm, wylieToTibetan } from '../../services/quick-lookup';
 import { UiButton } from '../../ui';
 
 // What a query in EN may hold for it to read as plain Wylie: letters, spaces,
@@ -23,6 +23,17 @@ export default {
     definitionCount: { type: Number, default: 0 },
   },
   emits: ['switch'],
+  data() {
+    // Bumped when SqlDatabase.allTerms changes (it is not reactive)
+    return { termsVersion: 0 };
+  },
+  mounted() {
+    this._onAllTermsUpdated = () => this.termsVersion++;
+    window.addEventListener('all-terms-updated', this._onAllTermsUpdated);
+  },
+  beforeUnmount() {
+    window.removeEventListener('all-terms-updated', this._onAllTermsUpdated);
+  },
   computed: {
     // The Latin to search in the definitions, when བོད should offer it
     searchText() {
@@ -30,16 +41,14 @@ export default {
       if (this.asTyped) return this.asTyped;
       return this.headwordCount === 0 ? this.typedWylie : '';
     },
-  },
-  methods: {
-    // The Tibetan the query reads as, when it starts a term (allTerms is not
-    // reactive: read again on every render)
-    tibetanFor(text) {
-      const query = (text || '').trim();
+    // The Tibetan the query reads as, when it starts a term. Worked out once
+    // per text and set of terms, not on every render.
+    tibetanLookup() {
+      this.termsVersion; // re-read when the terms change
+      const query = (this.text || '').trim();
       if (this.mode !== 'en' || !query || !PLAIN_WYLIE.test(query)) return '';
       const tibetan = wylieToTibetan(query);
-      if (!tibetan) return '';
-      return (SqlDatabase.allTerms || []).some((term) => term.startsWith(tibetan)) ? tibetan : '';
+      return startsAnyTerm(SqlDatabase.allTerms, tibetan) ? tibetan : '';
     },
   },
 };
@@ -51,20 +60,20 @@ export default {
       <template v-if="headwordCount === 0">
         No Tibetan term starts with <span class="lookup-hint__tibetan">{{ text }}</span>.
       </template>
-      Did you mean the English word?
+      <template v-else>Looking for a Sanskrit or English word?</template>
     </p>
     <ui-button class="lookup-hint__button" size="sm" @click="$emit('switch', { mode: 'en', text: searchText })">
       Search “{{ searchText }}” in the definitions
     </ui-button>
   </section>
-  <section v-else-if="tibetanFor(text)" class="lookup-hint" data-testid="hint-look-up-tibetan">
+  <section v-else-if="tibetanLookup" class="lookup-hint" data-testid="hint-look-up-tibetan">
     <p class="lookup-hint__text">That reads as Wylie.</p>
     <ui-button
       class="lookup-hint__button"
       size="sm"
-      @click="$emit('switch', { mode: 'bo', text: tibetanFor(text) })"
+      @click="$emit('switch', { mode: 'bo', text: tibetanLookup })"
     >
-      Look up <span class="lookup-hint__tibetan">{{ tibetanFor(text) }}</span> as Tibetan
+      Look up <span class="lookup-hint__tibetan">{{ tibetanLookup }}</span> as Tibetan
     </ui-button>
   </section>
 </template>

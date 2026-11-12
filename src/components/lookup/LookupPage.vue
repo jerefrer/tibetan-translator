@@ -92,13 +92,16 @@ export default {
   },
   watch: {
     text(value) {
+      this.typedWylieState = nextTypedWylie(this.typedWylieState, value || '');
       // Kept as typed: once the field has converted part of it (kākiṇī ->
       // ཀཱཀིṇī་), it is no longer what the user would search for. A paste
       // arrives converted already, so that is all there is to keep then.
+      // Text replaced by Tibetan that was not converted from what was typed
+      // (a paste, a picked term) forgets it.
       if (this.mode !== 'bo' || !value) this.asTyped = '';
-      else if (hasLatinDiacritics(value) && (!TIBETAN_CHAR_RE.test(value) || !this.asTyped))
-        this.asTyped = value.trim();
-      this.typedWylieState = nextTypedWylie(this.typedWylieState, value || '');
+      else if (hasLatinDiacritics(value)) {
+        if (!TIBETAN_CHAR_RE.test(value) || !this.asTyped) this.asTyped = value.trim();
+      } else if (!this.asTyped || !this.typedWylie) this.asTyped = '';
       if (this.mode === 'en') {
         this.debouncedSelectFirst.cancel();
         this.debouncedRunQuery();
