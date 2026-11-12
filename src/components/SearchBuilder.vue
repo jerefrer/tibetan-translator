@@ -212,6 +212,8 @@ export default {
 .search-builder
   flex none
   box-sizing border-box
+  // Its rows stack the match and the term when it is narrow (SearchBuilderRow)
+  container-type inline-size
   padding 16px 22px 18px
   background var(--surface)
   border 1px solid var(--line)
@@ -262,6 +264,8 @@ export default {
   margin-top 14px
 
 .search-builder__add
+  flex none
+  white-space nowrap
   display inline-flex
   align-items center
   gap 6px

@@ -121,7 +121,8 @@ export default {
 
 .builder-row__mode
   flex none
-  width 13.75rem
+  width auto
+  max-width 45%
   gap 0
 
   :deep(.ui-select__trigger)
@@ -202,4 +203,27 @@ export default {
   .builder-row__remove
     width 2.75rem
     height 2.75rem
+</style>
+
+<style scoped>
+/* A narrow builder (Lookup's results column): the match on top, the term
+   below, as on a phone, so the term keeps the whole width */
+@container (max-width: 30rem) {
+  .builder-row__fields {
+    flex-direction: column;
+    height: auto;
+  }
+  .builder-row__mode {
+    max-width: none;
+  }
+  .builder-row__mode :deep(.ui-select__trigger) {
+    height: 2.5rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .builder-row__term {
+    flex: none;
+    height: 2.75rem;
+  }
+}
 </style>
