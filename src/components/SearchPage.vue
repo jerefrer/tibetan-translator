@@ -992,9 +992,12 @@ export default {
 
 // One column: the field, the builder, the results header and the results
 // share their left and right edges. Wide, as the results' own columns (term,
-// dictionary, definition) keep the definitions' lines short enough to read
-.search-page > *
+// dictionary, definition) keep the definitions' lines short enough to read.
+// Centred on a wider window.
+.search-page > :not(.ui-visually-hidden)
+  width 100%
   max-width 80rem
+  margin-inline auto
 
 // The field: 60px, accent ring when focused (UiTextField does the focus)
 .search-top
