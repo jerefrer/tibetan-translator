@@ -20,7 +20,9 @@
     inject: { snackbar: { default: null } },
     props: {
       entry: Object,
-      isLastEntry: Boolean
+      isLastEntry: Boolean,
+      // TermEntry names the dictionary once above its definitions
+      hideDictionary: { type: Boolean, default: false }
     },
     emits: ['intersect', 'show-about'],
     data() {
@@ -84,6 +86,7 @@
   >
     <div class="entry-header">
       <button
+        v-if="!hideDictionary"
         type="button"
         class="dictionary-label"
         title="About this dictionary"
