@@ -88,7 +88,7 @@ describe('Split help', () => {
     expect(text).toContain('Split the text into words')
     expect(text).toContain('Types a tsheg in the text')
     expect(text).toContain('Types a space, which separates two words')
-    for (const label of ['Go to Lookup', 'Go to Reader', 'Go to Library settings']) expect(text).toContain(label)
+    for (const label of ['Look up a Tibetan term (Lookup in བོད)', 'Go to Reader', 'Go to Library settings']) expect(text).toContain(label)
     expect(text).toContain('Ctrl')
   })
 

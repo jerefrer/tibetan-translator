@@ -83,7 +83,7 @@ describe('Define help', () => {
 
     const text = body('define-help').textContent
     expect(text).toContain('Select previous entry in results')
-    expect(text).toContain('Go to Lookup')
+    expect(text).toContain('Look up a Tibetan term (Lookup in བོད)')
     expect(text).toContain('Search the definitions (Lookup in EN)')
     expect(text).toContain('Go to Library settings')
   })

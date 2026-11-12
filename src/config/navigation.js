@@ -48,7 +48,7 @@ export function navigateTo(router, target) {
 
 /** The page shortcuts, as the help dialogs list them (Cmd/Ctrl + key). */
 export const HELP_SHORTCUTS = [
-  { key: 'D', text: 'Go to Lookup' },
+  { key: 'D', text: 'Look up a Tibetan term (Lookup in བོད)' },
   { key: 'S', text: 'Search the definitions (Lookup in EN)' },
   { key: 'K', text: 'Put the cursor in the Lookup field' },
   { key: 'T', text: 'Go to Reader' },
