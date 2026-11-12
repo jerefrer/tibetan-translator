@@ -1,5 +1,5 @@
 # Phase 04 — Reader
-Status: PENDING
+Status: ACTIVE
 
 ## Goal
 Reading a Tibetan text word by word with each word's entry beside it.
