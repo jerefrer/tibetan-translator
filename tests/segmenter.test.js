@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-const tokenizer = vi.hoisted(() => ({ created: 0 }))
+// `glue` makes the tokenizer behave as Botok does with spaces: a known word
+// is matched across one, so the space ends up inside a token
+const tokenizer = vi.hoisted(() => ({ created: 0, glue: null }))
 vi.mock('tibetan-word-tokenizer', () => ({
   createTokenizer: () => {
     tokenizer.created++
     return {
-      tokenize: () => [
+      tokenize: (text) => tokenizer.glue ? tokenizer.glue(text) : [
         { text: 'ཤེས་རབ་', chunkType: 'TEXT' },
         { text: '།', chunkType: 'PUNCT' },
         { text: 'ཀྱི', chunkType: 'TEXT' },
@@ -53,6 +55,29 @@ describe('segmenter — splitting', () => {
     expect(tokenizerError(session)).toBe(
       'Dictionary not found. Please ensure botok-dictionary.json is in the public folder.'
     )
+  })
+
+  it('should never join words across a space, even when the tokenizer would', async () => {
+    globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({}) }))
+    const glued = 'དང་ སེམས་'
+    tokenizer.glue = (text) => {
+      const tokens = []
+      let rest = text
+      while (rest) {
+        const word = rest.startsWith(glued) ? glued : rest.match(/^(\s+|[^་\s]+་?)/)[0]
+        if (word.trim()) tokens.push({ text: word, chunkType: 'TEXT' })
+        rest = rest.slice(word.length)
+      }
+      return tokens
+    }
+    try {
+      const words = await splitIntoWords('བདེ་བ་ དང་ སེམས་ ཅན་', createTokenizerSession())
+
+      expect(words).toEqual(['བདེ་', 'བ་', 'དང་', 'སེམས་', 'ཅན་'])
+      expect(words.some((word) => /\s/.test(word))).toBe(false)
+    } finally {
+      tokenizer.glue = null
+    }
   })
 
   it('should read word breaks from spaces', () => {

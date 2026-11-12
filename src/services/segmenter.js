@@ -46,7 +46,10 @@ export function tokenizerError(session = defaultSession) {
   return session.error;
 }
 
-// Words of a passage, each ending in a tsheg (or a shad); only TEXT chunks
+// Words of a passage, each ending in a tsheg (or a shad); only TEXT chunks.
+// Whitespace is a word break the user made (Shift+Space): the tokenizer, which
+// would join words across it, sees each whitespace-separated chunk on its own,
+// and no word ever holds a space.
 export async function splitIntoWords(text, session = defaultSession) {
   const tokenizer = await loadTokenizer(session);
   let tokens;
@@ -57,15 +60,19 @@ export async function splitIntoWords(text, session = defaultSession) {
       .filter((t) => t.trim())
       .map((syllable) => ({ text: syllable + "་", chunkType: "TEXT" }));
   } else {
-    tokens = tokenizer.tokenize(text);
+    tokens = text
+      .split(/\s+/)
+      .filter((chunk) => chunk)
+      .flatMap((chunk) => tokenizer.tokenize(chunk));
   }
 
   const words = [];
   for (const token of tokens) {
-    if (token.chunkType === "TEXT" && token.text) {
-      let word = token.text.trim();
+    if (token.chunkType !== "TEXT" || !token.text) continue;
+    for (let word of token.text.split(/\s+/)) {
+      if (!word) continue;
       if (!word.endsWith("་") && !word.endsWith("།")) word = word + "་";
-      if (word && word !== "་") words.push(word);
+      if (word !== "་") words.push(word);
     }
   }
   return words;

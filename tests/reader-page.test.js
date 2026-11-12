@@ -26,6 +26,8 @@ vi.mock('../src/services/sql-database', () => ({ default: database }))
 
 // A tokenizer that knows the words below, longest first, and calls anything
 // else a syllable. Punctuation comes back as its own chunk, as Botok does.
+// Like Botok, it matches a known word across a space ('དང་ སེམས་'), so the
+// Reader must not rely on it to keep the user's word breaks.
 const tokenizer = vi.hoisted(() => ({ created: 0, words: [] }))
 vi.mock('tibetan-word-tokenizer', () => ({
   createTokenizer: () => {
@@ -33,13 +35,19 @@ vi.mock('tibetan-word-tokenizer', () => ({
     return {
       tokenize(text) {
         const tokens = []
-        for (let rest of text.split(/\s+/)) while (rest) {
+        let rest = text
+        while (rest) {
+          const space = rest.match(/^\s+/)
+          if (space) {
+            rest = rest.slice(space[0].length)
+            continue
+          }
           if (/^[།༔༑]/.test(rest)) {
             tokens.push({ text: rest[0], chunkType: 'PUNCT' })
             rest = rest.slice(1)
             continue
           }
-          const word = tokenizer.words.find((candidate) => rest.startsWith(candidate)) || rest.match(/^[^་།༔༑]+་?/)[0]
+          const word = tokenizer.words.find((candidate) => rest.startsWith(candidate)) || rest.match(/^[^་།༔༑\s]+་?/)[0]
           tokens.push({ text: word, chunkType: 'TEXT' })
           rest = rest.slice(word.length)
         }
@@ -325,6 +333,38 @@ describe('Reader — editor', () => {
 
     expect(testid('reader-editor').exists()).toBe(true)
     expect(wordButtons()).toHaveLength(0)
+  })
+})
+
+describe('Reader — word breaks', () => {
+  it('should keep a Shift+Space word break on the first split, and the same words after Edit and Split', async () => {
+    // Known across the space: a tokenizer fed the whole text would glue them
+    tokenizer.words = ['བདེ་བ་', 'དང་ སེམས་']
+    await mountPage()
+    await textarea().setValue('བདེ་བ་དང་')
+    textarea().element.setSelectionRange(9, 9)
+    expect(key(textarea().element, { key: ' ', shiftKey: true }).defaultPrevented).toBe(false)
+    // The browser types the real space Shift+Space leaves to it
+    await textarea().setValue('བདེ་བ་དང་ སེམས་ཅན་')
+
+    key(textarea().element, { key: 'Enter', metaKey: true })
+    await vi.waitFor(() => expect(words()).toEqual(['བདེ་བ་', 'དང་', 'སེམས་', 'ཅན་']))
+    expect(words().some((word) => /\s/.test(word))).toBe(false)
+
+    await testid('reader-edit').trigger('click')
+    expect(textarea().element.value).toBe('བདེ་བ་ དང་ སེམས་ ཅན་')
+    key(textarea().element, { key: 'Enter', ctrlKey: true })
+    await flushPromises()
+    await vi.waitFor(() => expect(words()).toEqual(['བདེ་བ་', 'དང་', 'སེམས་', 'ཅན་']))
+  })
+
+  it('should keep the word breaks of a pasted text with spaces', async () => {
+    tokenizer.words = ['དང་ སེམས་']
+    await mountPage()
+    textarea().element.dispatchEvent(pasteEvent('དང་ སེམས་'))
+    await textarea().setValue('དང་ སེམས་')
+
+    await vi.waitFor(() => expect(words()).toEqual(['དང་', 'སེམས་']), { timeout: 2000 })
   })
 })
 
