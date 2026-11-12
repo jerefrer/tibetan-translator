@@ -19,9 +19,6 @@ import TibdictInstaller from "../services/tibdict-installer";
 import { substituteLinksWithATags } from "../utils.js";
 import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup.vue";
 import OnboardingScreen from "./OnboardingScreen.vue";
-import DefinePageHelpDialogWithButton from "./DefinePageHelpDialogWithButton.vue";
-import SearchPageHelpDialogWithButton from "./SearchPageHelpDialogWithButton.vue";
-import SplitPageHelpDialogWithButton from "./SplitPageHelpDialogWithButton.vue";
 import CustomPackConflictModal from "./CustomPackConflictModal.vue";
 import AppNav from "./AppNav.vue";
 import { UiSpinner, UiToast } from "../ui";
@@ -45,9 +42,6 @@ export default {
     AppNav,
     SelectedTibetanEntriesPopup,
     OnboardingScreen,
-    DefinePageHelpDialogWithButton,
-    SearchPageHelpDialogWithButton,
-    SplitPageHelpDialogWithButton,
     CustomPackConflictModal,
     UiSpinner,
     UiToast,
@@ -67,9 +61,6 @@ export default {
   computed: {
     tibdictInstallerState() {
       return TibdictInstaller.state;
-    },
-    currentTabId() {
-      return _.compact(this.$route.path.split("/"))[0];
     },
     // Library holds several pages under one segment: they need their own cache keys
     pageKey() {
@@ -286,13 +277,7 @@ export default {
       :inert="showOnboarding"
       data-testid="app-shell"
     >
-      <app-nav :is-mobile="isMobile" :update-ready="updateReady">
-        <template v-if="!isMobile" #help>
-          <DefinePageHelpDialogWithButton v-if="currentTabId == 'define'" />
-          <SearchPageHelpDialogWithButton v-if="currentTabId == 'search'" />
-          <SplitPageHelpDialogWithButton v-if="currentTabId == 'segment'" />
-        </template>
-      </app-nav>
+      <app-nav :is-mobile="isMobile" :update-ready="updateReady" />
 
       <main class="app-content">
         <router-view v-slot="{ Component }">

@@ -56,6 +56,7 @@ vi.mock('../src/services/audio-player-service', () => ({
 
 import App from '../src/components/App.vue'
 import Storage from '../src/services/storage'
+import $ from 'jquery'
 
 const Page = defineComponent({ render: () => h('div', { class: 'stub-page' }, 'page') })
 const OnboardingStub = defineComponent({
@@ -78,6 +79,7 @@ async function mountApp() {
       { path: '/', redirect: '/define' },
       { path: '/define', component: Page },
       { path: '/search', component: Page },
+      { path: '/lookup', component: Page },
     ],
   })
   router.push('/define')
@@ -97,9 +99,6 @@ async function mountApp() {
         OnboardingScreen: OnboardingStub,
         AppNav: true,
         SelectedTibetanEntriesPopup: true,
-        DefinePageHelpDialogWithButton: true,
-        SearchPageHelpDialogWithButton: true,
-        SplitPageHelpDialogWithButton: true,
         CustomPackConflictModal: true,
       },
     },
@@ -295,5 +294,18 @@ describe('selection popup', () => {
     await mountApp()
     await finishLoading()
     expect(wrapper.findComponent({ name: 'SelectedTibetanEntriesPopup' }).exists()).toBe(false)
+  })
+})
+
+describe('keyboard shortcuts', () => {
+  it('should focus Lookup on Cmd+K', async () => {
+    await mountApp()
+    await finishLoading()
+    const spy = vi.spyOn(window, 'dispatchEvent')
+    // The shell listens through jQuery, as App.vue's other shortcuts do
+    $(window).trigger($.Event('keydown', { key: 'k', metaKey: true }))
+    await vi.waitFor(() => expect(spy.mock.calls.some(([e]) => e.type === 'focus-lookup')).toBe(true))
+    spy.mockRestore()
+    expect(wrapper.vm.$route.path).toBe('/lookup')
   })
 })

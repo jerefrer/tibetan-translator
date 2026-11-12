@@ -31,7 +31,7 @@ input, textarea {
   spellcheck: false;
 }
 
-/* App shell: navigation rail + content on desktop, content above a bottom bar
+/* App shell: sidebar + content on desktop, content above a bottom bar
    on a phone. */
 .app-shell {
   display: flex;
@@ -40,6 +40,7 @@ input, textarea {
   overflow: hidden;
   background: var(--bg);
   color: var(--ink);
+  font-family: var(--font-ui);
 }
 .app-shell--phone {
   flex-direction: column;

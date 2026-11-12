@@ -16,7 +16,7 @@ html {
   word-break: normal;
   -moz-tab-size: 4;
   tab-size: 4;
-  font-family: "Roboto", sans-serif;
+  font-family: var(--font-ui);
   line-height: 1.5;
   font-size: 1rem;
   overflow-x: hidden;

@@ -11,6 +11,7 @@
  * CustomPackSection.vue's packIcon().
  */
 import {
+  AlignLeft,
   AlignVerticalJustifyCenter,
   ALargeSmall,
   ArrowBigUp,
@@ -86,6 +87,7 @@ import {
 
 export const ICONS = {
   'a-large-small': ALargeSmall,
+  'align-left': AlignLeft,
   'align-vertical-justify-center': AlignVerticalJustifyCenter,
   'arrow-big-up': ArrowBigUp,
   'arrow-down': ArrowDown,

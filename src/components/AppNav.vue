@@ -1,40 +1,68 @@
 <script>
 import UiIcon from '../ui/UiIcon.vue';
 import { navItemsFor, activeNavId } from '../config/navigation';
+import { recentTerms } from '../services/history';
+import { savedTerms } from '../services/saved-terms';
 
-// Desktop: a vertical rail with Define / Search / Split, a divider,
-// Glossary / Dictionaries, and Settings at the bottom.
-// Phone: a bottom bar with four tabs (page help lives in Settings there).
-// The `help` slot receives the per-page help buttons of the rail.
+const RECENT_LIMIT = 8;
+
+// Desktop: a sidebar with the app name, Lookup / Reader / Library, the recent
+// and saved terms, and Settings at the bottom.
+// Phone: a bottom bar with the same three tabs.
 export default {
   name: 'AppNav',
   components: { UiIcon },
   props: {
     isMobile: { type: Boolean, default: false },
-    // Shows a dot on Settings when an update is waiting for a restart
+    // Shows a dot on Settings (Library on a phone) when an update is waiting for a restart
     updateReady: { type: Boolean, default: false },
+  },
+  data() {
+    return {
+      recent: recentTerms().slice(0, RECENT_LIMIT),
+      saved: savedTerms(),
+    };
   },
   computed: {
     items() {
       return navItemsFor(this.isMobile);
     },
     activeId() {
-      return activeNavId(this.$route.path, this.isMobile);
+      return this.$route.path.startsWith('/library') && this.$route.hash === '#settings'
+        ? 'settings'
+        : activeNavId(this.$route.path, this.isMobile);
     },
-    toolItems() {
-      return this.items.filter((item) => item.group === 'tools');
-    },
-    libraryItems() {
-      return this.items.filter((item) => item.group === 'library');
-    },
-    bottomItems() {
-      return this.items.filter((item) => item.group === 'bottom');
+    currentTerm() {
+      const match = this.$route.path.match(/^\/lookup\/(.+)$/);
+      if (!match) return '';
+      try {
+        return decodeURIComponent(match[1]);
+      } catch (error) {
+        return match[1];
+      }
     },
   },
   methods: {
     hint(item) {
       return item.shortcut ? `${item.label} (Ctrl/Cmd+${item.shortcut})` : item.label;
     },
+    termPath(term) {
+      return `/lookup/${encodeURIComponent(term)}`;
+    },
+    refreshRecent() {
+      this.recent = recentTerms().slice(0, RECENT_LIMIT);
+    },
+    refreshSaved() {
+      this.saved = savedTerms();
+    },
+  },
+  mounted() {
+    window.addEventListener('recents-updated', this.refreshRecent);
+    window.addEventListener('saved-terms-updated', this.refreshSaved);
+  },
+  beforeUnmount() {
+    window.removeEventListener('recents-updated', this.refreshRecent);
+    window.removeEventListener('saved-terms-updated', this.refreshSaved);
   },
 };
 </script>
@@ -42,13 +70,16 @@ export default {
 <template>
   <nav
     class="app-nav"
-    :class="isMobile ? 'app-nav--bar' : 'app-nav--rail'"
+    :class="isMobile ? 'app-nav--bar' : 'app-nav--sidebar'"
     aria-label="Main"
     data-testid="app-nav"
   >
-    <img v-if="!isMobile" class="app-nav__logo" src="/img/app-icon.png" alt="" />
+    <div v-if="!isMobile" class="app-nav__brand">
+      <img class="app-nav__logo" src="/img/app-icon.png" alt="" />
+      <span class="app-nav__name">Tibetan Translator</span>
+    </div>
 
-    <template v-if="isMobile">
+    <div class="app-nav__items">
       <router-link
         v-for="item in items"
         :key="item.id"
@@ -61,13 +92,14 @@ export default {
           class="app-nav__item"
           :class="{ 'is-active': item.id === activeId }"
           :aria-current="item.id === activeId ? 'page' : undefined"
+          :title="isMobile ? undefined : hint(item)"
           :data-testid="'nav-' + item.id"
           @click="navigate"
         >
           <span class="app-nav__icon">
-            <ui-icon :name="item.icon" :size="22" />
+            <ui-icon :name="item.icon" :size="isMobile ? 24 : 18" />
             <span
-              v-if="item.id === 'library' && updateReady"
+              v-if="isMobile && item.id === 'library' && updateReady"
               class="app-nav__dot"
               data-testid="nav-update-dot"
             />
@@ -75,91 +107,61 @@ export default {
           {{ item.label }}
         </a>
       </router-link>
-    </template>
+    </div>
 
-    <template v-else>
-      <router-link
-        v-for="item in toolItems"
-        :key="item.id"
-        v-slot="{ href, navigate }"
-        :to="item.path"
-        custom
-      >
-        <a
-          :href="href"
-          class="app-nav__item"
-          :class="{ 'is-active': item.id === activeId }"
-          :aria-current="item.id === activeId ? 'page' : undefined"
-          :title="hint(item)"
-          :data-testid="'nav-' + item.id"
-          @click="navigate"
+    <template v-if="!isMobile">
+      <section v-if="recent.length" class="app-nav__section" data-testid="nav-recent">
+        <h2 class="app-nav__label">Recent</h2>
+        <router-link
+          v-for="term in recent"
+          :key="term"
+          v-slot="{ href, navigate }"
+          :to="termPath(term)"
+          custom
         >
-          <span class="app-nav__icon">
-            <ui-icon :name="item.icon" :size="22" />
-            <span
-              v-if="item.id === 'library' && updateReady"
-              class="app-nav__dot"
-              data-testid="nav-update-dot"
-            />
-          </span>
-          {{ item.label }}
-        </a>
-      </router-link>
+          <a
+            :href="href"
+            class="app-nav__term"
+            :class="{ 'is-current': term === currentTerm }"
+            @click="navigate"
+          >{{ term }}</a>
+        </router-link>
+      </section>
 
-      <div class="app-nav__divider" role="separator" />
-
-      <router-link
-        v-for="item in libraryItems"
-        :key="item.id"
-        v-slot="{ href, navigate }"
-        :to="item.path"
-        custom
-      >
-        <a
-          :href="href"
-          class="app-nav__item"
-          :class="{ 'is-active': item.id === activeId }"
-          :aria-current="item.id === activeId ? 'page' : undefined"
-          :title="hint(item)"
-          :data-testid="'nav-' + item.id"
-          @click="navigate"
+      <section v-if="saved.length" class="app-nav__section" data-testid="nav-saved">
+        <h2 class="app-nav__label">Saved</h2>
+        <router-link
+          v-for="term in saved"
+          :key="term"
+          v-slot="{ href, navigate }"
+          :to="termPath(term)"
+          custom
         >
-          <ui-icon :name="item.icon" :size="22" />
-          {{ item.label }}
-        </a>
-      </router-link>
+          <a
+            :href="href"
+            class="app-nav__term"
+            :class="{ 'is-current': term === currentTerm }"
+            @click="navigate"
+          >{{ term }}</a>
+        </router-link>
+      </section>
 
       <div class="app-nav__spacer" />
 
-      <div class="app-nav__help" data-testid="nav-help">
-        <slot name="help" />
-      </div>
-
-      <router-link
-        v-for="item in bottomItems"
-        :key="item.id"
-        v-slot="{ href, navigate }"
-        :to="item.path"
-        custom
-      >
+      <router-link v-slot="{ href, navigate }" to="/library#settings" custom>
         <a
           :href="href"
           class="app-nav__item"
-          :class="{ 'is-active': item.id === activeId }"
-          :aria-current="item.id === activeId ? 'page' : undefined"
-          :title="hint(item)"
-          :data-testid="'nav-' + item.id"
+          :class="{ 'is-active': activeId === 'settings' }"
+          :aria-current="activeId === 'settings' ? 'page' : undefined"
+          data-testid="nav-settings"
           @click="navigate"
         >
           <span class="app-nav__icon">
-            <ui-icon :name="item.icon" :size="22" />
-            <span
-              v-if="item.id === 'library' && updateReady"
-              class="app-nav__dot"
-              data-testid="nav-update-dot"
-            />
+            <ui-icon name="settings" :size="18" />
+            <span v-if="updateReady" class="app-nav__dot" data-testid="nav-update-dot" />
           </span>
-          {{ item.label }}
+          Settings
         </a>
       </router-link>
     </template>
@@ -171,99 +173,24 @@ export default {
   position: relative;
   flex: none;
   box-sizing: border-box;
-  background: var(--rail-bg);
-  color: var(--rail-ink);
+  color: var(--muted);
   font-family: var(--font-ui);
   display: flex;
 }
 
-.app-nav--rail {
-  width: var(--rail-width);
-  border-right: 1px solid var(--rail-line);
-  flex-direction: column;
-  align-items: center;
-  padding: var(--space-5) 0;
-  padding-top: calc(var(--space-5) + var(--safe-top));
-  gap: 6px;
-  overflow-y: auto;
-}
-
-/* Android reports no safe-area inset for its status bar */
-.is-android .app-nav--rail {
-  padding-top: calc(var(--space-5) + 24px);
-}
-
-.app-nav--bar {
-  height: calc(var(--bottom-bar-height) - 14px + max(14px, var(--safe-bottom)));
-  padding: 6px 8px max(14px, var(--safe-bottom));
-  /* Light bar, like iOS and Android: the surface, a hairline, accent on the active tab */
-  background: var(--surface);
-  color: var(--muted);
-  border-top: 1px solid var(--line);
-}
-.app-nav--bar .app-nav__item {
-  color: var(--muted);
-}
-.app-nav--bar .app-nav__item:active {
-  background: var(--soft);
-}
-.app-nav--bar .app-nav__item.is-active {
-  background: none;
-  color: var(--accent);
-}
-.app-nav--bar .app-nav__item:focus-visible {
-  outline-color: var(--accent);
-}
-.app-nav--bar .app-nav__dot {
-  background: var(--accent);
-  border-color: var(--surface);
-}
-.app-nav--bar .app-nav__item.is-active .app-nav__dot {
-  border-color: var(--surface);
-}
-
-.app-nav__logo {
-  width: 44px;
-  height: 44px;
-  flex: none;
-  margin-bottom: 22px;
-}
-
 .app-nav__item {
   box-sizing: border-box;
-  border-radius: var(--radius-xl);
-  color: var(--rail-ink);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  font-size: var(--text-caption);
-  font-weight: 500;
+  color: var(--ink);
   text-decoration: none;
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
-.app-nav--rail .app-nav__item {
-  width: 68px;
-  min-height: 62px;
-  flex: none;
-}
-.app-nav--bar .app-nav__item {
-  flex: 1;
-  min-width: 0;
-}
-.app-nav__item.is-active {
-  background: var(--rail-active-bg);
-  color: var(--rail-active-ink);
-  font-weight: 600;
-}
-.app-nav__item:focus-visible {
-  outline: 2px solid var(--rail-active-ink);
+.app-nav__item:focus-visible,
+.app-nav__term:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
-
 .app-nav__icon {
   position: relative;
   display: inline-flex;
@@ -272,48 +199,133 @@ export default {
   position: absolute;
   top: -2px;
   right: -4px;
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
-  background: var(--rail-active-ink);
-  border: 2px solid var(--rail-bg);
+  background: var(--accent);
+  border: 2px solid var(--bg-quiet);
   box-sizing: content-box;
 }
-.app-nav__item.is-active .app-nav__dot {
-  border-color: var(--rail-active-bg);
-}
 
-.app-nav__divider {
-  width: 36px;
-  height: 1px;
+/* Desktop sidebar */
+.app-nav--sidebar {
+  width: var(--sidebar-width);
+  flex-direction: column;
+  gap: 22px;
+  padding: 18px 14px;
+  padding-top: calc(18px + var(--safe-top));
+  background: var(--bg-quiet);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+}
+.is-android .app-nav--sidebar {
+  padding-top: calc(18px + 24px);
+}
+.app-nav__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 6px;
+}
+.app-nav__logo {
+  width: 30px;
+  height: 30px;
   flex: none;
-  background: var(--rail-line);
-  margin: 10px 0 8px;
+}
+.app-nav__name {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.app-nav--sidebar .app-nav__items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.app-nav--sidebar .app-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-base);
+  font-weight: 500;
+}
+.app-nav--sidebar .app-nav__item:hover {
+  background: var(--soft);
+}
+.app-nav--sidebar .app-nav__item.is-active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.app-nav__section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.app-nav__label {
+  margin: 0;
+  padding: 0 10px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.app-nav__term {
+  display: block;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-tibetan);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--rubric);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.app-nav__term:hover,
+.app-nav__term.is-current {
+  background: var(--soft);
 }
 .app-nav__spacer {
   flex: 1;
 }
 
-/* Per-page help button. On the rail it sits above Settings. */
-.app-nav--rail .app-nav__help {
+/* Phone bottom bar: three tabs, accent on the active one */
+.app-nav--bar {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  height: calc(var(--bottom-bar-height) - 14px + max(14px, var(--safe-bottom)));
+  padding: 6px 8px max(14px, var(--safe-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.app-nav--bar .app-nav__items {
+  display: contents;
+}
+.app-nav--bar .app-nav__item {
   display: flex;
+  flex-direction: column;
+  align-items: center;
   justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  border-radius: var(--radius-xl);
+  color: var(--muted);
+  font-size: var(--text-caption);
+  font-weight: 500;
 }
-.app-nav--rail .app-nav__help:empty {
-  display: none;
+.app-nav--bar .app-nav__item:active {
+  background: var(--soft);
 }
-.app-nav .help-button {
-  position: static;
-  margin: 0;
-  opacity: 0.85;
+.app-nav--bar .app-nav__item.is-active {
+  color: var(--accent);
+  font-weight: 600;
 }
-.app-nav .help-button:hover {
-  opacity: 1;
-}
-
-/* Pages keep this much room after their last row (it used to clear the
-   floating phone help button; now just the usual page padding). */
-:root {
-  --phone-help-clearance: 16px;
+.app-nav--bar .app-nav__dot {
+  border-color: var(--surface);
 }
 </style>

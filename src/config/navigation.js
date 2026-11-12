@@ -8,7 +8,7 @@
 
 export const NAV_ITEMS = [
   { id: 'lookup', label: 'Lookup', path: '/lookup', icon: 'search', group: 'tools', mobile: true, shortcut: 'D' },
-  { id: 'reader', label: 'Reader', path: '/reader', icon: 'book-open', group: 'tools', mobile: true, shortcut: 'T' },
+  { id: 'reader', label: 'Reader', path: '/reader', icon: 'align-left', group: 'tools', mobile: true, shortcut: 'T' },
   { id: 'library', label: 'Library', path: '/library', icon: 'library', group: 'tools', mobile: true, shortcut: 'G', shortcutPath: '/library#settings' },
 ];
 
