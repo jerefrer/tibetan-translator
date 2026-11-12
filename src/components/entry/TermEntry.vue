@@ -191,13 +191,22 @@ export default {
         if (token === this._loadToken) this.loading = false;
       }
     },
-    // A pack was installed or removed, or a dictionary switched on or off
+    // A pack was installed or removed, or a dictionary switched on or off or
+    // moved. Only new or removed dictionaries can change what the database
+    // holds for the term; otherwise the entries already read are filtered and
+    // ordered again, without the spinner.
     refreshDictionaries() {
+      const ids = (dictionaries) => dictionaries.map((dictionary) => dictionary.id).sort().join(',');
+      const before = ids(this.dictionaries);
       this.dictionaries = Storage.get('dictionaries').map((dictionary) => ({
         ...dictionary,
         enabledInPreferences: dictionary.enabled
       }));
-      this.load();
+      if (ids(this.dictionaries) !== before || this.loading) {
+        this.load();
+        return;
+      }
+      this.resetDictionariesToDefaultAndSetNumberOfEntries();
     },
     async copyAll() {
       try {

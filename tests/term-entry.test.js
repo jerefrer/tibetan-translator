@@ -419,4 +419,35 @@ describe('TermEntry', () => {
 
     expect(sourceNames()).toEqual(['Rangjung Yeshe', 'Tsepak Rigdzin'])
   })
+
+  it('should filter and reorder without reading the database again when only enabled or order changed', async () => {
+    await mountEntry()
+    getEntriesFor.mockClear()
+
+    Storage.set('dictionaries', [
+      { ...RY, position: 3 },
+      { ...HOPKINS, enabled: false },
+      { ...TSEPAK, position: 1 },
+    ])
+    window._triggerEvent('dictionaries-updated')
+    await nextTick()
+
+    expect(getEntriesFor).not.toHaveBeenCalled()
+    expect(wrapper.find('[data-testid="entry-loading"]').exists()).toBe(false)
+    expect(sourceNames()).toEqual(['Tsepak Rigdzin', 'Rangjung Yeshe'])
+  })
+
+  it('should read the database again when a dictionary was added', async () => {
+    await mountEntry()
+    getEntriesFor.mockClear()
+    const added = { id: 4, name: 'RichardBarron', position: 4, enabled: true }
+    getEntriesFor.mockResolvedValue([...ROWS, row(added, 'the Transcendent Conqueror')])
+
+    Storage.set('dictionaries', [RY, HOPKINS, TSEPAK, added])
+    window._triggerEvent('dictionaries-updated')
+    await flushPromises()
+
+    expect(getEntriesFor).toHaveBeenCalledTimes(1)
+    expect(sourceNames()).toHaveLength(4)
+  })
 })
