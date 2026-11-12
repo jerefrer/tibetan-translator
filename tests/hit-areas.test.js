@@ -26,9 +26,16 @@ describe('Hit areas', () => {
     expect(css).toContain('inset: min(0px, calc((1.125rem - 44px) / 2 - 2px));')
   })
 
-  it("should give the Reader's expression brackets a hit area beyond their lane, 24px tall on a phone", () => {
+  it("should give the Reader's expression brackets a hit area beyond their lane: 18px on desktop, 30px on a phone", () => {
     const css = source('src/components/reader/ReaderText.vue')
     expect(css).toContain(".reader-merge::before {\n  content: '';\n  position: absolute;\n  inset: calc(-1 * var(--hit-extend)) 0;\n}")
-    expect(css).toMatch(/\.reader-text\.is-phone \{[^}]*--lane-height: 16px;[^}]*--hit-extend: 4px;/)
+    expect(css).toMatch(/\.reader-text \{[^}]*--lane-height: 14px;[^}]*--hit-extend: 2px;/)
+    expect(css).toMatch(/\.reader-text\.is-phone \{[^}]*--lane-height: 22px;[^}]*--hit-extend: 4px;/)
+  })
+
+  it("should draw the Reader's expression brackets as a 4px bar, 5px on a phone", () => {
+    const css = source('src/components/reader/ReaderText.vue')
+    expect(css).toMatch(/\.reader-text \{[^}]*--bar: 4px;/)
+    expect(css).toMatch(/\.reader-text\.is-phone \{[^}]*--bar: 5px;/)
   })
 })

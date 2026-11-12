@@ -10,10 +10,11 @@ import { wylieFor } from '../../services/transcription';
 // selected word (its index) or expression ({ start, count }), `unknownWords`
 // the words looked up and found in no dictionary (drawn in --faint).
 //
-// Each expression is a thin bracket under its words, one lane per row of
-// brackets so that overlapping ones do not draw over each other. The bracket
-// is drawn as a piece under each of its words; the piece under the first word
-// is the expression's button, the others answer a click the same way.
+// Each expression is a bar under its words, one lane per row of bars so that
+// overlapping ones do not draw over each other. The bar is drawn as a piece
+// under each of its words; the piece under the first word is the expression's
+// button, the others answer a click the same way. Hovering a bar tints the
+// words it covers, so the reader sees what a click will look up.
 //
 // Emits `select(selection)`: an index, or { start, count } for an expression.
 export default {
@@ -28,6 +29,7 @@ export default {
   },
   emits: ['select'],
   data() {
+    // The expression whose bar the pointer is on
     return { hovered: null };
   },
   computed: {
@@ -75,6 +77,13 @@ export default {
     isSelected(index) {
       return this.selected === index;
     },
+    isPreviewed(index) {
+      const merge = this.hovered;
+      return !!merge && index >= merge.start && index < merge.start + merge.count;
+    },
+    isHovered(merge) {
+      return !!this.hovered && this.mergeKey(this.hovered) === this.mergeKey(merge);
+    },
     isInSelection(index) {
       const range = this.selectedRange;
       return !!range && index >= range.start && index < range.start + range.count;
@@ -120,6 +129,7 @@ export default {
           'is-selected': isSelected(index),
           'is-in-selection': isInSelection(index),
           'is-unknown': unknown.has(word),
+          'is-previewed': isPreviewed(index),
         }"
         :aria-pressed="isSelected(index) ? 'true' : 'false'"
         :title="unknown.has(word) ? 'No entry in your dictionaries' : undefined"
@@ -134,24 +144,24 @@ export default {
           v-if="piece.isStart"
           type="button"
           class="reader-merge"
-          :class="{ 'is-start': true, 'is-end': piece.isEnd, 'is-active': isActiveMerge(piece.merge), 'is-hover': hovered === mergeKey(piece.merge) }"
+          :class="{ 'is-start': true, 'is-end': piece.isEnd, 'is-active': isActiveMerge(piece.merge), 'is-hover': isHovered(piece.merge) }"
           :style="{ '--lane': piece.merge.lane }"
           :aria-label="'Look up ' + piece.merge.term"
           :title="piece.merge.term"
           data-testid="reader-merge"
           @click="selectMerge(piece.merge)"
-          @mouseenter="hovered = mergeKey(piece.merge)"
+          @mouseenter="hovered = piece.merge"
           @mouseleave="hovered = null"
         />
         <span
           v-else
           class="reader-merge"
-          :class="{ 'is-end': piece.isEnd, 'is-active': isActiveMerge(piece.merge), 'is-hover': hovered === mergeKey(piece.merge) }"
+          :class="{ 'is-end': piece.isEnd, 'is-active': isActiveMerge(piece.merge), 'is-hover': isHovered(piece.merge) }"
           :style="{ '--lane': piece.merge.lane }"
           :title="piece.merge.term"
           aria-hidden="true"
           @click="selectMerge(piece.merge)"
-          @mouseenter="hovered = mergeKey(piece.merge)"
+          @mouseenter="hovered = piece.merge"
           @mouseleave="hovered = null"
         />
       </template>
@@ -163,8 +173,9 @@ export default {
 /* The words flow as prose. Under them, one lane per row of brackets. */
 .reader-text {
   --word-gap: 2px;
-  --lane-height: 7px;
-  --bracket-tick: 5px;
+  /* A lane of 14px holding a 4px bar, hit areas of 18px */
+  --lane-height: 14px;
+  --bar: 4px;
   --hit-extend: 2px;
   display: flex;
   flex-wrap: wrap;
@@ -175,9 +186,9 @@ export default {
   color: var(--ink);
 }
 .reader-text.is-phone {
-  /* Tall enough to tap: 16px lanes, hit areas of 24px */
-  --lane-height: 16px;
-  --bracket-tick: 6px;
+  /* Tall enough to tap: 22px lanes holding a 5px bar, hit areas of 30px */
+  --lane-height: 22px;
+  --bar: 5px;
   --hit-extend: 4px;
   gap: var(--space-1) var(--word-gap);
   font-size: var(--text-tibetan-lg);
@@ -216,6 +227,9 @@ export default {
 .reader-word.is-unknown {
   color: var(--faint);
 }
+.reader-word.is-previewed {
+  background: var(--accent-soft);
+}
 .reader-word.is-selected,
 .reader-word.is-in-selection {
   background: var(--accent-soft);
@@ -239,13 +253,13 @@ export default {
   color: var(--accent);
 }
 
-/* A piece of an expression's bracket: a line under the word, with an end
-   turned up at the first and the last word; it runs on into the gap after
-   the word so that the pieces join. The piece is a whole lane tall and
-   tappable; the line is drawn at its bottom (::after) and the hit area
-   reaches past it (::before), at least 24px tall on a phone. */
+/* A piece of an expression's bar: a rounded line under the word, running on
+   into the gap after it so that the pieces join, inset at the first and the
+   last word so that neighbouring expressions stay apart. The piece is a whole
+   lane tall and clickable; the bar is drawn in its middle (::after) and the
+   hit area reaches past it (::before). */
 .reader-merge {
-  --bracket: var(--accent-line);
+  --bracket: color-mix(in srgb, var(--accent) 35%, var(--surface));
   position: absolute;
   left: 0;
   right: calc(-1 * var(--word-gap));
@@ -264,11 +278,10 @@ export default {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 2px;
-  box-sizing: border-box;
-  height: var(--bracket-tick);
-  border: 0 solid var(--bracket);
-  border-bottom-width: 2px;
+  top: calc((var(--lane-height) - var(--bar)) / 2);
+  height: var(--bar);
+  background: var(--bracket);
+  transition: background-color 0.12s ease;
 }
 .reader-merge.is-start {
   left: 4px;
@@ -277,12 +290,12 @@ export default {
   right: 4px;
 }
 .reader-merge.is-start::after {
-  border-left-width: 2px;
-  border-bottom-left-radius: 4px;
+  border-top-left-radius: var(--bar);
+  border-bottom-left-radius: var(--bar);
 }
 .reader-merge.is-end::after {
-  border-right-width: 2px;
-  border-bottom-right-radius: 4px;
+  border-top-right-radius: var(--bar);
+  border-bottom-right-radius: var(--bar);
 }
 /* The invisible hit area, a little beyond the lane */
 .reader-merge::before {

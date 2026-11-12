@@ -536,6 +536,10 @@ export default {
 .term-entry--compact .term-entry__headword {
   font-size: var(--text-headword-lg);
 }
+/* The actions on the panel's first line, level with the Reader's header */
+.term-entry--compact .term-entry__actions {
+  padding-top: 0;
+}
 .term-entry--compact .term-entry__source {
   padding: 12px 0;
 }

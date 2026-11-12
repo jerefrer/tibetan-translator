@@ -167,7 +167,9 @@ export default {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: var(--space-7);
+  /* The top as the Reader's header, so the entry's buttons line up with
+     Edit and Show Wylie */
+  padding: var(--space-4) var(--space-7) var(--space-7);
   border-left: 1px solid var(--line);
   background: var(--bg);
 }
