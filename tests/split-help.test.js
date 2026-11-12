@@ -60,17 +60,23 @@ describe('Split help', () => {
 
     wrapper.vm.tab = 'dictionaries'
     await flushPromises()
-    expect(body('dictionaries-menu-help').textContent).toContain('Ctrl + click on a dictionary')
+    const menuHelp = body('dictionaries-menu-help').textContent
+    for (const text of ['All', 'More…', 'Dictionary preferences', 'Library', 'Alt']) expect(menuHelp).toContain(text)
+    expect(menuHelp).not.toContain('Ctrl + click')
+    expect(menuHelp).not.toContain('B for Browse')
   })
 
-  it('should leave out Navigation on a phone, and explain the long press', async () => {
+  it('should leave out Navigation and the keyboard hint on a phone', async () => {
     window.innerWidth = 390
     await openHelp()
 
     expect(tabLabels()).toEqual(['Reading', 'Dictionaries filter'])
     wrapper.vm.tab = 'dictionaries'
     await flushPromises()
-    expect(body('dictionaries-menu-help').textContent).toContain('Long press on a dictionary')
+    const menuHelp = body('dictionaries-menu-help').textContent
+    expect(menuHelp).toContain('More…')
+    expect(menuHelp).toContain('Dictionary preferences')
+    expect(menuHelp).not.toContain('Alt')
   })
 
   it('should list Up/Down, Ctrl+Enter, Space, Shift+Space and the page shortcuts under Navigation', async () => {

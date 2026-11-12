@@ -88,11 +88,14 @@ describe('Search help', () => {
     expect(text).toContain('Curly brackets are more open-minded')
   })
 
-  it('should explain the Dictionaries menu', async () => {
+  it('should explain the dictionary tabs and the dictionary preferences', async () => {
     await openHelp()
     wrapper.vm.tab = 'dictionaries'
     await flushPromises()
-    expect(body('dictionaries-menu-help').textContent).toContain('Ctrl + click on a dictionary')
+    const menuHelp = body('dictionaries-menu-help').textContent
+    for (const text of ['All', 'More…', 'Dictionary preferences', 'Library', 'Alt']) expect(menuHelp).toContain(text)
+    expect(menuHelp).not.toContain('Ctrl + click')
+    expect(menuHelp).not.toContain('B for Browse')
   })
 
   it('should list the page shortcuts under Navigation, and leave the tab out on a phone', async () => {
