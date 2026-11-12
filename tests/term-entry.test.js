@@ -244,6 +244,32 @@ describe('TermEntry', () => {
 
       expect(sourceNames()).toEqual(['Tsepak Rigdzin'])
     })
+
+    it('should give More the tab role when it sits in the tab list', async () => {
+      await mountEntry()
+
+      const roles = wrapper.findAll('[role="tablist"] > button').map((button) => button.attributes('role'))
+      expect(roles).toEqual(['tab', 'tab', 'tab'])
+    })
+
+    it('should measure the tabs again when the web fonts have loaded', async () => {
+      let fontsLoaded
+      const ready = new Promise((resolve) => { fontsLoaded = resolve })
+      Object.defineProperty(document, 'fonts', { value: { ready }, configurable: true })
+      try {
+        await mountEntry()
+        expect(tabs()).toHaveLength(1)
+
+        // The web font is narrower than the fallback the first measure saw
+        offsetWidth.mockReturnValue(50)
+        fontsLoaded()
+        await flushPromises()
+
+        expect(tabs()).toHaveLength(3)
+      } finally {
+        delete document.fonts
+      }
+    })
   })
 
   it('should copy every definition shown', async () => {

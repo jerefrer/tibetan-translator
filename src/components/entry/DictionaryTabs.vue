@@ -52,12 +52,19 @@ export default {
   },
   mounted() {
     this.measure();
+    // The ruler is observed too: its widths change when a web font arrives
     if (typeof ResizeObserver !== 'undefined') {
       this._observer = new ResizeObserver(() => this.measure());
       this._observer.observe(this.$refs.root);
+      this._observer.observe(this.$refs.ruler);
     }
+    // Measured before Inter or DDC Uchen loaded, the widths are the fallback's
+    document.fonts?.ready?.then(() => {
+      if (!this._unmounted) this.measure();
+    });
   },
   beforeUnmount() {
+    this._unmounted = true;
     this._observer?.disconnect();
   },
   methods: {
@@ -120,10 +127,13 @@ export default {
       v-html="dictionary.label"
     />
     <ui-menu v-if="hidden.length" :items="moreItems" align="end" @select="choose($event.dictionary.id)">
+      <!-- A tab too (only tabs belong in a tablist), one that opens the menu -->
       <button
         type="button"
+        role="tab"
         class="dict-tab"
         :class="{ 'is-active': moreIsActive }"
+        :aria-selected="moreIsActive"
         data-testid="entry-tabs-more"
       >More…</button>
     </ui-menu>
