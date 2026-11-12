@@ -36,13 +36,14 @@ export function writeLookupState(partial) {
 /**
  * The text the field shows after switching from `mode` to `newMode`.
  * To English: the Latin the user typed when it is known (the field turned
- * it into Tibetan), else the text as it is. To Tibetan: text holding Latin
+ * it into Tibetan), else the text as typed (`asTyped`, kept when the field
+ * could only convert part of it, as in kākiṇī), else the text as it is. To Tibetan: text holding Latin
  * is read as Wylie, as the Tibetan field would on a space; Tibetan stays.
  */
-export function switchLookupMode({ mode, text, typedWylie }, newMode) {
+export function switchLookupMode({ mode, text, typedWylie, asTyped }, newMode) {
   const value = text || '';
   if (newMode === mode) return value;
-  if (newMode === 'en') return typedWylie || value;
+  if (newMode === 'en') return typedWylie || asTyped || value;
   return LATIN.test(value) ? wylieToTibetan(value) : value;
 }
 

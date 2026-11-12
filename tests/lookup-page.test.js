@@ -260,3 +260,34 @@ describe('Lookup — field', () => {
     expect(input().element.value).toBe(SANGS_RGYAS)
   })
 })
+
+describe('Lookup — hints between the modes', () => {
+  it('should keep Sanskrit with diacritics as typed when switching from Tibetan to English', async () => {
+    await mountAt('/lookup')
+    await typeWylie('kākiṇī ')
+    expect(page().vm.typedWylie).toBe('')
+    expect(input().element.value).not.toContain('kākiṇī')
+    await chooseMode('English')
+    expect(input().element.value).toBe('kākiṇī')
+  })
+
+  it('should offer searching Sanskrit with diacritics in the definitions and run the search', async () => {
+    await mountAt('/lookup')
+    await typeWylie('kākiṇī ')
+    const hint = wrapper.find('[data-testid="hint-search-definitions"]')
+    expect(hint.exists()).toBe(true)
+    await hint.find('button').trigger('click')
+    await flushPromises()
+    expect(checkedMode()).toBe('English')
+    expect(input().element.value).toBe('kākiṇī')
+    expect(router.currentRoute.value.query).toEqual({ mode: 'en', q: 'kākiṇī' })
+    expect(wrapper.find('[data-testid="hint-search-definitions"]').exists()).toBe(false)
+  })
+
+  it('should offer the typed Wylie when no Tibetan term starts with the text', async () => {
+    await mountAt('/lookup')
+    await typeWylie('bliss ')
+    const hint = wrapper.find('[data-testid="hint-search-definitions"]')
+    expect(hint.text()).toContain('“bliss”')
+  })
+})

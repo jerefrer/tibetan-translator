@@ -2,11 +2,12 @@
 import _ from 'underscore';
 
 import { DEBOUNCE_SEARCH_MS } from '../../config/constants';
+import { hasLatinDiacritics } from '../../services/non-wylie-input';
 import SqlDatabase from '../../services/sql-database';
 import Storage from '../../services/storage';
 import { clearGlossCache } from '../../services/glosses';
 import { recordTerm } from '../../services/history';
-import { plural, termsStartingWith } from '../../services/quick-lookup';
+import { TIBETAN_CHAR_RE, plural, termsStartingWith } from '../../services/quick-lookup';
 import { initialTypedWylie, nextTypedWylie, typedWylieFor } from '../../services/typed-wylie';
 import {
   isLookupMode,
@@ -18,6 +19,7 @@ import {
 import DefinitionResults from './DefinitionResults.vue';
 import HeadwordResults from './HeadwordResults.vue';
 import LookupField from './LookupField.vue';
+import LookupHints from './LookupHints.vue';
 
 // The dictionaries as they bear on results: which are on, in which order
 function dictionariesSignature() {
@@ -39,7 +41,7 @@ function dictionariesSignature() {
 // (The layout comes with Task 11.)
 export default {
   name: 'LookupPage',
-  components: { DefinitionResults, HeadwordResults, LookupField },
+  components: { DefinitionResults, HeadwordResults, LookupField, LookupHints },
   beforeRouteEnter(to, from, next) {
     // Opened bare (sidebar, tab bar, app start): an instance kept alive goes
     // on showing what it shows; a new one takes back what was looked up last
@@ -53,6 +55,9 @@ export default {
       text: '',
       // The Wylie behind the Tibetan in the field ("typed sangs rgyas")
       typedWylieState: initialTypedWylie(),
+      // What was typed in བོད when it carried Latin diacritics (kākiṇī). The
+      // field turns it into Tibetan, so it is kept as typed.
+      asTyped: '',
       // The term selected in བོད (the route's) and in EN (local)
       selectedTerm: '',
       selectedDefinitionTerm: '',
@@ -87,6 +92,12 @@ export default {
   },
   watch: {
     text(value) {
+      // Kept as typed: once the field has converted part of it (kākiṇī ->
+      // ཀཱཀིṇī་), it is no longer what the user would search for. A paste
+      // arrives converted already, so that is all there is to keep then.
+      if (this.mode !== 'bo' || !value) this.asTyped = '';
+      else if (hasLatinDiacritics(value) && (!TIBETAN_CHAR_RE.test(value) || !this.asTyped))
+        this.asTyped = value.trim();
       this.typedWylieState = nextTypedWylie(this.typedWylieState, value || '');
       if (this.mode === 'en') {
         this.debouncedSelectFirst.cancel();
@@ -240,12 +251,19 @@ export default {
         this.mode = mode;
       }
     },
-    changeMode(newMode, { updateRoute = true } = {}) {
+    // A hint's button: the other mode, with the text the hint chose
+    onHintSwitch({ mode, text }) {
+      this.changeMode(mode, { text });
+      if (mode === 'en') this.search();
+    },
+    changeMode(newMode, { updateRoute = true, text: chosenText } = {}) {
       if (!isLookupMode(newMode) || newMode === this.mode) return;
-      const text = switchLookupMode(
-        { mode: this.mode, text: this.text, typedWylie: this.typedWylie },
-        newMode
-      );
+      const text =
+        chosenText ??
+        switchLookupMode(
+          { mode: this.mode, text: this.text, typedWylie: this.typedWylie, asTyped: this.asTyped },
+          newMode
+        );
       this.mode = newMode;
       this.text = text;
       // The term stays the last one selected: the text converted to Tibetan
@@ -304,6 +322,15 @@ export default {
       @keydown="onKeydown"
       @clear="clear"
       @submit="search"
+    />
+    <lookup-hints
+      :mode="mode"
+      :text="text"
+      :typed-wylie="typedWylie"
+      :as-typed="asTyped"
+      :headword-count="matches.length"
+      :definition-count="definitionCount"
+      @switch="onHintSwitch"
     />
     <headword-results
       v-if="mode === 'bo' && text"
