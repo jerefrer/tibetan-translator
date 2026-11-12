@@ -125,6 +125,28 @@ describe('TermEntry', () => {
     expect(wrapper.emitted('loaded')).toEqual([[0]])
   })
 
+  it('should show no definitions when they cannot be read', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    getEntriesFor.mockRejectedValue(new Error('database closed'))
+    wrapper = mount(TermEntry, { props: { term: TERM }, global: { provide: { snackbar } } })
+    await flushPromises()
+    expect(wrapper.find('[data-testid="entry-loading"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="entry-empty"]').exists()).toBe(true)
+    expect(wrapper.emitted('loaded')).toEqual([[0]])
+    expect(warn).toHaveBeenCalled()
+  })
+
+  it('should put the content of the leading slot in the row of the actions', async () => {
+    getEntriesFor.mockResolvedValue(ROWS)
+    wrapper = mount(TermEntry, {
+      props: { term: TERM },
+      slots: { leading: '<button data-testid="lead">Back</button>' },
+      global: { provide: { snackbar }, stubs: { ScanViewer: scanViewerStub } },
+    })
+    await flushPromises()
+    expect(wrapper.find('.term-entry__actions [data-testid="lead"]').exists()).toBe(true)
+  })
+
   it('should tell how many definitions loaded', async () => {
     await mountEntry()
 

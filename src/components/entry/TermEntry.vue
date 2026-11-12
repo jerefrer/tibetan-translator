@@ -181,6 +181,12 @@ export default {
         this.entries = rows || [];
         this.resetDictionariesToDefaultAndSetNumberOfEntries();
         this.$emit('loaded', this.shownEntries.length);
+      } catch (error) {
+        // Definitions that cannot be read show as none, with the usual notice
+        if (token !== this._loadToken) return;
+        console.warn('[TermEntry] Definitions not loaded', error);
+        this.entries = [];
+        this.$emit('loaded', 0);
       } finally {
         if (token === this._loadToken) this.loading = false;
       }
@@ -217,7 +223,7 @@ export default {
 <template>
   <article
     class="term-entry"
-    :class="{ 'term-entry--compact': compact }"
+    :class="{ 'term-entry--compact': compact, 'term-entry--hits': !!highlight }"
     data-testid="term-entry"
   >
     <header class="term-entry__header">
@@ -228,6 +234,8 @@ export default {
           data-testid="entry-headword"
         >{{ headword }}</component>
         <div class="term-entry__actions">
+          <!-- What the caller puts before the actions (the phone's back link) -->
+          <div v-if="$slots.leading" class="term-entry__leading"><slot name="leading" /></div>
           <ui-button
             v-if="!loading && copyableEntries.length"
             variant="outline"
@@ -370,6 +378,11 @@ export default {
   gap: var(--space-2);
   padding-top: 10px;
 }
+.term-entry__leading {
+  display: flex;
+  align-items: center;
+  margin-right: auto;
+}
 .term-entry__save.is-saved {
   color: var(--accent);
   border-color: var(--accent-line);
@@ -490,6 +503,21 @@ export default {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-sm);
+}
+
+/* The hits of a search (`highlight`), as Search marks them: Latin on
+   yellow, Tibetan underlined in yellow */
+.term-entry--hits .term-entry__source :deep(em) {
+  font-style: normal;
+  background: var(--hit-bg);
+  color: var(--on-hit-bg);
+  border-radius: 2px;
+}
+.term-entry--hits .term-entry__source :deep(.tibetan em) {
+  background: none;
+  color: inherit;
+  text-decoration: underline var(--hit-bg) 3px;
+  text-underline-offset: 4px;
 }
 
 /* The Reader panel's condensed entry */
