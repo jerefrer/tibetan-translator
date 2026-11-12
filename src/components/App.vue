@@ -71,6 +71,11 @@ export default {
     currentTabId() {
       return _.compact(this.$route.path.split("/"))[0];
     },
+    // Library holds several pages under one segment: they need their own cache keys
+    pageKey() {
+      const parts = _.compact(this.$route.path.split("/"));
+      return parts[0] === "library" ? parts.slice(0, 2).join("/") : parts[0];
+    },
     updateReady() {
       return UpdateService.state.updateReady;
     },
@@ -158,7 +163,14 @@ export default {
             const path = paths[event.key.toLowerCase()];
             if (path) {
               event.preventDefault();
-              vm.$router.push(path);
+              if (path === "focus-lookup") {
+                // Route to Lookup, then ask its field to take the focus
+                const done = () => window.dispatchEvent(new CustomEvent("focus-lookup"));
+                if (vm.$route.path.startsWith("/lookup")) done();
+                else vm.$router.push("/lookup").then(done);
+              } else {
+                vm.$router.push(path);
+              }
             }
           }
         },
@@ -285,7 +297,7 @@ export default {
       <main class="app-content">
         <router-view v-slot="{ Component }">
           <keep-alive>
-            <component :is="Component" :key="currentTabId" />
+            <component :is="Component" :key="pageKey" />
           </keep-alive>
         </router-view>
       </main>

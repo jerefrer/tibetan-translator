@@ -8,7 +8,7 @@ const stub = { template: '<div />' }
 async function mountNav(path, props = {}, slots = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: ['/define', '/search', '/segment', '/glossary', '/dictionaries', '/settings'].map(
+    routes: ['/lookup', '/reader', '/library', '/library/glossary', '/library/dictionaries'].map(
       (route) => ({ path: route, component: stub })
     ),
   })
@@ -19,55 +19,48 @@ async function mountNav(path, props = {}, slots = {}) {
 }
 
 describe('AppNav', () => {
-  it('should show six entries on desktop, with a divider between the groups', async () => {
-    const { wrapper } = await mountNav('/define')
+  it('should show the three destinations on desktop, with a divider between the groups', async () => {
+    const { wrapper } = await mountNav('/lookup')
     const ids = wrapper.findAll('[data-testid^="nav-"][href]').map((a) => a.attributes('data-testid'))
-    expect(ids).toEqual([
-      'nav-define',
-      'nav-search',
-      'nav-segment',
-      'nav-glossary',
-      'nav-dictionaries',
-      'nav-settings',
-    ])
+    expect(ids).toEqual(['nav-lookup', 'nav-reader', 'nav-library'])
     expect(wrapper.find('[role="separator"]').exists()).toBe(true)
   })
 
-  it('should show four tabs and no divider on a phone', async () => {
-    const { wrapper } = await mountNav('/define', { isMobile: true })
+  it('should show three tabs and no divider on a phone', async () => {
+    const { wrapper } = await mountNav('/lookup', { isMobile: true })
     const ids = wrapper.findAll('[data-testid^="nav-"][href]').map((a) => a.attributes('data-testid'))
-    expect(ids).toEqual(['nav-define', 'nav-search', 'nav-segment', 'nav-settings'])
+    expect(ids).toEqual(['nav-lookup', 'nav-reader', 'nav-library'])
     expect(wrapper.find('[role="separator"]').exists()).toBe(false)
     expect(wrapper.classes()).toContain('app-nav--bar')
   })
 
   it('should mark the current page with aria-current', async () => {
-    const { wrapper } = await mountNav('/search')
-    expect(wrapper.find('[data-testid="nav-search"]').attributes('aria-current')).toBe('page')
-    expect(wrapper.find('[data-testid="nav-define"]').attributes('aria-current')).toBeUndefined()
+    const { wrapper } = await mountNav('/reader')
+    expect(wrapper.find('[data-testid="nav-reader"]').attributes('aria-current')).toBe('page')
+    expect(wrapper.find('[data-testid="nav-lookup"]').attributes('aria-current')).toBeUndefined()
   })
 
-  it('should highlight Settings on a phone while Glossary is open', async () => {
-    const { wrapper } = await mountNav('/glossary/custom-a/1', { isMobile: true })
-    expect(wrapper.find('[data-testid="nav-settings"]').attributes('aria-current')).toBe('page')
+  it('should highlight Library on a phone while Glossary is open', async () => {
+    const { wrapper } = await mountNav('/library/glossary/custom-a/1', { isMobile: true })
+    expect(wrapper.find('[data-testid="nav-library"]').attributes('aria-current')).toBe('page')
   })
 
   it('should show the app icon as the logo on the desktop rail only', async () => {
-    const desktop = await mountNav('/define')
+    const desktop = await mountNav('/lookup')
     expect(desktop.wrapper.find('img.app-nav__logo').attributes('src')).toBe('/img/app-icon.png')
-    const phone = await mountNav('/define', { isMobile: true })
+    const phone = await mountNav('/lookup', { isMobile: true })
     expect(phone.wrapper.find('.app-nav__logo').exists()).toBe(false)
   })
 
   it('should navigate when an entry is clicked', async () => {
-    const { wrapper, router } = await mountNav('/define')
-    await wrapper.find('[data-testid="nav-dictionaries"]').trigger('click')
+    const { wrapper, router } = await mountNav('/lookup')
+    await wrapper.find('[data-testid="nav-reader"]').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/dictionaries')
+    expect(router.currentRoute.value.path).toBe('/reader')
   })
 
-  it('should show an update dot on Settings only when an update is ready', async () => {
-    const { wrapper } = await mountNav('/define')
+  it('should show an update dot on Library only when an update is ready', async () => {
+    const { wrapper } = await mountNav('/lookup')
     expect(wrapper.find('[data-testid="nav-update-dot"]').exists()).toBe(false)
     await wrapper.setProps({ updateReady: true })
     expect(wrapper.find('[data-testid="nav-update-dot"]').exists()).toBe(true)
@@ -75,9 +68,9 @@ describe('AppNav', () => {
 
   it('should render the help slot on the desktop rail only', async () => {
     const help = '<button data-testid="help-probe">?</button>'
-    const desktop = await mountNav('/define', {}, { help })
+    const desktop = await mountNav('/lookup', {}, { help })
     expect(desktop.wrapper.find('[data-testid="help-probe"]').exists()).toBe(true)
-    const phone = await mountNav('/define', { isMobile: true }, { help })
+    const phone = await mountNav('/lookup', { isMobile: true }, { help })
     expect(phone.wrapper.find('[data-testid="help-probe"]').exists()).toBe(false)
     expect(phone.wrapper.find('[data-testid="nav-help"]').exists()).toBe(false)
   })

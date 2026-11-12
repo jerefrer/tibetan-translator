@@ -1,20 +1,15 @@
 /**
  * Main navigation of the app shell.
  *
- * Desktop: a left rail with three groups. `tools` at the top, a divider,
- * `library` (Glossary, Dictionaries), then `bottom` (Settings) pushed down.
- * Phone: a bottom bar with the four `mobile` items only. Glossary and
- * Dictionaries have no tab there; the routes still exist and the bar keeps
- * Settings highlighted while one of them is open.
+ * Three destinations everywhere: Lookup, Reader and Library (Settings,
+ * Glossary and Dictionaries live inside Library, so the item stays highlighted
+ * on every /library route).
  */
 
 export const NAV_ITEMS = [
-  { id: 'define', label: 'Define', path: '/define', icon: 'book-open', group: 'tools', mobile: true, shortcut: 'D' },
-  { id: 'search', label: 'Search', path: '/search', icon: 'search', group: 'tools', mobile: true, shortcut: 'S' },
-  { id: 'segment', label: 'Split', path: '/segment', icon: 'columns-2', group: 'tools', mobile: true, shortcut: 'T' },
-  { id: 'glossary', label: 'Glossary', path: '/glossary', icon: 'notebook-text', group: 'library', mobile: false, parent: 'settings' },
-  { id: 'dictionaries', label: 'Dictionaries', path: '/dictionaries', icon: 'library', group: 'library', mobile: false, parent: 'settings' },
-  { id: 'settings', label: 'Settings', path: '/settings', icon: 'settings', group: 'bottom', mobile: true, shortcut: 'G' },
+  { id: 'lookup', label: 'Lookup', path: '/lookup', icon: 'search', group: 'tools', mobile: true, shortcut: 'D' },
+  { id: 'reader', label: 'Reader', path: '/reader', icon: 'book-open', group: 'tools', mobile: true, shortcut: 'T' },
+  { id: 'library', label: 'Library', path: '/library', icon: 'library', group: 'tools', mobile: true, shortcut: 'G', shortcutPath: '/library#settings' },
 ];
 
 export function navItemsFor(isMobile) {
@@ -35,11 +30,17 @@ export function activeNavId(path, isMobile) {
   return item.id;
 }
 
-/** Keyboard shortcut (Cmd/Ctrl + key) -> route path. */
+/**
+ * Keyboard shortcut (Cmd/Ctrl + key) -> route path. `S` opens Lookup in
+ * English mode; `K` is the action 'focus-lookup' (App.vue routes to Lookup,
+ * then fires the `focus-lookup` window event).
+ */
 export function shortcutPaths() {
   const map = {};
   NAV_ITEMS.forEach((item) => {
-    if (item.shortcut) map[item.shortcut.toLowerCase()] = item.path;
+    if (item.shortcut) map[item.shortcut.toLowerCase()] = item.shortcutPath || item.path;
   });
+  map.s = '/lookup?mode=en';
+  map.k = 'focus-lookup';
   return map;
 }

@@ -8,43 +8,48 @@ import {
 } from '../src/config/navigation.js'
 
 describe('navigation config', () => {
-  it('should list Define, Search and Split before Glossary, Dictionaries and Settings on desktop', () => {
+  it('should list Lookup, Reader and Library on desktop', () => {
     const ids = navItemsFor(false).map((item) => item.id)
-    expect(ids).toEqual(['define', 'search', 'segment', 'glossary', 'dictionaries', 'settings'])
+    expect(ids).toEqual(['lookup', 'reader', 'library'])
   })
 
-  it('should keep only Define, Search, Split and Settings on a phone', () => {
+  it('should keep the same three destinations on a phone', () => {
     const ids = navItemsFor(true).map((item) => item.id)
-    expect(ids).toEqual(['define', 'search', 'segment', 'settings'])
+    expect(ids).toEqual(['lookup', 'reader', 'library'])
   })
 
   it('should read the first path segment of a route', () => {
-    expect(routeSegment('/define/%E0%BD%80')).toBe('define')
+    expect(routeSegment('/lookup/%E0%BD%80')).toBe('lookup')
     expect(routeSegment('/')).toBe('')
   })
 
   it('should highlight the item matching the route on desktop', () => {
-    expect(activeNavId('/glossary/custom-a/1', false)).toBe('glossary')
-    expect(activeNavId('/dictionaries', false)).toBe('dictionaries')
-    expect(activeNavId('/segment', false)).toBe('segment')
+    expect(activeNavId('/lookup/abc', false)).toBe('lookup')
+    expect(activeNavId('/reader', false)).toBe('reader')
+    expect(activeNavId('/library/glossary/custom-a/1', false)).toBe('library')
   })
 
-  it('should highlight Settings on a phone while Glossary or Dictionaries is open', () => {
-    expect(activeNavId('/glossary', true)).toBe('settings')
-    expect(activeNavId('/dictionaries', true)).toBe('settings')
+  it('should highlight Library on a phone while a library section is open', () => {
+    expect(activeNavId('/library/dictionaries', true)).toBe('library')
   })
 
   it('should highlight nothing for a route that has no entry', () => {
     expect(activeNavId('/tests', false)).toBe('')
   })
 
-  it('should keep the existing keyboard shortcuts D, S, T and G', () => {
-    expect(shortcutPaths()).toEqual({
-      d: '/define',
-      s: '/search',
-      t: '/segment',
-      g: '/settings',
-    })
+  it('should keep the existing shortcuts D, T and G pointing at the new destinations', () => {
+    const paths = shortcutPaths()
+    expect(paths.d).toBe('/lookup')
+    expect(paths.t).toBe('/reader')
+    expect(paths.g).toBe('/library#settings')
+  })
+
+  it('should map Cmd+S to Lookup in English mode', () => {
+    expect(shortcutPaths().s).toBe('/lookup?mode=en')
+  })
+
+  it('should map Cmd+K to focusing Lookup', () => {
+    expect(shortcutPaths().k).toBe('focus-lookup')
   })
 
   it('should give every item a unique id and path', () => {

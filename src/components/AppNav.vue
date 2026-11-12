@@ -67,7 +67,7 @@ export default {
           <span class="app-nav__icon">
             <ui-icon :name="item.icon" :size="22" />
             <span
-              v-if="item.id === 'settings' && updateReady"
+              v-if="item.id === 'library' && updateReady"
               class="app-nav__dot"
               data-testid="nav-update-dot"
             />
@@ -94,7 +94,14 @@ export default {
           :data-testid="'nav-' + item.id"
           @click="navigate"
         >
-          <ui-icon :name="item.icon" :size="22" />
+          <span class="app-nav__icon">
+            <ui-icon :name="item.icon" :size="22" />
+            <span
+              v-if="item.id === 'library' && updateReady"
+              class="app-nav__dot"
+              data-testid="nav-update-dot"
+            />
+          </span>
           {{ item.label }}
         </a>
       </router-link>
@@ -147,7 +154,7 @@ export default {
           <span class="app-nav__icon">
             <ui-icon :name="item.icon" :size="22" />
             <span
-              v-if="item.id === 'settings' && updateReady"
+              v-if="item.id === 'library' && updateReady"
               class="app-nav__dot"
               data-testid="nav-update-dot"
             />
