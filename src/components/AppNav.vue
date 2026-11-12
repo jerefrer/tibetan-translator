@@ -1,6 +1,6 @@
 <script>
 import UiIcon from '../ui/UiIcon.vue';
-import { navItemsFor, activeNavId } from '../config/navigation';
+import { navItemsFor, activeNavId, REFOLLOW_EVENT } from '../config/navigation';
 import { recentTerms } from '../services/history';
 import { savedTerms } from '../services/saved-terms';
 
@@ -43,6 +43,16 @@ export default {
     },
   },
   methods: {
+    // Already on /library#settings: vue-router ignores the link, so ask the
+    // page to scroll back to the section itself
+    followSettings(event, navigate) {
+      if (this.$route.fullPath === '/library#settings') {
+        event.preventDefault();
+        window.dispatchEvent(new CustomEvent(REFOLLOW_EVENT));
+        return;
+      }
+      navigate(event);
+    },
     hint(item) {
       return item.shortcut ? `${item.label} (Ctrl/Cmd+${item.shortcut})` : item.label;
     },
@@ -155,7 +165,7 @@ export default {
           :class="{ 'is-active': activeId === 'settings' }"
           :aria-current="activeId === 'settings' ? 'page' : undefined"
           data-testid="nav-settings"
-          @click="navigate"
+          @click="followSettings($event, navigate)"
         >
           <span class="app-nav__icon">
             <ui-icon name="settings" :size="18" />

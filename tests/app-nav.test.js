@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AppNav from '../src/components/AppNav.vue'
@@ -21,6 +21,30 @@ async function mountNav(path, props = {}, slots = {}) {
 }
 
 describe('AppNav', () => {
+  it('should ask Library to scroll back when the Settings link is followed on #settings', async () => {
+    const { wrapper, router } = await mountNav('/library#settings')
+    const spy = vi.spyOn(window, 'dispatchEvent')
+
+    await wrapper.find('[data-testid="nav-settings"]').trigger('click')
+    await flushPromises()
+
+    expect(spy.mock.calls.some(([e]) => e.type === 'route-refollowed')).toBe(true)
+    expect(router.currentRoute.value.fullPath).toBe('/library#settings')
+    spy.mockRestore()
+  })
+
+  it('should navigate to Library settings from another page without asking to scroll', async () => {
+    const { wrapper, router } = await mountNav('/lookup')
+    const spy = vi.spyOn(window, 'dispatchEvent')
+
+    await wrapper.find('[data-testid="nav-settings"]').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.fullPath).toBe('/library#settings')
+    expect(spy.mock.calls.some(([e]) => e.type === 'route-refollowed')).toBe(false)
+    spy.mockRestore()
+  })
+
   beforeEach(() => {
     localStorage.clear()
   })

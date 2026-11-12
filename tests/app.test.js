@@ -80,6 +80,7 @@ async function mountApp() {
       { path: '/define', component: Page },
       { path: '/search', component: Page },
       { path: '/lookup', component: Page },
+      { path: '/library', component: Page },
     ],
   })
   router.push('/define')
@@ -307,5 +308,21 @@ describe('keyboard shortcuts', () => {
     await vi.waitFor(() => expect(spy.mock.calls.some(([e]) => e.type === 'focus-lookup')).toBe(true))
     spy.mockRestore()
     expect(wrapper.vm.$route.path).toBe('/lookup')
+  })
+
+  it('should go to Library settings on Cmd+G, and ask Library to scroll back when already there', async () => {
+    await mountApp()
+    await finishLoading()
+    const spy = vi.spyOn(window, 'dispatchEvent')
+    const refollowed = () => spy.mock.calls.filter(([e]) => e.type === 'route-refollowed').length
+
+    $(window).trigger($.Event('keydown', { key: 'g', metaKey: true }))
+    await vi.waitFor(() => expect(wrapper.vm.$route.fullPath).toBe('/library#settings'))
+    expect(refollowed()).toBe(0)
+
+    $(window).trigger($.Event('keydown', { key: 'g', metaKey: true }))
+    await vi.waitFor(() => expect(refollowed()).toBe(1))
+    expect(wrapper.vm.$route.fullPath).toBe('/library#settings')
+    spy.mockRestore()
   })
 })

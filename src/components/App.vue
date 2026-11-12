@@ -11,7 +11,7 @@ import UpdateService from "../services/update-service";
 import AudioPlayerService from "../services/audio-player-service";
 import ResizeService from "../services/resize-service";
 import { isTauri, supportsModularPacks } from "../config/platform";
-import { shortcutPaths } from "../config/navigation";
+import { navigateTo, shortcutPaths } from "../config/navigation";
 import { initDocumentTheme, watchSystemTheme } from "../services/theme";
 import * as ScrollMemory from "../services/scroll-memory";
 
@@ -160,7 +160,7 @@ export default {
                 if (vm.$route.path.startsWith("/lookup")) done();
                 else vm.$router.push("/lookup").then(done);
               } else {
-                vm.$router.push(path);
+                navigateTo(vm.$router, path);
               }
             }
           }

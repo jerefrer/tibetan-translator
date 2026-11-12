@@ -4,6 +4,7 @@ import PackManager from '../../services/pack-manager';
 import ResizeService from '../../services/resize-service';
 import { Lexicon } from '../../services/lexicon';
 import { supportsModularPacks } from '../../config/platform';
+import { REFOLLOW_EVENT } from '../../config/navigation';
 import { UiIcon, UiList, UiListItem } from '../../ui';
 import AppearanceCard from '../settings/AppearanceCard.vue';
 import GlobalLookupCard from '../settings/GlobalLookupCard.vue';
@@ -83,6 +84,8 @@ export default {
       this.dictionaryCount = (Storage.get('dictionaries') || []).length;
     };
     window.addEventListener('dictionaries-updated', this.onDictionariesUpdated);
+    // The sidebar's Settings link and Cmd/Ctrl+G, followed while already on #settings
+    window.addEventListener(REFOLLOW_EVENT, this.scrollToHash);
   },
   mounted() {
     this.scrollToHash();
@@ -94,6 +97,7 @@ export default {
   unmounted() {
     ResizeService.unsubscribe('library-page');
     window.removeEventListener('dictionaries-updated', this.onDictionariesUpdated);
+    window.removeEventListener(REFOLLOW_EVENT, this.scrollToHash);
   },
   methods: {
     // Only while Library itself is shown: the other /library pages share the
@@ -260,9 +264,6 @@ export default {
 }
 .library-row__chevron {
   color: var(--faint);
-}
-.library-row--accent .ui-list-item__row {
-  color: var(--accent);
 }
 .library-group .settings-row .ui-list-item__row {
   min-height: 3.25rem;

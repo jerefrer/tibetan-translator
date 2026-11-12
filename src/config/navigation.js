@@ -30,6 +30,22 @@ export function activeNavId(path, isMobile) {
   return item.id;
 }
 
+/** Fired when a link to the current route (hash included) is followed again. */
+export const REFOLLOW_EVENT = 'route-refollowed';
+
+/**
+ * Router push that survives a link to where the user already is: vue-router
+ * ignores such a duplicate, so a page scrolled away from its `#section` would
+ * never go back to it. The event lets the page do that itself (Library).
+ */
+export function navigateTo(router, target) {
+  if (router.resolve(target).fullPath === router.currentRoute.value.fullPath) {
+    window.dispatchEvent(new CustomEvent(REFOLLOW_EVENT));
+    return Promise.resolve();
+  }
+  return router.push(target);
+}
+
 /** The page shortcuts, as the help dialogs list them (Cmd/Ctrl + key). */
 export const HELP_SHORTCUTS = [
   { key: 'D', text: 'Go to Lookup' },

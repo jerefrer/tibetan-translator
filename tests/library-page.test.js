@@ -260,6 +260,28 @@ describe('LibraryPage', () => {
     expect(scrolled).toContain('settings')
   })
 
+  it('should scroll back to Settings when its link is followed again from further down', async () => {
+    await mountLibrary('/library#settings')
+    scrolled.length = 0
+
+    window._triggerEvent('route-refollowed')
+    await flushPromises()
+
+    expect(scrolled).toEqual(['settings'])
+  })
+
+  it('should leave the scroll alone on a refollow while Library is not the active route', async () => {
+    await mountLibrary('/library#settings')
+    await router.push('/library/glossary')
+    await flushPromises()
+    scrolled.length = 0
+
+    window._triggerEvent('route-refollowed')
+    await flushPromises()
+
+    expect(scrolled).toEqual([])
+  })
+
   it('should land on dictionary order from an old preferences link', async () => {
     await mountLibrary('/library#dictionary-order')
 
