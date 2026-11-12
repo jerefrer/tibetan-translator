@@ -24,7 +24,8 @@ const LT = '\uE000';
 const GT = '\uE001';
 
 /** The definition as plain text with the hits in <em>, every other
- *  character escaped: safe for v-html. */
+ *  character escaped: safe for v-html. Tibetan runs go in a span set in the
+ *  Tibetan font (added after escaping: Tibetan letters are never markup). */
 export function highlightedGloss(definitionHtml, terms) {
   const text = plainGloss(definitionHtml, GLOSS_LENGTH).replace(/</g, LT).replace(/>/g, GT);
   return highlightSearchTerms(text, terms)
@@ -38,6 +39,7 @@ export function highlightedGloss(definitionHtml, terms) {
             .replace(/>/g, '&gt;')
             .replace(new RegExp(LT, 'g'), '&lt;')
             .replace(new RegExp(GT, 'g'), '&gt;')
+            .replace(/[ༀ-࿿]+/g, '<span class="lookup-result__gloss-tibetan">$&</span>')
     )
     .join('');
 }
@@ -306,6 +308,12 @@ export default {
   font-style: normal;
   font-weight: 600;
   color: var(--ink);
+}
+
+.lookup-result__gloss :deep(.lookup-result__gloss-tibetan) {
+  font-family: var(--font-tibetan);
+  font-size: 1.15em;
+  line-height: 1;
 }
 
 .lookup-results__sentinel {
