@@ -97,6 +97,34 @@ describe('Search — layout', () => {
     delete HTMLElement.prototype.animate
   })
 
+  it('should ease a long row only down to the bottom of the window, so the motion stays visible', async () => {
+    const animate = vi.fn()
+    HTMLElement.prototype.animate = animate
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockImplementation(function () {
+      return this.classList.contains('is-open') ? 5000 : 52
+    })
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: 100 })
+    const wrapper = mountRow()
+    const bottom = `${window.innerHeight - 100}px`
+
+    await wrapper.setProps({ open: true, preview: null, entries: [entry('awareness')] })
+    await wrapper.vm.$nextTick()
+    await wrapper.setProps({ open: false, preview: entry('awareness'), entries: [] })
+    await wrapper.vm.$nextTick()
+
+    expect(animate.mock.calls.map((call) => call[0])).toEqual([
+      [{ height: '52px' }, { height: bottom }],
+      [{ height: bottom }, { height: '52px' }],
+    ])
+    delete HTMLElement.prototype.animate
+  })
+
+  it('should fade the hover tint in and out rather than switching it', () => {
+    const source = read('TermEntries.vue')
+    expect(source).toMatch(/\n\.term-entries \{\n(  .*\n|  \/\*.*\n|     .*\n)*  transition: background-color 0\.15s ease;\n/)
+    expect(source).toContain('background: color-mix(in srgb, var(--soft) 50%, var(--surface));')
+  })
+
   it('should not animate when the reader asks for reduced motion', async () => {
     const animate = vi.fn()
     HTMLElement.prototype.animate = animate

@@ -71,15 +71,24 @@
     methods: {
       // Called before the row redraws: takes its height now, then animates
       // from it to the new one once drawn. Opening and its entries arriving
-      // in the same update make one animation.
+      // in the same update make one animation. A row of forty definitions is
+      // thousands of pixels tall: eased whole, the window would fill in a
+      // blink. Only the part down to the bottom of the window is eased, the
+      // rest is out of sight.
       easeHeight () {
         if (this._easing || typeof this.$el?.animate !== 'function') return;
         if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
-        const from = this.$el.offsetHeight;
+        const before = this.$el.offsetHeight;
         this._easing = true;
         this.$nextTick(() => {
           this._easing = false;
-          const to = this.$el.offsetHeight;
+          const after = this.$el.offsetHeight;
+          const visible = Math.max(
+            Math.min(before, after),
+            window.innerHeight - this.$el.getBoundingClientRect().top
+          );
+          const from = Math.min(before, visible);
+          const to = Math.min(after, visible);
           if (from === to) return;
           this.$el.animate(
             [{ height: `${from}px` }, { height: `${to}px` }],
@@ -205,9 +214,11 @@
      the row while its height eases. */
   flex: none;
   overflow: hidden;
+  transition: background-color 0.15s ease;
 }
+/* A light tint, faded in and out: opening the row fades it away */
 .term-entries:not(.is-open):hover {
-  background: var(--soft);
+  background: color-mix(in srgb, var(--soft) 50%, var(--surface));
 }
 
 .term-entries__title {
