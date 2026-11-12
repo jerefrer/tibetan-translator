@@ -807,3 +807,30 @@ describe('Reader — phone', () => {
     expect(wrapper.find('[data-testid="reader-sheet"] [data-testid="entry-headword"]').text()).toBe(BCOMLDANDAS + MA)
   })
 })
+
+describe('ReaderPage — panel width', () => {
+  const handle = () => wrapper.findComponent({ name: 'UiResizeHandle' })
+  const widthStyle = () => testid('reader-page').element.style.getPropertyValue('--reader-panel-width')
+
+  beforeEach(() => Storage.delete('readerPanelWidth'))
+
+  it('should give the panel the width its divider is dragged to, and remember it', async () => {
+    await mountPage()
+    await splitText()
+    handle().vm.$emit('update:modelValue', 520)
+    await nextTick()
+    expect(widthStyle()).toContain('520px')
+    expect(Storage.get('readerPanelWidth')).toBe(520)
+  })
+
+  it('should open with the width chosen before, and drop it on a double-click', async () => {
+    Storage.set('readerPanelWidth', 500)
+    await mountPage()
+    await splitText()
+    expect(widthStyle()).toContain('500px')
+    handle().vm.$emit('reset')
+    await nextTick()
+    expect(widthStyle()).toBe('')
+    expect(Storage.get('readerPanelWidth')).toBeNull()
+  })
+})

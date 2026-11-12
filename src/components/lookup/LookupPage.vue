@@ -17,8 +17,9 @@ import {
   switchLookupMode,
   writeLookupState,
 } from '../../services/lookup-state';
-import { UiIcon } from '../../ui';
+import { UiIcon, UiResizeHandle } from '../../ui';
 import MobileResponsiveMixin from '../mixins/MobileResponsiveMixin';
+import PaneWidthMixin from '../mixins/PaneWidthMixin';
 import TermEntry from '../entry/TermEntry.vue';
 import DefinitionResults from './DefinitionResults.vue';
 import HeadwordResults from './HeadwordResults.vue';
@@ -46,7 +47,8 @@ function dictionariesSignature() {
 //
 // Layout (boards Main, MobileHome, MobileResults, MobileEntry). Desktop: the
 // results column with the field on top, and the entry pane (the selected
-// term, or LookupHome while there is none), each scrolling on its own.
+// term, or LookupHome while there is none), each scrolling on its own; the
+// divider between them can be dragged (PaneWidthMixin).
 // Phone: the title, the field, then LookupHome while the field is empty or
 // the results; a tapped result shows its entry full screen with a back link
 // (MobileResponsiveMixin's mobileShowDefinition, as Define did).
@@ -54,7 +56,10 @@ function dictionariesSignature() {
 // highlighted, Escape clears the field.
 export default {
   name: 'LookupPage',
-  mixins: [MobileResponsiveMixin],
+  mixins: [
+    MobileResponsiveMixin,
+    PaneWidthMixin({ storageKey: 'lookupResultsWidth', cssVariable: '--results-width', min: 300, reserve: 420 }),
+  ],
   components: {
     DefinitionResults,
     HeadwordResults,
@@ -63,6 +68,7 @@ export default {
     LookupHome,
     TermEntry,
     UiIcon,
+    UiResizeHandle,
   },
   beforeRouteEnter(to, from, next) {
     // Opened bare (sidebar, tab bar, app start): an instance kept alive goes
@@ -422,6 +428,7 @@ export default {
   <section
     class="lookup-page"
     :class="{ 'is-phone': isMobile, 'is-showing-entry': showingEntry }"
+    :style="isMobile ? undefined : paneWidthStyle"
     data-testid="lookup-page"
   >
     <div v-show="!showingEntry" class="lookup-results-pane" data-testid="lookup-results-pane">
@@ -473,6 +480,16 @@ export default {
       </div>
     </div>
 
+    <ui-resize-handle
+      v-if="!isMobile"
+      :model-value="paneWidth"
+      :min="300"
+      :max="720"
+      :reserve="420"
+      label="Resize the results"
+      @update:model-value="setPaneWidth"
+      @reset="setPaneWidth(null)"
+    />
     <div v-show="!isMobile || showingEntry" class="lookup-entry-pane" data-testid="lookup-entry-pane">
       <div class="lookup-entry-pane__inner">
         <term-entry v-if="entryTerm" :term="entryTerm" :highlight="entryHighlight">

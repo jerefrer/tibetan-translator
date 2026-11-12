@@ -6,7 +6,7 @@ import UiShowcasePage from '../../src/ui/UiShowcasePage.vue'
 const COMPONENTS = [
   'UiAccordion', 'UiAlert', 'UiBadge', 'UiButton', 'UiCard', 'UiCheckbox', 'UiChip',
   'UiDialog', 'UiDivider', 'UiIcon', 'UiList', 'UiListItem', 'UiMenu', 'UiPagination',
-  'UiProgress', 'UiSelect', 'UiSlider', 'UiSpinner', 'UiSwitch', 'UiTable', 'UiTabs',
+  'UiProgress', 'UiResizeHandle', 'UiSelect', 'UiSlider', 'UiSpinner', 'UiSwitch', 'UiTable', 'UiTabs',
   'UiTextField', 'UiTibetanField', 'UiToast', 'UiToolbar', 'UiTooltip',
 ]
 

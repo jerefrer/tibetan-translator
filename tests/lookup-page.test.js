@@ -727,3 +727,39 @@ describe('Lookup — ported from Define and Search', () => {
     expect(checkedMode()).toBe('English')
   })
 })
+
+describe('LookupPage — results width', () => {
+  const handle = () => wrapper.findComponent({ name: 'UiResizeHandle' })
+  const widthStyle = () => wrapper.find('[data-testid="lookup-page"]').element.style.getPropertyValue('--results-width')
+
+  beforeEach(() => Storage.delete('lookupResultsWidth'))
+
+  it('should leave the results their default width until the divider is moved', async () => {
+    await mountAt('/lookup')
+    expect(handle().exists()).toBe(true)
+    expect(widthStyle()).toBe('')
+  })
+
+  it('should give the results the width the divider is dragged to, and remember it', async () => {
+    await mountAt('/lookup')
+    handle().vm.$emit('update:modelValue', 520)
+    await nextTick()
+    expect(widthStyle()).toContain('520px')
+    expect(Storage.get('lookupResultsWidth')).toBe(520)
+  })
+
+  it('should open with the width chosen before', async () => {
+    Storage.set('lookupResultsWidth', 480)
+    await mountAt('/lookup')
+    expect(widthStyle()).toContain('480px')
+  })
+
+  it('should go back to the default width on a double-click of the divider', async () => {
+    Storage.set('lookupResultsWidth', 480)
+    await mountAt('/lookup')
+    handle().vm.$emit('reset')
+    await nextTick()
+    expect(widthStyle()).toBe('')
+    expect(Storage.get('lookupResultsWidth')).toBeNull()
+  })
+})

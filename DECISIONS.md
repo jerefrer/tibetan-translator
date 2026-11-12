@@ -83,3 +83,15 @@
 **Revisit if:** the collections grow beyond what a Settings row suits, or users look for downloads under another name.
 
 ---
+
+---
+
+## 2026-11-12 — Folio: draggable dividers, thicker expression bars in Reader
+**Chosen:** User decision, after trying the branch:
+- The divider between Lookup's results and entry, and the one before Reader's entry panel, can be dragged (`UiResizeHandle`, `PaneWidthMixin`). Arrow keys move them by 16px and a double-click goes back to the default. The width is stored (`lookupResultsWidth`, `readerPanelWidth`) and applied as `--results-width` / `--reader-panel-width`, never leaving the other pane less than 420px (Lookup) or 400px (Reader).
+- Reader's expression brackets become rounded bars. On desktop they are 4px thick in 14px lanes, with 18px hit areas. On a phone they are 5px thick in 22px lanes, with 30px hit areas. Hovering a bar tints the words it covers.
+- Reader's entry panel starts at the header's padding, so the entry's buttons line up with Edit and Show Wylie.
+**Alternatives:** Fixed widths, as the mockups had them; a different gesture for expressions (long-press, or selecting several words).
+**Why:** Screens and reading habits differ too much for one width to suit everyone. The 2px brackets with 11px hit areas could hardly be clicked, and nothing showed which words a bracket covered before clicking it.
+**Trade-offs:** Taller lanes add space under every line of a text that has expressions. A width chosen in a large window is capped, not kept, in a smaller one.
+**Revisit if:** the lanes make long texts feel loose, or users ask for more than one stored layout.

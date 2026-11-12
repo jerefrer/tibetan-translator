@@ -11,8 +11,9 @@ import {
 } from '../../services/segmenter';
 import { recentTexts, recordText, clearSplitHistory } from '../../services/split-history';
 import { tibetanLookupKey, withTrailingTshek } from '../../utils';
-import { UiButton, UiIcon, UiList, UiListItem } from '../../ui';
+import { UiButton, UiIcon, UiList, UiListItem, UiResizeHandle } from '../../ui';
 import MobileResponsiveMixin from '../mixins/MobileResponsiveMixin';
+import PaneWidthMixin from '../mixins/PaneWidthMixin';
 import ReaderEditor from './ReaderEditor.vue';
 import ReaderText from './ReaderText.vue';
 import ReaderWordPanel from './ReaderWordPanel.vue';
@@ -25,7 +26,8 @@ const EXAMPLE_TEXT = 'སངས་རྒྱས་ཆོས་དང་ཚོག�
 // Two states. Editing: the text area with Split's rules (ReaderEditor), the
 // recent texts and an example while it is empty. Reading: the text as a
 // button per word (ReaderText) and the selected word's entry beside it
-// (ReaderWordPanel: a panel on desktop, a bottom sheet on a phone).
+// (ReaderWordPanel: a panel on desktop, its divider draggable, a bottom
+// sheet on a phone).
 //
 // Splitting: a typed or pasted text goes through the tokenizer. Once split,
 // the editor holds the words separated by spaces, and from then on the spaces
@@ -40,7 +42,10 @@ const EXAMPLE_TEXT = 'སངས་རྒྱས་ཆོས་དང་ཚོག�
 // (left alone in fields and dialogs, as Split), Escape closes the phone sheet.
 export default {
   name: 'ReaderPage',
-  mixins: [MobileResponsiveMixin],
+  mixins: [
+    MobileResponsiveMixin,
+    PaneWidthMixin({ storageKey: 'readerPanelWidth', cssVariable: '--reader-panel-width', min: 320, reserve: 400 }),
+  ],
   components: {
     ReaderEditor,
     ReaderText,
@@ -49,6 +54,7 @@ export default {
     UiIcon,
     UiList,
     UiListItem,
+    UiResizeHandle,
   },
   inject: { snackbar: { default: null } },
   data() {
@@ -371,6 +377,7 @@ export default {
   <section
     class="reader-page segment-page"
     :class="{ 'is-phone': isMobile, 'is-reading': reading, 'has-sheet': isMobile && sheetOpen }"
+    :style="isMobile ? undefined : paneWidthStyle"
     data-testid="reader-page"
   >
     <div class="reader-main">
@@ -476,6 +483,17 @@ export default {
       </div>
     </div>
 
+    <ui-resize-handle
+      v-if="reading && !isMobile"
+      :model-value="paneWidth"
+      :min="320"
+      :max="760"
+      :reserve="400"
+      pane="after"
+      label="Resize the entry panel"
+      @update:model-value="setPaneWidth"
+      @reset="setPaneWidth(null)"
+    />
     <reader-word-panel
       v-if="reading"
       :term="selectedTerm"
