@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Folio · Desktop Lookup</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;family=Noto+Serif+Tibetan:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F5BB8}a:hover{color:#174A96}
+.tib{font-family:'Noto Serif Tibetan',serif;color:#8E1B1B}
+.nav{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;text-decoration:none;color:#3C3F44;font-size:14px;font-weight:500}
+.side-label{margin:0;padding:0 10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B6F75}
+.recent{display:block;padding:4px 10px;border-radius:6px;text-decoration:none;font-family:'Noto Serif Tibetan',serif;font-size:17px;color:#8E1B1B}
+.res{display:flex;flex-direction:column;gap:2px;padding:12px 16px;border-bottom:1px solid #EFEFED;text-decoration:none;color:#141416}
+.res-gloss{font-size:13px;color:#5F6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src{display:flex;flex-direction:column;gap:6px;padding:18px 0;border-top:1px solid #EFEFED}
+.src-name{font-size:12px;font-weight:600;letter-spacing:.02em;color:#5F6368;margin:0}
+.def{margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.6;color:#141416}
+.tabbtn{height:30px;padding:0 10px;border:0;border-radius:7px;background:transparent;font:500 13px Inter,sans-serif;color:#3C3F44}
+.icon-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid #E1E1DE;border-radius:8px;background:#FFFFFF;font:500 13px Inter,sans-serif;color:#141416}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; background: #FFFFFF; font-family: Inter, system-ui, sans-serif; color: #141416; overflow: hidden">
+
+  <aside style="width: 248px; flex: none; box-sizing: border-box; padding: 18px 14px; background: #F7F7F6; border-right: 1px solid #E7E7E5; display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 6px">
+      <svg width="30" height="30" viewBox="0 0 100 100" role="img" aria-label="Tibetan Translator"><rect x="2" y="2" width="96" height="96" rx="24" fill="#A51D1F"></rect><text x="44" y="74" text-anchor="middle" font-family="Noto Serif Tibetan" font-weight="700" font-size="64" fill="#FFC107">ཀ</text><circle cx="55" cy="47" r="15" fill="none" stroke="#FFFFFF" stroke-width="7"></circle><line x1="66" y1="58" x2="80" y2="73" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"></line></svg>
+      <span style="font-size: 15px; font-weight: 600">Tibetan Translator</span>
+    </div>
+    <nav aria-label="Sections" style="display: flex; flex-direction: column; gap: 2px">
+      <a href="#" class="nav" style="background: #E8EFFA; color: #1F5BB8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>Lookup</a>
+      <a href="#" class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"></path></svg>Reader</a>
+      <a href="#" class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16 5l3.5-1 3 15-3.5 1z"></path></svg>Library</a>
+    </nav>
+    <section style="display: flex; flex-direction: column; gap: 6px">
+      <h2 class="side-label">Recent</h2>
+      <a href="#" class="recent" style="background: #EEEEEC">བཅོམ་ལྡན་འདས་</a>
+      <a href="#" class="recent">བདེ་བ་</a>
+      <a href="#" class="recent">སེམས་ཅན་</a>
+      <a href="#" class="recent">སྟོང་པ་ཉིད་</a>
+    </section>
+    <section style="display: flex; flex-direction: column; gap: 6px">
+      <h2 class="side-label">My glossary</h2>
+      <a href="#" class="recent">བྱང་ཆུབ་སེམས་</a>
+      <a href="#" class="recent">སངས་རྒྱས་</a>
+    </section>
+    <div style="flex: 1"></div>
+    <a href="#" class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a>
+  </aside>
+
+  <section aria-label="Results" style="width: 380px; flex: none; border-right: 1px solid #E7E7E5; display: flex; flex-direction: column">
+    <div style="padding: 16px; display: flex; flex-direction: column; gap: 8px; border-bottom: 1px solid #EFEFED">
+      <label for="dl-field" style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; background: #FFFFFF; border: 1.5px solid #1F5BB8; border-radius: 10px">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#141416" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>
+        <input id="dl-field" value="bcom" style="flex: 1; min-width: 0; border: 0; outline: 0; font: 15px Inter, sans-serif; color: #141416">
+        <span style="font-size: 12px; color: #6B6F75; border: 1px solid #E1E1DE; border-radius: 5px; padding: 1px 6px">⌘K</span>
+      </label>
+      <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #5F6368">
+        <span>Wylie <span class="tib" style="font-size: 15px">བཅོམ་</span> · headwords first</span>
+        <span>5 terms</span>
+      </div>
+    </div>
+    <div style="flex: 1; overflow: hidden">
+      <a href="#" class="res" style="background: #E8EFFA; border-bottom-color: #DCE6F6"><span class="tib" style="font-size: 21px">བཅོམ་ལྡན་འདས་</span><span class="res-gloss">Bhagavan, Blessed One, Transcendent Victor</span></a>
+      <a href="#" class="res"><span class="tib" style="font-size: 21px">བཅོམ་ལྡན་</span><span class="res-gloss">conqueror; victor · exalted one, blessed</span></a>
+      <a href="#" class="res"><span class="tib" style="font-size: 21px">བཅོམ་ལྡན་འདས་མ་</span><span class="res-gloss">Bhagavatī, blessed lady</span></a>
+      <a href="#" class="res"><span class="tib" style="font-size: 21px">བཅོམ་པ་</span><span class="res-gloss">destroy; overcome; triumph over</span></a>
+      <a href="#" class="res"><span class="tib" style="font-size: 21px">བཅོམ་བརླག་</span><span class="res-gloss">Mathurā, Mithilā</span></a>
+    </div>
+  </section>
+
+  <main style="flex: 1; min-width: 0; overflow: hidden; display: flex; justify-content: center">
+    <article style="width: 100%; max-width: 720px; box-sizing: border-box; padding: 40px 48px; display: flex; flex-direction: column; gap: 18px">
+      <header style="display: flex; flex-direction: column; gap: 10px">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 16px">
+          <h1 class="tib" style="margin: 0; font-size: 52px; font-weight: 600; line-height: 1.2">བཅོམ་ལྡན་འདས་</h1>
+          <div style="display: flex; gap: 8px; padding-top: 10px">
+            <button class="icon-btn" aria-label="Copy"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"></rect><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"></path></svg></button>
+            <button class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"></path></svg>Save</button>
+          </div>
+        </div>
+        <p style="margin: 0; font-size: 15px; color: #5F6368">bcom ldan 'das <span style="color: #C2C4C8">·</span> chomdendé</p>
+      </header>
+
+      <section aria-label="In short" style="background: #F7F7F6; border-radius: 12px; padding: 14px 18px; display: flex; flex-direction: column; gap: 4px">
+        <h2 style="margin: 0; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: #6B6F75">In short</h2>
+        <p style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 20px; line-height: 1.45">Bhagavan · Blessed One · Transcendent Victor · an epithet of the Buddha</p>
+      </section>
+
+      <div role="tablist" aria-label="Dictionaries" style="display: flex; gap: 2px; border-bottom: 1px solid #EFEFED; padding-bottom: 8px">
+        <button class="tabbtn" style="background: #141416; color: #FFFFFF">All · 49</button>
+        <button class="tabbtn">Rangjung Yeshe</button>
+        <button class="tabbtn">Hopkins</button>
+        <button class="tabbtn">84000</button>
+        <button class="tabbtn">Berzin</button>
+        <button class="tabbtn">Valby</button>
+        <button class="tabbtn">More…</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column">
+        <div class="src" style="border-top: 0; padding-top: 4px"><h3 class="src-name">Rangjung Yeshe</h3><p class="def">Bhagavat, the "transcendent, endowed victor," an epithet of the Buddha</p><p class="def">[bhagavan, bhagavati], victorious, Blessed One, "Transcendent-Victor," illuminated conqueror, illuminated subduer</p></div>
+        <div class="src"><h3 class="src-name">Hopkins 2015</h3><p class="def">[conqueror-possessing-passed beyond]; Supramundane Victor; Blessed One; Buddha; victorious</p></div>
+        <div class="src"><h3 class="src-name">84000</h3><p class="def">bhagavān, bhagavat, blessed, blessed one, illustrious one, lord</p></div>
+        <div class="src"><h3 class="src-name">Berzin</h3><p class="def">Vanquishing Master Surpassing All</p></div>
+      </div>
+    </article>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -23,7 +23,7 @@ const dark = block("[data-theme='dark']")
 
 describe('design tokens', () => {
   it('should use palette 6 in light', () => {
-    expect(light['--bg']).toBe('#F5F5F4')
+    expect(light['--bg']).toBe('#FFFFFF')
     expect(light['--surface']).toBe('#FFFFFF')
     expect(light['--accent']).toBe('#1F5BB8')
     expect(light['--rail-bg']).toBe('#FFFFFF')
@@ -52,6 +52,29 @@ describe('design tokens', () => {
     expect(search).not.toContain('--logo-bg')
     const page = fs.readFileSync(path.resolve(__dirname, '../src/components/SearchPage.vue'), 'utf8')
     expect(page).not.toContain('--logo-bg')
+  })
+
+  it('should use Inter for the interface', () => {
+    expect(light['--font-ui']).toMatch(/^'Inter'/)
+  })
+
+  it('should define the Folio surfaces in both themes', () => {
+    const all = ['--bg-quiet', '--bg-grouped', '--line-soft', '--sidebar-width', '--results-width',
+      '--entry-max-width', '--reader-panel-width', '--text-large-title', '--text-headword-xl',
+      '--text-headword-lg', '--text-result-tibetan', '--radius-group']
+    all.forEach((name) => expect(light, name).toHaveProperty(name))
+    ;['--bg-quiet', '--bg-grouped', '--line-soft'].forEach((name) => expect(dark, name).toHaveProperty(name))
+    expect(light['--bg-quiet']).toBe('#F7F7F6')
+    expect(dark['--line-soft']).toBe('#26262A')
+  })
+
+  it('should bundle Inter offline', () => {
+    const fonts = fs.readFileSync(path.resolve(__dirname, '../src/css/fonts.css'), 'utf8')
+    for (const w of [400, 500, 600, 700]) {
+      expect(fonts).toContain(`@fontsource/inter/latin-${w}.css`)
+      expect(fonts).toContain(`@fontsource/inter/latin-ext-${w}.css`)
+    }
+    expect(fonts).not.toContain('instrument-sans')
   })
 
   it('should override only tokens that exist in the light theme', () => {

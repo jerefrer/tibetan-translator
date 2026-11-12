@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Folio · Desktop Reader</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=Source+Serif+4:ital,wght@0,400;0,600;1,400&amp;family=Noto+Serif+Tibetan:wght@400;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1F5BB8}a:hover{color:#174A96}
+.tib{font-family:'Noto Serif Tibetan',serif;color:#8E1B1B}
+.nav{display:flex;align-items:center;gap:10px;height:36px;padding:0 10px;border-radius:8px;text-decoration:none;color:#3C3F44;font-size:14px;font-weight:500}
+.side-label{margin:0;padding:0 10px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#6B6F75}
+.recent{display:block;padding:4px 10px;border-radius:6px;text-decoration:none;font-family:'Noto Serif Tibetan',serif;font-size:17px;color:#8E1B1B}
+.res{display:flex;flex-direction:column;gap:2px;padding:12px 16px;border-bottom:1px solid #EFEFED;text-decoration:none;color:#141416}
+.res-gloss{font-size:13px;color:#5F6368;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.src{display:flex;flex-direction:column;gap:6px;padding:18px 0;border-top:1px solid #EFEFED}
+.src-name{font-size:12px;font-weight:600;letter-spacing:.02em;color:#5F6368;margin:0}
+.def{margin:0;font-family:'Source Serif 4',Georgia,serif;font-size:17px;line-height:1.6;color:#141416}
+.tabbtn{height:30px;padding:0 10px;border:0;border-radius:7px;background:transparent;font:500 13px Inter,sans-serif;color:#3C3F44}
+.w{border:0;background:transparent;padding:0 3px;border-radius:6px;font:inherit;color:inherit;cursor:pointer}
+.icon-btn{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;border:1px solid #E1E1DE;border-radius:8px;background:#FFFFFF;font:500 13px Inter,sans-serif;color:#141416}
+</style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; background: #FFFFFF; font-family: Inter, system-ui, sans-serif; color: #141416; overflow: hidden">
+
+  <aside style="width: 248px; flex: none; box-sizing: border-box; padding: 18px 14px; background: #F7F7F6; border-right: 1px solid #E7E7E5; display: flex; flex-direction: column; gap: 22px">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 0 6px">
+      <svg width="30" height="30" viewBox="0 0 100 100" role="img" aria-label="Tibetan Translator"><rect x="2" y="2" width="96" height="96" rx="24" fill="#A51D1F"></rect><text x="44" y="74" text-anchor="middle" font-family="Noto Serif Tibetan" font-weight="700" font-size="64" fill="#FFC107">ཀ</text><circle cx="55" cy="47" r="15" fill="none" stroke="#FFFFFF" stroke-width="7"></circle><line x1="66" y1="58" x2="80" y2="73" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round"></line></svg>
+      <span style="font-size: 15px; font-weight: 600">Tibetan Translator</span>
+    </div>
+    <nav aria-label="Sections" style="display: flex; flex-direction: column; gap: 2px">
+      <a href="#" class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="16.5" y1="16.5" x2="21" y2="21"></line></svg>Lookup</a>
+      <a href="#" class="nav" style="background: #E8EFFA; color: #1F5BB8"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 5h16M4 10h16M4 15h10M4 20h7"></path></svg>Reader</a>
+      <a href="#" class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 4h4v16H4zM10 4h4v16h-4zM16 5l3.5-1 3 15-3.5 1z"></path></svg>Library</a>
+    </nav>
+    <section style="display: flex; flex-direction: column; gap: 6px">
+      <h2 class="side-label">Recent</h2>
+      <a href="#" class="recent">བཅོམ་ལྡན་འདས་</a>
+      <a href="#" class="recent">བདེ་བ་</a>
+      <a href="#" class="recent">སེམས་ཅན་</a>
+      <a href="#" class="recent">སྟོང་པ་ཉིད་</a>
+    </section>
+    <section style="display: flex; flex-direction: column; gap: 6px">
+      <h2 class="side-label">My glossary</h2>
+      <a href="#" class="recent">བྱང་ཆུབ་སེམས་</a>
+      <a href="#" class="recent">སངས་རྒྱས་</a>
+    </section>
+    <div style="flex: 1"></div>
+    <a href="#" class="nav"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"></path></svg>Settings</a>
+  </aside>
+
+  <main style="flex: 1; min-width: 0; display: flex; flex-direction: column; border-right: 1px solid #E7E7E5">
+    <header style="display: flex; align-items: center; justify-content: space-between; padding: 16px 32px; border-bottom: 1px solid #EFEFED">
+      <h1 style="margin: 0; font-size: 18px; font-weight: 600">Reader</h1>
+      <div style="display: flex; gap: 8px">
+        <button class="icon-btn">Paste text</button>
+        <button class="icon-btn">Show Wylie</button>
+        <button class="icon-btn" aria-label="Clear"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="6" y1="6" x2="18" y2="18"></line><line x1="18" y1="6" x2="6" y2="18"></line></svg></button>
+      </div>
+    </header>
+    <div style="flex: 1; padding: 48px 56px; display: flex; flex-direction: column; gap: 28px">
+      <p style="margin: 0; font-size: 13px; color: #5F6368">Tap a word to see its definitions. Words are split automatically; drag across syllables to look up a longer expression.</p>
+      <div lang="bo" style="display: flex; flex-wrap: wrap; gap: 6px 2px; font-family: 'Noto Serif Tibetan', serif; font-size: 34px; line-height: 1.7; color: #141416"><button class="w">སེམས་ཅན་</button><button class="w">ཐམས་ཅད་</button><button class="w" style="background: #E8EFFA; color: #1F5BB8; box-shadow: inset 0 -2px 0 #1F5BB8">བདེ་བ་</button><button class="w">དང་</button><button class="w">བདེ་བའི་</button><button class="w">རྒྱུ་</button><button class="w">དང་</button><button class="w">ལྡན་པར་</button><button class="w">གྱུར་ཅིག།</button></div>
+      <div lang="bo" style="display: flex; flex-wrap: wrap; gap: 6px 2px; font-family: 'Noto Serif Tibetan', serif; font-size: 34px; line-height: 1.7; color: #141416"><button class="w">སྡུག་བསྔལ་</button><button class="w">དང་</button><button class="w">སྡུག་བསྔལ་གྱི་</button><button class="w">རྒྱུ་</button><button class="w">དང་</button><button class="w">བྲལ་བར་</button><button class="w">གྱུར་ཅིག།</button></div>
+    </div>
+  </main>
+
+  <aside aria-label="Word" style="width: 440px; flex: none; box-sizing: border-box; padding: 32px; display: flex; flex-direction: column; gap: 16px; background: #FFFFFF">
+    <div style="display: flex; align-items: baseline; justify-content: space-between">
+      <h2 class="tib" style="margin: 0; font-size: 40px; font-weight: 600; line-height: 1.2">བདེ་བ་</h2>
+      <a href="#" style="font-size: 13px; text-decoration: none">Open entry →</a>
+    </div>
+    <p style="margin: 0; font-size: 14px; color: #5F6368">bde ba <span style="color: #C2C4C8">·</span> déwa <span style="color: #C2C4C8">·</span> 56 definitions</p>
+    <section style="background: #F7F7F6; border-radius: 12px; padding: 12px 16px">
+      <p style="margin: 0; font-family: 'Source Serif 4', Georgia, serif; font-size: 18px; line-height: 1.45">happiness · bliss · pleasure · comfortable</p>
+    </section>
+    <div style="display: flex; flex-direction: column">
+      <div class="src" style="border-top: 0; padding-top: 4px"><h3 class="src-name">Hopkins 2015</h3><p class="def" style="font-size: 16px">happiness; bliss; pleasure; abiding (LG); easy; easy to understand (BJ 8.2)</p></div>
+      <div class="src"><h3 class="src-name">Berzin</h3><p class="def" style="font-size: 16px">blissful awareness</p></div>
+      <div class="src"><h3 class="src-name">Valby</h3><p class="def" style="font-size: 16px">sukha; comfortable; pleasure, feeling of pleasantness, optimal functioning, pure pleasure, happiness</p></div>
+    </div>
+  </aside>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

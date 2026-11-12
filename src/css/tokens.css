@@ -19,18 +19,21 @@
   color-scheme: light;
 
   /* Surfaces and text */
-  --bg: #F5F5F4;
+  --bg: #FFFFFF;
+  --bg-quiet: #F7F7F6;       /* sidebar, In short box */
+  --bg-grouped: #F2F2F1;     /* phone ground behind grouped lists */
   --surface: #FFFFFF;
-  --ink: #18181B;
+  --ink: #141416;
   --muted: #5F6368;
-  --faint: #8E9297;
-  --line: #E4E4E2;
+  --faint: #6B6F75;
+  --line: #E7E7E5;
+  --line-soft: #EFEFED;
   --line-strong: #D4D4D1;
   --soft: #EEEEEC;
 
   /* Accent */
   --accent: #1F5BB8;
-  --accent-soft: #E6EEFA;
+  --accent-soft: #E8EFFA;
   --accent-line: #B9CCEB;
   --on-accent: #FFFFFF;
   --rubric: #8E1B1B;
@@ -75,7 +78,7 @@
   --shadow-dialog: 0 24px 60px rgba(0, 0, 0, 0.35);
 
   /* Fonts. DDC Uchen is declared in tibetan.css. */
-  --font-ui: 'Instrument Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-ui: 'Inter', system-ui, sans-serif;
   --font-serif: 'Source Serif 4', Georgia, serif;
   --font-tibetan: 'DDC_Uchen', serif;
 
@@ -94,6 +97,10 @@
   --text-tibetan-sm: 1.375rem; /* 22px */
   --text-tibetan-md: 1.5rem;   /* 24px */
   --text-tibetan-lg: 1.625rem; /* 26px: search field */
+  --text-large-title: 2rem;        /* 32px: phone screen titles, weight 700 */
+  --text-headword-xl: 3.25rem;     /* 52px: desktop entry */
+  --text-headword-lg: 2.5rem;      /* 40px: phone entry, Reader panel */
+  --text-result-tibetan: 1.3125rem; /* 21px: result rows */
 
   /* Control heights */
   --control-sm: 2.125rem;  /* 34px */
@@ -107,6 +114,7 @@
   --radius-lg: 10px;  /* buttons, menus */
   --radius-xl: 12px;
   --radius-card: 14px;
+  --radius-group: 14px;  /* grouped lists on phone */
   --radius-dialog: 18px;
   --radius-pill: 999px;
 
@@ -121,6 +129,10 @@
   --space-8: 40px;
 
   /* Shell */
+  --sidebar-width: 248px;
+  --results-width: 380px;
+  --entry-max-width: 45rem;
+  --reader-panel-width: 440px;
   --rail-width: 88px;
   --bottom-bar-height: 76px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -131,16 +143,19 @@
   color-scheme: dark;
 
   --bg: #161618;
+  --bg-quiet: #1C1C1F;
+  --bg-grouped: #161618;
   --surface: #202023;
   --ink: #EDEDEF;
   --muted: #A1A1AA;
-  --faint: #71717A;
+  --faint: #8B8B94;
   --line: #2E2E33;
+  --line-soft: #26262A;
   --line-strong: #3F3F46;
   --soft: #27272A;
 
   --accent: #7AA7F0;
-  --accent-soft: #1C2A44;
+  --accent-soft: #1E2A3D;
   --accent-line: #2F4A78;
   --on-accent: #0B1530;
   --rubric: #F08A80;

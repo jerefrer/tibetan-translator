@@ -8,7 +8,7 @@ importers:
 
   .:
     dependencies:
-      '@fontsource/instrument-sans':
+      '@fontsource/inter':
         specifier: ^5.3.0
         version: 5.3.0
       '@fontsource/source-serif-4':
@@ -1090,8 +1090,8 @@ packages:
     peerDependencies:
       vue: '>=3.3.0'
 
-  '@fontsource/instrument-sans@5.3.0':
-    resolution: {integrity: sha512-QwXc4hb/px3XvSPS2CPAOgey8nyrQFxgxrmXQQ+pN+P51hKdAcchxpg8rSbjANFfPu6VKXhDqkVDucXMZ9CM5g==}
+  '@fontsource/inter@5.3.0':
+    resolution: {integrity: sha512-RofMylZmjlJEfELXeNHFWBRcSs75rGU/6bV2S2jfnvv/3rPXPGe0LgUJTklcHZ9lM4OZmAVFhcJPnACfb91A3g==}
 
   '@fontsource/source-serif-4@5.3.1':
     resolution: {integrity: sha512-cWcTCXjYYrgF9A67fThVir1VSc0lPEYmwQ6jA4pPt01s2MSCi/maINUcZoCzaqnU8fyUReDO97eGcBUkHgOeug==}
@@ -3993,7 +3993,7 @@ snapshots:
       '@floating-ui/utils': 0.2.12
       vue: 3.5.26
 
-  '@fontsource/instrument-sans@5.3.0': {}
+  '@fontsource/inter@5.3.0': {}
 
   '@fontsource/source-serif-4@5.3.1': {}
 

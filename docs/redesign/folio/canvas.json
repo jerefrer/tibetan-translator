@@ -1,0 +1,31 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-10T00:10:00Z" },
+  "title": "Tibetan Translator — Folio",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1440, "h": 900, "title": "Desktop · Lookup — trois volets" },
+    "DesktopReader.dc.html": { "x": 1520, "y": 0, "w": 1440, "h": 900, "title": "Desktop · Reader — lire un texte, mot par mot" },
+    "MobileHome.dc.html": { "x": 0, "y": 1360, "w": 390, "h": 844, "title": "Mobile · Lookup, avant de taper" },
+    "MobileResults.dc.html": { "x": 470, "y": 1360, "w": 390, "h": 844, "title": "Mobile · Résultats pendant la frappe" },
+    "MobileEntry.dc.html": { "x": 940, "y": 1360, "w": 390, "h": 844, "title": "Mobile · Fiche d'un terme" },
+    "MobileReader.dc.html": { "x": 1410, "y": 1360, "w": 390, "h": 844, "title": "Mobile · Reader et feuille de définition" },
+    "MobileLibrary.dc.html": { "x": 1880, "y": 1360, "w": 390, "h": 844, "title": "Mobile · Library" },
+    "UnifiedAuto.dc.html": { "x": 0, "y": 2630, "w": 390, "h": 844, "title": "Un champ · A — Lu dans les deux sens" },
+    "UnifiedToggle.dc.html": { "x": 470, "y": 2630, "w": 390, "h": 844, "title": "Un champ · B — Bascule བོད / EN" },
+    "UnifiedBridge.dc.html": { "x": 940, "y": 2630, "w": 390, "h": 844, "title": "Un champ · C — Tibétain d'abord, passerelle vers les définitions" },
+    "ModeTibetan.dc.html": { "x": 0, "y": 3900, "w": 390, "h": 844, "title": "B · Mode tibétain : le Wylie se convertit" },
+    "ModeNotWylie.dc.html": { "x": 470, "y": 3900, "w": 390, "h": 844, "title": "B · Anglais tapé en mode tibétain : laissé tel quel" },
+    "ModeAmbiguous.dc.html": { "x": 940, "y": 3900, "w": 390, "h": 844, "title": "B · Mot anglais qui s'écrit comme du tibétain" },
+    "ModeEnglish.dc.html": { "x": 1410, "y": 3900, "w": 390, "h": 844, "title": "B · Mode anglais : recherche dans les définitions" }
+  },
+  "order": ["Main.dc.html", "DesktopReader.dc.html", "MobileHome.dc.html", "MobileResults.dc.html", "MobileEntry.dc.html", "MobileReader.dc.html", "MobileLibrary.dc.html", "UnifiedAuto.dc.html", "UnifiedToggle.dc.html", "UnifiedBridge.dc.html", "ModeTibetan.dc.html", "ModeNotWylie.dc.html", "ModeAmbiguous.dc.html", "ModeEnglish.dc.html"],
+  "notes": {
+    "desktop": { "x": 0, "y": -300, "text": "Folio — desktop", "kind": "title1", "maxW": 2960 },
+    "mobile": { "x": 0, "y": 1060, "text": "Folio — mobile", "kind": "title1", "maxW": 2270 },
+    "unified": { "x": 0, "y": 2330, "text": "Un seul champ : Wylie ou anglais ?", "kind": "title1", "maxW": 1330 },
+    "modeb": { "x": 0, "y": 3600, "text": "Solution B, déroulée jusqu'au bout", "kind": "title1", "maxW": 1800 }
+  },
+  "designSystems": []
+}
