@@ -308,4 +308,26 @@ export default {
 .library-page--phone .ui-list-item {
   border-bottom-color: var(--soft);
 }
+/* A card is one white group under its section's label, its title the
+   group's first line (board MobileLibrary): no second uppercase label */
+.library-page--phone .settings-card.ui-card {
+  gap: var(--space-3);
+  padding: 14px var(--space-4);
+  border-radius: var(--radius-group);
+  background: var(--surface);
+}
+.library-page--phone .settings-card__heading {
+  padding: 0;
+}
+.library-page--phone .settings-card__title {
+  font-size: var(--text-md);
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink);
+}
+.library-page--phone .settings-card .ui-card__body {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
 </style>
