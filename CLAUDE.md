@@ -95,7 +95,11 @@ pnpm check:tauri-versions  # Verify @tauri-apps/* npm vs Rust crate alignment
 ```
 src/
   components/          # Screens and app components (Options API with mixins); App.vue is the root
-    settings/          # Settings cards
+    lookup/            # Lookup: LookupPage, LookupField (བོད / EN switch), results, hints, home
+    reader/            # Reader: editor, words with their expressions, word panel / sheet
+    library/           # LibraryPage (collections, device, settings, help)
+    entry/             # TermEntry: one term's page (In short, dictionary tabs, definitions), shared by Lookup and Reader
+    settings/          # Settings cards, shown inline in Library
     mixins/            # MobileResponsiveMixin, InfiniteScrollMixin
   ui/                  # Component library (UiButton, UiDialog, UiTibetanField...), icons.js, showcase at /ui-showcase (dev only)
   services/            # Core services (database, packs, search, theme, etc.)
@@ -119,14 +123,15 @@ vendor/                # Third-party dictionary source files
 
 ### Routing & Page Lifecycle
 
-Routes are defined in `src/router.js`:
+Routes are defined in `src/router.js`. Three destinations (the Folio navigation, `src/config/navigation.js`):
 
-- `/define/:term?` - DefinePage (term lookup)
-- `/search/:query?` - SearchPage (full-text search)
-- `/segment` - SegmentPage (sentence splitting)
-- `/settings` - ConfigurePage (settings, dictionary management)
+- `/lookup/:term?` - LookupPage: one field with a **བོད / EN** switch. `/lookup/<term>` selects a Tibetan term (བོད); `/lookup?mode=en&q=<query>` searches the definitions (EN). What was looked up last is kept under `lookupState`
+- `/reader` - ReaderPage (paste or type a text, read it word by word)
+- `/library` - LibraryPage (My glossary, Dictionaries, packs on this device, settings at `#settings`, help); `/library/glossary/...` (LexiconPage) and `/library/dictionaries` (DictionariesPage) are its sub-pages
 
-App.vue uses `<keep-alive>` for all route components. This means pages are **not destroyed** when navigating away. Use the `activated()` lifecycle hook (not `mounted()`) for actions that should run each time a page becomes visible.
+The former routes redirect, keeping query and hash: `/define/<term>` to `/lookup/<term>`, `/search/<query>` to `/lookup?mode=en&q=<query>`, `/segment` to `/reader`, `/settings` to `/library#settings`. Links inside definitions are still `/define/<term>` (decorator.js and App.vue rely on it), so they open Lookup on that term.
+
+App.vue uses `<keep-alive>` for all route components, keyed on the first path segment (`library/<second>` for Library's sub-pages). This means pages are **not destroyed** when navigating away. Use the `activated()` lifecycle hook (not `mounted()`) for actions that should run each time a page becomes visible, and guard route watchers on the page's own path (`this.$route.path.startsWith('/lookup')`): a page kept alive still sees the other pages' routes.
 
 ### Database Layer
 
@@ -161,8 +166,7 @@ Pack lifecycle is managed by `PackManager` (`src/services/pack-manager.js`). Aft
 All components use **Options API** with **mixins** for shared logic:
 
 - `DictionariesDetailsMixin` - Dictionary metadata and abbreviation lookups
-- `DictionariesMenuMixin` - Dictionary filtering/toggle UI
-- `DictionariesFuzzySearchMixin` - Fuzzy search across dictionaries
+- `DictionariesMenuMixin` - The dictionaries of the current results, as enabled and ordered in Library (TermEntry)
 - `mixins/MobileResponsiveMixin`, `mixins/InfiniteScrollMixin` - phone layout and infinite scroll
 
 Screens are built from the `src/ui` components (`import { UiButton, UiDialog } from '../ui'`), never from raw Reka UI. They are styled only with the tokens (`var(--accent)`, `var(--space-4)`, `var(--text-sm)`...), so light and dark both work; the theme is `data-theme="light|dark"` on `<html>`, set by `src/services/theme.js`. Icons are `<ui-icon name="...">` with Lucide names; `src/ui/icons.js` registers each one used (and keeps `mdi-*` aliases only for custom-pack manifests). The app-level toast is the injected `snackbar` (`this.snackbar.open(html)`), rendered by `UiToast` in App.vue.
@@ -182,7 +186,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 
 ### Tibetan Text Handling
 
-- `TibetanTextField` component handles Wylie-to-Unicode conversion on keyup/paste
+- `src/ui/UiTibetanField.vue` handles Wylie-to-Unicode conversion on space, tsheg, Enter, paste and drop, repairs legacy-font pastes and refuses a second tsheg; Lookup's field (`LookupField`) uses it in བོད mode, and `src/services/typed-wylie.js` keeps the "typed sangs rgyas" echo. The Reader's editor applies the same conversion to a multi-line text, where spaces are word breaks
 - Tibetan punctuation: tsheg `་` (U+0F0B), shad `།` (U+0F0D), rin chen spungs shad `༑` (U+0F11), gter tsheg `༔` (U+0F14)
 - Input normalization: trailing punctuation is replaced with a single tsheg for dictionary lookups
 - Libraries: `tibetan-normalizer`, `tibetan-regexps`, `tibetan-to-phonetics`, `tibetan-word-tokenizer`
@@ -199,7 +203,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 | `src/services/decorator.js`           | Entry highlighting and link decoration                   |
 | `src/config/platform.js`              | Platform detection (Tauri/web/mobile)                    |
 | `src/config/pack-definitions.js`      | Pack metadata and dictionary lists                       |
-| `src/components/TibetanTextField.vue` | Shared Tibetan input with Wylie conversion               |
+| `src/ui/UiTibetanField.vue`           | Shared Tibetan input with Wylie conversion               |
 | `src/utils.js`                        | Tibetan utilities (phonetics, tokenizer, trailing tshek) |
 
 ## Conventions
@@ -208,7 +212,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 - **Styles**: `src/ui` and new code use plain CSS (`<style>`, sometimes `scoped`) on the tokens; some older components still use `lang="stylus"`. Both are fine, do not convert for the sake of it. `src/css/reset.css` is the base reset of the main window (formerly Vuetify's); the quick lookup window does not load it
 - **jQuery** is used in older code (App.vue event delegation, scroll management)
 - **Underscore.js** for debounce, utility functions
-- Keyboard shortcuts: `Cmd/Ctrl+D` (Define), `Cmd/Ctrl+S` (Search), `Cmd/Ctrl+T` (Split), `Cmd/Ctrl+G` (Settings)
+- Keyboard shortcuts: `Cmd/Ctrl+D` (Lookup, in the mode last used), `Cmd/Ctrl+S` (Lookup, English mode), `Cmd/Ctrl+K` (focus the Lookup field), `Cmd/Ctrl+T` (Reader), `Cmd/Ctrl+G` (Library settings)
 - Mobile breakpoint: `600px` (`window.innerWidth <= 600`)
 - Theme: light/dark with system preference detection, stored as `themePreference` in localStorage and applied by `src/services/theme.js`; Text size is `fontSize` (a percentage of the root font size), so sizes in rem follow it
 

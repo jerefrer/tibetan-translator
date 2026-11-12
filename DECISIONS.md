@@ -35,3 +35,26 @@
 **Revisit if:** the archives grow large enough that resuming an interrupted download matters.
 
 ---
+## 2026-11-12 — Folio redesign on its own branch
+**Chosen:** User decision: the Folio redesign (`docs/superpowers/specs/2026-11-12-folio-redesign-design.md`) is built on `feature/folio-redesign`. The app gets three destinations, Lookup, Reader and Library, in place of Define, Search, Split and Settings. Lookup has one field with a **བོད / EN** switch: བོད looks up Tibetan headwords with Define's Tibetan field unchanged (Wylie converted as typed), EN searches the definitions with everything Search supported (`&`, `{…}`, `[…]`, Wylie in parentheses, the query builder behind Advanced). The old routes redirect to the new ones.
+**Alternatives:** Detecting the language of the field automatically (option A of the mockups); changing the Wylie converter to convert only valid Tibetan syllables, so that English typed in the Tibetan field stays English.
+**Why:** Define and Search answered the same question from two pages, and users had to know which one to open. Automatic detection cannot tell Wylie from English reliably (`bde ba`, `ma`, `la`, `buddha` are both), and a wrong guess would mangle what the user typed; an explicit switch is one tap, and hints under the field offer the other mode when the text fits it better (Latin diacritics, no headword starting with the text, a query that reads as Wylie). Changing the converter would touch the most tested part of the app, which the quick lookup popup shares, and Sanskrit typed in Wylie (`buddha`) has to keep converting.
+**Trade-offs:** One more control next to the field, and the user has to pick the mode; a word typed in the wrong mode is converted (བོད) or searched as is (EN) until the switch or a hint is used. The pages' own tests went with them; what they covered and still exists was ported to the Lookup, Reader, TermEntry and Library tests first.
+**Revisit if:** users keep typing English in བོད mode (or Wylie in EN) despite the hints, or a reliable language detector becomes available.
+
+---
+
+## 2026-11-12 — Folio redesign: choices made while building it
+**Chosen:** Decisions taken during the build that a later reader may question:
+- **Mode switch rules.** Switching to EN puts back the Latin that was typed (the "typed" memory), else the text as typed when it carried Latin diacritics (`kākiṇī`), else the Tibetan as is; switching to བོད converts Latin as Wylie and leaves Tibetan alone. A term in the route always means བོད, a `q` always EN, and the switch also replaces the route with `/lookup?mode=<mode>`, so that a definition link to the term already shown still fills the field.
+- **`lookupState` storage key** (`{ mode, term, query }`), not the spec's `lookupMode`: one object restores mode, term and query together on return and relaunch. It falls back to Define's old `selectedTerm` when nothing was stored yet; previous English queries stay under Search's `previousQueries`.
+- **The selected English result is local state**, not in the route: a term in the route always means a Tibetan lookup, so an EN result opens its entry without leaving EN mode.
+- **Reader: spaces are word breaks.** Once a text is split, the editor keeps one space between words and a re-split reads the spaces back instead of running the tokenizer; Shift+Space types a word break. The tokenizer runs on a new text (paste, Paste, an emptied editor or a text with no space left). Expressions across words are looked up, not merged into the text as Split did.
+- **The phone board's "Headwords · N / In definitions" row was dropped:** the བོད / EN switch does that job, and the spec has no such row.
+- **Library shows the Settings cards inline**, not collapsed to rows as in the mockup, and the old phone sub-screens (Dictionary preferences) went with the Settings page.
+**Alternatives:** The spec's `lookupMode` key; an English result in the route (`/lookup?mode=en&q=…&term=…`); always tokenizing the whole text on Split; the mockup's phone row and Library rows.
+**Why:** Each keeps a behaviour users relied on in Define, Search or Split (restoring where they were, Split's word breaks, Search's queries) with fewer moving parts, and follows the spec where it and the mockups disagree.
+**Trade-offs:** An English result cannot be linked to directly; the Reader keeps a flat word list (line breaks of a pasted text are not shown); Library is a long page on a phone.
+**Revisit if:** users ask to share links to English results, need the text's lines in the Reader, or find Library too long.
+
+---
