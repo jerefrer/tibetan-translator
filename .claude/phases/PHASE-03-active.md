@@ -1,5 +1,5 @@
 # Phase 03 — Lookup
-Status: PENDING
+Status: ACTIVE
 
 ## Goal
 One field with a བོད / EN switch that looks up headwords or searches definitions, and the entry page.
