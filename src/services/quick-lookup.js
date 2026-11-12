@@ -22,15 +22,6 @@ export function termsStartingWith(allTerms, prefix) {
   return allTerms.filter((term) => term.startsWith(prefix)).sort();
 }
 
-/**
- * Whether any term starts with `prefix`: one scan that stops at the first hit.
- * Not a binary search: allTerms is sorted only on the web path (the native
- * packs return it in the order of their tables, merged pack by pack).
- */
-export function startsAnyTerm(allTerms, prefix) {
-  if (!prefix || !allTerms) return false;
-  return allTerms.some((term) => term.startsWith(prefix));
-}
 
 /**
  * Decides what the clipboard text (already repaired if it was in a legacy

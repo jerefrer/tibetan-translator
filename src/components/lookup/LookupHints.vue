@@ -1,14 +1,8 @@
 <script>
-import SqlDatabase from '../../services/sql-database';
-import { startsAnyTerm, wylieToTibetan } from '../../services/quick-lookup';
 import { UiButton } from '../../ui';
 
-// What a query in EN may hold for it to read as plain Wylie: letters, spaces,
-// the apostrophe (a-chung) and plus. Digits, `&`, `{}`, `[]`, `(` mean a search.
-const PLAIN_WYLIE = /^[A-Za-z' +]+$/;
-
-// The hints between the two modes: Tibetan read as Latin that is better
-// searched in the definitions (བོད), Latin that reads as a Tibetan term (EN).
+// The hint from བོད to EN: Tibetan read from Latin that is better searched in
+// the definitions (Sanskrit with diacritics, or Wylie that starts no term).
 export default {
   name: 'LookupHints',
   components: { UiButton },
@@ -20,35 +14,14 @@ export default {
     // What was typed when it carried Latin diacritics, kept as typed
     asTyped: { type: String, default: '' },
     headwordCount: { type: Number, default: 0 },
-    definitionCount: { type: Number, default: 0 },
   },
   emits: ['switch'],
-  data() {
-    // Bumped when SqlDatabase.allTerms changes (it is not reactive)
-    return { termsVersion: 0 };
-  },
-  mounted() {
-    this._onAllTermsUpdated = () => this.termsVersion++;
-    window.addEventListener('all-terms-updated', this._onAllTermsUpdated);
-  },
-  beforeUnmount() {
-    window.removeEventListener('all-terms-updated', this._onAllTermsUpdated);
-  },
   computed: {
     // The Latin to search in the definitions, when བོད should offer it
     searchText() {
       if (this.mode !== 'bo' || !this.text) return '';
       if (this.asTyped) return this.asTyped;
       return this.headwordCount === 0 ? this.typedWylie : '';
-    },
-    // The Tibetan the query reads as, when it starts a term. Worked out once
-    // per text and set of terms, not on every render.
-    tibetanLookup() {
-      this.termsVersion; // re-read when the terms change
-      const query = (this.text || '').trim();
-      if (this.mode !== 'en' || !query || !PLAIN_WYLIE.test(query)) return '';
-      const tibetan = wylieToTibetan(query);
-      return startsAnyTerm(SqlDatabase.allTerms, tibetan) ? tibetan : '';
     },
   },
 };
@@ -61,15 +34,6 @@ export default {
     </p>
     <ui-button class="lookup-hint__button" size="sm" @click="$emit('switch', { mode: 'en', text: searchText })">
       Search “{{ searchText }}” in the definitions
-    </ui-button>
-  </section>
-  <section v-else-if="tibetanLookup" class="lookup-hint" data-testid="hint-look-up-tibetan">
-    <ui-button
-      class="lookup-hint__button"
-      size="sm"
-      @click="$emit('switch', { mode: 'bo', text: tibetanLookup })"
-    >
-      Look up <span class="lookup-hint__tibetan">{{ tibetanLookup }}</span> as Tibetan
     </ui-button>
   </section>
 </template>

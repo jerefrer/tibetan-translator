@@ -444,7 +444,6 @@ export default {
           :typed-wylie="typedWylie"
           :as-typed="asTyped"
           :headword-count="matches.length"
-          :definition-count="definitionCount"
           @switch="onHintSwitch"
         />
       </div>
