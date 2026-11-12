@@ -1,14 +1,18 @@
 <script>
 import _ from "underscore";
 
-import {
-  MAX_MERGE_TERM_COUNT,
-  DEBOUNCE_ENTRIES_MS,
-  DEBOUNCE_TEXTAREA_MS,
-} from "../config/constants";
+import { DEBOUNCE_ENTRIES_MS, DEBOUNCE_TEXTAREA_MS } from "../config/constants";
 import { convertWylieInText, tibetanLookupKey, withTrailingTshek } from "../utils";
 import Storage from "../services/storage";
 import SqlDatabase from "../services/sql-database";
+import {
+  createTokenizerSession,
+  tokenizerError,
+  splitIntoWords,
+  wordsFromSpacedText,
+  findMerges,
+  mergeLanes,
+} from "../services/segmenter";
 import { mayNeedLegacyRepair } from "../services/legacy-to-unicode";
 import { recentTexts, recordText, clearSplitHistory } from "../services/split-history";
 import { UiButton, UiIcon, UiList, UiListItem, UiSpinner, UiTextField, UiTooltip } from "../ui";
@@ -57,8 +61,6 @@ export default {
       entries: [],
       loading: false,
       segmenting: false,
-      tokenizer: null,
-      tokenizerLoading: false,
       tokenizerError: null,
       // Track which terms have been checked and which have definitions
       checkedTerms: new Set(), // Terms we've looked up
@@ -110,24 +112,11 @@ export default {
     },
     // [{ start, count, term, lane }], one per merge button
     mergeBrackets() {
-      const brackets = [];
-      Object.keys(this.possibleMerges)
-        .map(Number)
-        .sort((a, b) => a - b)
-        .forEach((start) => {
-          // Longest first, so that it takes the outer lane
-          [...this.possibleMerges[start]]
-            .sort((a, b) => b.count - a.count)
-            .forEach(({ count, term }) => brackets.push({ start, count, term }));
-        });
-      const laneEnds = [];
-      brackets.forEach((bracket) => {
-        let lane = laneEnds.findIndex((end) => end <= bracket.start);
-        if (lane === -1) lane = laneEnds.length;
-        laneEnds[lane] = bracket.start + bracket.count;
-        bracket.lane = lane;
+      const merges = [];
+      Object.keys(this.possibleMerges).forEach((start) => {
+        this.possibleMerges[start].forEach(({ count, term }) => merges.push({ start: Number(start), count, term }));
       });
-      return brackets;
+      return mergeLanes(merges);
     },
     mergeLanes() {
       return this.mergeBrackets.reduce((lanes, bracket) => Math.max(lanes, bracket.lane + 1), 0);
@@ -147,29 +136,6 @@ export default {
     // to avoid race conditions with lastSelectedTerm
   },
   methods: {
-    async initTokenizer() {
-      if (this.tokenizer || this.tokenizerLoading) return;
-
-      this.tokenizerLoading = true;
-      this.tokenizerError = null;
-
-      try {
-        const { createTokenizer } = await import("tibetan-word-tokenizer");
-        // Load dictionary from public folder
-        const response = await fetch("/botok-dictionary.json");
-        if (!response.ok) {
-          throw new Error("Dictionary not found. Please ensure botok-dictionary.json is in the public folder.");
-        }
-        const dictionary = await response.json();
-        this.tokenizer = createTokenizer({ dictionary });
-      } catch (error) {
-        console.error("Failed to initialize tokenizer:", error);
-        this.tokenizerError = error.message;
-      } finally {
-        this.tokenizerLoading = false;
-      }
-    },
-
     async segmentText() {
       if (!this.inputText.trim()) {
         this.termsList = [];
@@ -185,21 +151,8 @@ export default {
       this.segmenting = true;
 
       try {
-        await this.initTokenizer();
-
-        let tokens;
-        if (!this.tokenizer) {
-          // Fallback: simple syllable splitting if tokenizer failed
-          tokens = this.inputText
-            .split(/[་།\s]+/)
-            .filter((t) => t.trim())
-            .map((text) => ({ text: text + "་", chunkType: "TEXT" }));
-        } else {
-          tokens = this.tokenizer.tokenize(this.inputText);
-        }
-
-        // Extract terms from tokens
-        this.termsList = this.extractTermsFromTokens(tokens);
+        this.termsList = await splitIntoWords(this.inputText, this.tokenizerSession);
+        this.tokenizerError = tokenizerError(this.tokenizerSession);
 
         // Update textarea with spaced text (flag already set by updateTextareaFromTerms)
         this.updateTextareaFromTerms();
@@ -247,47 +200,6 @@ export default {
       this.recent = [];
     },
 
-    extractTermsFromTokens(tokens) {
-      const terms = [];
-      for (const token of tokens) {
-        if (token.chunkType === "TEXT" && token.text) {
-          let term = token.text.trim();
-          // Ensure it ends with tsek
-          if (!term.endsWith("་") && !term.endsWith("།")) {
-            term = term + "་";
-          }
-          if (term && term !== "་") {
-            terms.push(term);
-          }
-        }
-      }
-      return terms;
-    },
-
-    parseTextareaToTerms() {
-      // Parse the current textarea content by spaces (respects user edits)
-      const text = this.inputText.trim();
-      if (!text) return [];
-
-      // Split by spaces
-      const parts = text.split(/\s+/).filter(p => p.trim());
-      const terms = [];
-
-      for (let part of parts) {
-        part = part.trim();
-        // Skip pure punctuation
-        if (/^[།༔༑]+$/.test(part)) continue;
-        // Ensure it ends with tsek (unless it's punctuation)
-        if (!part.endsWith("་") && !part.endsWith("།")) {
-          part = part + "་";
-        }
-        if (part && part !== "་") {
-          terms.push(part);
-        }
-      }
-      return terms;
-    },
-
     updateTextareaFromTerms() {
       // Build spaced text from terms list
       this.updatingTextarea = true;
@@ -324,7 +236,7 @@ export default {
 
     async updateFromTextarea() {
       // Parse the current textarea by spaces (respects user edits)
-      const newTermsList = this.parseTextareaToTerms();
+      const newTermsList = wordsFromSpacedText(this.inputText);
       const oldTermsList = this.termsList;
 
       // Check if anything actually changed
@@ -407,72 +319,40 @@ export default {
       }
     },
 
+    // The words of the current list that make a known expression, by start
     async checkPossibleMerges() {
-      this.possibleMerges = {};
-
-      // For each position, check if merging 2, 3, etc. consecutive terms produces a known word
-      for (let i = 0; i < this.termsList.length - 1; i++) {
-        await this.checkMergesAtIndex(i);
-      }
+      const merges = await findMerges(this.termsList, this.hasEntries);
+      this.possibleMerges = this.mergesByStart(merges);
     },
 
-    async checkMergesAtIndex(i) {
-      // Check if merging 2, 3, 4, 5 terms starting at index i produces a known word
-      const merges = [];
+    async hasEntries(term) {
+      return (await SqlDatabase.getEntriesFor(term)).length > 0;
+    },
 
-      for (let count = 2; count <= Math.min(MAX_MERGE_TERM_COUNT, this.termsList.length - i); count++) {
-        const termsToMerge = this.termsList.slice(i, i + count);
-        const merged = termsToMerge
-          .map(withTrailingTshek)
-          .join("");
-
-        // Use merged directly (already has trailing tsek)
-        const rows = await SqlDatabase.getEntriesFor(merged);
-
-        if (rows.length > 0) {
-          merges.push({ count, term: merged });
-        }
+    mergesByStart(merges) {
+      const byStart = {};
+      for (const { start, count, term } of merges) {
+        (byStart[start] = byStart[start] || []).push({ count, term });
       }
-
-      if (merges.length > 0) {
-        this.possibleMerges[i] = merges;
-      } else {
-        delete this.possibleMerges[i];
-      }
+      return byStart;
     },
 
     async updateMergesAroundIndex(mergeIndex, mergedCount) {
-      // After a merge at mergeIndex that combined mergedCount terms into 1:
-      // - Indices before mergeIndex - 4 are unaffected
-      // - Indices from mergeIndex - 4 to mergeIndex need rechecking (they might now merge with the new term)
-      // - Indices from mergeIndex to mergeIndex + 4 need rechecking
-      // - Indices after mergeIndex + mergedCount need to be shifted down by (mergedCount - 1)
-
+      // After a merge at mergeIndex that combined mergedCount terms into 1,
+      // merges starting well before it are unaffected, those after it shift
+      // down, and the ones in between are rechecked.
       const shift = mergedCount - 1;
-      const newPossibleMerges = {};
-
-      // Copy and shift existing merges that are far enough before the merge point
+      const kept = {};
       for (const [indexStr, options] of Object.entries(this.possibleMerges)) {
         const index = parseInt(indexStr);
         if (index < mergeIndex - 4) {
-          // Unaffected, keep as is
-          newPossibleMerges[index] = options;
+          kept[index] = options;
         } else if (index >= mergeIndex + mergedCount) {
-          // After the merge, shift down
-          newPossibleMerges[index - shift] = options;
+          kept[index - shift] = options;
         }
-        // Indices in the affected zone will be rechecked below
       }
-
-      this.possibleMerges = newPossibleMerges;
-
-      // Recheck merges in the affected zone (5 terms before to 5 terms after the merge point)
-      const startCheck = Math.max(0, mergeIndex - 4);
-      const endCheck = Math.min(this.termsList.length - 1, mergeIndex + 4);
-
-      for (let i = startCheck; i <= endCheck; i++) {
-        await this.checkMergesAtIndex(i);
-      }
+      const rechecked = await findMerges(this.termsList, this.hasEntries, { around: mergeIndex });
+      this.possibleMerges = { ...kept, ...this.mergesByStart(rechecked) };
     },
 
     async mergeTerms(startIndex, count) {
@@ -747,6 +627,10 @@ export default {
     stopListeningToArrows() {
       window.removeEventListener("keydown", this.handleKeydown);
     },
+  },
+  created() {
+    // Not reactive: it holds the tokenizer, which is large
+    this.tokenizerSession = createTokenizerSession();
   },
   mounted() {
     this.debouncedSetEntriesForSelectedTerm = _.debounce(
