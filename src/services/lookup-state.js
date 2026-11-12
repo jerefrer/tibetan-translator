@@ -7,6 +7,7 @@
  */
 import Storage from './storage';
 import { wylieToTibetan } from './quick-lookup';
+import { MAX_PREVIOUS_QUERIES } from '../config/constants';
 
 const STORAGE_KEY = 'lookupState';
 export const LOOKUP_MODES = ['bo', 'en'];
@@ -45,3 +46,23 @@ export function switchLookupMode({ mode, text, typedWylie }, newMode) {
   return LATIN.test(value) ? wylieToTibetan(value) : value;
 }
 
+// The English queries searched before, most recent first, shared with what
+// Search kept under `previousQueries`
+const PREVIOUS_QUERIES_KEY = 'previousQueries';
+
+export function readPreviousQueries() {
+  const stored = Storage.get(PREVIOUS_QUERIES_KEY, []);
+  return Array.isArray(stored) ? stored : [];
+}
+
+/** As SearchPage.storeQuery: the query goes first, once, and the list is
+ *  cut at MAX_PREVIOUS_QUERIES. */
+export function storePreviousQuery(query) {
+  if (!query) return;
+  const queries = [query, ...readPreviousQueries().filter((previous) => previous !== query)];
+  Storage.set(PREVIOUS_QUERIES_KEY, queries.slice(0, MAX_PREVIOUS_QUERIES));
+}
+
+export function clearPreviousQueries() {
+  Storage.set(PREVIOUS_QUERIES_KEY, []);
+}

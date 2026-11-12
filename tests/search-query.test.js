@@ -414,6 +414,10 @@ describe('SQL of a search', () => {
     "{jomden}": "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition,\n                   bm25(entries_fts, 10.0, 8.0, 8.0, 1.0, 1.0, 1.0) AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            INNER JOIN entries_fts ON entries.id = entries_fts.rowid\n            WHERE (entries_fts MATCH '(termPhoneticsLoose:\"cho mten\" OR termPhoneticsLoose:\"chom ten\" OR termPhoneticsLoose:\"chomten\" OR termPhoneticsLoose:\"cho mmten\" OR termPhoneticsLoose:\"chom mten\" OR termPhoneticsLoose:\"chommten\" OR termPhoneticsLoose:\"chommten\" OR termPhoneticsLoose:\"cho mtten\" OR termPhoneticsLoose:\"chom tten\" OR termPhoneticsLoose:\"chomtten\" OR termPhoneticsLoose:\"chomtten\" OR termPhoneticsLoose:\"cho mtenn\" OR termPhoneticsLoose:\"chom tenn\" OR termPhoneticsLoose:\"chomt enn\") OR definitionPhoneticsWordsLoose:\"chom ten\"')\n            ORDER BY rank\n            LIMIT 5000\n          "
   }
 
+  // Captured from buildSearchSql when Lookup became its second caller: a
+  // query of Tibetan only uses LIKE, without the FTS join
+  EXPECTED['ཡེ་ཤེས་'] = "\n            SELECT entries.*, dictionaries.name AS dictionary, dictionaries.position AS dictionaryPosition, 0 AS rank\n            FROM entries\n            INNER JOIN dictionaries ON dictionaries.id = entries.dictionaryId\n            WHERE (entries.term LIKE '%ཡེ་ཤེས་%' ESCAPE '\\' OR entries.definition LIKE '%ཡེ་ཤེས་%' ESCAPE '\\')\n            ORDER BY length(entries.term), dictionaryPosition\n            LIMIT 5000\n          "
+
   for (const [query, expected] of Object.entries(EXPECTED)) {
     it(`should build the same SQL as the Search page did for ${query}`, () => {
       expect(new SearchQueryBuilder(query).sql).toBe(expected)
