@@ -67,14 +67,19 @@ describe('router', () => {
     expect(router.currentRoute.value.fullPath).toBe('/settings')
   })
 
-  it('should open the dictionary order when the old preferences view is followed', async () => {
+  it('should open Dictionaries, where the order now is, when the old preferences view is followed', async () => {
     // beforeEnter only runs when entering the route, not when already on it
     await router.push('/lookup')
     await router.push('/settings?view=preferences')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/settings')
-    expect(route.hash).toBe('#dictionary-order')
+    expect(route.path).toBe('/dictionaries')
     expect(route.query.view).toBeUndefined()
+  })
+
+  it('should open Dictionaries when a link to the old dictionary order section is followed', async () => {
+    await router.push('/lookup')
+    await router.push('/settings#dictionary-order')
+    expect(router.currentRoute.value.fullPath).toBe('/dictionaries')
   })
 
   it('should open the dictionaries page with the filters when old Settings links carry them', async () => {
@@ -89,8 +94,8 @@ describe('router', () => {
   it('should open Settings when the former Library routes are followed', async () => {
     await router.push('/library')
     expect(router.currentRoute.value.fullPath).toBe('/settings')
-    await router.push('/library/settings?x=1#dictionary-order')
-    expect(router.currentRoute.value.fullPath).toBe('/settings?x=1#dictionary-order')
+    await router.push('/library/settings?x=1#settings-about')
+    expect(router.currentRoute.value.fullPath).toBe('/settings?x=1#settings-about')
   })
 
   it('should open the glossary when the former Library glossary route is followed', async () => {

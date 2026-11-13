@@ -7,21 +7,23 @@ import ReaderPage from './components/reader/ReaderPage.vue'
 import SettingsPage from './components/settings/SettingsPage.vue'
 import TestsPage from './components/TestsPage.vue'
 import LexiconPage from './components/LexiconPage.vue'
-import DictionariesPage from './components/DictionariesPage.vue'
+import DictionariesPage from './components/dictionaries/DictionariesPage.vue'
 
 // Redirects keep the query string and the hash of the old link
 const withTerm = (base, term) => (term ? `${base}/${encodeURIComponent(term)}` : base)
 
-// Links of the former Settings page: its dictionary filters now belong to
-// /dictionaries, and `view=preferences` is the `#dictionary-order` section
+// Links of the former Settings page: its dictionary filters, and the
+// dictionary order (`view=preferences`, `#dictionary-order`), now belong to
+// /dictionaries
 function oldSettingsLink(to) {
   if ('find' in to.query || 'status' in to.query) {
     return { path: '/dictionaries', query: to.query, hash: to.hash }
   }
   if ('view' in to.query) {
     const { view, ...query } = to.query
-    return { path: '/settings', query, hash: view === 'preferences' ? '#dictionary-order' : to.hash }
+    return view === 'preferences' ? { path: '/dictionaries', query } : { path: '/settings', query, hash: to.hash }
   }
+  if (to.hash === '#dictionary-order') return { path: '/dictionaries', query: to.query }
   return true
 }
 

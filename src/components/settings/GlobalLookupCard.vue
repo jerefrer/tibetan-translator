@@ -1,16 +1,18 @@
 <script>
-import GlobalLookup from '../../services/global-lookup';
-import { UiAlert, UiButton, UiSwitch, UiTextField } from '../../ui';
-import SettingsCard from './SettingsCard.vue';
+import GlobalLookup, { DEFAULT_HOTKEY } from '../../services/global-lookup';
+import { UiButton, UiIcon, UiSwitch, UiTextField } from '../../ui';
+import SettingsGroup from './SettingsGroup.vue';
+import SettingsRow from './SettingsRow.vue';
 
-export const DEFAULT_HOTKEY = 'CommandOrControl+Shift+D';
+// Reset goes back to the shortcut the app starts with (global-lookup.js)
+export { DEFAULT_HOTKEY };
 
-// Desktop only: the system-wide hotkey that looks up the clipboard, or the
-// selection when pressed in this app.
+// Settings' Quick lookup group, desktop only: the system-wide shortcut that
+// looks up the clipboard, or the selection when pressed in this app.
 // Renders nothing where GlobalLookup is not supported.
 export default {
   name: 'GlobalLookupCard',
-  components: { SettingsCard, UiAlert, UiButton, UiSwitch, UiTextField },
+  components: { SettingsGroup, SettingsRow, UiButton, UiIcon, UiSwitch, UiTextField },
   inject: ['snackbar'],
   data() {
     return {
@@ -77,7 +79,7 @@ export default {
         this.snackbar.open('Hotkey updated successfully');
       } else if (result.needsPermission) {
         this.needsAccessibilityPermission = true;
-        this.snackbar.open('Accessibility permission required. Click "Grant permission" below.');
+        this.snackbar.open('macOS needs your permission first: see Quick lookup in Settings.');
       } else {
         this.snackbar.open(`Failed to register hotkey: ${result.error || 'Unknown error'}`);
       }
@@ -85,7 +87,7 @@ export default {
     async openAccessibilitySettings() {
       await GlobalLookup.requestAccessibilityPermission();
       this.snackbar.open(
-        'Please enable Tibetan Translator in Accessibility settings, then toggle Global lookup off and on again.'
+        'Turn Tibetan Translator on in Accessibility, then switch Quick lookup off and on again.'
       );
     },
     resetToDefault() {
@@ -98,91 +100,73 @@ export default {
 </script>
 
 <template>
-  <settings-card
+  <settings-group
     v-if="supported"
-    title="Global lookup"
-    subtitle="Look up Tibetan text from anywhere on your system"
+    id="settings-quick-lookup"
+    title="Quick lookup"
     class="global-lookup-card"
     data-testid="global-lookup-card"
   >
-    <template #aside>
-      <ui-switch v-model="enabled" aria-label="Global lookup" data-testid="global-lookup-switch" />
-    </template>
+    <settings-row
+      title="Look up from any app"
+      description="Copy Tibetan text anywhere, then press the shortcut to see its entry in a small window. In this app, selecting it is enough."
+    >
+      <ui-switch v-model="enabled" aria-label="Look up from any app" data-testid="global-lookup-switch" />
+    </settings-row>
 
-    <ui-alert
+    <settings-row
       v-if="showPermissionWarning"
-      type="warning"
-      title="Accessibility permission required"
+      title="macOS needs your permission"
+      description="Allow Tibetan Translator in Privacy & Security › Accessibility, or the shortcut cannot read the copied text."
+      tone="warning"
       data-testid="accessibility-warning"
     >
-      <div class="global-lookup-card__warning">
-        <span>Global hotkeys need accessibility access to work system-wide.</span>
-        <ui-button size="sm" data-testid="grant-permission" @click="openAccessibilitySettings">
-          Grant permission
-        </ui-button>
-      </div>
-    </ui-alert>
+      <ui-button variant="outline" size="sm" data-testid="grant-permission" @click="openAccessibilitySettings">
+        <ui-icon name="external-link" :size="15" />
+        Open System Settings
+      </ui-button>
+    </settings-row>
 
-    <div class="global-lookup-card__hotkey" :class="{ 'is-disabled': !enabled }">
-      <div class="global-lookup-card__row">
-        <span class="global-lookup-card__label">Hotkey</span>
-        <ui-text-field
-          ref="hotkeyField"
-          :model-value="fieldValue"
-          readonly
-          aria-label="Hotkey"
-          class="global-lookup-card__field"
-          :class="{ 'is-recording': isRecording }"
-          data-testid="hotkey-field"
-          @keydown="onHotkeyKeydown"
-          @blur="stopRecording"
-        />
-        <ui-button v-if="!isRecording" variant="outline" data-testid="hotkey-change" @click="startRecording">
-          Change
-        </ui-button>
-        <ui-button v-else variant="ghost" data-testid="hotkey-cancel" @mousedown.prevent @click="stopRecording">
-          Cancel
-        </ui-button>
-        <ui-button variant="ghost" data-testid="hotkey-reset" @click="resetToDefault">Reset</ui-button>
-      </div>
-      <p class="global-lookup-card__hint">Copy Tibetan text anywhere, then press the hotkey to look it up. In this app, selecting it is enough.</p>
-    </div>
-  </settings-card>
+    <settings-row title="Shortcut" class="global-lookup-card__hotkey" :class="{ 'is-disabled': !enabled }">
+      <ui-text-field
+        ref="hotkeyField"
+        :model-value="fieldValue"
+        readonly
+        aria-label="Shortcut"
+        class="global-lookup-card__field"
+        :class="{ 'is-recording': isRecording }"
+        data-testid="hotkey-field"
+        @keydown="onHotkeyKeydown"
+        @blur="stopRecording"
+      />
+      <ui-button v-if="!isRecording" variant="outline" size="sm" data-testid="hotkey-change" @click="startRecording">
+        <ui-icon name="keyboard" :size="15" />
+        Change
+      </ui-button>
+      <ui-button v-else variant="ghost" size="sm" data-testid="hotkey-cancel" @mousedown.prevent @click="stopRecording">
+        Cancel
+      </ui-button>
+      <ui-button variant="ghost" size="sm" data-testid="hotkey-reset" @click="resetToDefault"><ui-icon name="rotate-ccw" :size="15" />Reset</ui-button>
+    </settings-row>
+  </settings-group>
 </template>
 
 <style>
-.global-lookup-card__warning {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2) var(--space-3);
-}
 .global-lookup-card__hotkey.is-disabled {
   opacity: 0.5;
   pointer-events: none;
 }
-.global-lookup-card__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-3);
-}
-.global-lookup-card__label {
-  font-size: var(--text-base);
-}
 .global-lookup-card__field {
-  width: 15.5rem;
-  max-width: 100%;
+  width: 13rem;
 }
-/* Mockup: a 38px box with the keys in semibold */
 .global-lookup-card__field .ui-field__control {
-  min-height: 2.375rem;
+  min-height: var(--control-sm);
   border-radius: var(--radius-md);
 }
 .global-lookup-card__field .ui-field__input {
   font-size: var(--text-base);
   font-weight: 600;
+  text-align: center;
   cursor: default;
 }
 .global-lookup-card__field.is-recording .ui-field__control {
@@ -192,11 +176,6 @@ export default {
 }
 .global-lookup-card__field.is-recording .ui-field__input {
   font-weight: 500;
-  color: var(--muted);
-}
-.global-lookup-card__hint {
-  margin: var(--space-2) 0 0;
-  font-size: var(--text-xs);
   color: var(--muted);
 }
 @keyframes global-lookup-pulse {

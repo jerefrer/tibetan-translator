@@ -1,7 +1,8 @@
 /**
  * Dictionary catalog: a searchable, filterable view of every dictionary the app
- * ships, whether or not its pack is installed. Pure functions only, so the
- * Settings catalog and the "not searched" notice share one source of truth.
+ * ships, whether or not its pack is installed, and the Dictionaries page's
+ * rows built from it. Pure functions only, so the page and the "not searched"
+ * notice share one source of truth.
  */
 
 export const LANGUAGE_LABELS = {
@@ -24,6 +25,27 @@ export const LANGUAGE_LABELS = {
 export const MAIN_LANGUAGE_CODES = ['tib', 'en', 'skt', 'zh'];
 
 const DIRECTION_MARKERS = ['<->', '->', '<-'];
+const DIRECTION_ARROWS = { '<->': ' ↔ ', '->': ' → ', '<-': ' ← ' };
+
+/**
+ * "Tibetan → English" from a details entry's language, e.g. ["tib", "->",
+ * "en"]: each pair keeps its arrow, languages listed without one are joined
+ * with a comma.
+ */
+export function directionLabel(language) {
+  if (!Array.isArray(language)) return '';
+  let label = '';
+  let joiner = '';
+  for (const part of language) {
+    if (DIRECTION_MARKERS.includes(part)) {
+      joiner = DIRECTION_ARROWS[part];
+      continue;
+    }
+    label += (label ? joiner || ', ' : '') + (LANGUAGE_LABELS[part] || part);
+    joiner = '';
+  }
+  return label;
+}
 
 /** Lowercase and drop diacritics, so "mahavyutpatti" finds "Mahāvyutpatti". */
 export function foldForSearch(text) {
@@ -34,6 +56,23 @@ export function foldForSearch(text) {
 }
 
 const tokensOf = (query) => foldForSearch(query).split(/\s+/).filter(Boolean);
+
+// Whether every search word appears in the name, description, subject tags,
+// pack or languages of a catalog entry or a page row
+const matchesTokens = (entry, tokens) => {
+  if (!tokens.length) return true;
+  const haystack = foldForSearch(
+    [
+      entry.label,
+      entry.id ?? entry.key,
+      entry.about,
+      entry.keywords.join(' '),
+      entry.packName,
+      entry.languageNames.join(' '),
+    ].join(' ')
+  );
+  return tokens.every((token) => haystack.includes(token));
+};
 
 /**
  * One entry per dictionary, in pack order and then the order each pack lists.
@@ -61,6 +100,8 @@ export function buildCatalog(details, packDefinitions) {
         label: (detail.label || id).trim(),
         summary: aboutLines[0] || '',
         about: aboutLines.join(' '),
+        aboutLines,
+        language: detail.language || [],
         languages,
         languageNames: languages.map((code) => LANGUAGE_LABELS[code] || code),
         keywords: detail.keywords || [],
@@ -103,20 +144,88 @@ export function filterCatalog(
     if (packId !== 'all' && entry.packId !== packId) return false;
     if (!matchesStatus(isPackInstalled(entry.packId), status)) return false;
     if (!matchesLanguage(entry, language)) return false;
-    if (!tokens.length) return true;
-
-    const haystack = foldForSearch(
-      [
-        entry.label,
-        entry.id,
-        entry.about,
-        entry.keywords.join(' '),
-        entry.packName,
-        entry.languageNames.join(' '),
-      ].join(' ')
-    );
-    return tokens.every((token) => haystack.includes(token));
+    return matchesTokens(entry, tokens);
   });
+}
+
+/**
+ * The Dictionaries page's rows: the dictionaries on this device (`stored`,
+ * Storage's `dictionaries`) in the order lookups use them, then the catalog's
+ * dictionaries whose pack is not installed. A stored dictionary the catalog
+ * does not know is one of the user's own (a glossary).
+ */
+export function buildDictionaryRows({ stored = [], catalog = [], isPackInstalled = () => true }) {
+  const byId = new Map(catalog.map((entry) => [entry.id, entry]));
+  const sorted = [...stored].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+  const storedNames = new Set(sorted.map((dictionary) => dictionary.name));
+
+  const rowOf = (entry, dictionary) => {
+    const aboutLines = entry ? splitAbout(entry) : [];
+    return {
+      key: entry?.id ?? dictionary.name,
+      storedId: dictionary?.id ?? null,
+      label: entry?.label ?? dictionary.name,
+      summary: aboutLines[0] || '',
+      aboutLines,
+      about: entry?.about ?? '',
+      languages: entry?.languages ?? [],
+      languageNames: entry?.languageNames ?? [],
+      direction: entry ? directionLabel(entry.language) : '',
+      keywords: entry?.keywords ?? [],
+      packId: entry?.packId ?? dictionary?._sourcePackId ?? null,
+      packName: entry?.packName ?? 'My glossary',
+      installed: !!dictionary,
+      enabled: !!dictionary && dictionary.enabled !== false,
+      custom: !entry,
+    };
+  };
+
+  return [
+    ...sorted.map((dictionary) => rowOf(byId.get(dictionary.name), dictionary)),
+    ...catalog
+      .filter((entry) => !storedNames.has(entry.id) && !isPackInstalled(entry.packId))
+      .map((entry) => rowOf(entry, null)),
+  ];
+}
+
+const splitAbout = (entry) => entry.aboutLines || [];
+
+const matchesRowStatus = (row, status) =>
+  status === 'all' ||
+  (status === 'on' && row.enabled) ||
+  (status === 'off' && row.installed && !row.enabled) ||
+  (status === 'available' && !row.installed);
+
+/** The rows matching the search words, the status, the language and the purpose. */
+export function filterDictionaryRows(rows, { query = '', status = 'all', language = 'all', purpose = '' } = {}) {
+  const tokens = tokensOf(query);
+  const wanted = foldForSearch(purpose);
+  return rows.filter(
+    (row) =>
+      matchesRowStatus(row, status) &&
+      (language === 'all' || matchesLanguage(row, language)) &&
+      (!wanted || row.keywords.some((keyword) => foldForSearch(keyword) === wanted)) &&
+      matchesTokens(row, tokens)
+  );
+}
+
+/** The place of a dictionary among those switched on (1 for the first), 0 when it is off. */
+export function enabledRank(rows, key) {
+  const enabled = rows.filter((row) => row.enabled);
+  return enabled.findIndex((row) => row.key === key) + 1;
+}
+
+/**
+ * `sorted` (stored dictionaries in their order) with the one at `from` moved
+ * to `to`, positions numbered again from 1. A move outside the list changes
+ * nothing.
+ */
+export function moveDictionary(sorted, from, to) {
+  if (from < 0 || from >= sorted.length || to < 0 || to >= sorted.length) return sorted;
+  const moved = [...sorted];
+  const [dictionary] = moved.splice(from, 1);
+  moved.splice(to, 0, dictionary);
+  return moved.map((entry, index) => ({ ...entry, position: index + 1 }));
 }
 
 /** The subject tags of an entry that the query matched, to highlight them. */

@@ -1,75 +1,83 @@
 <script>
 import Storage from '../../services/storage';
-import PackManager from '../../services/pack-manager';
 import ResizeService from '../../services/resize-service';
+import GlobalLookup from '../../services/global-lookup';
 import { Lexicon } from '../../services/lexicon';
-import { supportsModularPacks } from '../../config/platform';
+import { isTauri, supportsModularPacks } from '../../config/platform';
 import { REFOLLOW_EVENT } from '../../config/navigation';
-import { UiIcon, UiList, UiListItem } from '../../ui';
-import AppearanceCard from '../settings/AppearanceCard.vue';
-import GlobalLookupCard from '../settings/GlobalLookupCard.vue';
-import AboutCard from '../settings/AboutCard.vue';
-import PackManagerCard from '../settings/PackManagerCard.vue';
-import ScannedDictionariesCard from '../settings/ScannedDictionariesCard.vue';
-import AudioCard from '../settings/AudioCard.vue';
-import DictionaryPreferencesCard from '../settings/DictionaryPreferencesCard.vue';
-import DefinePageHelpDialogWithButton from '../DefinePageHelpDialogWithButton.vue';
-import SearchPageHelpDialogWithButton from '../SearchPageHelpDialogWithButton.vue';
-import SplitPageHelpDialogWithButton from '../SplitPageHelpDialogWithButton.vue';
-import { packSummary, plural } from '../settings/pack-summary';
+import AppearanceCard from './AppearanceCard.vue';
+import GlobalLookupCard from './GlobalLookupCard.vue';
+import AboutCard from './AboutCard.vue';
+import ScannedDictionariesCard from './ScannedDictionariesCard.vue';
+import AudioCard from './AudioCard.vue';
+import SettingsGroup from './SettingsGroup.vue';
+import SettingsRow from './SettingsRow.vue';
+import { openHelp } from '../../services/help';
+import { plural } from './pack-summary';
 
-// Everything that is not a lookup, in one page grouped like iOS Settings:
-// collections (My glossary, Dictionaries; on a phone only, the desktop
-// sidebar lists them), the general settings, downloads, and the dictionary
-// preferences beside help. A link to `/settings#dictionary-order` lands on
-// the preferences; a link to bare `/settings` shows the top.
+// Settings, and nothing else (boards DesktopSettings, MobileSettings): each
+// setting a row, its name and a line of explanation on the left, its control
+// on the right, in a few groups. General, Quick lookup (the desktop app),
+// Offline content (scans and recordings), About (the app) and Help.
+// Dictionaries, their packs and their order are on the Dictionaries page.
 //
-// The page is kept alive, so a hash is followed on `activated` and whenever
-// the route's hash changes, not only on `mounted`.
+// Desktop: a column of groups, an index of them on its left. Phone: the
+// glossary and the dictionaries first, as rows (no sidebar there), then the
+// groups on the grey ground.
+//
+// The page is kept alive, so a hash (`/settings#settings-about`) is followed
+// on `activated` and whenever the route's hash changes, not only on `mounted`.
 export default {
   name: 'SettingsPage',
   components: {
-    UiIcon,
-    UiList,
-    UiListItem,
     AppearanceCard,
     GlobalLookupCard,
     AboutCard,
-    PackManagerCard,
     ScannedDictionariesCard,
     AudioCard,
-    DictionaryPreferencesCard,
-    DefinePageHelpDialogWithButton,
-    SearchPageHelpDialogWithButton,
-    SplitPageHelpDialogWithButton,
+    SettingsGroup,
+    SettingsRow,
   },
   data() {
     return {
       isMobile: ResizeService.isMobile(),
-      dictionaryCount: (Storage.get('dictionaries') || []).length,
+      dictionaries: Storage.get('dictionaries') || [],
       modular: supportsModularPacks(),
+      // The group the index highlights: the one at the top of the column
+      currentSection: 'settings-general',
     };
   },
   computed: {
     helpRows() {
+      // Each opens the help panel on its topic
       return [
-        { id: 'lookup', ref: 'lookupHelp', title: 'Looking up a word' },
-        { id: 'search', ref: 'searchHelp', title: 'Searching the definitions' },
-        { id: 'reader', ref: 'readerHelp', title: 'Reading a text' },
+        { id: 'typing', title: 'Typing Tibetan and Wylie' },
+        { id: 'lookup', title: 'Looking up a word' },
+        { id: 'search', title: 'Searching the definitions' },
+        { id: 'reader', title: 'Reading a text' },
+        { id: 'all', title: 'All help topics' },
       ];
     },
+    // The groups shown, in order, for the index
+    sections() {
+      return [
+        { id: 'settings-general', title: 'General' },
+        GlobalLookup.isSupported() && { id: 'settings-quick-lookup', title: 'Quick lookup' },
+        { id: 'settings-offline', title: 'Offline content' },
+        isTauri() && { id: 'settings-about', title: 'About' },
+        { id: 'settings-help', title: 'Help' },
+      ].filter(Boolean);
+    },
     glossaryStatus() {
-      if (!this.modular) return 'Your own definitions';
+      if (!this.modular) return '';
       const dictionaries = Lexicon.editableDictionaries();
-      if (!dictionaries.length) return 'Your own definitions';
+      if (!dictionaries.length) return '';
       const entries = dictionaries.reduce((sum, dictionary) => sum + (dictionary.entriesCount || 0), 0);
       return plural(entries, 'entry', 'entries');
     },
     dictionariesStatus() {
-      const count = this.modular
-        ? packSummary(PackManager.installedPacks).dictionaries
-        : this.dictionaryCount;
-      return `${count} on this device`;
+      const on = this.dictionaries.filter((dictionary) => dictionary.enabled !== false).length;
+      return `${on} of ${this.dictionaries.length} on`;
     },
   },
   watch: {
@@ -82,7 +90,7 @@ export default {
       this.isMobile = ResizeService.isMobile();
     });
     this.onDictionariesUpdated = () => {
-      this.dictionaryCount = (Storage.get('dictionaries') || []).length;
+      this.dictionaries = Storage.get('dictionaries') || [];
     };
     window.addEventListener('dictionaries-updated', this.onDictionariesUpdated);
     // The sidebar's Settings link and Cmd/Ctrl+G, followed while already on /settings
@@ -92,7 +100,7 @@ export default {
     this.scrollToHash();
   },
   activated() {
-    this.dictionaryCount = (Storage.get('dictionaries') || []).length;
+    this.dictionaries = Storage.get('dictionaries') || [];
     this.scrollToHash();
   },
   unmounted() {
@@ -101,6 +109,7 @@ export default {
     window.removeEventListener(REFOLLOW_EVENT, this.onRefollow);
   },
   methods: {
+    openHelp,
     // A link to the current route followed again: back to its section, or to
     // the top when it has none
     onRefollow() {
@@ -117,9 +126,27 @@ export default {
       const id = this.$route.hash.replace(/^#/, '');
       if (!id) return;
       await this.$nextTick();
-      // The hash is read as an id, never built into a selector
+      this.scrollToSection(id);
+    },
+    scrollToSection(id) {
+      // The id is read as an id, never built into a selector
       const section = document.getElementById(id);
-      if (section && this.$refs.page?.contains(section)) section.scrollIntoView({ block: 'start' });
+      if (!section || !this.$refs.page?.contains(section)) return;
+      section.scrollIntoView({ block: 'start' });
+      this.currentSection = id;
+    },
+    // The index follows the scroll: the last group whose top has passed the
+    // top of the page
+    onScroll() {
+      const page = this.$refs.page;
+      if (!page || this.isMobile) return;
+      const top = page.getBoundingClientRect().top + 80;
+      let current = this.sections[0]?.id;
+      for (const { id } of this.sections) {
+        const section = document.getElementById(id);
+        if (section && section.getBoundingClientRect().top <= top) current = id;
+      }
+      this.currentSection = current;
     },
   },
 };
@@ -131,182 +158,141 @@ export default {
     class="settings-page"
     :class="{ 'settings-page--phone': isMobile }"
     data-testid="settings-page"
+    @scroll.passive="onScroll"
   >
-    <div class="settings-page__column">
-      <h1 class="settings-page__title">Settings</h1>
+    <div class="settings-page__layout">
+      <nav v-if="!isMobile" class="settings-page__index" aria-label="Settings sections" data-testid="settings-index">
+        <a
+          v-for="section in sections"
+          :key="section.id"
+          :href="'#' + section.id"
+          class="settings-page__index-link"
+          :class="{ 'is-current': section.id === currentSection }"
+          :aria-current="section.id === currentSection ? 'true' : undefined"
+          @click.prevent="scrollToSection(section.id)"
+        >{{ section.title }}</a>
+      </nav>
 
-      <section v-if="isMobile" id="settings-collections" class="settings-section" data-testid="settings-collections">
-        <ui-list class="settings-group">
-          <ui-list-item
-            title="My glossary"
-            clickable
-            class="settings-nav-row"
-            data-testid="settings-row-glossary"
-            @click="$router.push('/glossary')"
-          >
-            <template #append>
-              <span class="settings-nav-row__status">{{ glossaryStatus }}</span>
-              <ui-icon name="chevron-right" :size="18" :stroke-width="2" class="settings-nav-row__chevron" />
-            </template>
-          </ui-list-item>
-          <ui-list-item
-            title="Dictionaries"
-            clickable
-            class="settings-nav-row"
-            data-testid="settings-row-dictionaries"
-            @click="$router.push('/dictionaries')"
-          >
-            <template #append>
-              <span class="settings-nav-row__status">{{ dictionariesStatus }}</span>
-              <ui-icon name="chevron-right" :size="18" :stroke-width="2" class="settings-nav-row__chevron" />
-            </template>
-          </ui-list-item>
-        </ui-list>
-      </section>
+      <div class="settings-page__column">
+        <h1 class="settings-page__title">Settings</h1>
 
-      <!-- The short cards side by side; in a browser the Quick lookup card
-           renders nothing and Appearance sits alone -->
-      <section id="settings-general" class="settings-section" data-testid="settings-general">
+        <settings-group v-if="isMobile" id="settings-collections" data-testid="settings-collections">
+          <settings-row title="My glossary" clickable data-testid="settings-row-glossary" @click="$router.push('/glossary')">
+            {{ glossaryStatus }}
+          </settings-row>
+          <settings-row title="Dictionaries" clickable data-testid="settings-row-dictionaries" @click="$router.push('/dictionaries')">
+            {{ dictionariesStatus }}
+          </settings-row>
+        </settings-group>
+
         <appearance-card />
         <global-lookup-card />
-      </section>
 
-      <section id="settings-downloads" class="settings-section" data-testid="settings-downloads">
-        <h2 class="settings-label">{{ modular ? 'Downloads' : 'Scans and recordings' }}</h2>
-        <pack-manager-card v-if="modular" class="settings-section__wide" />
-        <scanned-dictionaries-card />
-        <audio-card />
-      </section>
+        <settings-group id="settings-offline" title="Offline content" data-testid="settings-offline">
+          <scanned-dictionaries-card />
+          <audio-card />
+          <template #after>
+            <p class="settings-page__note">
+              Dictionary packs, their order and which ones lookups use are in
+              <router-link to="/dictionaries">Dictionaries</router-link>.
+            </p>
+          </template>
+        </settings-group>
 
-      <section id="settings-dictionaries" class="settings-section" data-testid="settings-dictionaries">
-        <!-- Each column under its own label, the two labels on one line -->
-        <div class="settings-stack">
-          <h2 class="settings-label">Dictionaries</h2>
-          <dictionary-preferences-card id="dictionary-order" />
-        </div>
-        <div id="settings-help" class="settings-stack" data-testid="settings-help">
-          <h2 class="settings-label">Help and about</h2>
-          <ui-list class="settings-group">
-            <ui-list-item
-              v-for="help in helpRows"
-              :key="help.id"
-              :title="help.title"
-              icon="circle-help"
-              clickable
-              class="settings-nav-row"
-              :data-testid="'settings-help-' + help.id"
-              @click="$refs[help.ref].open()"
-            >
-              <template #append>
-                <ui-icon name="chevron-right" :size="18" :stroke-width="2" class="settings-nav-row__chevron" />
-              </template>
-            </ui-list-item>
-            <about-card rows />
-          </ui-list>
-          <define-page-help-dialog-with-button ref="lookupHelp" />
-          <search-page-help-dialog-with-button ref="searchHelp" />
-          <split-page-help-dialog-with-button ref="readerHelp" />
-        </div>
-      </section>
+        <about-card />
+
+        <settings-group id="settings-help" title="Help" data-testid="settings-help">
+          <settings-row
+            v-for="help in helpRows"
+            :key="help.id"
+            :title="help.title"
+            clickable
+            :data-testid="'settings-help-' + help.id"
+            @click="openHelp(help.id === 'all' ? null : help.id)"
+          />
+        </settings-group>
+      </div>
     </div>
   </div>
 </template>
 
 <style>
-/* Desktop: a centred column as wide as Search was, each section's cards
-   two by two once there is room for both. Phone: a large title and white
-   groups on the grey ground. */
+/* Desktop: the index on the left of a 680px column of groups */
 .settings-page {
   box-sizing: border-box;
   height: 100%;
   overflow-y: auto;
-  padding: var(--space-7) var(--space-6) var(--space-8);
+  padding: var(--space-7) var(--space-8) var(--space-8);
   background: var(--bg);
   color: var(--ink);
   font-family: var(--font-ui);
   font-size: var(--text-base);
 }
-.settings-page__column {
-  max-width: 72rem;
-  margin: 0 auto;
+.settings-page__layout {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-8);
+}
+.settings-page__index {
+  position: sticky;
+  top: 0;
+  flex: none;
+  align-self: flex-start;
+  width: 10.5rem;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: 2px;
+  padding-top: 3.5rem;
+}
+.settings-page__index-link {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--muted);
+  text-decoration: none;
+}
+.settings-page__index-link:hover {
+  color: var(--ink);
+}
+.settings-page__index-link.is-current {
+  background: var(--soft);
+  color: var(--ink);
+}
+.settings-page__index-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.settings-page__column {
+  flex: 0 1 42.5rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
 }
 .settings-page__title {
   margin: 0;
   font-size: var(--text-heading);
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
-.settings-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 28rem), 1fr));
-  align-items: start;
-  gap: var(--space-3) var(--space-6);
-  /* A section a link lands on keeps room above it */
-  scroll-margin-top: var(--space-4);
-}
-.settings-stack {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-.settings-section > .settings-label,
-.settings-section > .settings-group,
-.settings-section__wide {
-  grid-column: 1 / -1;
-}
-.settings-label {
-  margin: 0;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+.settings-page__note {
+  margin: 0 2px;
+  font-size: var(--text-sm);
   color: var(--muted);
 }
-
-/* Desktop rows: hairlines, no frame */
-.settings-group.ui-list {
-  border: 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-.settings-nav-row .ui-list-item__row {
-  min-height: 3.25rem;
-  padding: var(--space-2) var(--space-1);
-}
-.settings-nav-row .ui-list-item__text {
-  flex: 1;
-}
-.settings-nav-row .ui-list-item__title {
-  font-size: var(--text-md);
-}
-.settings-nav-row .ui-list-item__subtitle {
-  font-size: var(--text-sm);
-}
-.settings-nav-row__status {
-  font-size: var(--text-base);
-  color: var(--muted);
-}
-.settings-nav-row__chevron {
-  color: var(--faint);
-}
-.settings-group .settings-row .ui-list-item__row {
-  min-height: 3.25rem;
-  padding: var(--space-2) var(--space-1);
-}
-.settings-group .settings-row .ui-list-item__title {
-  font-size: var(--text-md);
-  font-weight: 400;
-}
-.settings-group .settings-row .ui-list-item__subtitle {
-  font-size: var(--text-sm);
+.settings-page__note a {
+  color: var(--accent);
 }
 
+/* No room for the index beside the column */
+@media (max-width: 1000px) {
+  .settings-page__index {
+    display: none;
+  }
+}
+
+/* Phone: a large title and white groups on the grey ground */
 .settings-page--phone {
   padding: 22px var(--space-4) var(--space-6);
   background: var(--bg-grouped);
@@ -316,49 +302,8 @@ export default {
 }
 .settings-page--phone .settings-page__title {
   font-size: var(--text-large-title);
-  font-weight: 700;
-  letter-spacing: 0;
 }
-.settings-page--phone .settings-section,
-.settings-page--phone .settings-stack {
-  gap: var(--space-2);
-}
-.settings-page--phone .settings-label {
-  padding: 0 var(--space-1);
-}
-.settings-page--phone .settings-group.ui-list {
-  border: 0;
-  border-radius: var(--radius-group);
-  background: var(--surface);
-}
-.settings-page--phone .settings-nav-row .ui-list-item__row,
-.settings-page--phone .settings-group .settings-row .ui-list-item__row {
-  min-height: 3.25rem;
-  padding: var(--space-2) var(--space-4);
-}
-.settings-page--phone .ui-list-item {
-  border-bottom-color: var(--soft);
-}
-/* A card is one white group under its section's label, its title the
-   group's first line (board MobileLibrary): no second uppercase label */
-.settings-page--phone .settings-card.ui-card {
-  gap: var(--space-3);
-  padding: 14px var(--space-4);
-  border-radius: var(--radius-group);
-  background: var(--surface);
-}
-.settings-page--phone .settings-card__heading {
-  padding: 0;
-}
-.settings-page--phone .settings-card__title {
-  font-size: var(--text-md);
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink);
-}
-.settings-page--phone .settings-card .ui-card__body {
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
+.settings-page--phone .settings-page__note {
+  margin: 0 var(--space-1);
 }
 </style>

@@ -48,7 +48,7 @@ vi.mock('../src/services/global-lookup', () => {
     checkAccessibilityPermission: vi.fn(async () => true),
     requestAccessibilityPermission: vi.fn(async () => {}),
   }
-  return { default: mocks.globalLookup }
+  return { default: mocks.globalLookup, DEFAULT_HOTKEY: 'CommandOrControl+Shift+C' }
 })
 
 vi.mock('../src/services/update-service', async () => {
@@ -61,41 +61,6 @@ vi.mock('../src/services/update-service', async () => {
     installAndRelaunch: vi.fn(async () => {}),
   }
   return { default: mocks.update }
-})
-
-vi.mock('../src/services/pack-manager', async () => {
-  const { reactive } = await import('vue')
-  const state = reactive({
-    installedPacks: ['core'],
-    downloadingPacks: {},
-    updatingPacks: {},
-    availableUpdates: {},
-    customPacks: [],
-    initialized: true,
-  })
-  mocks.packs = {
-    state,
-    get installedPacks() { return state.installedPacks },
-    get downloadingPacks() { return state.downloadingPacks },
-    get updatingPacks() { return state.updatingPacks },
-    get availableUpdates() { return state.availableUpdates },
-    get customPacks() { return state.customPacks },
-    get isInitialized() { return state.initialized },
-    get hasUpdates() { return Object.keys(state.availableUpdates).length > 0 },
-    init: vi.fn(async () => {}),
-    downloadPack: vi.fn(async () => {}),
-    waitForDownload: vi.fn(async () => {}),
-    removePack: vi.fn(async () => {}),
-    checkForUpdates: vi.fn(async () => {}),
-    updatePack: vi.fn(async () => {}),
-    waitForUpdate: vi.fn(async () => {}),
-  }
-  return { default: mocks.packs, PackManager: mocks.packs }
-})
-
-vi.mock('../src/services/sql-database', () => {
-  mocks.db = { reloadPack: vi.fn(async () => {}), unloadPack: vi.fn() }
-  return { default: mocks.db }
 })
 
 vi.mock('../src/services/scan-service', () => {
@@ -128,9 +93,7 @@ import AudioCard from '../src/components/settings/AudioCard.vue'
 import AppearanceCard from '../src/components/settings/AppearanceCard.vue'
 import GlobalLookupCard, { DEFAULT_HOTKEY } from '../src/components/settings/GlobalLookupCard.vue'
 import AboutCard from '../src/components/settings/AboutCard.vue'
-import PackManagerCard from '../src/components/settings/PackManagerCard.vue'
 import ScannedDictionariesCard, { estimatedScanSize } from '../src/components/settings/ScannedDictionariesCard.vue'
-import DictionaryPreferencesCard, { languageLabel } from '../src/components/settings/DictionaryPreferencesCard.vue'
 import { packSummary, plural } from '../src/components/settings/pack-summary'
 
 const Stub = { template: '<div />' }
@@ -164,15 +127,8 @@ async function mountWith(component, { props, path = '/settings' } = {}) {
 }
 
 const byTestId = (testid) => wrapper.find(`[data-testid="${testid}"]`)
+const theme = (label) => wrapper.findAll('[data-testid="theme"] [role="radio"]').find((radio) => radio.text() === label)
 const inBody = (testid) => document.body.querySelector(`[data-testid="${testid}"]`)
-
-function seedDictionaries() {
-  Storage.set('dictionaries', [
-    { id: 1, name: 'Hopkins2015', position: 2, enabled: true },
-    { id: 2, name: 'RangjungYeshe', position: 1, enabled: true },
-    { id: 3, name: 'Berzin-Def', position: 3, enabled: false },
-  ])
-}
 
 beforeEach(() => {
   env.tauri = false
@@ -181,14 +137,6 @@ beforeEach(() => {
   snackbar = { open: vi.fn() }
   vi.clearAllMocks()
   Object.assign(mocks.update.state, { updateReady: false, version: null, notes: null, downloading: false, downloadProgress: 0 })
-  Object.assign(mocks.packs.state, {
-    installedPacks: ['core'],
-    downloadingPacks: {},
-    updatingPacks: {},
-    availableUpdates: {},
-    customPacks: [],
-    initialized: true,
-  })
   window.matchMedia = vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
 })
 
@@ -220,23 +168,23 @@ describe('pack summary', () => {
 describe('AppearanceCard', () => {
   it('saves and applies the chosen theme', async () => {
     await mountWith(AppearanceCard)
-    await byTestId('theme-dark').trigger('click')
+    await theme('Dark').trigger('click')
     expect(Storage.get('themePreference')).toBe('dark')
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-    expect(byTestId('theme-dark').attributes('aria-pressed')).toBe('true')
+    expect(theme('Dark').attributes('aria-checked')).toBe('true')
   })
 
   it('follows the system preference', async () => {
     window.matchMedia = vi.fn(() => ({ matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
     await mountWith(AppearanceCard)
-    await byTestId('theme-system').trigger('click')
+    await theme('System').trigger('click')
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
   })
 
   it('switches back to light', async () => {
     await mountWith(AppearanceCard)
-    await byTestId('theme-dark').trigger('click')
-    await byTestId('theme-light').trigger('click')
+    await theme('Dark').trigger('click')
+    await theme('Light').trigger('click')
     expect(Storage.get('themePreference')).toBe('light')
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
   })
@@ -297,10 +245,11 @@ describe('GlobalLookupCard', () => {
     expect(byTestId('hotkey-change').exists()).toBe(true)
   })
 
-  it('resets the hotkey to the default', async () => {
+  it('resets the hotkey to the one the app starts with', async () => {
     await mountWith(GlobalLookupCard)
     await byTestId('hotkey-reset').trigger('click')
-    expect(mocks.globalLookup.updateHotkey).toHaveBeenCalledWith(DEFAULT_HOTKEY)
+    expect(DEFAULT_HOTKEY).toBe('CommandOrControl+Shift+C')
+    expect(mocks.globalLookup.updateHotkey).toHaveBeenCalledWith('CommandOrControl+Shift+C')
   })
 
   it('turns global lookup off with the switch', async () => {
@@ -401,161 +350,32 @@ describe('AboutCard', () => {
   })
 })
 
-describe('PackManagerCard', () => {
-  beforeEach(() => {
-    env.tauri = true
-  })
-
-  it('renders nothing without modular packs', async () => {
-    env.tauri = false
-    await mountWith(PackManagerCard)
-    expect(byTestId('pack-manager-card').exists()).toBe(false)
-  })
-
-  it('summarises installed packs and lists each one', async () => {
-    await mountWith(PackManagerCard)
-    expect(byTestId('pack-manager-card').text()).toMatch(/1 of 3 installed · \d+ dictionaries on this device/)
-    expect(byTestId('pack-core').text()).toContain('Installed')
-    expect(byTestId('pack-tibetan-monolingual').find('[data-testid="pack-install"]').exists()).toBe(true)
-    // The bundled pack cannot be removed
-    expect(byTestId('pack-core').find('[data-testid="pack-remove"]').exists()).toBe(false)
-  })
-
-  it('initialises the pack manager when needed', async () => {
-    mocks.packs.state.initialized = false
-    await mountWith(PackManagerCard)
-    expect(mocks.packs.init).toHaveBeenCalled()
-    expect(wrapper.text()).toContain('Loading pack information...')
-  })
-
-  it('installs a pack and reloads it', async () => {
-    await mountWith(PackManagerCard)
-    await byTestId('pack-tibetan-monolingual').find('[data-testid="pack-install"]').trigger('click')
-    await flushPromises()
-    expect(mocks.packs.downloadPack).toHaveBeenCalledWith('tibetan-monolingual')
-    expect(mocks.db.reloadPack).toHaveBeenCalledWith('tibetan-monolingual')
-  })
-
-  describe('focus after Install', () => {
-    const PACK = 'tibetan-monolingual'
-    const status = () => byTestId('pack-' + PACK).find('[data-testid="pack-status"]')
-    let finish
-    beforeEach(() => {
-      // As the real one: the row shows the progress as soon as Install is pressed
-      mocks.packs.downloadPack.mockImplementation(async (id) => {
-        mocks.packs.state.downloadingPacks = { [id]: { percentage: 0 } }
-      })
-      mocks.packs.waitForDownload.mockImplementation(() => new Promise((resolve) => { finish = resolve }))
-    })
-    afterEach(() => {
-      mocks.packs.downloadPack.mockImplementation(async () => {})
-      mocks.packs.waitForDownload.mockImplementation(async () => {})
-    })
-
-    it("moves to the row's status line while the pack downloads, not to the document", async () => {
-      await mountWith(PackManagerCard)
-      const install = byTestId('pack-' + PACK).find('[data-testid="pack-install"]')
-      install.element.focus()
-
-      await install.trigger('click')
-      await flushPromises()
-
-      expect(status().text()).toBe('Downloading 0%')
-      expect(status().attributes('tabindex')).toBe('-1')
-      expect(document.activeElement).toBe(status().element)
-    })
-
-    it('stays on the status line once it says Installed', async () => {
-      await mountWith(PackManagerCard)
-      await byTestId('pack-' + PACK).find('[data-testid="pack-install"]').trigger('click')
-      await flushPromises()
-
-      mocks.packs.state.downloadingPacks = {}
-      mocks.packs.state.installedPacks = ['core', PACK]
-      finish()
-      await flushPromises()
-
-      expect(status().text()).toBe('Installed')
-      expect(document.activeElement).toBe(status().element)
-    })
-
-    it('leaves the focus alone if it was moved elsewhere meanwhile', async () => {
-      await mountWith(PackManagerCard)
-      await byTestId('pack-' + PACK).find('[data-testid="pack-install"]').trigger('click')
-      await flushPromises()
-      const elsewhere = byTestId('packs-check-updates').element
-      elsewhere.focus()
-
-      mocks.packs.state.downloadingPacks = {}
-      mocks.packs.state.installedPacks = ['core', PACK]
-      finish()
-      await flushPromises()
-
-      expect(document.activeElement).toBe(elsewhere)
-    })
-  })
-
-  it('shows progress while a pack downloads', async () => {
-    mocks.packs.state.downloadingPacks = { 'tibetan-monolingual': { percentage: 41.6 } }
-    await mountWith(PackManagerCard)
-    expect(byTestId('pack-tibetan-monolingual').text()).toContain('Downloading 42%')
-    expect(byTestId('pack-tibetan-monolingual').find('[data-testid="ui-progress"]').exists()).toBe(true)
-  })
-
-  it('removes an installed pack after confirmation', async () => {
-    mocks.packs.state.installedPacks = ['core', 'sanskrit-academic']
-    await mountWith(PackManagerCard)
-    await byTestId('pack-sanskrit-academic').find('[data-testid="pack-remove"]').trigger('click')
-    await nextTick()
-    expect(inBody('ui-dialog').textContent).toContain('Remove pack?')
-    inBody('remove-confirm').click()
-    await flushPromises()
-    expect(mocks.db.unloadPack).toHaveBeenCalledWith('sanskrit-academic')
-    expect(mocks.packs.removePack).toHaveBeenCalledWith('sanskrit-academic')
-  })
-
-  it('checks for and applies pack updates', async () => {
-    await mountWith(PackManagerCard)
-    await byTestId('packs-check-updates').trigger('click')
-    await flushPromises()
-    expect(mocks.packs.checkForUpdates).toHaveBeenCalled()
-
-    mocks.packs.state.availableUpdates = { core: { sizeMB: 12 } }
-    await nextTick()
-    expect(byTestId('pack-core').find('[data-testid="pack-update"]').text()).toContain('12 MB')
-    await byTestId('packs-update-all').trigger('click')
-    await flushPromises()
-    expect(mocks.packs.updatePack).toHaveBeenCalledWith('core')
-    expect(mocks.db.reloadPack).toHaveBeenCalledWith('core')
-  })
-
-  it('lists the dictionaries of a pack on demand', async () => {
-    await mountWith(PackManagerCard)
-    expect(byTestId('pack-dictionaries').exists()).toBe(false)
-    await byTestId('pack-core').find('[data-testid="pack-toggle"]').trigger('click')
-    expect(byTestId('pack-dictionaries').text()).toContain('Hopkins')
-  })
-
-  it('opens Dictionaries', async () => {
-    await mountWith(PackManagerCard)
-    await byTestId('manage-in-dictionaries').trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/dictionaries')
-  })
-})
-
 describe('ScannedDictionariesCard', () => {
   it('estimates the download size', () => {
     expect(estimatedScanSize(2)).toBe('400 KB')
     expect(estimatedScanSize(695)).toBe('136 MB')
   })
 
-  it('marks scans as online only in a browser', async () => {
+  it('reads scans online in a browser, folded under their summary, with no download', async () => {
     await mountWith(ScannedDictionariesCard)
+    expect(byTestId('scanned-toggle').text()).toContain('read online')
+    expect(byTestId('scan-das').exists()).toBe(false)
+
+    await byTestId('scanned-toggle').trigger('click')
+    expect(byTestId('scanned-toggle').attributes('aria-expanded')).toBe('true')
     expect(byTestId('scan-das').text()).toContain('Chandra Das')
     expect(byTestId('scan-das').text()).not.toContain('scanned dictionary')
-    expect(byTestId('scan-online-only').exists()).toBe(true)
+    expect(byTestId('scan-das').text()).toContain('read online')
+    expect(byTestId('scan-download').exists()).toBe(false)
     expect(byTestId('scan-web-note').exists()).toBe(true)
+  })
+
+  it('opens the scans in the desktop app, and counts those on this device', async () => {
+    env.tauri = true
+    mocks.scans.isScanDownloaded.mockResolvedValueOnce(true)
+    await mountWith(ScannedDictionariesCard)
+    expect(byTestId('scanned-toggle').text()).toContain('1 of 1 on this device')
+    expect(byTestId('scan-das').text()).toContain('on this device')
   })
 
   it('downloads a scan in the app', async () => {
@@ -607,14 +427,16 @@ describe('ScannedDictionariesCard', () => {
 describe('AudioCard', () => {
   it('should list each dictionary with its number of recordings and download size', async () => {
     await mountWith(AudioCard)
+    await byTestId('audio-toggle').trigger('click')
     const row = byTestId('audio-hotl1')
     expect(row.text()).toContain('Heart of Tibetan Language 1')
-    expect(row.text()).toContain('1,742 recordings (63 MB)')
+    expect(row.text()).toContain('1,742 recordings · 63 MB · played online')
   })
 
-  it('should mark recordings as online only in a browser', async () => {
+  it('should play recordings online in a browser, folded under their summary, with no download', async () => {
     await mountWith(AudioCard)
-    expect(byTestId('audio-online-only').exists()).toBe(true)
+    expect(byTestId('audio-toggle').text()).toContain('played online')
+    await byTestId('audio-toggle').trigger('click')
     expect(byTestId('audio-download').exists()).toBe(false)
   })
 
@@ -661,122 +483,5 @@ describe('AudioCard', () => {
     await flushPromises()
     expect(snackbar.open).toHaveBeenCalledWith('Download failed: connection reset')
     expect(byTestId('audio-download').exists()).toBe(true)
-  })
-})
-
-describe('DictionaryPreferencesCard', () => {
-  it('reads language pairs', () => {
-    expect(languageLabel({ language: ['tib', '<->', 'en'] })).toBe('Tib ↔ En')
-    expect(languageLabel({})).toBe('')
-  })
-
-  it('lists dictionaries in their saved order', async () => {
-    seedDictionaries()
-    await mountWith(DictionaryPreferencesCard)
-    const rows = wrapper.findAll('[data-testid="dictionary-pref"]')
-    expect(rows).toHaveLength(3)
-    expect(rows[0].text()).toContain('1.')
-    expect(rows[0].text()).toContain('Rangjung')
-    expect(rows[2].classes()).toContain('is-disabled')
-  })
-
-  it('names each switch after its dictionary', async () => {
-    seedDictionaries()
-    await mountWith(DictionaryPreferencesCard)
-    const control = wrapper.findAll('[data-testid="dictionary-pref-switch"]')[0].find('button')
-    expect(control.attributes('aria-label')).toContain('Rangjung')
-  })
-
-  it('saves a dictionary switched off, with positions', async () => {
-    seedDictionaries()
-    await mountWith(DictionaryPreferencesCard)
-    await wrapper.findAll('[data-testid="dictionary-pref-switch"]')[0].find('button').trigger('click')
-    await flushPromises()
-    const saved = Storage.get('dictionaries')
-    expect(saved.map((d) => d.name)).toEqual(['RangjungYeshe', 'Hopkins2015', 'Berzin-Def'])
-    expect(saved.map((d) => d.position)).toEqual([1, 2, 3])
-    expect(saved[0].enabled).toBe(false)
-  })
-
-  it('shows what is known about a dictionary', async () => {
-    seedDictionaries()
-    await mountWith(DictionaryPreferencesCard)
-    await wrapper.findAll('[data-testid="dictionary-pref-info"]')[0].trigger('click')
-    expect(snackbar.open).toHaveBeenCalledTimes(1)
-    expect(snackbar.open.mock.calls[0][0]).toContain('<strong>')
-  })
-
-  it('reloads after the dictionary list changes', async () => {
-    seedDictionaries()
-    await mountWith(DictionaryPreferencesCard)
-    Storage.set('dictionaries', [{ id: 9, name: 'DanMartin', position: 1, enabled: true }])
-    // tests/setup.js replaces window listeners; this fires the registered ones
-    window._triggerEvent('dictionaries-updated')
-    await flushPromises()
-    expect(wrapper.findAll('[data-testid="dictionary-pref"]')).toHaveLength(1)
-  })
-
-  describe('from the keyboard', () => {
-    const handles = () => wrapper.findAll('[data-testid="dictionary-pref-handle"]')
-    const names = () => Storage.get('dictionaries').map((d) => d.name)
-    const announcement = () => wrapper.find('[data-testid="dictionary-pref-announcement"]')
-
-    it('makes each drag handle focusable, with a name saying what and where it is', async () => {
-      seedDictionaries()
-      await mountWith(DictionaryPreferencesCard)
-      const handle = handles()[0]
-      expect(handle.attributes('tabindex')).toBe('0')
-      expect(handle.attributes('role')).toBe('button')
-      expect(handle.attributes('aria-label')).toBe('Move Rangjung Yeshe, position 1 of 3')
-      expect(handle.attributes('aria-keyshortcuts')).toBe('Alt+ArrowUp Alt+ArrowDown')
-      const hint = wrapper.find('#' + handle.attributes('aria-describedby'))
-      expect(hint.text()).toBe('Alt+Up or Alt+Down moves it up or down.')
-      expect(announcement().attributes('aria-live')).toBe('polite')
-    })
-
-    it('moves a dictionary down with Alt+Down, saves the order, announces it and keeps the focus on its handle', async () => {
-      seedDictionaries()
-      await mountWith(DictionaryPreferencesCard)
-      handles()[0].element.focus()
-
-      await handles()[0].trigger('keydown', { key: 'ArrowDown', altKey: true })
-      await flushPromises()
-
-      expect(names()).toEqual(['Hopkins2015', 'RangjungYeshe', 'Berzin-Def'])
-      expect(Storage.get('dictionaries').map((d) => d.position)).toEqual([1, 2, 3])
-      expect(announcement().text()).toBe('Rangjung Yeshe moved to position 2 of 3')
-      expect(document.activeElement).toBe(handles()[1].element)
-      expect(handles()[1].attributes('aria-label')).toBe('Move Rangjung Yeshe, position 2 of 3')
-    })
-
-    it('moves a dictionary up with Alt+Up', async () => {
-      seedDictionaries()
-      await mountWith(DictionaryPreferencesCard)
-
-      await handles()[2].trigger('keydown', { key: 'ArrowUp', altKey: true })
-      await flushPromises()
-
-      expect(names()).toEqual(['RangjungYeshe', 'Berzin-Def', 'Hopkins2015'])
-      expect(document.activeElement).toBe(handles()[1].element)
-    })
-
-    it('leaves the order as it is past either end, and for Up / Down without Alt', async () => {
-      seedDictionaries()
-      await mountWith(DictionaryPreferencesCard)
-
-      await handles()[0].trigger('keydown', { key: 'ArrowUp', altKey: true })
-      await handles()[2].trigger('keydown', { key: 'ArrowDown', altKey: true })
-      await handles()[1].trigger('keydown', { key: 'ArrowDown' })
-      await flushPromises()
-
-      expect(names()).toEqual(['Hopkins2015', 'RangjungYeshe', 'Berzin-Def'])
-      expect(announcement().text()).toBe('')
-    })
-  })
-
-  it('drops its own header in the phone sub-screen', async () => {
-    seedDictionaries()
-    await mountWith(DictionaryPreferencesCard, { props: { bare: true } })
-    expect(wrapper.text()).not.toContain('Drag to reorder')
   })
 })

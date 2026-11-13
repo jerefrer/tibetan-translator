@@ -9,7 +9,7 @@ import { isTauri, isMobile, isMacOS } from '../config/platform';
 import Storage from './storage';
 
 // Default hotkey: Cmd+Shift+C on Mac, Ctrl+Shift+C on Windows/Linux
-const DEFAULT_HOTKEY = 'CommandOrControl+Shift+C';
+export const DEFAULT_HOTKEY = 'CommandOrControl+Shift+C';
 
 // Popup window configuration: the smallest default size, and the largest
 const POPUP_WIDTH = 650;

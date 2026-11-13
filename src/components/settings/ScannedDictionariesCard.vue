@@ -6,8 +6,9 @@ import {
   deleteScan,
   isAppMode,
 } from '../../services/scan-service';
-import { UiButton, UiChip, UiDialog, UiIcon, UiProgress, UiTooltip } from '../../ui';
-import SettingsCard from './SettingsCard.vue';
+import ResizeService from '../../services/resize-service';
+import { UiButton, UiDialog, UiIcon, UiProgress, UiTooltip } from '../../ui';
+import SettingsRow from './SettingsRow.vue';
 
 // Tauri event listener, loaded lazily so the browser build never imports it
 let listen = null;
@@ -35,10 +36,13 @@ export function estimatedScanSize(pageCount) {
 }
 
 // Page scans of the scanned dictionaries, downloadable for offline use in
-// the app; online only in a browser.
+// the app; online only in a browser. Rows of Settings' Offline content group:
+// one that sums them up and folds out (open in the desktop app; folded on a
+// phone, and in a browser where nothing can be downloaded),
+// then one per dictionary.
 export default {
   name: 'ScannedDictionariesCard',
-  components: { SettingsCard, UiButton, UiChip, UiDialog, UiIcon, UiProgress, UiTooltip },
+  components: { SettingsRow, UiButton, UiDialog, UiIcon, UiProgress, UiTooltip },
   inject: ['snackbar'],
   data() {
     return {
@@ -48,10 +52,21 @@ export default {
       progressUnlisten: null,
       confirmOpen: false,
       pendingDelete: null,
+      // Folded where there is nothing to download, or no room
+      open: false,
     };
+  },
+  computed: {
+    summary() {
+      const where = this.isAppMode
+        ? `${this.dictionaries.filter((dictionary) => this.status[dictionary.scanId]?.downloaded).length} of ${this.dictionaries.length} on this device`
+        : 'read online';
+      return `Page images, shown with “View scan” in an entry · ${where}`;
+    },
   },
   async created() {
     this.isAppMode = await isAppMode();
+    this.open = this.isAppMode && !ResizeService.isMobile();
     await this.load();
     await this.listenForProgress();
   },
@@ -63,6 +78,13 @@ export default {
       return dictionary.label.replace(' (scanned dictionary)', '');
     },
     estimatedSize: estimatedScanSize,
+    meta(dictionary) {
+      const state = this.status[dictionary.scanId] || {};
+      let where = 'read online';
+      if (state.downloading) where = `downloading, ${state.progress || 0}%`;
+      else if (state.downloaded) where = 'on this device';
+      return `${dictionary.pageCount} pages · ${estimatedScanSize(dictionary.pageCount)} · ${where}`;
+    },
     async load() {
       this.dictionaries = getScannedDictionaries();
       for (const dictionary of this.dictionaries) {
@@ -122,124 +144,94 @@ export default {
 </script>
 
 <template>
-  <settings-card
-    v-if="dictionaries.length > 0"
-    title="Scanned dictionaries"
-    subtitle="Download for offline access"
-    class="scanned-card"
-    data-testid="scanned-card"
-  >
-    <div class="scanned-card__list">
-      <div
+  <div v-if="dictionaries.length > 0" class="offline-set" data-testid="scanned-card">
+    <settings-row
+      title="Scanned dictionaries"
+      :description="summary"
+      clickable
+      :expanded="open"
+      data-testid="scanned-toggle"
+      @click="open = !open"
+    />
+    <template v-if="open">
+      <settings-row
         v-for="dictionary in dictionaries"
         :key="dictionary.scanId"
-        class="scanned-row"
+        :title="label(dictionary)"
+        :description="meta(dictionary)"
+        nested
         :data-testid="'scan-' + dictionary.scanId"
       >
-        <div class="scanned-row__text">
-          <span class="scanned-row__name">{{ label(dictionary) }}</span>
-          <span class="scanned-row__meta">
-            {{ dictionary.pageCount }} pages ({{ estimatedSize(dictionary.pageCount) }})
-          </span>
+        <template v-if="status[dictionary.scanId]?.downloading" #below>
           <ui-progress
-            v-if="status[dictionary.scanId]?.downloading"
             :value="status[dictionary.scanId]?.progress || 0"
             :label="'Downloading ' + label(dictionary)"
-            class="scanned-row__progress"
+            class="offline-set__progress"
           />
-        </div>
-
+        </template>
         <span
           v-if="status[dictionary.scanId]?.downloading"
-          class="scanned-row__percent"
+          class="offline-set__percent"
           data-testid="scan-progress"
-        >
-          {{ status[dictionary.scanId]?.progress || 0 }}%
-        </span>
+        >{{ status[dictionary.scanId]?.progress || 0 }}%</span>
         <ui-tooltip v-else-if="status[dictionary.scanId]?.downloaded" text="Delete download">
           <ui-button
             icon
             size="sm"
             variant="ghost"
-            class="scanned-row__delete"
+            class="offline-set__delete"
             :aria-label="'Delete download of ' + label(dictionary)"
             data-testid="scan-delete"
             @click="confirmRemove(dictionary)"
           >
-            <ui-icon name="trash-2" :size="18" />
+            <ui-icon name="trash-2" :size="17" />
           </ui-button>
         </ui-tooltip>
-        <ui-tooltip v-else-if="isAppMode" text="Download for offline">
-          <ui-button
-            icon
-            size="sm"
-            variant="ghost"
-            :aria-label="'Download ' + label(dictionary) + ' for offline'"
-            data-testid="scan-download"
-            @click="download(dictionary.scanId)"
-          >
-            <ui-icon name="download" :size="18" />
-          </ui-button>
-        </ui-tooltip>
-        <ui-chip v-else tone="neutral" outlined data-testid="scan-online-only">Online only</ui-chip>
-      </div>
-    </div>
-
-    <p v-if="!isAppMode" class="scanned-card__note" data-testid="scan-web-note">
-      Download for offline is only available in the desktop/mobile app.
-    </p>
+        <ui-button
+          v-else-if="isAppMode"
+          variant="soft"
+          size="sm"
+          :aria-label="'Download ' + label(dictionary) + ' for offline'"
+          data-testid="scan-download"
+          @click="download(dictionary.scanId)"
+        ><ui-icon name="download" :size="15" />Download</ui-button>
+      </settings-row>
+      <p v-if="!isAppMode" class="offline-set__note" data-testid="scan-web-note">
+        Downloading for offline use needs the desktop or mobile app.
+      </p>
+    </template>
     <ui-dialog v-model="confirmOpen" title="Delete downloaded pages?" :max-width="400">
       Delete <strong>{{ pendingDelete ? label(pendingDelete) : '' }}</strong>? It can be downloaded again later.
       <template #actions>
         <ui-button variant="ghost" data-testid="delete-cancel" @click="confirmOpen = false">Cancel</ui-button>
-        <ui-button variant="danger" data-testid="delete-confirm" @click="remove">Delete</ui-button>
+        <ui-button variant="danger" data-testid="delete-confirm" @click="remove"><ui-icon name="trash-2" :size="16" />Delete</ui-button>
       </template>
     </ui-dialog>
-  </settings-card>
+  </div>
 </template>
 
 <style>
-.scanned-card__list {
-  display: flex;
-  flex-direction: column;
+/* Shared by the audio rows (AudioCard) */
+.offline-set + .offline-set > .settings-row:first-child {
+  border-top: 1px solid var(--line-soft);
 }
-.scanned-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  min-height: 3.25rem;
-  padding: var(--space-2) 0;
-  border-top: 1px solid var(--soft);
+.offline-set__progress {
+  margin-top: 6px;
 }
-.scanned-row__text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.scanned-row__name {
-  font-size: var(--text-body);
-}
-.scanned-row__meta {
-  font-size: var(--text-sm);
-  color: var(--muted);
-}
-.scanned-row__progress {
-  margin-top: var(--space-1);
-}
-.scanned-row__percent {
-  flex: none;
+.offline-set__percent {
   width: var(--control-sm);
   text-align: right;
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--accent);
 }
-.scanned-row__delete.ui-button--ghost { color: var(--muted); }
-.scanned-row__delete.ui-button--ghost:hover:not(:disabled) { color: var(--danger-ink); background: var(--danger-soft); }
-.scanned-card__note {
+.offline-set__delete.ui-button--ghost { color: var(--muted); }
+.offline-set__delete.ui-button--ghost:hover:not(:disabled) { color: var(--danger-ink); background: var(--danger-soft); }
+.offline-set__note {
   margin: 0;
+  padding: var(--space-2) var(--space-4) var(--space-3) var(--space-8);
+  border-top: 1px solid var(--line-soft);
+  background: color-mix(in srgb, var(--bg-quiet) 60%, var(--surface));
   font-size: var(--text-xs);
   color: var(--muted);
 }

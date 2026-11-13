@@ -1,8 +1,9 @@
 <script>
 import Storage from '../../services/storage';
 import { applyDocumentTheme, resolveTheme, systemPrefersDark } from '../../services/theme';
-import { UiButton, UiIcon, UiSlider } from '../../ui';
-import SettingsCard from './SettingsCard.vue';
+import { UiButton, UiIcon, UiSegmented, UiSlider } from '../../ui';
+import SettingsGroup from './SettingsGroup.vue';
+import SettingsRow from './SettingsRow.vue';
 
 export const THEME_OPTIONS = [
   { value: 'system', label: 'System', icon: 'monitor' },
@@ -12,10 +13,10 @@ export const THEME_OPTIONS = [
 
 export const DEFAULT_FONT_SIZE = 100;
 
-// Theme (system / light / dark) and the "Text size" slider.
+// Settings' General group: the theme (system / light / dark) and the text size.
 export default {
   name: 'AppearanceCard',
-  components: { SettingsCard, UiButton, UiIcon, UiSlider },
+  components: { SettingsGroup, SettingsRow, UiButton, UiIcon, UiSegmented, UiSlider },
   data() {
     return {
       themeOptions: THEME_OPTIONS,
@@ -51,23 +52,21 @@ export default {
 </script>
 
 <template>
-  <settings-card title="Appearance" class="appearance-card" data-testid="appearance-card">
-    <div class="appearance-card__themes" role="group" aria-label="Theme">
+  <settings-group id="settings-general" title="General" class="appearance-card" data-testid="appearance-card">
+    <settings-row title="Theme">
+      <ui-segmented v-model="themePreference" :options="themeOptions" label="Theme" data-testid="theme" />
+    </settings-row>
+    <settings-row title="Text size" description="Definitions, lists and the interface" class="appearance-card__size">
       <ui-button
-        v-for="option in themeOptions"
-        :key="option.value"
-        :variant="themePreference === option.value ? 'solid' : 'outline'"
-        :aria-pressed="String(themePreference === option.value)"
-        :data-testid="'theme-' + option.value"
-        @click="themePreference = option.value"
+        v-if="fontSize !== defaultFontSize"
+        variant="ghost"
+        size="sm"
+        data-testid="font-size-reset"
+        @click="fontSize = defaultFontSize"
       >
-        <ui-icon :name="option.icon" :size="16" />
-        {{ option.label }}
+        <ui-icon name="rotate-ccw" :size="15" />
+        Reset
       </ui-button>
-    </div>
-
-    <div class="appearance-card__size">
-      <span class="appearance-card__size-label">Text size</span>
       <ui-slider
         v-model="fontSize"
         :min="80"
@@ -77,49 +76,32 @@ export default {
         class="appearance-card__slider"
       />
       <span class="appearance-card__size-value" data-testid="font-size-value">{{ fontSize }}%</span>
-    </div>
-    <div v-if="fontSize !== defaultFontSize" class="appearance-card__reset">
-      <ui-button variant="ghost" size="sm" data-testid="font-size-reset" @click="fontSize = defaultFontSize">
-        Reset to default
-      </ui-button>
-    </div>
-  </settings-card>
+    </settings-row>
+  </settings-group>
 </template>
 
 <style>
-.appearance-card__themes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-/* Mockup: 38px segment buttons */
-.appearance-card__themes .ui-button {
-  height: 2.375rem;
-}
-.appearance-card__size {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-.appearance-card__size-label,
-.appearance-card__size-value {
-  flex: none;
-  font-size: var(--text-sm);
-  color: var(--muted);
+.appearance-card__slider {
+  width: 11rem;
 }
 .appearance-card__size-value {
   width: 2.5rem;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
   text-align: right;
+  color: var(--muted);
 }
-.appearance-card__slider {
-  flex: 1;
-}
-.appearance-card__reset {
-  margin-top: -6px;
-  display: flex;
-  justify-content: flex-end;
-}
+/* Phone: the slider under the name, across the row */
 @media (max-width: 600px) {
-  .appearance-card__size { gap: var(--space-3); }
+  .appearance-card__size.settings-row {
+    flex-wrap: wrap;
+  }
+  .appearance-card__size .settings-row__control {
+    flex: 1 1 100%;
+  }
+  .appearance-card__slider {
+    flex: 1;
+    width: auto;
+  }
 }
 </style>
