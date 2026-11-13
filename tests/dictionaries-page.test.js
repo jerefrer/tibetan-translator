@@ -68,12 +68,33 @@ const STORED = [
 
 const snackbar = { open: vi.fn() }
 let wrapper
+let route
+
+// A router reduced to what the page uses: the route, and a history that
+// push adds to and back (the system Back on Android) steps through
+function fakeRouter() {
+  const steps = []
+  const go = (to) => {
+    if (to.path === route.path) route.query = to.query || {}
+  }
+  return {
+    push: vi.fn((to) => {
+      steps.push({ ...route.query })
+      go(to)
+    }),
+    replace: vi.fn(go),
+    back: vi.fn(() => {
+      route.query = steps.pop() || {}
+    }),
+  }
+}
 
 const mountPage = async (query = {}) => {
+  route = reactive({ path: '/dictionaries', query })
   wrapper = mount(DictionariesPage, {
     global: {
       provide: { snackbar },
-      mocks: { $route: { path: '/dictionaries', query }, $router: { push: vi.fn() } },
+      mocks: { $route: route, $router: fakeRouter() },
       stubs: { RouterLink: RouterLinkStub },
     },
     attachTo: document.body,
@@ -418,6 +439,21 @@ describe('DictionariesPage — on a phone', () => {
     expect(wrapper.find('.dictionaries-page__main').isVisible()).toBe(false)
     await wrapper.find('[data-testid="dictionary-detail-back"]').trigger('click')
     expect(detail().exists()).toBe(false)
+  })
+
+  it('should close the dictionary with the system Back, which steps back through the history', async () => {
+    await mountPage()
+    await rowOf('Rangjung Yeshe').find('[data-testid="dictionary-select"]').trigger('click')
+    expect(route.query).toEqual({ dictionary: 'RangjungYeshe' })
+    wrapper.vm.$router.back()
+    await nextTick()
+    expect(detail().exists()).toBe(false)
+    expect(wrapper.find('.dictionaries-page__main').isVisible()).toBe(true)
+  })
+
+  it('should open the dictionary a link names', async () => {
+    await mountPage({ dictionary: 'RangjungYeshe' })
+    expect(detail().find('[data-testid="dictionary-detail-title"]').text()).toBe('Rangjung Yeshe')
   })
 })
 

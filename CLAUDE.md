@@ -128,7 +128,7 @@ Routes are defined in `src/router.js`. Lookup, Reader and Settings on a phone (t
 - `/lookup/:term?` - LookupPage: one field with a **བོད / EN** switch. `/lookup/<term>` selects a Tibetan term (བོད); `/lookup?mode=en&q=<query>` searches the definitions (EN); `&dict=<name>` keeps that search to one dictionary (Dictionaries' "Search its definitions") until its × or a switch to བོད. What was looked up last is kept under `lookupState`
 - `/reader` - ReaderPage (paste or type a text, read it word by word)
 - `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About, Help); on a phone also the My glossary and Dictionaries rows
-- `/dictionaries` - DictionariesPage: everything about dictionaries (packs, which are on, their order, what each holds). It writes Storage's `dictionaries`, the order and switches lookups read; `?find=` and `?status=` set its search and filter
+- `/dictionaries` - DictionariesPage: everything about dictionaries (packs, which are on, their order, what each holds). It writes Storage's `dictionaries`, the order and switches lookups read; `?find=` and `?status=` set its search and filter, `?dictionary=` selects one. On a phone opening a dictionary pushes that `?dictionary=`, so Android's Back (the web view's history, see wry's `WryActivity`) closes it
 - `/glossary/:packId?/:dictionaryId?` - LexiconPage (My glossary): the title is the glossary picker, its menu creates, adds and removes glossaries (GlossaryActions); spreadsheets come in through SpreadsheetDropDialog (HTML5 drop, Tauri's own drag and drop being off)
 - `/saved` - SavedPage: every saved term (the sidebar shows the eight newest), to search, list newest first or in Tibetan order, copy or clear
 

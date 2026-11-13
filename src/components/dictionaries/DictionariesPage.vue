@@ -78,11 +78,14 @@ function withState(dictionaries, { order, enabled }) {
 //
 // The order and the switches are Storage's `dictionaries` (the order lookups
 // read); this page writes it on every change. `?find=` and `?status=` (the
-// "not searched" notice, old links) set the search and the status filter.
+// "not searched" notice, old links) set the search and the status filter;
+// `?dictionary=` selects a dictionary, and on a phone opens it.
 //
 // Desktop: the list and its filters, the selected dictionary in a pane on the
 // right. Phone: the list on the grouped ground, a tapped dictionary on a
-// screen of its own with a way back; handles show after Reorder.
+// screen of its own with a way back; handles show after Reorder. Opening one
+// is a step in the history (its ?dictionary=), so Android's Back, which steps
+// back through the web view's history, closes it rather than the page.
 //
 // Keyboard (window, desktop, while the page is shown and no text field has
 // the focus): Up/Down select, Alt+Up/Down move the selected dictionary,
@@ -118,8 +121,10 @@ export default {
       purpose: 'any',
       selectedKey: '',
       isPhone: ResizeService.isMobile(),
-      // Phone: the selected dictionary's screen is open
+      // Phone: the selected dictionary's screen is open (the route's ?dictionary=)
       showingDetail: false,
+      // Phone: that screen was opened here, so its way back steps back
+      detailOpenedHere: false,
       // Phone: the handles are shown
       reordering: false,
     };
@@ -226,6 +231,7 @@ export default {
         // A notice's filter is for that visit, not for the next time the page opens
         if (!fromLink && this.filtersFromLink) this.clearFilters();
         this.filtersFromLink = fromLink;
+        this.showDetailOf(query.dictionary);
       },
     },
   },
@@ -287,18 +293,38 @@ export default {
     labelOf(key) {
       return this.rows.find((row) => row.key === key)?.label || key;
     },
+    // Phone: a tapped dictionary opens as a step in the history
     select(key) {
       this.selectedKey = key;
       if (!this.isPhone) return;
       this.listScroll = this.$el.scrollTop;
-      this.showingDetail = true;
-      this.$el.scrollTop = 0;
+      this.detailOpenedHere = true;
+      this.$router.push({ path: '/dictionaries', query: { ...this.$route.query, dictionary: key } });
     },
+    // The route's ?dictionary=: selected, and on a phone open; none, the list
+    // back where it was scrolled
+    showDetailOf(key) {
+      if (key) {
+        this.selectedKey = String(key);
+        if (!this.isPhone) return;
+        this.showingDetail = true;
+        this.$nextTick(() => {
+          if (this.$el) this.$el.scrollTop = 0;
+        });
+      } else if (this.showingDetail) {
+        this.showingDetail = false;
+        this.detailOpenedHere = false;
+        this.$nextTick(() => {
+          if (this.$el) this.$el.scrollTop = this.listScroll;
+        });
+      }
+    },
+    // The way back above a dictionary: the step back, as Android's Back, when
+    // it was opened here; else (a link) the list in its place
     closeDetail() {
-      this.showingDetail = false;
-      this.$nextTick(() => {
-        this.$el.scrollTop = this.listScroll;
-      });
+      if (this.detailOpenedHere) return this.$router.back();
+      const { dictionary, ...query } = this.$route.query;
+      this.$router.replace({ path: '/dictionaries', query });
     },
     toggle(key, enabled) {
       this.save(
