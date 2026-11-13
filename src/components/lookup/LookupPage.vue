@@ -20,13 +20,13 @@ import LookupHints from './LookupHints.vue';
 import LookupHome from './LookupHome.vue';
 import HelpButton from '../help/HelpButton.vue';
 
-// Lookup: a Tibetan term, typed in Tibetan or Wylie, and its entry.
-// The route carries the term: /lookup/<term>. The old /define/<term> links
-// are redirected here by the router. The term selected last is kept in
+// Define: a Tibetan term, typed in Tibetan or Wylie, and its entry.
+// The route carries the term: /define/<term>; the former /lookup/<term>
+// links are redirected here by the router. The term selected last is kept in
 // `lookupState`. Searching the definitions is Search's (SearchPage); a hint
 // leads there when what was typed is better searched than looked up.
 // Results: the headwords starting with the field, the first selected after a
-// pause, as Define did.
+// pause.
 //
 // Layout (boards Main, MobileHome, MobileResults, MobileEntry; lookup-layout.css,
 // shared with Search). Desktop: the results column with the field on top, and
@@ -115,11 +115,11 @@ export default {
       this.debouncedSelectFirst();
     },
     $route(route, from) {
-      // Kept alive while another page is open: its routes are not Lookup's
-      if (!route.path.startsWith('/lookup')) return;
-      // Back to an empty Lookup (left by Escape): empty again. Coming from
+      // Kept alive while another page is open: its routes are not Define's
+      if (!route.path.startsWith('/define')) return;
+      // Back to an empty Define (left by Escape): empty again. Coming from
       // another page, a bare route is beforeRouteEnter's restoreIfEmpty's.
-      if (!route.params.term && from?.path.startsWith('/lookup')) {
+      if (!route.params.term && from?.path.startsWith('/define')) {
         this.text = '';
         this.selectedTerm = '';
         this.showTermsList();
@@ -127,15 +127,15 @@ export default {
       }
       this.applyRoute(route);
       // A term another page links to (Reader's "Open entry"): on a phone the
-      // entry opens, not the list. Typing and tapping inside Lookup decide
+      // entry opens, not the list. Typing and tapping inside Define decide
       // for themselves.
-      if (route.params.term && !from?.path.startsWith('/lookup')) this.setMobileShowDefinition(true);
+      if (route.params.term && !from?.path.startsWith('/define')) this.setMobileShowDefinition(true);
     },
   },
   created() {
     this.debouncedSelectFirst = _.debounce(this.selectFirstMatch, DEBOUNCE_SEARCH_MS);
     this.debouncedRecordTerm = _.debounce(this.recordSelectedTerm, DEBOUNCE_SEARCH_MS);
-    if (this.$route.path.startsWith('/lookup')) {
+    if (this.$route.path.startsWith('/define')) {
       this.applyRoute(this.$route);
       // Created on a term: a deep link (/define/<term>) or a link from
       // another page, so on a phone the entry opens
@@ -144,7 +144,7 @@ export default {
   },
   mounted() {
     this._onFocusLookup = () => {
-      if (this.$route.path.startsWith('/lookup')) this.focusField();
+      if (this.$route.path.startsWith('/define')) this.focusField();
     };
     window.addEventListener('focus-lookup', this._onFocusLookup);
   },
@@ -188,18 +188,18 @@ export default {
     },
     // As Define: after a pause in typing, the first match is selected
     selectFirstMatch() {
-      if (!this.$route.path.startsWith('/lookup')) return;
+      if (!this.$route.path.startsWith('/define')) return;
       const [first] = this.matches;
       if (first) this.openTerm(first, { typed: true });
       else this.selectedTerm = '';
     },
     // `typed`: selected while typing or with Up/Down. The first such term
     // after a click or a link is a new place in the history; the ones after
-    // it replace it, as does a term typed into an emptied Lookup.
+    // it replace it, as does a term typed into an emptied Define.
     openTerm(term, { typed = false } = {}) {
-      const path = '/lookup/' + encodeURIComponent(term);
+      const path = '/define/' + encodeURIComponent(term);
       if (this.$route.path !== path) {
-        const replace = typed && (this.$route.path === '/lookup' || this.$route.fullPath === this._typedPath);
+        const replace = typed && (this.$route.path === '/define' || this.$route.fullPath === this._typedPath);
         this._typedPath = typed ? this.$router.resolve({ path }).fullPath : null;
         this.$router[replace ? 'replace' : 'push']({ path });
       }
@@ -231,13 +231,13 @@ export default {
     restoreIfEmpty(to) {
       if (this.text) return;
       const { term } = readLookupState();
-      if (term) this.$router.replace({ path: '/lookup/' + encodeURIComponent(term), query: to.query, hash: to.hash });
+      if (term) this.$router.replace({ path: '/define/' + encodeURIComponent(term), query: to.query, hash: to.hash });
     },
     clear() {
       this.text = '';
       this.selectedTerm = '';
       writeLookupState({ term: '' });
-      if (this.$route.path !== '/lookup') this.$router.push({ path: '/lookup' });
+      if (this.$route.path !== '/define') this.$router.push({ path: '/define' });
     },
     onKeydown(event) {
       const step = { ArrowDown: 1, ArrowUp: -1 }[event.key];
@@ -267,10 +267,10 @@ export default {
     <div v-show="!showingEntry" class="lookup-results-pane" data-testid="lookup-results-pane">
       <div class="lookup-page__head">
         <div v-if="isMobile" class="lookup-page__title-row">
-          <h1 class="lookup-page__title">Lookup</h1>
+          <h1 class="lookup-page__title">Define</h1>
           <help-button />
         </div>
-        <h1 v-else class="lookup-page__title ui-visually-hidden">Lookup</h1>
+        <h1 v-else class="lookup-page__title ui-visually-hidden">Define</h1>
         <lookup-field
           ref="field"
           v-model="text"
@@ -314,7 +314,7 @@ export default {
         <term-entry v-if="selectedTerm" :term="selectedTerm">
           <template v-if="isMobile" #leading>
             <button type="button" class="lookup-back" data-testid="lookup-back" @click="goBackFromEntry">
-              <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />{{ backToEntry ? 'Back' : 'Lookup' }}
+              <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />{{ backToEntry ? 'Back' : 'Define' }}
             </button>
           </template>
         </term-entry>

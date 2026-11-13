@@ -325,7 +325,7 @@ export default {
     },
 
     openEntry(term) {
-      this.$router.push('/lookup/' + encodeURIComponent(term));
+      this.$router.push('/define/' + encodeURIComponent(term));
     },
 
     // Up/Down: the word before or after the selection (an expression counts

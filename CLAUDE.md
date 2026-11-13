@@ -95,10 +95,10 @@ pnpm check:tauri-versions  # Verify @tauri-apps/* npm vs Rust crate alignment
 ```
 src/
   components/          # Screens and app components (Options API with mixins); App.vue is the root
-    lookup/            # Lookup: LookupPage, LookupField (Tibetan), results (headwords, and the definitions Search lists), hints, home, the layout both pages share
+    lookup/            # Define (LookupPage): LookupField (Tibetan), results (headwords, and the definitions Search lists), hints, home, the layout both pages share
     search/            # Search: SearchPage, SearchField (query builder behind Advanced)
     reader/            # Reader: editor, words with their expressions, word panel / sheet
-    entry/             # TermEntry: one term's page (In short, dictionary tabs, definitions), shared by Lookup, Search and Reader
+    entry/             # TermEntry: one term's page (In short, dictionary tabs, definitions), shared by Define, Search and Reader
     dictionaries/      # DictionariesPage: packs, the dictionaries in lookup order (switches, reordering, undo), the selected one's detail
     settings/          # SettingsPage (General, Quick lookup, Offline content, About; Help on a phone) built from SettingsGroup / SettingsRow
     mixins/            # MobileResponsiveMixin, InfiniteScrollMixin
@@ -124,23 +124,23 @@ vendor/                # Third-party dictionary source files
 
 ### Routing & Page Lifecycle
 
-Routes are defined in `src/router.js`. Lookup, Search, Reader and Settings on a phone (the Folio navigation, `src/config/navigation.js`); the desktop sidebar lists Lookup, Search and Reader, then My glossary and Dictionaries, and ends with a Settings link. On a phone the glossary and dictionaries are rows of Settings:
+Routes are defined in `src/router.js`. Define, Search, Reader and Settings on a phone (the Folio navigation, `src/config/navigation.js`); the desktop sidebar lists Define, Search and Reader, then My glossary and Dictionaries, and ends with a Settings link. On a phone the glossary and dictionaries are rows of Settings:
 
-- `/lookup/:term?` - LookupPage: a Tibetan term, typed in Tibetan or Wylie, and its entry. A hint sends Latin that is no term to Search
-- `/search` - SearchPage: `?q=<query>` searches the definitions, `&term=<term>` is the entry open beside the results; `&dict=<name>` keeps that search to one dictionary (Dictionaries' "Search its definitions") until its ×. A result's entry opens in Search itself, beside the results; a query that is a Tibetan term offers to open it in Lookup. Nothing is carried over between the two pages otherwise (they were one page with a བོད / EN switch for a while, and the conversions it made confused more than they helped). The term Lookup selected and the query Search ran last are kept under `lookupState`
+- `/define/:term?` - LookupPage, shown as "Define": a Tibetan term, typed in Tibetan or Wylie, and its entry. A hint sends Latin that is no term to Search
+- `/search` - SearchPage: `?q=<query>` searches the definitions, `&term=<term>` is the entry open beside the results; `&dict=<name>` keeps that search to one dictionary (Dictionaries' "Search its definitions") until its ×. A result's entry opens in Search itself, beside the results; a query that is a Tibetan term offers to open it in Define. Nothing is carried over between the two pages otherwise (they were one page with a བོད / EN switch for a while, and the conversions it made confused more than they helped). The term Define selected and the query Search ran last are kept under `lookupState`
 - `/reader` - ReaderPage (paste or type a text, read it word by word)
 - `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About); on a phone also the My glossary and Dictionaries rows, and Help
 - `/dictionaries` - DictionariesPage: everything about dictionaries (packs, which are on, their order, what each holds). It writes Storage's `dictionaries`, the order and switches lookups read; `?find=` and `?status=` set its search and filter, `?dictionary=` selects one. On a phone opening a dictionary pushes that `?dictionary=`, so Android's Back (the web view's history, see wry's `WryActivity`) closes it
 - `/glossary/:packId?/:dictionaryId?` - LexiconPage (My glossary): the title is the glossary picker, its menu creates, adds and removes glossaries (GlossaryActions); spreadsheets come in through SpreadsheetDropDialog (HTML5 drop, Tauri's own drag and drop being off)
 - `/saved` - SavedPage: every saved term (the sidebar shows the eight newest), to search, list newest first or in Tibetan order, copy or clear
 
-**Back and Forward** walk the router's history, as a browser does (`src/services/navigation-history.js`): the arrows at the top of the sidebar, Cmd/Ctrl+[ and ], the mouse's side buttons in the app, Android's Back, and a phone entry's back link when it was reached from another entry. So only places go in the history: a term or result opened by a click, a link, a hint or Enter is `push`ed, while what typing selects (Lookup's first match, a Search query after the pause) and Up/Down `replace` it. Search keeps the entry it shows in its route (`&term=`) so that Back from a link followed in it returns to it.
+**Back and Forward** walk the router's history, as a browser does (`src/services/navigation-history.js`): the arrows at the top of the sidebar, Cmd/Ctrl+[ and ], the mouse's side buttons in the app, Android's Back, and a phone entry's back link when it was reached from another entry. So only places go in the history: a term or result opened by a click, a link, a hint or Enter is `push`ed, while what typing selects (Define's first match, a Search query after the pause) and Up/Down `replace` it. Search keeps the entry it shows in its route (`&term=`) so that Back from a link followed in it returns to it.
 
-**Help** is one dialog for the whole app (`src/components/help/HelpDialog.vue`, topics in `HelpTopic.vue`, state in `src/services/help.js`), opened on the topic of the screen: the sidebar's Help, F1 or Cmd/Ctrl+/ on desktop, the "?" beside Lookup's, Search's and Reader's titles on a phone, and the Help row at the end of Settings on a phone. A feature that changes needs its topic changed.
+**Help** is one dialog for the whole app (`src/components/help/HelpDialog.vue`, topics in `HelpTopic.vue`, state in `src/services/help.js`), opened on the topic of the screen: the sidebar's Help, F1 or Cmd/Ctrl+/ on desktop, the "?" beside Define's, Search's and Reader's titles on a phone, and the Help row at the end of Settings on a phone. A feature that changes needs its topic changed.
 
-The former routes redirect, keeping query and hash: `/define/<term>` to `/lookup/<term>`, `/search/<query>` to `/search?q=<query>`, Lookup's former English mode (`/lookup?mode=en&q=...&dict=...`) to `/search?q=...&dict=...`, `/segment` to `/reader`, `/lexicon/...` to `/glossary/...`, and the former Library routes (`/library`, `/library/settings`, `/library/glossary/...`, `/library/dictionaries`) to `/settings`, `/glossary/...` and `/dictionaries`. The former Settings links `/settings?view=preferences`, `/settings#dictionary-order` and `/settings?find=...` land on `/dictionaries`. Links inside definitions are still `/define/<term>` (decorator.js and App.vue rely on it), so they open Lookup on that term.
+The former routes redirect, keeping query and hash: `/lookup/<term>` to `/define/<term>` (Define was called Lookup for a while), `/search/<query>` to `/search?q=<query>`, Lookup's former English mode (`/lookup?mode=en&q=...&dict=...`, or the same on `/define`) to `/search?q=...&dict=...`, `/segment` to `/reader`, `/lexicon/...` to `/glossary/...`, and the former Library routes (`/library`, `/library/settings`, `/library/glossary/...`, `/library/dictionaries`) to `/settings`, `/glossary/...` and `/dictionaries`. The former Settings links `/settings?view=preferences`, `/settings#dictionary-order` and `/settings?find=...` land on `/dictionaries`. Links inside definitions are `/define/<term>` (decorator.js and App.vue rely on it), so they open Define on that term directly.
 
-App.vue uses `<keep-alive>` for all route components, keyed on the first path segment (every page has its own). This means pages are **not destroyed** when navigating away. Use the `activated()` lifecycle hook (not `mounted()`) for actions that should run each time a page becomes visible, and guard route watchers on the page's own path (`this.$route.path.startsWith('/lookup')`): a page kept alive still sees the other pages' routes.
+App.vue uses `<keep-alive>` for all route components, keyed on the first path segment (every page has its own). This means pages are **not destroyed** when navigating away. Use the `activated()` lifecycle hook (not `mounted()`) for actions that should run each time a page becomes visible, and guard route watchers on the page's own path (`this.$route.path.startsWith('/define')`): a page kept alive still sees the other pages' routes.
 
 ### Database Layer
 
@@ -176,8 +176,8 @@ All components use **Options API** with **mixins** for shared logic:
 
 - `DictionariesDetailsMixin` - Dictionary metadata and abbreviation lookups
 - `DictionariesMenuMixin` - The dictionaries of the current results, as enabled and ordered on the Dictionaries page (TermEntry)
-- `mixins/PaneWidthMixin` - the width of a pane whose divider was dragged (Lookup, Search, Reader)
-- `mixins/ResultsFreshnessMixin` - Lookup's and Search's results searched again when dictionaries or packs changed while the page was away
+- `mixins/PaneWidthMixin` - the width of a pane whose divider was dragged (Define, Search, Reader)
+- `mixins/ResultsFreshnessMixin` - Define's and Search's results searched again when dictionaries or packs changed while the page was away
 - `mixins/MobileResponsiveMixin`, `mixins/InfiniteScrollMixin` - phone layout and infinite scroll
 
 Screens are built from the `src/ui` components (`import { UiButton, UiDialog } from '../ui'`), never from raw Reka UI. They are styled only with the tokens (`var(--accent)`, `var(--space-4)`, `var(--text-sm)`...), so light and dark both work; the theme is `data-theme="light|dark"` on `<html>`, set by `src/services/theme.js`. Icons are `<ui-icon name="...">` with Lucide names; `src/ui/icons.js` registers each one used (and keeps `mdi-*` aliases only for custom-pack manifests). The app-level toast is the injected `snackbar` (`this.snackbar.open(html)`), rendered by `UiToast` in App.vue.
@@ -198,7 +198,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 ### Tibetan Text Handling
 
 - **Tibetan order** (by root letter, as dictionaries file them, not by code point): `src/services/tibetan-order.js` (Saved) and its Rust twin `src-tauri/src/tibetan_order.rs`, registered as SQLite's `TIBETAN` collation for the glossary (`ORDER BY term COLLATE TIBETAN`, so pages stay in order). `tests/fixtures/tibetan-order.json` holds both to one order: change them together
-- `src/ui/UiTibetanField.vue` handles Wylie-to-Unicode conversion on space, tsheg, Enter, paste and drop, repairs legacy-font pastes and refuses a second tsheg; Lookup's field (`LookupField`) uses it (Search's field converts nothing), and `src/services/typed-wylie.js` keeps the "typed sangs rgyas" echo. The Reader's editor applies the same conversion to a multi-line text, where spaces are word breaks
+- `src/ui/UiTibetanField.vue` handles Wylie-to-Unicode conversion on space, tsheg, Enter, paste and drop, repairs legacy-font pastes and refuses a second tsheg; Define's field (`LookupField`) uses it (Search's field converts nothing), and `src/services/typed-wylie.js` keeps the "typed sangs rgyas" echo. The Reader's editor applies the same conversion to a multi-line text, where spaces are word breaks
 - Tibetan punctuation: tsheg `་` (U+0F0B), shad `།` (U+0F0D), rin chen spungs shad `༑` (U+0F11), gter tsheg `༔` (U+0F14)
 - Input normalization: trailing punctuation is replaced with a single tsheg for dictionary lookups
 - Libraries: `tibetan-normalizer`, `tibetan-regexps`, `tibetan-to-phonetics`, `tibetan-word-tokenizer`
@@ -224,7 +224,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 - **Styles**: `src/ui` and new code use plain CSS (`<style>`, sometimes `scoped`) on the tokens; some older components still use `lang="stylus"`. Both are fine, do not convert for the sake of it. `src/css/reset.css` is the base reset of the main window (formerly Vuetify's); the quick lookup window does not load it
 - **jQuery** is used in older code (App.vue event delegation, scroll management)
 - **Underscore.js** for debounce, utility functions
-- Keyboard shortcuts: `Cmd/Ctrl+D` (Lookup), `Cmd/Ctrl+S` (Search), `Cmd/Ctrl+K` (focus the field of Lookup, or of Search when it is open), `Cmd/Ctrl+T` (Reader), `Cmd/Ctrl+G` (Settings), `Cmd/Ctrl+[` and `]` (Back, Forward)
+- Keyboard shortcuts: `Cmd/Ctrl+D` (Define), `Cmd/Ctrl+S` (Search), `Cmd/Ctrl+K` (focus the field of Define, or of Search when it is open), `Cmd/Ctrl+T` (Reader), `Cmd/Ctrl+G` (Settings), `Cmd/Ctrl+[` and `]` (Back, Forward)
 - Mobile breakpoint: `600px` (`window.innerWidth <= 600`)
 - Theme: light/dark with system preference detection, stored as `themePreference` in localStorage and applied by `src/services/theme.js`; Text size is `fontSize` (a percentage of the root font size), so sizes in rem follow it
 

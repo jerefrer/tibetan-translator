@@ -1,5 +1,5 @@
 /**
- * Lookup results: the headwords starting with the Tibetan typed. Mounted the way App.vue
+ * Define results: the headwords starting with the Tibetan typed. Mounted the way App.vue
  * mounts LookupPage (a <keep-alive> around the <router-view>) with the app's
  * own route table, the database mocked.
  */
@@ -148,13 +148,13 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('Lookup results — Tibetan', () => {
+describe('Define results — Tibetan', () => {
   it('should list the terms starting with the Tibetan typed, 100 at a time', async () => {
     database.allTerms = [
       KHA,
       ...Array.from({ length: 150 }, (_, i) => KA + String(i).padStart(3, '0')),
     ]
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan(KA)
 
     expect(results()).toHaveLength(100)
@@ -168,7 +168,7 @@ describe('Lookup results — Tibetan', () => {
   })
 
   it("should show each result's gloss from the first enabled dictionary", async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan('ཀ')
 
     await vi.waitFor(() =>
@@ -184,7 +184,7 @@ describe('Lookup results — Tibetan', () => {
   })
 
   it('should select the first match after a pause and record it in Recent', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan('ཀ')
 
     await waitForTerm(KA)
@@ -196,7 +196,7 @@ describe('Lookup results — Tibetan', () => {
   })
 
   it('should move the selection with Up and Down', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan('ཀ')
     await waitForTerm(KA)
 
@@ -213,7 +213,7 @@ describe('Lookup results — Tibetan', () => {
   it('should record in Recent only the term the selection stops on', async () => {
     const KARA = 'ཀ་ར་'
     database.allTerms = [KA, KAKA, KARA]
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan('ཀ')
     await waitForTerm(KA)
     await vi.waitFor(() => expect(recentTerms()).toEqual([KA]), { timeout: 2000 })
@@ -227,14 +227,14 @@ describe('Lookup results — Tibetan', () => {
     await vi.waitFor(() => expect(recentTerms()).toEqual([KARA]), { timeout: 2000 })
   })
 
-  it('should record the selected term at once when leaving Lookup before the pause ends', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KAKA))
+  it('should record the selected term at once when leaving Define before the pause ends', async () => {
+    await mountAt('/define/' + encodeURIComponent(KAKA))
     await go('/reader')
     expect(recentTerms()[0]).toBe(KAKA)
   })
 
   it('should select the term clicked', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan('ཀ')
     await waitForTerm(KA)
 
@@ -245,13 +245,13 @@ describe('Lookup results — Tibetan', () => {
   })
 
   it('should say how the input was read', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('ka ')
     expect(readAs().text()).toBe('Wylie ka → ཀ་ · 2 terms')
   })
 
   it('should list the new terms once a pack is installed', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan('ཀ')
     expect(resultTerms()).toEqual([KA, KAKA])
 
@@ -262,7 +262,7 @@ describe('Lookup results — Tibetan', () => {
   })
 
   it('should show the glosses of the new first dictionary when the order changed in Library', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan('ཀ')
     await vi.waitFor(() =>
       expect(results()[0].find('[data-testid="lookup-result-gloss"]').text()).toBe('ka; the first consonant')
@@ -270,7 +270,7 @@ describe('Lookup results — Tibetan', () => {
 
     await go('/reader')
     Storage.set('dictionaries', DICTIONARIES.map((d) => ({ ...d, position: d.id })))
-    await go('/lookup')
+    await go('/define')
 
     await vi.waitFor(() =>
       expect(results()[0].find('[data-testid="lookup-result-gloss"]').text()).toBe('the first letter')
@@ -279,7 +279,7 @@ describe('Lookup results — Tibetan', () => {
 
   it('should show the uninstalled packs notice when nothing matches', async () => {
     packManager.installedPacks = ['core']
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan('ང')
 
     expect(results()).toHaveLength(0)
@@ -289,16 +289,16 @@ describe('Lookup results — Tibetan', () => {
 })
 
 // Ported from tests/define-page.test.js
-describe('Lookup results — ported from Define', () => {
+describe('Define results — ported from Define', () => {
   it('should render enough terms for the term picked with the keyboard to be in the list', async () => {
     const terms = Array.from({ length: 150 }, (_, i) => KA + String(i).padStart(3, '0'))
     database.allTerms = terms
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeTibetan(KA)
     await waitForTerm(terms[0])
     expect(results()).toHaveLength(100)
 
-    await go('/lookup/' + encodeURIComponent(terms[120]))
+    await go('/define/' + encodeURIComponent(terms[120]))
     expect(results()).toHaveLength(150)
     expect(selectedRow().find('[data-testid="lookup-result-term"]').text()).toBe(terms[120])
   })

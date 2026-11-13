@@ -11,11 +11,11 @@ import { goBack, goForward, historyState } from '../services/navigation-history'
 const SECTION_LIMIT = 8;
 const FOLDED_KEY = 'sidebarFolded';
 
-// Desktop: a sidebar with the app name and the Back / Forward arrows, Lookup / Search / Reader, My glossary /
+// Desktop: a sidebar with the app name and the Back / Forward arrows, Define / Search / Reader, My glossary /
 // Dictionaries, the recent and saved terms (eight of each, a × on each to
 // forget it, Clear for Recent, All for the Saved page; each section folds, and
 // stays folded), and Help and Settings at the bottom.
-// Phone: a bottom bar with Lookup, Search, Reader and Settings (Back is the
+// Phone: a bottom bar with Define, Search, Reader and Settings (Back is the
 // system's on Android, an entry's back link on both).
 export default {
   name: 'AppNav',
@@ -44,10 +44,10 @@ export default {
     activeId() {
       return activeNavId(this.$route.path, this.isMobile);
     },
-    // The term whose entry is open, in Lookup or in Search
+    // The term whose entry is open, in Define or in Search
     currentTerm() {
       if (this.$route.path === '/search') return this.$route.query.term || '';
-      const match = this.$route.path.match(/^\/lookup\/(.+)$/);
+      const match = this.$route.path.match(/^\/define\/(.+)$/);
       if (!match) return '';
       try {
         return decodeURIComponent(match[1]);
@@ -77,7 +77,7 @@ export default {
       return item.shortcut ? `${item.label} (Ctrl/Cmd+${item.shortcut})` : item.label;
     },
     termPath(term) {
-      return `/lookup/${encodeURIComponent(term)}`;
+      return `/define/${encodeURIComponent(term)}`;
     },
     refreshRecent() {
       this.recent = recentTerms().slice(0, SECTION_LIMIT);

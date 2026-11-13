@@ -1,7 +1,7 @@
 <script>
 import { UiButton, UiIcon } from '../../ui';
 
-// The way from Lookup to Search: Tibetan read from Latin that is better
+// The way from Define to Search: Tibetan read from Latin that is better
 // searched in the definitions (Sanskrit with diacritics, or Wylie that starts
 // no term).
 export default {

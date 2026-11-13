@@ -1,7 +1,7 @@
 /**
  * LookupPage state: the field, the route and what is remembered. Mounted the way App.vue mounts it (a <keep-alive> around the
  * <router-view>) with the app's own route table, so the redirects from the
- * old /define and /lookup?mode=en links are the real ones.
+ * old /lookup and /lookup?mode=en links are the real ones.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
@@ -77,38 +77,38 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('Lookup — route', () => {
+describe('Define — route', () => {
   it('should fill the field with the term of the route', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+    await mountAt('/define/' + encodeURIComponent(SANGS_RGYAS))
     expect(input().element.value).toBe(SANGS_RGYAS)
   })
 
   it('should fill the field from an old Define link with a percent-encoded term', async () => {
     await mountAt('/define/' + encodeURIComponent(SANGS_RGYAS))
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(SANGS_RGYAS))
     expect(input().element.value).toBe(SANGS_RGYAS)
   })
 
 
 
   it('should keep the start typed when the route selects a longer term', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('sangs ')
     expect(page().vm.text).toBe('སངས་')
-    await go('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+    await go('/define/' + encodeURIComponent(SANGS_RGYAS))
     expect(input().element.value).toBe('སངས་')
   })
 
   it('should open a definition link on its term while Search is shown', async () => {
     await mountAt('/search?q=wisdom')
     await go('/define/' + encodeURIComponent(KA))
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(KA))
     expect(input().element.value).toBe(KA)
   })
 
 
   it('should ignore routes of other pages while it is kept alive', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await mountAt('/define/' + encodeURIComponent(KA))
     const vm = page().vm
     await go('/reader?q=wisdom')
     expect(vm.text).toBe(KA)
@@ -117,12 +117,12 @@ describe('Lookup — route', () => {
 })
 
 
-describe('Lookup — the Cmd+D route', () => {
+describe('Define — the Cmd+D route', () => {
 
   it('should keep the term shown when coming back from another page', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await mountAt('/define/' + encodeURIComponent(KA))
     await go('/reader')
-    await go('/lookup')
+    await go('/define')
     expect(input().element.value).toBe(KA)
     expect(Storage.get('lookupState')).toMatchObject({ term: KA })
   })
@@ -130,17 +130,17 @@ describe('Lookup — the Cmd+D route', () => {
   it('should open the last Tibetan term when the field is empty', async () => {
     Storage.set('lookupState', { term: KA, query: '' })
     await mountAt('/reader')
-    await go('/lookup')
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+    await go('/define')
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(KA))
     expect(input().element.value).toBe(KA)
   })
 })
 
-describe('Lookup — remembering', () => {
+describe('Define — remembering', () => {
   it('should restore the last term when opened bare', async () => {
     Storage.set('lookupState', { term: KA, query: 'wisdom' })
-    await mountAt('/lookup')
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+    await mountAt('/define')
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(KA))
     expect(input().element.value).toBe(KA)
   })
 
@@ -152,23 +152,23 @@ describe('Lookup — remembering', () => {
   })
 
   it('should remember the term, next to the query Search remembers', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await mountAt('/define/' + encodeURIComponent(KA))
     expect(Storage.get('lookupState')).toMatchObject({ term: KA })
     await go('/search?q=wisdom')
     expect(Storage.get('lookupState')).toEqual({ term: KA, query: 'wisdom' })
   })
 
   it('should keep the field when coming back', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('sangs rgyas ')
     await go('/reader')
-    await go('/lookup')
+    await go('/define')
     expect(input().element.value).toBe(SANGS_RGYAS)
     expect(typed().text()).toBe('typed sangs rgyas')
   })
 
   it('should forget the term when the field is cleared', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await mountAt('/define/' + encodeURIComponent(KA))
     await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
     await flushPromises()
     expect(input().element.value).toBe('')
@@ -177,9 +177,9 @@ describe('Lookup — remembering', () => {
   })
 })
 
-describe('Lookup — field', () => {
+describe('Define — field', () => {
   it('should focus the field on focus-lookup', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     input().element.blur()
     expect(document.activeElement).not.toBe(input().element)
     window._triggerEvent('focus-lookup')
@@ -188,7 +188,7 @@ describe('Lookup — field', () => {
   })
 
   it('should refuse a second tsheg and repair a legacy-font paste', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await mountAt('/define/' + encodeURIComponent(KA))
     const keydown = new KeyboardEvent('keydown', { key: '་', cancelable: true })
     input().element.dispatchEvent(keydown)
     expect(keydown.defaultPrevented).toBe(true)
@@ -202,7 +202,7 @@ describe('Lookup — field', () => {
   })
 })
 
-describe('Lookup — hints leading to Search', () => {
+describe('Define — hints leading to Search', () => {
   beforeEach(() => {
     // Search, opened by a hint, finds nothing
     vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
@@ -213,7 +213,7 @@ describe('Lookup — hints leading to Search', () => {
   })
 
   it('should offer searching Sanskrit with diacritics in the definitions and open Search on it', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('kākiṇī ')
     const hint = wrapper.find('[data-testid="hint-search-definitions"]')
     expect(hint.exists()).toBe(true)
@@ -225,7 +225,7 @@ describe('Lookup — hints leading to Search', () => {
   })
 
   it('should open Search on the typed Wylie when no Tibetan term starts with the text', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('bliss ')
     await wrapper.get('[data-testid="hint-search-definitions"] button').trigger('click')
     await flushPromises()
@@ -234,7 +234,7 @@ describe('Lookup — hints leading to Search', () => {
   })
 
   it('should offer the typed Wylie when no Tibetan term starts with the text', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('bliss ')
     const hint = wrapper.find('[data-testid="hint-search-definitions"]')
     expect(hint.text()).toContain('“bliss”')
@@ -243,7 +243,7 @@ describe('Lookup — hints leading to Search', () => {
   const searchHint = () => wrapper.find('[data-testid="hint-search-definitions"]')
 
   it('should offer Search for a pasted word, which arrives converted', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     input().element.dispatchEvent(pasteEvent({ text: 'ཀཱཀིṇī་' }))
     await vi.waitFor(() => expect(page().vm.text).toBe('ཀཱཀིṇī་'))
     await nextTick()
@@ -252,7 +252,7 @@ describe('Lookup — hints leading to Search', () => {
   })
 
   it('should not offer Search in the definitions for plain Wylie that matches headwords', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     SqlDatabase.allTerms = [SANGS_RGYAS, KA]
     try {
       await typeWylie('sangs rgyas ')
@@ -264,7 +264,7 @@ describe('Lookup — hints leading to Search', () => {
   })
 
   it('should stop offering Search once the field is cleared', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('kākiṇī ')
     expect(searchHint().exists()).toBe(true)
     await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
@@ -273,7 +273,7 @@ describe('Lookup — hints leading to Search', () => {
   })
 
   it('should forget the text as typed when it is replaced by other Tibetan', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('kāka ')
     expect(page().vm.asTyped).toBe('kāka')
     // The text is replaced as a paste over a selection or a picked term would
@@ -283,7 +283,7 @@ describe('Lookup — hints leading to Search', () => {
   })
 })
 
-describe('Lookup — layout', () => {
+describe('Define — layout', () => {
   const DICTIONARIES = [{ id: 1, name: 'RangjungYeshe', position: 0, enabled: true }]
   const KAKA = 'ཀ་ཀ་'
   // What `SELECT … WHERE term IN (…)` finds for the glosses
@@ -321,11 +321,11 @@ describe('Lookup — layout', () => {
   })
 
   it('should show three panes on desktop', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     expect(resultsPane().find('[data-testid="lookup-field"]').exists()).toBe(true)
     expect(entryPane().find('[data-testid="lookup-home"]').exists()).toBe(true)
 
-    await go('/lookup/' + encodeURIComponent(KA))
+    await go('/define/' + encodeURIComponent(KA))
     expect(shown(resultsPane())).toBe(true)
     expect(shown(entryPane())).toBe(true)
     expect(resultsPane().find('[data-testid="lookup-headwords"]').exists()).toBe(true)
@@ -334,14 +334,14 @@ describe('Lookup — layout', () => {
     expect(wrapper.find('[data-testid="lookup-back"]').exists()).toBe(false)
   })
 
-  it('should show Recent and Saved with glosses on an empty phone Lookup', async () => {
+  it('should show Recent and Saved with glosses on an empty phone Define', async () => {
     window.innerWidth = 390
     const { recordTerm } = await import('../src/services/history')
     recordTerm(KA)
     Storage.set('savedTerms', [SANGS_RGYAS])
-    await mountAt('/lookup')
+    await mountAt('/define')
 
-    expect(wrapper.find('.lookup-page__title').text()).toBe('Lookup')
+    expect(wrapper.find('.lookup-page__title').text()).toBe('Define')
     expect(resultsPane().find('[data-testid="lookup-home"]').exists()).toBe(true)
     const recent = wrapper.find('[data-testid="lookup-recent"]')
     expect(recent.text()).toContain(KA)
@@ -354,13 +354,13 @@ describe('Lookup — layout', () => {
 
   it('should give the home its phone layout when the page is in its phone layout', async () => {
     window.innerWidth = 390
-    await mountAt('/lookup')
+    await mountAt('/define')
 
     expect(home().classes()).toContain('lookup-home--phone')
   })
 
   it('should keep the home in its desktop layout when the page is on desktop', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
 
     expect(home().exists()).toBe(true)
     expect(home().classes()).not.toContain('lookup-home--phone')
@@ -368,7 +368,7 @@ describe('Lookup — layout', () => {
 
   it('should hide Saved when nothing is saved', async () => {
     window.innerWidth = 390
-    await mountAt('/lookup')
+    await mountAt('/define')
     expect(home().exists()).toBe(true)
     expect(wrapper.find('[data-testid="lookup-saved"]').exists()).toBe(false)
   })
@@ -380,7 +380,7 @@ describe('Lookup — layout', () => {
     SqlDatabase.exec.mockImplementation(async () => [
       { term: KA, dictionaryId: 1, definition: '&lt;img src=x onerror=alert(1)&gt;' },
     ])
-    await mountAt('/lookup')
+    await mountAt('/define')
     const recent = wrapper.find('[data-testid="lookup-recent"]')
     expect(recent.find('img').exists()).toBe(false)
     expect(recent.text()).toContain('<img src=x onerror=alert(1)>')
@@ -390,7 +390,7 @@ describe('Lookup — layout', () => {
     window.innerWidth = 390
     const { recordTerm, recentTerms } = await import('../src/services/history')
     recordTerm(KA)
-    await mountAt('/lookup')
+    await mountAt('/define')
     await wrapper.get('[data-testid="lookup-recent-clear"]').trigger('click')
     await flushPromises()
     expect(recentTerms()).toEqual([])
@@ -400,16 +400,16 @@ describe('Lookup — layout', () => {
   it('should open a recent term from the home', async () => {
     const { recordTerm } = await import('../src/services/history')
     recordTerm(SANGS_RGYAS)
-    await mountAt('/lookup')
+    await mountAt('/define')
     await wrapper.get('[data-testid="lookup-home-term"]').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(SANGS_RGYAS))
     expect(headword().text()).toBe(SANGS_RGYAS)
   })
 
-  it('should open the entry full screen on a phone and come back with Lookup', async () => {
+  it('should open the entry full screen on a phone and come back with Define', async () => {
     window.innerWidth = 390
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('ka ')
     expect(home().exists()).toBe(false)
     const rows = wrapper.findAll('[data-testid="lookup-result"]')
@@ -422,7 +422,7 @@ describe('Lookup — layout', () => {
     expect(shown(resultsPane())).toBe(false)
     expect(headword().text()).toBe(KAKA)
     const back = wrapper.get('[data-testid="lookup-back"]')
-    expect(back.text()).toBe('Lookup')
+    expect(back.text()).toBe('Define')
 
     await back.trigger('click')
     await flushPromises()
@@ -434,10 +434,10 @@ describe('Lookup — layout', () => {
 
   it('should not open the entry full screen when the first match is selected after a pause', async () => {
     window.innerWidth = 390
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('ka ')
     await vi.waitFor(() =>
-      expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+      expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(KA))
     )
     await flushPromises()
     expect(page().vm.selectedTerm).toBe(KA)
@@ -447,19 +447,19 @@ describe('Lookup — layout', () => {
 
   it('should open the entry on a phone when another page links to a term', async () => {
     window.innerWidth = 390
-    await mountAt('/lookup')
+    await mountAt('/define')
     await go('/reader')
-    await go('/lookup/' + encodeURIComponent(KAKA))
+    await go('/define/' + encodeURIComponent(KAKA))
     expect(wrapper.find('[data-testid="lookup-back"]').exists()).toBe(true)
     expect(shown(entryPane())).toBe(true)
     expect(shown(resultsPane())).toBe(false)
     expect(headword().text()).toBe(KAKA)
   })
 
-  it('should open the entry on a phone when Lookup is first opened by a link from another page', async () => {
+  it('should open the entry on a phone when Define is first opened by a link from another page', async () => {
     window.innerWidth = 390
     await mountAt('/reader')
-    await go('/lookup/' + encodeURIComponent(KAKA))
+    await go('/define/' + encodeURIComponent(KAKA))
     expect(wrapper.find('[data-testid="lookup-back"]').exists()).toBe(true)
     expect(shown(entryPane())).toBe(true)
     expect(headword().text()).toBe(KAKA)
@@ -476,7 +476,7 @@ describe('Lookup — layout', () => {
   it('should come back to the list from an entry another page linked to', async () => {
     window.innerWidth = 390
     await mountAt('/reader')
-    await go('/lookup/' + encodeURIComponent(KAKA))
+    await go('/define/' + encodeURIComponent(KAKA))
     await wrapper.get('[data-testid="lookup-back"]').trigger('click')
     await flushPromises()
     expect(shown(resultsPane())).toBe(true)
@@ -487,14 +487,14 @@ describe('Lookup — layout', () => {
   it('should keep the list on a phone while typing after arriving by a link', async () => {
     window.innerWidth = 390
     await mountAt('/reader')
-    await go('/lookup/' + encodeURIComponent(KAKA))
+    await go('/define/' + encodeURIComponent(KAKA))
     await wrapper.get('[data-testid="lookup-back"]').trigger('click')
     await flushPromises()
     await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
     await flushPromises()
     await typeWylie('ka ')
     await vi.waitFor(() =>
-      expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+      expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(KA))
     )
     await flushPromises()
     expect(shown(resultsPane())).toBe(true)
@@ -503,7 +503,7 @@ describe('Lookup — layout', () => {
 
   it('should size the phone results to the visible height', async () => {
     window.innerWidth = 390
-    await mountAt('/lookup')
+    await mountAt('/define')
     expect(page().classes()).toContain('is-phone')
     // jsdom applies no styles: read the rule the phone page gets
     const fs = await import('fs')
@@ -516,14 +516,14 @@ describe('Lookup — layout', () => {
 
   it('should show the typed Wylie on a phone', async () => {
     window.innerWidth = 390
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('sangs rgyas ')
     expect(typed().text()).toBe('typed sangs rgyas')
   })
 
 
   it('should clear the field with Escape', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await mountAt('/define/' + encodeURIComponent(KA))
     await input().trigger('keydown', { key: 'Escape' })
     await flushPromises()
     expect(input().element.value).toBe('')
@@ -536,13 +536,13 @@ describe('Lookup — layout', () => {
     window.innerWidth = 390
     const { recordTerm } = await import('../src/services/history')
     for (let i = 0; i < 12; i++) recordTerm('ཀ' + i + '་')
-    await mountAt('/lookup')
+    await mountAt('/define')
     expect(wrapper.findAll('[data-testid="lookup-recent"] [data-testid="lookup-home-term"]')).toHaveLength(8)
   })
 
   it('should hide Recent when there is no history, and still show the Wylie tip', async () => {
     window.innerWidth = 390
-    await mountAt('/lookup')
+    await mountAt('/define')
     expect(wrapper.find('[data-testid="lookup-recent"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="lookup-tip"]').text()).toContain('sangs rgyas')
   })
@@ -551,24 +551,24 @@ describe('Lookup — layout', () => {
 // Ported from tests/define-page.test.js and tests/search-page.test.js: the
 // heading, the focus on return, clearing an English query and the queries
 // reached by a link
-describe('Lookup — ported from Define and Search', () => {
+describe('Define — ported from Define and Search', () => {
   beforeEach(() => {
     Storage.delete('previousQueries')
   })
 
   it('should carry a visually hidden level-one heading on desktop', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     const title = wrapper.get('h1')
-    expect(title.text()).toBe('Lookup')
+    expect(title.text()).toBe('Define')
     expect(title.classes()).toContain('ui-visually-hidden')
   })
 
   it('should focus the field each time the page is shown again (keep-alive)', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     const field = input().element
     await go('/reader')
     expect(document.activeElement).not.toBe(field)
-    await go('/lookup')
+    await go('/define')
     await nextTick()
     expect(document.activeElement).toBe(input().element)
   })
@@ -584,13 +584,13 @@ describe('LookupPage — results width', () => {
   beforeEach(() => Storage.delete('lookupResultsWidth'))
 
   it('should leave the results their default width until the divider is moved', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     expect(handle().exists()).toBe(true)
     expect(widthStyle()).toBe('')
   })
 
   it('should give the results the width the divider is dragged to, and remember it', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     handle().vm.$emit('update:modelValue', 520)
     await nextTick()
     expect(widthStyle()).toContain('520px')
@@ -599,13 +599,13 @@ describe('LookupPage — results width', () => {
 
   it('should open with the width chosen before', async () => {
     Storage.set('lookupResultsWidth', 480)
-    await mountAt('/lookup')
+    await mountAt('/define')
     expect(widthStyle()).toContain('480px')
   })
 
   it('should go back to the default width on a double-click of the divider', async () => {
     Storage.set('lookupResultsWidth', 480)
-    await mountAt('/lookup')
+    await mountAt('/define')
     handle().vm.$emit('reset')
     await nextTick()
     expect(widthStyle()).toBe('')
@@ -614,9 +614,9 @@ describe('LookupPage — results width', () => {
 })
 
 
-describe('Lookup — Back and Forward', () => {
+describe('Define — Back and Forward', () => {
   const KAKA = 'ཀ་ཀ་'
-  const pathOf = (term) => '/lookup/' + encodeURIComponent(term)
+  const pathOf = (term) => '/define/' + encodeURIComponent(term)
   const results = () => wrapper.findAll('[data-testid="lookup-result"]')
   const shown = (element) => element.exists() && element.element.style.display !== 'none'
   let push
@@ -649,7 +649,7 @@ describe('Lookup — Back and Forward', () => {
 
   it('should add one history entry when typing selects several terms in a row', async () => {
     await mountAt('/reader')
-    await go('/lookup')
+    await go('/define')
     spyOnRouter()
 
     await typeWylie('ka ')
@@ -663,7 +663,7 @@ describe('Lookup — Back and Forward', () => {
   })
 
   it('should push the first term typed after a click and replace the ones after it', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+    await mountAt('/define/' + encodeURIComponent(SANGS_RGYAS))
     spyOnRouter()
 
     await typeWylie('ka ')
@@ -678,7 +678,7 @@ describe('Lookup — Back and Forward', () => {
   })
 
   it('should push when a result is clicked', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('ka ')
     await settleOn(KA)
     spyOnRouter()
@@ -692,7 +692,7 @@ describe('Lookup — Back and Forward', () => {
   })
 
   it('should push the first term reached with Up and replace the next after a click', async () => {
-    await mountAt('/lookup')
+    await mountAt('/define')
     await typeWylie('ka ')
     await settleOn(KA)
     await results()[1].trigger('click')
@@ -711,11 +711,11 @@ describe('Lookup — Back and Forward', () => {
     expect(replace).toHaveBeenCalledTimes(1)
   })
 
-  it('should replace the bare Lookup when a term is typed after Escape', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+  it('should replace the bare Define when a term is typed after Escape', async () => {
+    await mountAt('/define/' + encodeURIComponent(SANGS_RGYAS))
     await input().trigger('keydown', { key: 'Escape' })
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/lookup')
+    expect(router.currentRoute.value.path).toBe('/define')
     spyOnRouter()
 
     await typeWylie('ka ')
@@ -725,22 +725,22 @@ describe('Lookup — Back and Forward', () => {
     expect(push).not.toHaveBeenCalled()
   })
 
-  it('should empty the field when Back returns to the bare Lookup from a term', async () => {
-    await mountAt('/lookup')
+  it('should empty the field when Back returns to the bare Define from a term', async () => {
+    await mountAt('/define')
     await go(pathOf(KA))
     expect(input().element.value).toBe(KA)
 
     router.back()
-    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/lookup'))
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/define'))
     await flushPromises()
 
     expect(input().element.value).toBe('')
     expect(page().vm.selectedTerm).toBe('')
   })
 
-  it('should empty the field when the bare Lookup is pushed over a term', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KA))
-    await go('/lookup')
+  it('should empty the field when the bare Define is pushed over a term', async () => {
+    await mountAt('/define/' + encodeURIComponent(KA))
+    await go('/define')
     expect(input().element.value).toBe('')
     expect(page().vm.selectedTerm).toBe('')
   })
@@ -764,13 +764,13 @@ describe('Lookup — Back and Forward', () => {
       expect(back).toHaveBeenCalledTimes(1)
     })
 
-    it('should read Lookup and show the results when the previous place is not an entry', async () => {
+    it('should read Define and show the results when the previous place is not an entry', async () => {
       await mountAt('/reader')
       await go(pathOf(KAKA))
       historyState.back = '/reader'
       await nextTick()
       const link = wrapper.get('[data-testid="lookup-back"]')
-      expect(link.text()).toBe('Lookup')
+      expect(link.text()).toBe('Define')
       const back = vi.spyOn(router, 'back').mockImplementation(() => {})
 
       await link.trigger('click')

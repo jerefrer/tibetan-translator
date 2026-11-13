@@ -12,7 +12,7 @@ const stub = { template: '<div />' }
 async function mountNav(path, props = {}, slots = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: ['/lookup', '/lookup/:term', '/search', '/reader', '/settings', '/glossary', '/dictionaries', '/saved'].map(
+    routes: ['/define', '/define/:term', '/search', '/reader', '/settings', '/glossary', '/dictionaries', '/saved'].map(
       (route) => ({ path: route, component: stub })
     ),
   })
@@ -36,7 +36,7 @@ describe('AppNav', () => {
   })
 
   it('should navigate to Settings from another page without asking to scroll', async () => {
-    const { wrapper, router } = await mountNav('/lookup')
+    const { wrapper, router } = await mountNav('/define')
     const spy = vi.spyOn(window, 'dispatchEvent')
 
     await wrapper.find('[data-testid="nav-settings"]').trigger('click')
@@ -52,39 +52,39 @@ describe('AppNav', () => {
   })
 
   it('should list the glossary and dictionaries on desktop, four tabs on a phone', async () => {
-    const desktop = await mountNav('/lookup')
+    const desktop = await mountNav('/define')
     const ids = (w) => w.findAll('[data-testid^="nav-"][href]').map((a) => a.attributes('data-testid'))
     expect(ids(desktop.wrapper)).toEqual([
       'nav-lookup', 'nav-search', 'nav-reader', 'nav-glossary', 'nav-dictionaries', 'nav-settings',
     ])
     expect(desktop.wrapper.classes()).toContain('app-nav--sidebar')
-    const phone = await mountNav('/lookup', { isMobile: true })
+    const phone = await mountNav('/define', { isMobile: true })
     expect(ids(phone.wrapper)).toEqual(['nav-lookup', 'nav-search', 'nav-reader', 'nav-settings'])
     expect(phone.wrapper.find('[role="separator"]').exists()).toBe(false)
   })
 
   it('should separate the tools from the collections in the sidebar only', async () => {
-    const desktop = await mountNav('/lookup')
+    const desktop = await mountNav('/define')
     const children = [...desktop.wrapper.find('.app-nav__items').element.children].map((el) =>
       el.getAttribute('role') === 'separator' ? 'separator' : el.getAttribute('data-testid')
     )
     expect(children).toEqual(['nav-lookup', 'nav-search', 'nav-reader', 'separator', 'nav-glossary', 'nav-dictionaries'])
-    const phone = await mountNav('/lookup', { isMobile: true })
+    const phone = await mountNav('/define', { isMobile: true })
     expect(phone.wrapper.find('[data-testid="nav-separator"]').exists()).toBe(false)
   })
 
   it('should keep the bottom bar class the dictionaries menu relies on', async () => {
-    const { wrapper } = await mountNav('/lookup', { isMobile: true })
+    const { wrapper } = await mountNav('/define', { isMobile: true })
     expect(wrapper.classes()).toContain('app-nav--bar')
     expect(wrapper.classes()).not.toContain('app-nav--sidebar')
   })
 
   it('should list recent lookups and refresh when one is recorded', async () => {
     recordTerm('བདེ་བ་')
-    const { wrapper } = await mountNav('/lookup')
+    const { wrapper } = await mountNav('/define')
     const rows = () => wrapper.findAll('[data-testid="nav-recent"] a')
     expect(rows().map((a) => a.text())).toEqual(['བདེ་བ་'])
-    expect(rows()[0].attributes('href')).toBe('/lookup/' + encodeURIComponent('བདེ་བ་'))
+    expect(rows()[0].attributes('href')).toBe('/define/' + encodeURIComponent('བདེ་བ་'))
     recordTerm('སེམས་ཅན་')
     window._triggerEvent('recents-updated')
     await flushPromises()
@@ -93,12 +93,12 @@ describe('AppNav', () => {
 
   it('should show only the first eight recent lookups', async () => {
     for (let i = 0; i < 10; i++) recordTerm('བཀ' + 'ཀཁགངཅཆཇཉཏཐ'[i] + 'འ')
-    const { wrapper } = await mountNav('/lookup')
+    const { wrapper } = await mountNav('/define')
     expect(wrapper.findAll('[data-testid="nav-recent"] a')).toHaveLength(8)
   })
 
   it('should hide Saved when nothing is saved, and show it once a term is', async () => {
-    const { wrapper } = await mountNav('/lookup')
+    const { wrapper } = await mountNav('/define')
     expect(wrapper.find('[data-testid="nav-saved"]').exists()).toBe(false)
     toggleSaved('སངས་རྒྱས་')
     window._triggerEvent('saved-terms-updated')
@@ -107,11 +107,11 @@ describe('AppNav', () => {
   })
 
   it('should put the update dot on Settings, at the bottom on desktop and as a tab on a phone', async () => {
-    const desktop = await mountNav('/lookup', { updateReady: true })
+    const desktop = await mountNav('/define', { updateReady: true })
     const dot = desktop.wrapper.find('[data-testid="nav-update-dot"]')
     expect(desktop.wrapper.find('[data-testid="nav-settings"]').element.contains(dot.element)).toBe(true)
     expect(desktop.wrapper.find('[data-testid="nav-settings"]').attributes('href')).toBe('/settings')
-    const phone = await mountNav('/lookup', { isMobile: true, updateReady: true })
+    const phone = await mountNav('/define', { isMobile: true, updateReady: true })
     expect(phone.wrapper.find('[data-testid="nav-settings"] [data-testid="nav-update-dot"]').exists()).toBe(true)
   })
 
@@ -127,14 +127,14 @@ describe('AppNav', () => {
   })
 
   it('should show the app icon as the logo on the desktop sidebar only', async () => {
-    const desktop = await mountNav('/lookup')
+    const desktop = await mountNav('/define')
     expect(desktop.wrapper.find('img.app-nav__logo').attributes('src')).toBe('/img/app-icon.png')
-    const phone = await mountNav('/lookup', { isMobile: true })
+    const phone = await mountNav('/define', { isMobile: true })
     expect(phone.wrapper.find('.app-nav__logo').exists()).toBe(false)
   })
 
   it('should navigate when an entry is clicked', async () => {
-    const { wrapper, router } = await mountNav('/lookup')
+    const { wrapper, router } = await mountNav('/define')
     await wrapper.find('[data-testid="nav-reader"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/reader')
@@ -153,7 +153,7 @@ describe('AppNav', () => {
     it('should forget a recent term with its ×, and clear them all with Clear', async () => {
       recordTerm('བདེ་བ་')
       recordTerm('སེམས་ཅན་')
-      const { wrapper } = await mountNav('/lookup')
+      const { wrapper } = await mountNav('/define')
       await wrapper.findAll('[data-testid="nav-recent"] [data-testid="nav-forget"]')[0].trigger('click')
       expect(recentTerms()).toEqual(['བདེ་བ་'])
       window._triggerEvent('recents-updated')
@@ -168,14 +168,14 @@ describe('AppNav', () => {
     it('should remove a saved term with its ×', async () => {
       toggleSaved('སངས་རྒྱས་')
       toggleSaved('ཆོས་')
-      const { wrapper } = await mountNav('/lookup')
+      const { wrapper } = await mountNav('/define')
       await wrapper.findAll('[data-testid="nav-saved"] [data-testid="nav-forget"]')[1].trigger('click')
       expect(savedTerms()).toEqual(['ཆོས་'])
     })
 
     it('should show eight saved terms, how many there are, and a way to all of them', async () => {
       saveMany(12)
-      const { wrapper, router } = await mountNav('/lookup')
+      const { wrapper, router } = await mountNav('/define')
       expect(savedLinks(wrapper)).toHaveLength(8)
       expect(wrapper.find('[data-testid="nav-saved"] .app-nav__label').text()).toContain('12')
       await wrapper.find('[data-testid="nav-saved-all"]').trigger('click')
@@ -185,14 +185,14 @@ describe('AppNav', () => {
 
     it('should fold a section, and keep it folded next time', async () => {
       saveMany(2)
-      const first = await mountNav('/lookup')
+      const first = await mountNav('/define')
       const toggle = first.wrapper.find('[data-testid="nav-saved"] [data-testid="nav-fold"]')
       expect(toggle.attributes('aria-expanded')).toBe('true')
       await toggle.trigger('click')
       expect(savedLinks(first.wrapper)).toHaveLength(0)
       expect(toggle.attributes('aria-expanded')).toBe('false')
 
-      const again = await mountNav('/lookup')
+      const again = await mountNav('/define')
       expect(savedLinks(again.wrapper)).toHaveLength(0)
     })
   })
@@ -216,27 +216,27 @@ describe('AppNav — Back and Forward', () => {
   })
 
   it('should disable both arrows when there is nowhere to go', async () => {
-    const { wrapper } = await mountNav('/lookup')
+    const { wrapper } = await mountNav('/define')
     expect(wrapper.find('[data-testid="nav-back"]').attributes('disabled')).toBeDefined()
     expect(wrapper.find('[data-testid="nav-forward"]').attributes('disabled')).toBeDefined()
   })
 
   it('should enable Back when a previous place is known', async () => {
     historyState.back = '/reader'
-    const { wrapper } = await mountNav('/lookup')
+    const { wrapper } = await mountNav('/define')
     expect(wrapper.find('[data-testid="nav-back"]').attributes('disabled')).toBeUndefined()
     expect(wrapper.find('[data-testid="nav-forward"]').attributes('disabled')).toBeDefined()
   })
 
   it('should enable Forward when a next place is known', async () => {
     historyState.forward = '/reader'
-    const { wrapper } = await mountNav('/lookup')
+    const { wrapper } = await mountNav('/define')
     expect(wrapper.find('[data-testid="nav-forward"]').attributes('disabled')).toBeUndefined()
     expect(wrapper.find('[data-testid="nav-back"]').attributes('disabled')).toBeDefined()
   })
 
   it('should enable an arrow once the history state changes', async () => {
-    const { wrapper } = await mountNav('/lookup')
+    const { wrapper } = await mountNav('/define')
     historyState.back = '/reader'
     await flushPromises()
     expect(wrapper.find('[data-testid="nav-back"]').attributes('disabled')).toBeUndefined()
@@ -244,7 +244,7 @@ describe('AppNav — Back and Forward', () => {
 
   it('should call router.back when Back is clicked', async () => {
     historyState.back = '/reader'
-    const { wrapper, router } = await mountNav('/lookup')
+    const { wrapper, router } = await mountNav('/define')
     const back = vi.spyOn(router, 'back').mockImplementation(() => {})
     await wrapper.find('[data-testid="nav-back"]').trigger('click')
     expect(back).toHaveBeenCalledTimes(1)
@@ -252,14 +252,14 @@ describe('AppNav — Back and Forward', () => {
 
   it('should call router.forward when Forward is clicked', async () => {
     historyState.forward = '/reader'
-    const { wrapper, router } = await mountNav('/lookup')
+    const { wrapper, router } = await mountNav('/define')
     const forward = vi.spyOn(router, 'forward').mockImplementation(() => {})
     await wrapper.find('[data-testid="nav-forward"]').trigger('click')
     expect(forward).toHaveBeenCalledTimes(1)
   })
 
   it('should not show the arrows on a phone', async () => {
-    const { wrapper } = await mountNav('/lookup', { isMobile: true })
+    const { wrapper } = await mountNav('/define', { isMobile: true })
     expect(wrapper.find('[data-testid="nav-back"]').exists()).toBe(false)
   })
 

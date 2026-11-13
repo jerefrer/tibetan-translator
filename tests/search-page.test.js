@@ -110,7 +110,7 @@ describe('Search — route', () => {
     expect(input().element.value).toBe('buddha nature & (ye shes)')
   })
 
-  it('should open on the query of a former English-mode Lookup link', async () => {
+  it('should open on the query of a former English-mode Define link', async () => {
     await mountAt('/lookup?mode=en&q=wisdom')
     expect(router.currentRoute.value.path).toBe('/search')
     expect(router.currentRoute.value.query).toEqual({ q: 'wisdom' })
@@ -372,21 +372,21 @@ describe('Search — the entry of a result', () => {
   })
 })
 
-describe('Search — the way to Lookup', () => {
+describe('Search — the way to Define', () => {
   it('should offer looking up a Tibetan term that exists', async () => {
     await mountAt('/search')
     await input().setValue(KA)
     expect(lookUpHint().exists()).toBe(true)
     expect(lookUpHint().text()).toContain(KA)
-    expect(lookUpHint().text()).toContain('in Lookup')
+    expect(lookUpHint().text()).toContain('Define')
   })
 
-  it('should open the term in Lookup when the hint is followed', async () => {
+  it('should open the term in Define when the hint is followed', async () => {
     await mountAt('/search')
     await input().setValue(KA)
     await lookUpHint().find('button').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(KA))
   })
 
   it('should not offer looking up English text', async () => {

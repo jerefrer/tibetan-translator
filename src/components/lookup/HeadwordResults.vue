@@ -6,7 +6,7 @@ import { UiSpinner } from '../../ui';
 import InfiniteScrollMixin from '../mixins/InfiniteScrollMixin';
 import UninstalledPacksNotice from '../UninstalledPacksNotice.vue';
 
-// Lookup's results in བོད mode (boards Main and MobileResults): the headwords
+// Define's results (boards Main and MobileResults): the headwords
 // starting with what was typed, 100 at a time, each with a one-line gloss
 // from the first enabled dictionary that has it.
 export default {
@@ -80,7 +80,7 @@ export default {
         if (refreshKey !== this.refreshKey) return;
         this.glosses = { ...this.glosses, ...Object.fromEntries(loaded) };
       } catch (error) {
-        if (token === this._glossToken) console.warn('[Lookup] Glosses not loaded', error);
+        if (token === this._glossToken) console.warn('[Define] Glosses not loaded', error);
       }
     },
     scrollSelectedIntoView() {

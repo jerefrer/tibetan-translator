@@ -12,7 +12,7 @@ export function ordinal(number) {
 // What is known about one dictionary (board DesktopDictionaries, the right
 // pane; on a phone, a screen of its own): its title and sources, languages
 // and subjects, where it stands in lookups, and what can be done with it:
-// move it, or search its definitions (Lookup in EN, kept to it; only when it
+// move it, or search its definitions (Search, kept to it; only when it
 // is switched on, as lookups leave the others out).
 //
 // Emits toggle(enabled), move('top' | 'bottom') and install(packId).
@@ -42,7 +42,7 @@ export default {
       if (!this.row.enabled) return 'No, switched off';
       return `Yes · ${ordinal(this.rank)} of ${this.enabledCount}`;
     },
-    // Lookup's English search, kept to this dictionary (by its name)
+    // Search, kept to this dictionary (by its name)
     searchLink() {
       return { path: '/search', query: { dict: this.row.key } };
     },

@@ -36,7 +36,7 @@ async function mountPage() {
     history: createMemoryHistory(),
     routes: [
       { path: '/saved', component: SavedPage },
-      { path: '/lookup/:term?', component: { template: '<div />' } },
+      { path: '/define/:term?', component: { template: '<div />' } },
     ],
   })
   router.push('/saved')
@@ -77,11 +77,11 @@ describe('SavedPage', () => {
     expect(rows()[1].text()).toContain('bliss, happiness')
   })
 
-  it('should open a term in Lookup', async () => {
+  it('should open a term in Define', async () => {
     await mountPage()
     await rows()[1].find('[data-testid="saved-open"]').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent('བདེ་བ་'))
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('བདེ་བ་'))
   })
 
   it('should remove one term', async () => {
@@ -174,11 +174,11 @@ describe('SavedPage', () => {
     expect(terms()).toEqual(['ཀ་'])
   })
 
-  it('should link back to Lookup on a phone', async () => {
+  it('should link back to Define on a phone', async () => {
     env.phone = true
     await mountPage()
     await byTestId('saved-back').trigger('click')
     await flushPromises()
-    expect(router.currentRoute.value.path).toBe('/lookup')
+    expect(router.currentRoute.value.path).toBe('/define')
   })
 })

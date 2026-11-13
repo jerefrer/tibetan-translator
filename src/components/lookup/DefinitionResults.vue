@@ -155,7 +155,7 @@ export default {
       try {
         rows = sql ? (await SqlDatabase.exec(sql, [])) || [] : [];
       } catch (error) {
-        console.warn('[Lookup] Search failed', error);
+        console.warn('[Search] Search failed', error);
       }
       if (token !== this._searchToken) return;
       if (this.dictionary) rows = rows.filter((row) => row.dictionary === this.dictionary);
@@ -170,7 +170,7 @@ export default {
     loadMore() {
       if (this.hasMore) this.displayedCount += SEARCH_GROUPS_BATCH_SIZE;
     },
-    // Every result's term, in order (Lookup's Up and Down go through them)
+    // Every result's term, in order (Define's Up and Down go through them)
     resultTerms() {
       return this.groups.map((group) => group.term);
     },

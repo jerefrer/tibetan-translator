@@ -1,5 +1,5 @@
 /**
- * Lookup's Tibetan mode (བོད) only looks up Tibetan, and its field turns
+ * Define's field only looks up Tibetan, and its field turns
  * whatever is typed into Tibetan script. Wylie is plain ASCII, so a letter with
  * a diacritic (kāka, śūnyatā) is a reliable sign the user is typing Sanskrit or
  * another language that the English mode (EN), searching the definitions, can

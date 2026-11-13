@@ -29,8 +29,9 @@ function oldSettingsLink(to) {
   return true
 }
 
-// Lookup held Search for a while, as its EN mode (`/lookup?mode=en&q=…`):
-// those links go to Search, and a `mode` left on a Lookup link is dropped
+// Define (formerly Lookup) held Search for a while, as its EN mode
+// (`/lookup?mode=en&q=…`): those links go to Search, and a `mode` left on a
+// Define link is dropped
 function oldLookupLink(to) {
   if (!('mode' in to.query) && !('q' in to.query)) return true
   const { mode, ...query } = to.query
@@ -38,10 +39,17 @@ function oldLookupLink(to) {
   return { path: to.path, query, hash: to.hash }
 }
 
+// The same for a link to the former /lookup route
+function fromLookupLink(to) {
+  const { mode, ...query } = to.query
+  if (mode === 'en' || 'q' in to.query) return { path: '/search', query, hash: to.hash }
+  return { path: withTerm('/define', to.params.term), query, hash: to.hash }
+}
+
 const routes = [
-  { path: '/', redirect: '/lookup' },
-  // Lookup: a Tibetan term
-  { path: '/lookup/:term?', component: LookupPage, beforeEnter: oldLookupLink },
+  { path: '/', redirect: '/define' },
+  // Define: a Tibetan term
+  { path: '/define/:term?', component: LookupPage, beforeEnter: oldLookupLink },
   // Search: `q` is the query, `dict` keeps it to one dictionary
   { path: '/search', component: SearchPage },
   { path: '/reader', component: ReaderPage },
@@ -53,14 +61,8 @@ const routes = [
   { path: '/saved', component: SavedPage },
 
   // Former routes
-  {
-    path: '/define/:term?',
-    redirect: (to) => ({
-      path: withTerm('/lookup', to.params.term),
-      query: to.query,
-      hash: to.hash,
-    }),
-  },
+  // Define was called Lookup for a while
+  { path: '/lookup/:term?', redirect: fromLookupLink },
   {
     path: '/search/:query',
     redirect: (to) => ({ path: '/search', query: { ...to.query, q: to.params.query }, hash: to.hash }),

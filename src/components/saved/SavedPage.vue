@@ -14,10 +14,10 @@ const plural = (count) => `${count} ${count === 1 ? 'term' : 'terms'}`;
 // Saved: every term the user saved (the bookmark of an entry), each with a
 // one-line gloss, newest first or in Tibetan order (by root letter, as
 // dictionaries file them), to search (Tibetan, Wylie or gloss), open in
-// Lookup, remove one by one, copy as a list (one term and its gloss per line,
+// Define, remove one by one, copy as a list (one term and its gloss per line,
 // tab separated, for a spreadsheet, in the order shown), or clear, with an
 // Undo for the clear. The
-// sidebar shows the eight newest and links here; on a phone, Lookup's home
+// sidebar shows the eight newest and links here; on a phone, Define's home
 // does.
 export default {
   name: 'SavedPage',
@@ -106,7 +106,7 @@ export default {
       }
     },
     open(term) {
-      this.$router.push(`/lookup/${encodeURIComponent(term)}`);
+      this.$router.push(`/define/${encodeURIComponent(term)}`);
     },
     remove(term) {
       removeSaved(term);
@@ -147,10 +147,10 @@ export default {
         type="button"
         class="saved-page__back"
         data-testid="saved-back"
-        @click="$router.push('/lookup')"
+        @click="$router.push('/define')"
       >
         <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />
-        Lookup
+        Define
       </button>
 
       <header class="saved-page__header">

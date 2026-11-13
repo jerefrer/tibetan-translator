@@ -133,7 +133,7 @@
 
   /* Shell */
   --sidebar-width: 248px;
-  /* Grows with the window: a share of Lookup, not of the screen */
+  /* Grows with the window: a share of Define, not of the screen */
   --results-width: clamp(380px, 38%, 600px);
   --entry-max-width: 45rem;
   --reader-panel-width: 440px;

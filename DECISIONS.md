@@ -162,3 +162,12 @@
 **Why:** Used for real, the unified field still held two different searches, only hidden behind a small switch, and the conversions made when switching (English read as Wylie, Tibetan sent to the definitions) produced equivalences that meant nothing and confused the user. Opening the entry in Search keeps the list of results in view while reading.
 **Trade-offs:** One more tab on a phone (four). The term and the query each live on their own page, so going from one to the other takes a button, not a toggle.
 **Revisit if:** A way to tell Tibetan intent from English intent reliably appears, making one field honest again.
+
+---
+
+## 2026-11-13 — The Tibetan page is called Define again
+**Chosen:** User decision: the page that opens a Tibetan term's entry is "Define" (route `/define/<term>`), beside "Search". Code names (LookupPage, `lookup/` folder, `lookupState`) stay.
+**Alternatives:** Keep "Lookup"; rename the code too.
+**Why:** "Lookup" and "Search" are near-synonyms, so neither name said which page does what; "Define" (give me this word's definition) vs "Search" (look inside the definitions) does. Cmd+D matches again, and the links inside definitions were already `/define/<term>`.
+**Trade-offs:** Code names and the UI disagree (LookupPage shows "Define"); "Quick lookup" keeps its name as a feature, not a page.
+**Revisit if:** the code is renamed for another reason.

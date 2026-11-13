@@ -1,6 +1,6 @@
 /**
  * HelpDialog: one help for the whole app, opened on the topic of the screen,
- * searchable, with examples that can be tried. Ported from the Lookup, Search
+ * searchable, with examples that can be tried. Ported from the Define, Search
  * and Reader help dialogs it replaces.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
@@ -38,13 +38,13 @@ async function mountHelp() {
   router = createRouter({
     history: createMemoryHistory(),
     routes: [
-      { path: '/lookup/:term?', component: { template: '<div />' } },
+      { path: '/define/:term?', component: { template: '<div />' } },
       { path: '/search', component: { template: '<div />' } },
       { path: '/settings', component: { template: '<div />' } },
       { path: '/reader', component: { template: '<div />' } },
     ],
   })
-  router.push('/lookup')
+  router.push('/define')
   await router.isReady()
   wrapper = mount(HelpDialog, { attachTo: document.body, global: { plugins: [router] } })
   await flushPromises()
@@ -147,11 +147,11 @@ describe('HelpDialog', () => {
     expect(helpState.open).toBe(false)
   })
 
-  it('should try a Tibetan term in Lookup', async () => {
+  it('should try a Tibetan term in Define', async () => {
     await mountHelp()
     await open('typing')
     await click(tryButton('sangs rgyas'))
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent('སངས་རྒྱས་'))
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent('སངས་རྒྱས་'))
   })
 
   it('should show the Quick lookup shortcut actually set', async () => {
@@ -166,7 +166,7 @@ describe('HelpDialog', () => {
     await mountHelp()
     await open('shortcuts')
     const text = $('[data-testid="help-topic-shortcuts"]').textContent
-    expect(text).toContain('Look up a Tibetan term')
+    expect(text).toContain('Define a Tibetan term')
     expect(text).toContain('Ctrl')
     expect(text).not.toContain('⌘')
   })

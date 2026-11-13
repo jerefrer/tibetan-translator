@@ -1,8 +1,8 @@
 /**
- * What Lookup and Search remember between visits and launches.
+ * What Define and Search remember between visits and launches.
  *
  * Stored under `lookupState` as { term, query }: `term` is the Tibetan term
- * Lookup selected last, `query` the last query Search searched. (A former
+ * Define selected last, `query` the last query Search searched. (A former
  * `mode`, from when one page held both, is ignored.)
  */
 import Storage from './storage';
@@ -12,7 +12,7 @@ const STORAGE_KEY = 'lookupState';
 
 export function readLookupState() {
   const stored = Storage.get(STORAGE_KEY);
-  // Before Lookup stored anything, it opens on the term Define showed last
+  // Before Define (then called Lookup) stored anything, it opens on the term the former page showed last
   // (its `selectedTerm`), so the first launch after the update starts there
   const term = stored ? stored.term : Storage.get('selectedTerm');
   return {

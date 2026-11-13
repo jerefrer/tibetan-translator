@@ -42,12 +42,12 @@ afterEach(() => {
 })
 
 describe('isEntryLocation', () => {
-  it('should be true when the location is a Lookup term', () => {
-    expect(isEntryLocation('/lookup/' + encodeURIComponent('ཀ་'))).toBe(true)
+  it('should be true when the location is a Define term', () => {
+    expect(isEntryLocation('/define/' + encodeURIComponent('ཀ་'))).toBe(true)
   })
 
-  it('should be false when the location is a bare Lookup', () => {
-    expect(isEntryLocation('/lookup')).toBe(false)
+  it('should be false when the location is a bare Define', () => {
+    expect(isEntryLocation('/define')).toBe(false)
   })
 
   it('should be true when the location is Search with an open term', () => {
@@ -58,8 +58,8 @@ describe('isEntryLocation', () => {
     expect(isEntryLocation('/search?q=buddha')).toBe(false)
   })
 
-  it('should ignore the hash when the location is a Lookup term', () => {
-    expect(isEntryLocation('/lookup/abc#top')).toBe(true)
+  it('should ignore the hash when the location is a Define term', () => {
+    expect(isEntryLocation('/define/abc#top')).toBe(true)
   })
 
   it('should ignore a term that is only in the hash when the location is Search', () => {

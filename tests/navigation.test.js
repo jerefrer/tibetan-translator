@@ -8,7 +8,7 @@ import {
 } from '../src/config/navigation.js'
 
 describe('navigation config', () => {
-  it('should list Lookup, Search, Reader, the glossary and the dictionaries on desktop, Settings apart', () => {
+  it('should list Define, Search, Reader, the glossary and the dictionaries on desktop, Settings apart', () => {
     const ids = navItemsFor(false).map((item) => item.id)
     expect(ids).toEqual(['lookup', 'search', 'reader', 'glossary', 'dictionaries'])
   })
@@ -19,12 +19,12 @@ describe('navigation config', () => {
   })
 
   it('should read the first path segment of a route', () => {
-    expect(routeSegment('/lookup/%E0%BD%80')).toBe('lookup')
+    expect(routeSegment('/define/%E0%BD%80')).toBe('define')
     expect(routeSegment('/')).toBe('')
   })
 
   it('should highlight the item matching the route on desktop', () => {
-    expect(activeNavId('/lookup/abc', false)).toBe('lookup')
+    expect(activeNavId('/define/abc', false)).toBe('lookup')
     expect(activeNavId('/search', false)).toBe('search')
     expect(activeNavId('/reader', false)).toBe('reader')
     expect(activeNavId('/settings', false)).toBe('settings')
@@ -41,7 +41,7 @@ describe('navigation config', () => {
     expect(activeNavId('/glossary/custom-a/1', true)).toBe('settings')
   })
 
-  it('should group the glossary and the dictionaries apart from Lookup, Search and Reader', () => {
+  it('should group the glossary and the dictionaries apart from Define, Search and Reader', () => {
     const groups = navItemsFor(false).map((item) => item.group)
     expect(groups).toEqual(['tools', 'tools', 'tools', 'collections', 'collections'])
   })
@@ -52,20 +52,20 @@ describe('navigation config', () => {
 
   it('should keep the existing shortcuts D, T and G pointing at the new destinations', () => {
     const paths = shortcutPaths()
-    expect(paths.d).toBe('/lookup')
+    expect(paths.d).toBe('/define')
     expect(paths.t).toBe('/reader')
     expect(paths.g).toBe('/settings')
   })
 
-  it('should map Cmd+D to Lookup', () => {
-    expect(shortcutPaths().d).toBe('/lookup')
+  it('should map Cmd+D to Define', () => {
+    expect(shortcutPaths().d).toBe('/define')
   })
 
   it('should map Cmd+S to Search', () => {
     expect(shortcutPaths().s).toBe('/search')
   })
 
-  it('should map Cmd+K to focusing Lookup', () => {
+  it('should map Cmd+K to focusing Define', () => {
     expect(shortcutPaths().k).toBe('focus-lookup')
   })
 
@@ -74,7 +74,7 @@ describe('navigation config', () => {
     expect(new Set(NAV_ITEMS.map((item) => item.path)).size).toBe(NAV_ITEMS.length)
   })
 
-  it('should highlight Lookup on a phone on the Saved page, and nothing in the sidebar', () => {
+  it('should highlight Define on a phone on the Saved page, and nothing in the sidebar', () => {
     expect(activeNavId('/saved', true)).toBe('lookup')
     expect(activeNavId('/saved', false)).toBe('')
   })

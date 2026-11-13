@@ -23,7 +23,7 @@ export function toggleHelp(topic = null) {
 /** The topic that explains the screen of a route, null for none in particular. */
 export function topicForRoute(route) {
   const path = route?.path || '';
-  if (path.startsWith('/lookup')) return 'lookup';
+  if (path.startsWith('/define')) return 'lookup';
   if (path.startsWith('/search')) return 'search';
   if (path.startsWith('/reader')) return 'reader';
   if (path.startsWith('/dictionaries')) return 'dictionaries';

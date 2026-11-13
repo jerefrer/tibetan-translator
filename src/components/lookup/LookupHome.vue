@@ -7,7 +7,7 @@ import { savedTerms } from '../../services/saved-terms';
 const RECENT_ROWS = 8;
 const SAVED_ROWS = 8;
 
-// What Lookup shows before anything is looked up (boards MobileHome and
+// What Define shows before anything is looked up (boards MobileHome and
 // Main): the recent terms (with Clear), the newest saved ones (with See all,
 // the Saved page), each with a one-line gloss, and the Wylie tip. On a phone
 // under the field when it is empty; on a desktop in the entry pane while no
@@ -71,7 +71,7 @@ export default {
         if (run !== this._glossRun) return;
         this.glosses = { ...this.glosses, ...Object.fromEntries(loaded) };
       } catch (error) {
-        console.warn('[Lookup] Glosses not loaded', error);
+        console.warn('[Define] Glosses not loaded', error);
       }
     },
     clearRecent() {

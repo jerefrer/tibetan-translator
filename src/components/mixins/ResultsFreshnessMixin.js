@@ -10,7 +10,7 @@ function dictionariesSignature() {
     .join(',');
 }
 
-// Lookup's and Search's results, kept up to date with the dictionaries: when
+// Define's and Search's results, kept up to date with the dictionaries: when
 // they were switched on or off or reordered, or packs installed or removed,
 // while the page was away, `refreshKey` is bumped as it shows again, and the
 // results read it to search again. `allTermsVersion` is bumped as soon as

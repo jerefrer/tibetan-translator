@@ -2,7 +2,7 @@
 import { tibetanRuns } from '../../services/glosses';
 import { UiTibetanField } from '../../ui';
 
-// Lookup's field: Define's Tibetan field, unchanged (Wylie converted on
+// Define's field: the Tibetan field, unchanged (Wylie converted on
 // space, tsheg, Enter, paste and drop; legacy fonts repaired; a second tsheg
 // refused), with the "typed …" echo and how the input was read under it.
 export default {

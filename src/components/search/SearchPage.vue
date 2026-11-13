@@ -20,7 +20,7 @@ import HelpButton from '../help/HelpButton.vue';
 import SearchField from './SearchField.vue';
 
 // Search: the definitions searched for a query, and the entry of the term
-// chosen among the results, opened here rather than in Lookup so the results
+// chosen among the results, opened here rather than in Define so the results
 // stay in view.
 // The route carries the query: /search?q=<query>; `dict=<name>` keeps it to
 // one dictionary's definitions (Dictionaries' "Search its definitions") until
@@ -29,10 +29,10 @@ import SearchField from './SearchField.vue';
 // typing replaces the place (the query runs after a pause), Enter adds one. The old /search/<query> and /lookup?mode=en links are redirected
 // here by the router. The last query is kept in `lookupState`.
 // The query runs on Enter or after a pause. A query that is a Tibetan term
-// offers to look it up in Lookup; nothing is converted from one page to the
+// offers to look it up in Define; nothing is converted from one page to the
 // other.
 //
-// Layout: as Lookup (lookup-layout.css). Desktop: the results column with the
+// Layout: as Define (lookup-layout.css). Desktop: the results column with the
 // field on top, and the entry pane, the divider between them draggable. Phone:
 // the title, the field and the results (the queries searched before while
 // there is no query); a tapped result shows its entry full screen with a back
@@ -104,7 +104,7 @@ export default {
       const terms = parseSearchQuery(this.query);
       return (html) => highlightSearchTerms(html, terms);
     },
-    // A query in Tibetan script that is a term: Lookup has its entry
+    // A query in Tibetan script that is a term: Define has its entry
     lookupTerm() {
       this.allTermsVersion; // re-read when the terms change
       const text = (this.text || '').trim();
@@ -229,7 +229,7 @@ export default {
       this.$nextTick(() => this.focusField());
     },
     lookUp(term) {
-      this.$router.push('/lookup/' + encodeURIComponent(term));
+      this.$router.push('/define/' + encodeURIComponent(term));
     },
     clear() {
       this.debouncedRunQuery.cancel();
@@ -313,7 +313,7 @@ export default {
         <section v-if="lookupTerm" class="search-hint" data-testid="hint-look-up">
           <ui-button class="search-hint__button" size="sm" @click="lookUp(lookupTerm)">
             <ui-icon name="search" :size="15" />
-            Look up <span class="search-hint__tibetan">{{ lookupTerm }}</span> in Lookup
+            Define <span class="search-hint__tibetan">{{ lookupTerm }}</span>
           </ui-button>
         </section>
       </div>

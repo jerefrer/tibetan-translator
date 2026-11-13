@@ -206,7 +206,7 @@ export default {
 </style>
 
 <style scoped>
-/* A narrow builder (Lookup's results column): the match on top, the term
+/* A narrow builder (Search's results column): the match on top, the term
    below, as on a phone, so the term keeps the whole width */
 @container (max-width: 30rem) {
   .builder-row__fields {

@@ -1,5 +1,5 @@
 /**
- * Remembers the Wylie a user typed into a Tibetan field, so Lookup
+ * Remembers the Wylie a user typed into a Tibetan field, so Define
  * can echo it ("typed ye shes") after the field has turned it into Tibetan.
  *
  * The field converts as you type: "ye" + space becomes "ཡེ་", then

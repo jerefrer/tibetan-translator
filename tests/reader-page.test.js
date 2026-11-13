@@ -117,7 +117,7 @@ async function mountPage() {
     history: createMemoryHistory(),
     routes: [
       { path: '/reader', component: ReaderPage },
-      { path: '/lookup/:term?', component: Placeholder },
+      { path: '/define/:term?', component: Placeholder },
       { path: '/settings', component: Placeholder },
     ],
   })
@@ -606,7 +606,7 @@ describe('Reader — text', () => {
     expect(wrapper.findAll('[data-testid="reader-recent-item"]').map((item) => item.text())).toEqual([SPLIT_TEXT])
   })
 
-  it('should open the full entry in Lookup', async () => {
+  it('should open the full entry in Define', async () => {
     await mountPage()
     await splitText()
     await wordButtons()[2].trigger('click')
@@ -615,7 +615,7 @@ describe('Reader — text', () => {
     await wrapper.find('[data-testid="reader-panel"] [data-testid="entry-open"]').trigger('click')
     await flushPromises()
 
-    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(SHESRAB))
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(SHESRAB))
   })
 })
 

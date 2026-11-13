@@ -1,7 +1,7 @@
 /**
  * Main navigation of the app shell.
  *
- * Lookup, Search and Reader everywhere. On desktop the sidebar also lists My
+ * Define, Search and Reader everywhere. On desktop the sidebar also lists My
  * glossary and Dictionaries (the `collections` group, set apart from the
  * `tools` group) and ends with a Settings link; on a phone Settings is the
  * fourth tab and the two collections are rows inside it, so the Settings tab
@@ -9,7 +9,7 @@
  */
 
 export const NAV_ITEMS = [
-  { id: 'lookup', label: 'Lookup', path: '/lookup', icon: 'search', group: 'tools', mobile: true, shortcut: 'D' },
+  { id: 'lookup', label: 'Define', path: '/define', icon: 'search', group: 'tools', mobile: true, shortcut: 'D' },
   { id: 'search', label: 'Search', path: '/search', icon: 'text-search', group: 'tools', mobile: true, shortcut: 'S' },
   { id: 'reader', label: 'Reader', path: '/reader', icon: 'align-left', group: 'tools', mobile: true, shortcut: 'T' },
   { id: 'glossary', label: 'My glossary', path: '/glossary', icon: 'notebook-pen', group: 'collections', mobile: false, parent: 'settings' },
@@ -31,7 +31,7 @@ export function routeSegment(path) {
  * path the route is at or under ("/glossary/x" -> glossary). */
 export function activeNavId(path, isMobile) {
   const route = String(path || '');
-  // Saved belongs with Lookup: the sidebar links to it, a phone's Lookup home too
+  // Saved belongs with Define: the sidebar links to it, a phone's Define home too
   if (route === '/saved') return isMobile ? 'lookup' : '';
   const item = NAV_ITEMS
     .filter((candidate) => route === candidate.path || route.startsWith(candidate.path + '/'))
@@ -59,9 +59,9 @@ export function navigateTo(router, target) {
 
 /** The page shortcuts, as the help dialogs list them (Cmd/Ctrl + key). */
 export const HELP_SHORTCUTS = [
-  { key: 'D', text: 'Look up a Tibetan term (Lookup)' },
+  { key: 'D', text: 'Define a Tibetan term' },
   { key: 'S', text: 'Search the definitions (Search)' },
-  { key: 'K', text: 'Put the cursor in the field of Lookup, or of Search when it is open' },
+  { key: 'K', text: 'Put the cursor in the field of Define, or of Search when it is open' },
   { key: 'T', text: 'Go to Reader' },
   { key: 'G', text: 'Go to Settings' },
   { key: '[', text: 'Back, where you were before (the mouse’s back button too)' },
@@ -69,8 +69,8 @@ export const HELP_SHORTCUTS = [
 ];
 
 /**
- * Keyboard shortcut (Cmd/Ctrl + key) -> route path. `D` opens Lookup, `S`
- * Search; `K` is the action 'focus-lookup' (App.vue routes to Lookup unless
+ * Keyboard shortcut (Cmd/Ctrl + key) -> route path. `D` opens Define, `S`
+ * Search; `K` is the action 'focus-lookup' (App.vue routes to Define unless
  * Search is open, then fires the `focus-lookup` window event, which the page
  * shown answers by focusing its field).
  */

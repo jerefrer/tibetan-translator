@@ -36,11 +36,11 @@ export function goForward(router) {
   if (historyState.forward) router.forward();
 }
 
-/** Whether a location is a term's entry: Lookup on a term, or Search with
+/** Whether a location is a term's entry: Define on a term, or Search with
  *  one open (`term=`). */
 export function isEntryLocation(location) {
   if (typeof location !== 'string') return false;
   const [path, search = ''] = location.split('#')[0].split('?');
-  if (/^\/lookup\/[^/]+/.test(path)) return true;
+  if (/^\/define\/[^/]+/.test(path)) return true;
   return path === '/search' && new URLSearchParams(search).has('term');
 }

@@ -17,30 +17,46 @@ describe('router', () => {
     expect(router.currentRoute.value.fullPath).toBe('/glossary/custom-a?x=1')
   })
 
-  it('should open Lookup when the app starts at the root', async () => {
+  it('should open Define when the app starts at the root', async () => {
     await router.push('/')
-    expect(router.currentRoute.value.path).toBe('/lookup')
+    expect(router.currentRoute.value.path).toBe('/define')
   })
 
-  it('should open Lookup on the term when an old Define link is followed', async () => {
+  it('should stay on Define when a Define link is followed', async () => {
     await router.push('/define/abc')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/lookup/abc')
+    expect(route.path).toBe('/define/abc')
     expect(route.query).toEqual({})
   })
 
-  it('should open bare Lookup when the old Define page is followed', async () => {
-    await router.push('/define')
+  it('should open Define on the term when a former Lookup link is followed', async () => {
+    await router.push('/lookup/abc')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/lookup')
+    expect(route.path).toBe('/define/abc')
     expect(route.query).toEqual({})
   })
 
-  it('should keep the query and hash when an old Define link is followed', async () => {
-    await router.push('/define/abc?x=1#top')
+  it('should open bare Define when the former Lookup page is followed', async () => {
+    await router.push('/lookup')
     const route = router.currentRoute.value
+    expect(route.path).toBe('/define')
+    expect(route.query).toEqual({})
+  })
+
+  it('should keep the query and hash when a former Lookup link is followed', async () => {
+    await router.push('/lookup/abc?x=1#h')
+    const route = router.currentRoute.value
+    expect(route.path).toBe('/define/abc')
     expect(route.query).toEqual({ x: '1' })
-    expect(route.hash).toBe('#top')
+    expect(route.hash).toBe('#h')
+  })
+
+  it('should open Search when a Define link carries a query and a mode', async () => {
+    await router.push('/reader')
+    await router.push('/define?q=a&mode=en')
+    const route = router.currentRoute.value
+    expect(route.path).toBe('/search')
+    expect(route.query).toEqual({ q: 'a' })
   })
 
   it('should open Search on the query when an old Search link is followed', async () => {
@@ -82,7 +98,7 @@ describe('router', () => {
     expect(route.query).toEqual({})
   })
 
-  it('should open Search when a Lookup link carries only a query', async () => {
+  it('should open Search when a former Lookup link carries only a query', async () => {
     await router.push('/reader')
     await router.push('/lookup?q=x')
     const route = router.currentRoute.value
@@ -94,7 +110,7 @@ describe('router', () => {
     await router.push('/reader')
     await router.push('/lookup?mode=bo')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/lookup')
+    expect(route.path).toBe('/define')
     expect(route.query).toEqual({})
   })
 
@@ -102,7 +118,7 @@ describe('router', () => {
     await router.push('/reader')
     await router.push('/lookup/abc?mode=bo&x=1#top')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/lookup/abc')
+    expect(route.path).toBe('/define/abc')
     expect(route.query).toEqual({ x: '1' })
     expect(route.hash).toBe('#top')
   })
@@ -119,7 +135,7 @@ describe('router', () => {
 
   it('should open Dictionaries, where the order now is, when the old preferences view is followed', async () => {
     // beforeEnter only runs when entering the route, not when already on it
-    await router.push('/lookup')
+    await router.push('/define')
     await router.push('/settings?view=preferences')
     const route = router.currentRoute.value
     expect(route.path).toBe('/dictionaries')
@@ -127,14 +143,14 @@ describe('router', () => {
   })
 
   it('should open Dictionaries when a link to the old dictionary order section is followed', async () => {
-    await router.push('/lookup')
+    await router.push('/define')
     await router.push('/settings#dictionary-order')
     expect(router.currentRoute.value.fullPath).toBe('/dictionaries')
   })
 
   it('should open the dictionaries page with the filters when old Settings links carry them', async () => {
     // beforeEnter only runs when entering the route, not when already on it
-    await router.push('/lookup')
+    await router.push('/define')
     await router.push('/settings?find=abc&status=installed')
     const route = router.currentRoute.value
     expect(route.path).toBe('/dictionaries')
@@ -163,7 +179,7 @@ describe('router', () => {
   })
 
   it('should resolve the page routes', () => {
-    for (const path of ['/lookup', '/lookup/abc', '/search', '/reader', '/settings', '/dictionaries', '/glossary', '/glossary/a/1', '/tests']) {
+    for (const path of ['/define', '/define/abc', '/lookup', '/lookup/abc', '/search', '/reader', '/settings', '/dictionaries', '/glossary', '/glossary/a/1', '/tests']) {
       expect(router.resolve(path).matched.length, path).toBe(1)
     }
   })

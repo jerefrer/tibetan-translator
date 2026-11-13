@@ -4,7 +4,7 @@ import { isMacOS, supportsModularPacks } from '../../config/platform';
 import { HELP_SHORTCUTS } from '../../config/navigation';
 
 // One topic of the help (HelpDialog), short. Examples are buttons: `try-term`
-// opens a Tibetan term in Lookup, `try-search` searches the definitions, `go`
+// opens a Tibetan term in Define, `try-search` searches the definitions, `go`
 // opens a page.
 export default {
   name: 'HelpTopic',
@@ -46,7 +46,7 @@ export default {
   <div class="help-topic" :data-topic="id">
     <template v-if="id === 'typing'">
       <p>
-        Where Tibetan is expected (Lookup, the Reader), type
+        Where Tibetan is expected (Define, the Reader), type
         Wylie: it becomes Tibetan as you type, at each space or tsheg. Under the
         field, <em>typed sangs rgyas</em> recalls the Latin you typed.
       </p>
@@ -59,7 +59,7 @@ export default {
       </table>
       <ul class="help-list">
         <li>Paste Tibetan as it is. Text in older Tibetan fonts is turned into Unicode.</li>
-        <li>English typed in Lookup becomes Tibetan too: <strong>Search</strong> is where English is searched in the definitions. A hint takes you there when no Tibetan term starts with what you typed.</li>
+        <li>English typed in Define becomes Tibetan too: <strong>Search</strong> is where English is searched in the definitions. A hint takes you there when no Tibetan term starts with what you typed.</li>
         <li>Sanskrit written in Wylie works as well: <code>buddha</code> gives its Tibetan spelling.</li>
       </ul>
     </template>
@@ -101,7 +101,7 @@ export default {
         <li>Searching by sound, split the syllables if nothing comes up: <code>[chom den de]</code>. Syllables that run together need their consonant twice, or a space: <code>[sanggye]</code> or <code>[sang gye]</code>, not <code>[sangye]</code>.</li>
         <li><strong>Advanced</strong>, under the field, writes these queries for you: one row per condition, and an entry must match them all.</li>
         <li>To search a single dictionary, select it in <button type="button" class="help-link" @click="$emit('go', '/dictionaries')">Dictionaries</button> and choose <strong>Search its definitions</strong>. Its name shows under the field until its <strong>×</strong> searches every dictionary again.</li>
-        <li>When what you typed in Tibetan is a term, a button opens it in <strong>Lookup</strong>.</li>
+        <li>When what you typed in Tibetan is a term, a button opens it in <strong>Define</strong>.</li>
       </ul>
     </template>
 
@@ -123,7 +123,7 @@ export default {
 
     <template v-else-if="id === 'dictionaries'">
       <p>
-        <strong>Dictionaries</strong> lists every dictionary in the order Lookup, Search and the
+        <strong>Dictionaries</strong> lists every dictionary in the order Define, Search and the
         Reader show them. Switch one off to leave it out.
       </p>
       <ul class="help-list">
@@ -151,7 +151,7 @@ export default {
 
     <template v-else-if="id === 'saved'">
       <ul class="help-list">
-        <li><strong>Save</strong>, in an entry, keeps the term. {{ isPhone ? "Lookup's home" : 'The sidebar' }} shows the newest; <button type="button" class="help-link" @click="$emit('go', '/saved')">Saved</button> shows them all, to search, list newest first or in Tibetan order (by root letter), copy as a list (for a spreadsheet) or clear.</li>
+        <li><strong>Save</strong>, in an entry, keeps the term. {{ isPhone ? "Define's home" : 'The sidebar' }} shows the newest; <button type="button" class="help-link" @click="$emit('go', '/saved')">Saved</button> shows them all, to search, list newest first or in Tibetan order (by root letter), copy as a list (for a spreadsheet) or clear.</li>
         <li><strong>Recent</strong> lists the terms you looked up last.<template v-if="!isPhone"> The × beside a term forgets it, Clear forgets them all, and each section folds.</template></li>
       </ul>
     </template>
@@ -176,7 +176,7 @@ export default {
           <tr><td><kbd class="help-key">{{ mod }}</kbd> <kbd class="help-key">/</kbd> or <kbd class="help-key">F1</kbd></td><td>Open or close this help</td></tr>
         </tbody>
       </table>
-      <h4 class="help-subheading">Lookup</h4>
+      <h4 class="help-subheading">Define</h4>
       <table class="help-table help-shortcuts">
         <tbody>
           <tr><td><kbd class="help-key">↑</kbd> <kbd class="help-key">↓</kbd></td><td>Move through the results</td></tr>

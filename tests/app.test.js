@@ -80,7 +80,7 @@ async function mountApp() {
       { path: '/', redirect: '/define' },
       { path: '/define', component: Page },
       { path: '/search', component: Page },
-      { path: '/lookup', component: Page },
+      { path: '/define', component: Page },
       { path: '/settings', component: Page },
     ],
   })
@@ -325,7 +325,7 @@ describe('selection popup', () => {
 })
 
 describe('keyboard shortcuts', () => {
-  it('should focus Lookup on Cmd+K', async () => {
+  it('should focus Define on Cmd+K', async () => {
     await mountApp()
     await finishLoading()
     const spy = vi.spyOn(window, 'dispatchEvent')
@@ -333,7 +333,7 @@ describe('keyboard shortcuts', () => {
     $(window).trigger($.Event('keydown', { key: 'k', metaKey: true }))
     await vi.waitFor(() => expect(spy.mock.calls.some(([e]) => e.type === 'focus-lookup')).toBe(true))
     spy.mockRestore()
-    expect(wrapper.vm.$route.path).toBe('/lookup')
+    expect(wrapper.vm.$route.path).toBe('/define')
   })
 
   it('should go to Settings on Cmd+G, and ask Settings to scroll back when already there', async () => {
@@ -382,7 +382,7 @@ describe('Back and Forward shortcuts', () => {
 
   it('should go back on Ctrl+[ when there is a previous place', async () => {
     const { back, forward } = await mountReady()
-    historyState.back = '/lookup'
+    historyState.back = '/define'
     $(window).trigger($.Event('keydown', { key: '[', ctrlKey: true }))
     expect(back).toHaveBeenCalledTimes(1)
     expect(forward).not.toHaveBeenCalled()
@@ -390,7 +390,7 @@ describe('Back and Forward shortcuts', () => {
 
   it('should go forward on Cmd+] when there is a next place', async () => {
     const { back, forward } = await mountReady()
-    historyState.forward = '/lookup'
+    historyState.forward = '/define'
     $(window).trigger($.Event('keydown', { key: ']', metaKey: true }))
     expect(forward).toHaveBeenCalledTimes(1)
     expect(back).not.toHaveBeenCalled()
@@ -406,7 +406,7 @@ describe('Back and Forward shortcuts', () => {
 
   it('should leave [ alone when no modifier is held', async () => {
     const { back } = await mountReady()
-    historyState.back = '/lookup'
+    historyState.back = '/define'
     $(window).trigger($.Event('keydown', { key: '[' }))
     expect(back).not.toHaveBeenCalled()
   })
@@ -414,7 +414,7 @@ describe('Back and Forward shortcuts', () => {
   it('should go back and forward with the mouse side buttons in the app', async () => {
     env.modularPacks = true
     const { back, forward } = await mountReady()
-    historyState.back = '/lookup'
+    historyState.back = '/define'
     historyState.forward = '/settings'
     window._triggerEvent('mouseup', { button: 3 })
     window._triggerEvent('mouseup', { button: 4 })
@@ -425,7 +425,7 @@ describe('Back and Forward shortcuts', () => {
   it('should leave the mouse side buttons to the browser on the web', async () => {
     env.modularPacks = false
     const { back } = await mountReady()
-    historyState.back = '/lookup'
+    historyState.back = '/define'
     window._triggerEvent('mouseup', { button: 3 })
     expect(back).not.toHaveBeenCalled()
   })
@@ -433,7 +433,7 @@ describe('Back and Forward shortcuts', () => {
   it('should ignore the main mouse button in the app', async () => {
     env.modularPacks = true
     const { back, forward } = await mountReady()
-    historyState.back = '/lookup'
+    historyState.back = '/define'
     historyState.forward = '/settings'
     window._triggerEvent('mouseup', { button: 0 })
     expect(back).not.toHaveBeenCalled()

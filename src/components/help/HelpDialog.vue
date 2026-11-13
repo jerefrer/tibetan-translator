@@ -108,7 +108,7 @@ export default {
     },
     tryTerm(tibetan) {
       closeHelp();
-      this.$router.push(`/lookup/${encodeURIComponent(tibetan)}`);
+      this.$router.push(`/define/${encodeURIComponent(tibetan)}`);
     },
     trySearch(query) {
       closeHelp();
