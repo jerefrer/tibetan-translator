@@ -5,16 +5,18 @@ import Storage from '../services/storage';
 import { clearHistory, forgetTerm, recentTerms } from '../services/history';
 import { removeSaved, savedTerms } from '../services/saved-terms';
 import { helpState, toggleHelp, topicForRoute } from '../services/help';
+import { goBack, goForward, historyState } from '../services/navigation-history';
 
 // Terms each section of the sidebar shows; Saved links to all of them
 const SECTION_LIMIT = 8;
 const FOLDED_KEY = 'sidebarFolded';
 
-// Desktop: a sidebar with the app name, Lookup / Reader, My glossary /
+// Desktop: a sidebar with the app name and the Back / Forward arrows, Lookup / Search / Reader, My glossary /
 // Dictionaries, the recent and saved terms (eight of each, a × on each to
 // forget it, Clear for Recent, All for the Saved page; each section folds, and
 // stays folded), and Help and Settings at the bottom.
-// Phone: a bottom bar with Lookup, Reader and Settings.
+// Phone: a bottom bar with Lookup, Search, Reader and Settings (Back is the
+// system's on Android, an entry's back link on both).
 export default {
   name: 'AppNav',
   components: { UiIcon },
@@ -29,6 +31,7 @@ export default {
       saved: savedTerms(),
       folded: { recent: false, saved: false, ...Storage.get(FOLDED_KEY, {}) },
       help: helpState,
+      history: historyState,
     };
   },
   computed: {
@@ -41,7 +44,9 @@ export default {
     activeId() {
       return activeNavId(this.$route.path, this.isMobile);
     },
+    // The term whose entry is open, in Lookup or in Search
     currentTerm() {
+      if (this.$route.path === '/search') return this.$route.query.term || '';
       const match = this.$route.path.match(/^\/lookup\/(.+)$/);
       if (!match) return '';
       try {
@@ -61,6 +66,12 @@ export default {
         return;
       }
       navigate(event);
+    },
+    goBack() {
+      goBack(this.$router);
+    },
+    goForward() {
+      goForward(this.$router);
     },
     hint(item) {
       return item.shortcut ? `${item.label} (Ctrl/Cmd+${item.shortcut})` : item.label;
@@ -115,6 +126,30 @@ export default {
     <div v-if="!isMobile" class="app-nav__brand">
       <img class="app-nav__logo" src="/img/app-icon.png" alt="" />
       <span class="app-nav__name">Tibetan Translator</span>
+      <div class="app-nav__history">
+        <button
+          type="button"
+          class="app-nav__history-button"
+          :disabled="!history.back"
+          aria-label="Back"
+          title="Back (Ctrl/Cmd+[)"
+          data-testid="nav-back"
+          @click="goBack"
+        >
+          <ui-icon name="arrow-left" :size="17" />
+        </button>
+        <button
+          type="button"
+          class="app-nav__history-button"
+          :disabled="!history.forward"
+          aria-label="Forward"
+          title="Forward (Ctrl/Cmd+])"
+          data-testid="nav-forward"
+          @click="goForward"
+        >
+          <ui-icon name="arrow-right" :size="17" />
+        </button>
+      </div>
     </div>
 
     <div class="app-nav__items">
@@ -307,9 +342,40 @@ export default {
   flex: none;
 }
 .app-nav__name {
+  min-width: 0;
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--ink);
+}
+.app-nav__history {
+  display: flex;
+  flex: none;
+  margin-left: auto;
+  margin-right: -4px;
+}
+.app-nav__history-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.app-nav__history-button:hover:not(:disabled) {
+  background: var(--soft);
+}
+.app-nav__history-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+.app-nav__history-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 .app-nav__separator {
   display: block;

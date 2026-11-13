@@ -12,6 +12,7 @@ import appRouter from '../src/router.js'
 import LookupPage from '../src/components/lookup/LookupPage.vue'
 import Storage from '../src/services/storage'
 import SqlDatabase from '../src/services/sql-database'
+import { historyState } from '../src/services/navigation-history'
 
 const KA = 'ཀ་'
 const SANGS_RGYAS = 'སངས་རྒྱས་'
@@ -612,3 +613,172 @@ describe('LookupPage — results width', () => {
   })
 })
 
+
+describe('Lookup — Back and Forward', () => {
+  const KAKA = 'ཀ་ཀ་'
+  const pathOf = (term) => '/lookup/' + encodeURIComponent(term)
+  const results = () => wrapper.findAll('[data-testid="lookup-result"]')
+  const shown = (element) => element.exists() && element.element.style.display !== 'none'
+  let push
+  let replace
+
+  // Spies on the router mountAt just made; the calls so far are forgotten
+  function spyOnRouter() {
+    push = vi.spyOn(router, 'push')
+    replace = vi.spyOn(router, 'replace')
+  }
+
+  async function settleOn(term) {
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe(pathOf(term)))
+    await flushPromises()
+  }
+
+  beforeEach(() => {
+    historyState.back = null
+    historyState.forward = null
+    Storage.set('dictionaries', [{ id: 1, name: 'RangjungYeshe', position: 0, enabled: true }])
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
+    vi.spyOn(SqlDatabase, 'getEntriesFor').mockResolvedValue([])
+    SqlDatabase.allTerms = [KA, KAKA, SANGS_RGYAS]
+  })
+
+  afterEach(() => {
+    SqlDatabase.allTerms = []
+    vi.restoreAllMocks()
+  })
+
+  it('should add one history entry when typing selects several terms in a row', async () => {
+    await mountAt('/reader')
+    await go('/lookup')
+    spyOnRouter()
+
+    await typeWylie('ka ')
+    await settleOn(KA)
+    await typeWylie('ka ka ')
+    await settleOn(KAKA)
+
+    expect(push.mock.calls.length + replace.mock.calls.length).toBe(2)
+    expect(replace).toHaveBeenCalledTimes(2)
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('should push the first term typed after a click and replace the ones after it', async () => {
+    await mountAt('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+    spyOnRouter()
+
+    await typeWylie('ka ')
+    await settleOn(KA)
+    expect(push).toHaveBeenCalledTimes(1)
+    expect(replace).not.toHaveBeenCalled()
+
+    await typeWylie('ka ka ')
+    await settleOn(KAKA)
+    expect(push).toHaveBeenCalledTimes(1)
+    expect(replace).toHaveBeenCalledTimes(1)
+  })
+
+  it('should push when a result is clicked', async () => {
+    await mountAt('/lookup')
+    await typeWylie('ka ')
+    await settleOn(KA)
+    spyOnRouter()
+
+    await results()[1].trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledTimes(1)
+    expect(replace).not.toHaveBeenCalled()
+    expect(router.currentRoute.value.path).toBe(pathOf(KAKA))
+  })
+
+  it('should push the first term reached with Up and replace the next after a click', async () => {
+    await mountAt('/lookup')
+    await typeWylie('ka ')
+    await settleOn(KA)
+    await results()[1].trigger('click')
+    await flushPromises()
+    spyOnRouter()
+
+    await input().trigger('keydown', { key: 'ArrowUp' })
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe(pathOf(KA))
+    expect(push).toHaveBeenCalledTimes(1)
+
+    await input().trigger('keydown', { key: 'ArrowDown' })
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe(pathOf(KAKA))
+    expect(push).toHaveBeenCalledTimes(1)
+    expect(replace).toHaveBeenCalledTimes(1)
+  })
+
+  it('should replace the bare Lookup when a term is typed after Escape', async () => {
+    await mountAt('/lookup/' + encodeURIComponent(SANGS_RGYAS))
+    await input().trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/lookup')
+    spyOnRouter()
+
+    await typeWylie('ka ')
+    await settleOn(KA)
+
+    expect(replace).toHaveBeenCalledTimes(1)
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('should empty the field when Back returns to the bare Lookup from a term', async () => {
+    await mountAt('/lookup')
+    await go(pathOf(KA))
+    expect(input().element.value).toBe(KA)
+
+    router.back()
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/lookup'))
+    await flushPromises()
+
+    expect(input().element.value).toBe('')
+    expect(page().vm.selectedTerm).toBe('')
+  })
+
+  it('should empty the field when the bare Lookup is pushed over a term', async () => {
+    await mountAt('/lookup/' + encodeURIComponent(KA))
+    await go('/lookup')
+    expect(input().element.value).toBe('')
+    expect(page().vm.selectedTerm).toBe('')
+  })
+
+  describe('on a phone', () => {
+    beforeEach(() => {
+      window.innerWidth = 390
+    })
+
+    it('should read Back and go back when the entry was reached from another entry', async () => {
+      await mountAt('/reader')
+      await go(pathOf(KA))
+      historyState.back = pathOf(SANGS_RGYAS)
+      await nextTick()
+      const link = wrapper.get('[data-testid="lookup-back"]')
+      expect(link.text()).toBe('Back')
+      const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+
+      await link.trigger('click')
+
+      expect(back).toHaveBeenCalledTimes(1)
+    })
+
+    it('should read Lookup and show the results when the previous place is not an entry', async () => {
+      await mountAt('/reader')
+      await go(pathOf(KAKA))
+      historyState.back = '/reader'
+      await nextTick()
+      const link = wrapper.get('[data-testid="lookup-back"]')
+      expect(link.text()).toBe('Lookup')
+      const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+
+      await link.trigger('click')
+      await flushPromises()
+
+      expect(back).not.toHaveBeenCalled()
+      expect(shown(wrapper.find('[data-testid="lookup-results-pane"]'))).toBe(true)
+      expect(shown(wrapper.find('[data-testid="lookup-entry-pane"]'))).toBe(false)
+    })
+  })
+})

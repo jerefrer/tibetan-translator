@@ -57,6 +57,7 @@ vi.mock('../src/services/audio-player-service', () => ({
 import App from '../src/components/App.vue'
 import Storage from '../src/services/storage'
 import $ from 'jquery'
+import { historyState } from '../src/services/navigation-history'
 
 const Page = defineComponent({ render: () => h('div', { class: 'stub-page' }, 'page') })
 const OnboardingStub = defineComponent({
@@ -361,5 +362,81 @@ describe('keyboard shortcuts', () => {
     expect(helpState).toMatchObject({ open: true, topic: 'reader' })
     $(window).trigger($.Event('keydown', { key: '/', metaKey: true }))
     expect(helpState.open).toBe(false)
+  })
+})
+
+describe('Back and Forward shortcuts', () => {
+  beforeEach(() => {
+    historyState.back = null
+    historyState.forward = null
+  })
+
+  async function mountReady() {
+    await mountApp()
+    await finishLoading()
+    return {
+      back: vi.spyOn(wrapper.vm.$router, 'back').mockImplementation(() => {}),
+      forward: vi.spyOn(wrapper.vm.$router, 'forward').mockImplementation(() => {}),
+    }
+  }
+
+  it('should go back on Ctrl+[ when there is a previous place', async () => {
+    const { back, forward } = await mountReady()
+    historyState.back = '/lookup'
+    $(window).trigger($.Event('keydown', { key: '[', ctrlKey: true }))
+    expect(back).toHaveBeenCalledTimes(1)
+    expect(forward).not.toHaveBeenCalled()
+  })
+
+  it('should go forward on Cmd+] when there is a next place', async () => {
+    const { back, forward } = await mountReady()
+    historyState.forward = '/lookup'
+    $(window).trigger($.Event('keydown', { key: ']', metaKey: true }))
+    expect(forward).toHaveBeenCalledTimes(1)
+    expect(back).not.toHaveBeenCalled()
+  })
+
+  it('should do nothing on Ctrl+[ and Ctrl+] when there is nowhere to go', async () => {
+    const { back, forward } = await mountReady()
+    $(window).trigger($.Event('keydown', { key: '[', ctrlKey: true }))
+    $(window).trigger($.Event('keydown', { key: ']', ctrlKey: true }))
+    expect(back).not.toHaveBeenCalled()
+    expect(forward).not.toHaveBeenCalled()
+  })
+
+  it('should leave [ alone when no modifier is held', async () => {
+    const { back } = await mountReady()
+    historyState.back = '/lookup'
+    $(window).trigger($.Event('keydown', { key: '[' }))
+    expect(back).not.toHaveBeenCalled()
+  })
+
+  it('should go back and forward with the mouse side buttons in the app', async () => {
+    env.modularPacks = true
+    const { back, forward } = await mountReady()
+    historyState.back = '/lookup'
+    historyState.forward = '/settings'
+    window._triggerEvent('mouseup', { button: 3 })
+    window._triggerEvent('mouseup', { button: 4 })
+    expect(back).toHaveBeenCalledTimes(1)
+    expect(forward).toHaveBeenCalledTimes(1)
+  })
+
+  it('should leave the mouse side buttons to the browser on the web', async () => {
+    env.modularPacks = false
+    const { back } = await mountReady()
+    historyState.back = '/lookup'
+    window._triggerEvent('mouseup', { button: 3 })
+    expect(back).not.toHaveBeenCalled()
+  })
+
+  it('should ignore the main mouse button in the app', async () => {
+    env.modularPacks = true
+    const { back, forward } = await mountReady()
+    historyState.back = '/lookup'
+    historyState.forward = '/settings'
+    window._triggerEvent('mouseup', { button: 0 })
+    expect(back).not.toHaveBeenCalled()
+    expect(forward).not.toHaveBeenCalled()
   })
 })

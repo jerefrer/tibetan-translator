@@ -64,6 +64,8 @@ export const HELP_SHORTCUTS = [
   { key: 'K', text: 'Put the cursor in the field of Lookup, or of Search when it is open' },
   { key: 'T', text: 'Go to Reader' },
   { key: 'G', text: 'Go to Settings' },
+  { key: '[', text: 'Back, where you were before (the mouse’s back button too)' },
+  { key: ']', text: 'Forward again' },
 ];
 
 /**

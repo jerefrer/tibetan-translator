@@ -5,6 +5,7 @@ import AppNav from '../src/components/AppNav.vue'
 import Storage from '../src/services/storage'
 import { recordTerm, recentTerms } from '../src/services/history'
 import { savedTerms, toggleSaved } from '../src/services/saved-terms'
+import { historyState } from '../src/services/navigation-history'
 
 const stub = { template: '<div />' }
 
@@ -205,5 +206,66 @@ describe('AppNav', () => {
     expect(wrapper.find('[data-testid="nav-help"]').attributes('aria-pressed')).toBe('true')
     await wrapper.find('[data-testid="nav-help"]').trigger('click')
     expect(helpState.open).toBe(false)
+  })
+})
+
+describe('AppNav — Back and Forward', () => {
+  beforeEach(() => {
+    historyState.back = null
+    historyState.forward = null
+  })
+
+  it('should disable both arrows when there is nowhere to go', async () => {
+    const { wrapper } = await mountNav('/lookup')
+    expect(wrapper.find('[data-testid="nav-back"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.find('[data-testid="nav-forward"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('should enable Back when a previous place is known', async () => {
+    historyState.back = '/reader'
+    const { wrapper } = await mountNav('/lookup')
+    expect(wrapper.find('[data-testid="nav-back"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('[data-testid="nav-forward"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('should enable Forward when a next place is known', async () => {
+    historyState.forward = '/reader'
+    const { wrapper } = await mountNav('/lookup')
+    expect(wrapper.find('[data-testid="nav-forward"]').attributes('disabled')).toBeUndefined()
+    expect(wrapper.find('[data-testid="nav-back"]').attributes('disabled')).toBeDefined()
+  })
+
+  it('should enable an arrow once the history state changes', async () => {
+    const { wrapper } = await mountNav('/lookup')
+    historyState.back = '/reader'
+    await flushPromises()
+    expect(wrapper.find('[data-testid="nav-back"]').attributes('disabled')).toBeUndefined()
+  })
+
+  it('should call router.back when Back is clicked', async () => {
+    historyState.back = '/reader'
+    const { wrapper, router } = await mountNav('/lookup')
+    const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+    await wrapper.find('[data-testid="nav-back"]').trigger('click')
+    expect(back).toHaveBeenCalledTimes(1)
+  })
+
+  it('should call router.forward when Forward is clicked', async () => {
+    historyState.forward = '/reader'
+    const { wrapper, router } = await mountNav('/lookup')
+    const forward = vi.spyOn(router, 'forward').mockImplementation(() => {})
+    await wrapper.find('[data-testid="nav-forward"]').trigger('click')
+    expect(forward).toHaveBeenCalledTimes(1)
+  })
+
+  it('should not show the arrows on a phone', async () => {
+    const { wrapper } = await mountNav('/lookup', { isMobile: true })
+    expect(wrapper.find('[data-testid="nav-back"]').exists()).toBe(false)
+  })
+
+  it('should highlight the term of a Search with an open entry in the sidebar', async () => {
+    recordTerm('བདེ་བ་')
+    const { wrapper } = await mountNav('/search?q=bliss&term=' + encodeURIComponent('བདེ་བ་'))
+    expect(wrapper.find('[data-testid="nav-recent"] a.is-current').exists()).toBe(true)
   })
 })

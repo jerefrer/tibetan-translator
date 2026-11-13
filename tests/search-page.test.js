@@ -13,6 +13,7 @@ import appRouter from '../src/router.js'
 import SearchPage from '../src/components/search/SearchPage.vue'
 import Storage from '../src/services/storage'
 import SqlDatabase from '../src/services/sql-database'
+import { historyState } from '../src/services/navigation-history'
 
 const KA = 'ཀ་'
 const SANGS_RGYAS = 'སངས་རྒྱས་'
@@ -258,7 +259,7 @@ describe('Search — the entry of a result', () => {
     await flushPromises()
 
     expect(router.currentRoute.value.path).toBe('/search')
-    expect(router.currentRoute.value.query).toEqual({ q: 'buddha' })
+    expect(router.currentRoute.value.query).toEqual({ q: 'buddha', term: KA })
     expect(headword().text()).toBe(KA)
     expect(results()).toHaveLength(2)
     expect(results()[1].attributes('aria-selected')).toBe('true')
@@ -484,5 +485,201 @@ describe('Search — results width', () => {
     Storage.set('lookupResultsWidth', 480)
     await mountAt('/search')
     expect(widthStyle()).toContain('480px')
+  })
+})
+
+describe('Search — Back and Forward', () => {
+  const entryOpen = () => entryPane().find('[data-testid="term-entry"]').exists()
+  const searchPath = (query) => router.resolve({ path: '/search', query }).fullPath
+  let push
+  let replace
+
+  function spyOnRouter() {
+    push = vi.spyOn(router, 'push')
+    replace = vi.spyOn(router, 'replace')
+  }
+
+  beforeEach(() => {
+    historyState.back = null
+    historyState.forward = null
+  })
+
+  it('should push the route with the term when a result is clicked', async () => {
+    await mountAt('/search?q=buddha')
+    spyOnRouter()
+
+    await results()[1].trigger('click')
+    await flushPromises()
+
+    expect(push).toHaveBeenCalledTimes(1)
+    expect(push).toHaveBeenCalledWith({ path: '/search', query: { q: 'buddha', term: KA } })
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it('should close the entry when Back returns to the route without a term', async () => {
+    await mountAt('/search?q=buddha')
+    await results()[1].trigger('click')
+    await flushPromises()
+    expect(entryOpen()).toBe(true)
+
+    router.back()
+    await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({ q: 'buddha' }))
+    await flushPromises()
+
+    expect(entryOpen()).toBe(false)
+    expect(page().vm.selectedTerm).toBe('')
+  })
+
+  it('should open the entry again when Forward returns to the route with a term', async () => {
+    await mountAt('/search?q=buddha')
+    await results()[1].trigger('click')
+    await flushPromises()
+    router.back()
+    await vi.waitFor(() => expect(entryOpen()).toBe(false))
+
+    router.forward()
+    await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({ q: 'buddha', term: KA }))
+    await flushPromises()
+
+    expect(headword().text()).toBe(KA)
+  })
+
+  it('should push a query typed while an entry is open', async () => {
+    await mountAt('/search?q=buddha&term=' + encodeURIComponent(KA))
+    spyOnRouter()
+
+    await input().setValue('letter')
+    await vi.waitFor(() => expect(push).toHaveBeenCalledTimes(1), { timeout: 2000 })
+
+    expect(push).toHaveBeenCalledWith({ path: '/search', query: { q: 'letter' } })
+    expect(replace).not.toHaveBeenCalled()
+  })
+
+  it('should return to the entry with Back after a query typed while it was open', async () => {
+    await mountAt('/search?q=buddha&term=' + encodeURIComponent(KA))
+    await input().setValue('letter')
+    await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({ q: 'letter' }), { timeout: 2000 })
+    await flushPromises()
+
+    router.back()
+    await vi.waitFor(() => expect(router.currentRoute.value.query).toEqual({ q: 'buddha', term: KA }))
+    await flushPromises()
+
+    expect(input().element.value).toBe('buddha')
+    expect(headword().text()).toBe(KA)
+  })
+
+  it('should replace the route with a query typed while no entry is open', async () => {
+    await mountAt('/search?q=buddha')
+    spyOnRouter()
+
+    await input().setValue('letter')
+    await vi.waitFor(() => expect(replace).toHaveBeenCalledTimes(1), { timeout: 2000 })
+
+    expect(replace).toHaveBeenCalledWith({ path: '/search', query: { q: 'letter' } })
+    expect(push).not.toHaveBeenCalled()
+  })
+
+  it('should keep the open term when the × of the dictionary chip is used', async () => {
+    await mountAt('/search?dict=MyGlossary&q=buddha&term=' + encodeURIComponent(KA))
+    expect(only().exists()).toBe(true)
+
+    await only().find('button').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.query).toEqual({ q: 'buddha', term: KA })
+    expect(headword().text()).toBe(KA)
+  })
+
+  it('should show the entry of the term of the route when mounted on it', async () => {
+    await mountAt('/search?q=buddha&term=' + encodeURIComponent(SANGS_RGYAS))
+    expect(headword().text()).toBe(SANGS_RGYAS)
+    expect(input().element.value).toBe('buddha')
+  })
+
+  describe('on a phone', () => {
+    beforeEach(() => {
+      window.innerWidth = 390
+    })
+
+    it('should show the entry full screen when mounted on a route with a term', async () => {
+      await mountAt('/search?q=buddha&term=' + encodeURIComponent(SANGS_RGYAS))
+      expect(shown(entryPane())).toBe(true)
+      expect(shown(resultsPane())).toBe(false)
+      expect(headword().text()).toBe(SANGS_RGYAS)
+    })
+
+    it('should show the results when Back returns to the route without a term', async () => {
+      await mountAt('/search?q=buddha')
+      await results()[1].trigger('click')
+      await flushPromises()
+      expect(shown(entryPane())).toBe(true)
+
+      router.back()
+      await vi.waitFor(() => expect(shown(resultsPane())).toBe(true))
+
+      expect(shown(entryPane())).toBe(false)
+    })
+
+    it('should open the entry full screen when another page returns to a route with a term', async () => {
+      await mountAt('/search?q=buddha')
+      await go('/reader')
+      await go('/search?q=buddha&term=' + encodeURIComponent(KA))
+
+      expect(shown(entryPane())).toBe(true)
+      expect(shown(resultsPane())).toBe(false)
+    })
+
+    it('should read Back and go back when the entry was reached from another entry', async () => {
+      await mountAt('/search?q=buddha')
+      await results()[1].trigger('click')
+      await flushPromises()
+      historyState.back = '/search?q=buddha&term=' + encodeURIComponent(SANGS_RGYAS)
+      await nextTick()
+      const link = wrapper.get('[data-testid="search-back"]')
+      expect(link.text()).toBe('Back')
+      const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+      spyOnRouter()
+
+      await link.trigger('click')
+
+      expect(back).toHaveBeenCalledTimes(1)
+      expect(replace).not.toHaveBeenCalled()
+    })
+
+    it('should read Search and go back when the previous place is the same results', async () => {
+      await mountAt('/search?q=buddha')
+      await results()[1].trigger('click')
+      await flushPromises()
+      historyState.back = searchPath({ q: 'buddha' })
+      await nextTick()
+      const link = wrapper.get('[data-testid="search-back"]')
+      expect(link.text()).toBe('Search')
+      const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+      spyOnRouter()
+
+      await link.trigger('click')
+
+      expect(back).toHaveBeenCalledTimes(1)
+      expect(replace).not.toHaveBeenCalled()
+    })
+
+    it('should read Search and replace the route with the results when the previous place is elsewhere', async () => {
+      await mountAt('/search?q=buddha&term=' + encodeURIComponent(KA))
+      historyState.back = '/reader'
+      await nextTick()
+      const link = wrapper.get('[data-testid="search-back"]')
+      expect(link.text()).toBe('Search')
+      const back = vi.spyOn(router, 'back').mockImplementation(() => {})
+      spyOnRouter()
+
+      await link.trigger('click')
+      await flushPromises()
+
+      expect(back).not.toHaveBeenCalled()
+      expect(replace).toHaveBeenCalledWith(searchPath({ q: 'buddha' }))
+      expect(router.currentRoute.value.query).toEqual({ q: 'buddha' })
+      expect(shown(resultsPane())).toBe(true)
+    })
   })
 })

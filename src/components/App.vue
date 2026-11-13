@@ -11,6 +11,7 @@ import UpdateService from "../services/update-service";
 import AudioPlayerService from "../services/audio-player-service";
 import ResizeService from "../services/resize-service";
 import { isTauri, supportsModularPacks } from "../config/platform";
+import { goBack, goForward, trackHistory } from "../services/navigation-history";
 import { navigateTo, shortcutPaths } from "../config/navigation";
 import { initDocumentTheme, watchSystemTheme } from "../services/theme";
 import * as ScrollMemory from "../services/scroll-memory";
@@ -139,6 +140,16 @@ export default {
         this.snackbar.open(html);
       });
     },
+    // The mouse's side buttons: Back and Forward. A browser does it itself;
+    // the app's web view does not
+    addListenerForMouseBackForward() {
+      if (!isTauri()) return;
+      this._onMouseBackForward = (event) => {
+        if (event.button === 3) goBack(this.$router);
+        else if (event.button === 4) goForward(this.$router);
+      };
+      window.addEventListener("mouseup", this._onMouseBackForward);
+    },
     addListenerForDefinitionLinks() {
       var vm = this;
       $(document).on("click", ".definition a[href^='/define/']", function(event) {
@@ -161,6 +172,13 @@ export default {
             if (vm.showOnboarding || otherDialog) return;
             event.preventDefault();
             toggleHelp(topicForRoute(vm.$route));
+            return;
+          }
+          // Cmd/Ctrl+[ and ]: Back and Forward, as in a browser
+          if ((event.ctrlKey || event.metaKey) && (event.key === "[" || event.key === "]")) {
+            event.preventDefault();
+            if (event.key === "[") goBack(vm.$router);
+            else goForward(vm.$router);
             return;
           }
           // Support both Ctrl (Windows/Linux) and Cmd (Mac)
@@ -243,12 +261,16 @@ export default {
     ResizeService.subscribe('app', () => this.handleResize());
     this.setupTibdictDragDrop();
     this.keepScrollPositions();
+    this._stopHistory = trackHistory(this.$router);
+    this.addListenerForMouseBackForward();
   },
   async unmounted() {
     EventHandlers.remove("tabs-shortcuts");
     this._unwatchSystemTheme?.();
     this._unwatchRouteBefore?.();
     this._unwatchRouteAfter?.();
+    this._stopHistory?.();
+    window.removeEventListener("mouseup", this._onMouseBackForward);
     ResizeService.unsubscribe('app');
     if (GlobalLookup.isSupported()) {
       await GlobalLookup.cleanup();

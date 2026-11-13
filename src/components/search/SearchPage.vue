@@ -8,6 +8,7 @@ import { recordTerm } from '../../services/history';
 import { TIBETAN_CHAR_RE, plural } from '../../services/quick-lookup';
 import { highlightSearchTerms, parseSearchQuery } from '../../services/search-query';
 import { readLookupState, storePreviousQuery, writeLookupState } from '../../services/lookup-state';
+import { historyState, isEntryLocation } from '../../services/navigation-history';
 import { tibetanLookupKey } from '../../utils';
 import { UiButton, UiIcon, UiResizeHandle } from '../../ui';
 import MobileResponsiveMixin from '../mixins/MobileResponsiveMixin';
@@ -23,7 +24,9 @@ import SearchField from './SearchField.vue';
 // stay in view.
 // The route carries the query: /search?q=<query>; `dict=<name>` keeps it to
 // one dictionary's definitions (Dictionaries' "Search its definitions") until
-// its ×. The old /search/<query> and /lookup?mode=en links are redirected
+// its ×; `term=<term>` is the entry open, so that Back from a link followed
+// in it comes back to it. Opening a result is a new place in the history;
+// typing replaces the place (the query runs after a pause), Enter adds one. The old /search/<query> and /lookup?mode=en links are redirected
 // here by the router. The last query is kept in `lookupState`.
 // The query runs on Enter or after a pause. A query that is a Tibetan term
 // offers to look it up in Lookup; nothing is converted from one page to the
@@ -86,6 +89,11 @@ export default {
     showingEntry() {
       return this.isMobile && this.mobileShowDefinition && !!this.selectedTerm;
     },
+    // Phone: the entry was reached from another entry (a link in it), so
+    // its back link goes back there rather than to the results
+    backToEntry() {
+      return isEntryLocation(historyState.back);
+    },
     // The highlighted result: the one moved to, else the one open
     highlightedTerm() {
       return this.activeTerm || this.selectedTerm;
@@ -115,6 +123,10 @@ export default {
       // Back to Search from another page: beforeRouteEnter's restoreRoute
       if (!route.query.q && !route.query.dict && !from?.path.startsWith('/search')) return;
       this.applyRoute(route);
+      // On a phone: back from an entry to the results, the results show;
+      // back to an entry from another page (a link followed in it), the entry
+      if (!route.query.term) this.showTermsList();
+      else if (!from?.path.startsWith('/search')) this.setMobileShowDefinition(true);
     },
   },
   created() {
@@ -123,6 +135,7 @@ export default {
     // applying the bare route would forget it first
     const { path, query } = this.$route;
     if (path === '/search' && (query.q || query.dict)) this.applyRoute(this.$route);
+    if (path === '/search' && query.term) this.setMobileShowDefinition(true);
   },
   mounted() {
     this._onFocusLookup = () => {
@@ -147,10 +160,8 @@ export default {
       this.onlyDictionary = route.query.dict || '';
       // A dictionary's "Search its definitions" keeps the query there was
       if (!query && route.query.dict) return;
-      if (query !== this.query) {
-        this.selectedTerm = '';
-        this.activeTerm = '';
-      }
+      if (query !== this.query) this.activeTerm = '';
+      this.selectedTerm = route.query.term || '';
       // A query run after a pause comes back trimmed: what is typed stays
       if ((this.text || '').trim() !== query) this.text = query;
       this.query = query;
@@ -160,22 +171,27 @@ export default {
     restoreRoute(to) {
       const query = this.query || readLookupState().query;
       if (!query && !this.onlyDictionary) return;
-      this.$router.replace({ path: '/search', query: { ...to.query, ...this.routeQuery(query) }, hash: to.hash });
+      const term = this.query ? this.selectedTerm : '';
+      this.$router.replace({ path: '/search', query: { ...to.query, ...this.routeQuery(query, term) }, hash: to.hash });
     },
-    // A route's query: the query, and the dictionary kept to
-    routeQuery(query) {
+    // A route's query: the query, the dictionary kept to, the entry open
+    routeQuery(query, term = '') {
       return {
         ...(query ? { q: query } : {}),
         ...(this.onlyDictionary ? { dict: this.onlyDictionary } : {}),
+        ...(term ? { term } : {}),
       };
     },
     // After a pause in typing, the query runs (not kept in the previous
-    // queries until Enter or a result is chosen)
+    // queries until Enter or a result is chosen). It replaces the place in
+    // the history, unless an entry was open there: Back returns to it.
     runTypedQuery() {
       if (this.$route.path !== '/search') return;
       const query = (this.text || '').trim();
       if (!query || query === this.query) return;
-      this.$router.replace({ path: '/search', query: this.routeQuery(query) });
+      const target = { path: '/search', query: this.routeQuery(query) };
+      if (this.$route.query.term) this.$router.push(target);
+      else this.$router.replace(target);
     },
     search() {
       const query = (this.text || '').trim();
@@ -190,21 +206,26 @@ export default {
       this.search();
     },
     onSelect(term) {
-      this.selectedTerm = term;
       this.activeTerm = term;
+      if (term !== this.$route.query.term) {
+        this.$router.push({ path: '/search', query: this.routeQuery(this.query, term) });
+      }
       recordTerm(term);
       // The query led somewhere: it is worth keeping
       storePreviousQuery(this.query);
       this.setMobileShowDefinition(true);
     },
-    // The phone's back link: the field and the results as they were
-    backToResults() {
-      this.showTermsList();
+    // The phone's back link: the entry a link was followed from; else the
+    // results, as they were before the entry opened
+    goBackFromEntry() {
+      const results = this.$router.resolve({ path: '/search', query: this.routeQuery(this.query) }).fullPath;
+      if (this.backToEntry || historyState.back === results) this.$router.back();
+      else this.$router.replace(results);
     },
     // The ×: every dictionary again, the query kept
     searchEveryDictionary() {
       this.onlyDictionary = '';
-      this.$router.replace({ path: '/search', query: this.routeQuery(this.query) });
+      this.$router.replace({ path: '/search', query: this.routeQuery(this.query, this.selectedTerm) });
       this.$nextTick(() => this.focusField());
     },
     lookUp(term) {
@@ -324,8 +345,8 @@ export default {
       <div class="lookup-entry-pane__inner">
         <term-entry v-if="selectedTerm" :term="selectedTerm" :highlight="entryHighlight">
           <template v-if="isMobile" #leading>
-            <button type="button" class="lookup-back" data-testid="search-back" @click="backToResults">
-              <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />Search
+            <button type="button" class="lookup-back" data-testid="search-back" @click="goBackFromEntry">
+              <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />{{ backToEntry ? 'Back' : 'Search' }}
             </button>
           </template>
         </term-entry>

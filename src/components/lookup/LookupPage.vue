@@ -8,6 +8,7 @@ import { recordTerm } from '../../services/history';
 import { TIBETAN_CHAR_RE, plural, termsStartingWith } from '../../services/quick-lookup';
 import { initialTypedWylie, nextTypedWylie, typedWylieFor } from '../../services/typed-wylie';
 import { readLookupState, writeLookupState } from '../../services/lookup-state';
+import { historyState, isEntryLocation } from '../../services/navigation-history';
 import { UiIcon, UiResizeHandle } from '../../ui';
 import MobileResponsiveMixin from '../mixins/MobileResponsiveMixin';
 import PaneWidthMixin from '../mixins/PaneWidthMixin';
@@ -36,6 +37,9 @@ import HelpButton from '../help/HelpButton.vue';
 // the results; a tapped result shows its entry full screen with a back link
 // (MobileResponsiveMixin's mobileShowDefinition, as Define did).
 // Keyboard: Up/Down move through the results, Escape clears the field.
+// History: a term opened by a click, a link or a hint is a new place, which
+// Back returns from; the terms selected while typing or moving with Up/Down
+// replace one another, so Back skips them (see openTerm).
 export default {
   name: 'LookupPage',
   mixins: [
@@ -90,6 +94,11 @@ export default {
     showingEntry() {
       return this.isMobile && this.mobileShowDefinition && !!this.selectedTerm;
     },
+    // Phone: the entry was reached from another entry (a link in it), so
+    // its back link goes back there rather than to the results
+    backToEntry() {
+      return isEntryLocation(historyState.back);
+    },
   },
   watch: {
     text(value) {
@@ -108,6 +117,14 @@ export default {
     $route(route, from) {
       // Kept alive while another page is open: its routes are not Lookup's
       if (!route.path.startsWith('/lookup')) return;
+      // Back to an empty Lookup (left by Escape): empty again. Coming from
+      // another page, a bare route is beforeRouteEnter's restoreIfEmpty's.
+      if (!route.params.term && from?.path.startsWith('/lookup')) {
+        this.text = '';
+        this.selectedTerm = '';
+        this.showTermsList();
+        return;
+      }
       this.applyRoute(route);
       // A term another page links to (Reader's "Open entry"): on a phone the
       // entry opens, not the list. Typing and tapping inside Lookup decide
@@ -173,12 +190,19 @@ export default {
     selectFirstMatch() {
       if (!this.$route.path.startsWith('/lookup')) return;
       const [first] = this.matches;
-      if (first) this.openTerm(first);
+      if (first) this.openTerm(first, { typed: true });
       else this.selectedTerm = '';
     },
-    openTerm(term) {
+    // `typed`: selected while typing or with Up/Down. The first such term
+    // after a click or a link is a new place in the history; the ones after
+    // it replace it, as does a term typed into an emptied Lookup.
+    openTerm(term, { typed = false } = {}) {
       const path = '/lookup/' + encodeURIComponent(term);
-      if (this.$route.path !== path) this.$router.push({ path });
+      if (this.$route.path !== path) {
+        const replace = typed && (this.$route.path === '/lookup' || this.$route.fullPath === this._typedPath);
+        this._typedPath = typed ? this.$router.resolve({ path }).fullPath : null;
+        this.$router[replace ? 'replace' : 'push']({ path });
+      }
       // The route has the term, but it was unselected meanwhile (the field
       // emptied by hand): select it again
       else if (term !== this.selectedTerm) this.selectTerm(term);
@@ -189,9 +213,11 @@ export default {
       this.openTerm(term);
       this.setMobileShowDefinition(true);
     },
-    // The phone's back link: the field and the results as they were
-    backToResults() {
-      this.showTermsList();
+    // The phone's back link: the entry a link was followed from, else the
+    // field and the results as they were
+    goBackFromEntry() {
+      if (this.backToEntry) this.$router.back();
+      else this.showTermsList();
     },
     // The hint: what was typed, searched in the definitions
     searchDefinitions(text) {
@@ -200,7 +226,7 @@ export default {
     selectSibling(step) {
       const index = this.matches.indexOf(this.selectedTerm);
       const next = this.matches[index + step];
-      if (index + step >= 0 && next) this.openTerm(next);
+      if (index + step >= 0 && next) this.openTerm(next, { typed: true });
     },
     restoreIfEmpty(to) {
       if (this.text) return;
@@ -287,8 +313,8 @@ export default {
       <div class="lookup-entry-pane__inner">
         <term-entry v-if="selectedTerm" :term="selectedTerm">
           <template v-if="isMobile" #leading>
-            <button type="button" class="lookup-back" data-testid="lookup-back" @click="backToResults">
-              <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />Lookup
+            <button type="button" class="lookup-back" data-testid="lookup-back" @click="goBackFromEntry">
+              <ui-icon name="chevron-left" :size="22" :stroke-width="2.4" />{{ backToEntry ? 'Back' : 'Lookup' }}
             </button>
           </template>
         </term-entry>
