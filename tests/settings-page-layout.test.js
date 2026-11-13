@@ -1,7 +1,7 @@
 /**
  * The Settings page: the glossary and dictionaries rows (phone), its groups
- * (General, Quick lookup, Offline content, About, Help) with the index that
- * leads to them on desktop, and the help dialogs.
+ * (General, Quick lookup, Offline content, About; Help on a phone) with the
+ * index that leads to them on desktop.
  *
  * Services are mocked; `env` switches between the browser build and the app
  * (Tauri), and between desktop and phone widths.
@@ -142,10 +142,10 @@ afterEach(() => {
 })
 
 describe('SettingsPage — groups', () => {
-  it('should list General, Offline content and Help in a browser, nothing about dictionaries', async () => {
+  it('should list General and Offline content in a browser, nothing about dictionaries', async () => {
     await mountSettings()
     expect(wrapper.find('h1').text()).toBe('Settings')
-    expect(groupTitles()).toEqual(['General', 'Offline content', 'Help'])
+    expect(groupTitles()).toEqual(['General', 'Offline content'])
     expect(wrapper.find('[data-testid="dictionary-list"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="dictionary-packs"]').exists()).toBe(false)
   })
@@ -153,7 +153,7 @@ describe('SettingsPage — groups', () => {
   it('should add Quick lookup and About in the desktop app', async () => {
     env.tauri = true
     await mountSettings()
-    expect(groupTitles()).toEqual(['General', 'Quick lookup', 'Offline content', 'About', 'Help'])
+    expect(groupTitles()).toEqual(['General', 'Quick lookup', 'Offline content', 'About'])
   })
 
   it('should keep the scanned dictionaries and the recordings together under Offline content', async () => {
@@ -185,24 +185,22 @@ describe('SettingsPage — groups', () => {
     expect(byTestId('about-credits').text()).toContain('Christian Steinert')
   })
 
-  it('should open the help panel on the topic of each help row', async () => {
-    const { helpState, closeHelp } = await import('../src/services/help')
+  it('should leave the help to the sidebar on desktop', async () => {
     await mountSettings()
-    const help = byTestId('settings-help')
-    const cases = [
-      ['typing', 'Typing Tibetan and Wylie', 'typing'],
-      ['lookup', 'Looking up a word', 'lookup'],
-      ['search', 'Searching the definitions', 'search'],
-      ['reader', 'Reading a text', 'reader'],
-      ['all', 'All help topics', null],
-    ]
-    for (const [id, title, topic] of cases) {
-      closeHelp()
-      const row = help.find(`[data-testid="settings-help-${id}"]`)
-      expect(row.text()).toContain(title)
-      await row.trigger('click')
-      expect(helpState).toMatchObject({ open: true, topic })
-    }
+    expect(byTestId('settings-help').exists()).toBe(false)
+    expect(byTestId('settings-index').text()).not.toContain('Help')
+  })
+
+  it('should end with one Help row on a phone, which opens every topic', async () => {
+    const { helpState, closeHelp } = await import('../src/services/help')
+    closeHelp()
+    env.mobile = true
+    await mountSettings()
+    expect(groupTitles().at(-1)).toBe('Help')
+    const rows = byTestId('settings-help').findAll('[data-testid^="settings-help-"]')
+    expect(rows).toHaveLength(1)
+    await rows[0].trigger('click')
+    expect(helpState).toMatchObject({ open: true, topic: null })
     closeHelp()
   })
 
@@ -218,15 +216,15 @@ describe('SettingsPage — index (desktop)', () => {
     env.tauri = true
     await mountSettings()
     expect(byTestId('settings-index').findAll('a').map((link) => link.text())).toEqual([
-      'General', 'Quick lookup', 'Offline content', 'About', 'Help',
+      'General', 'Quick lookup', 'Offline content', 'About',
     ])
   })
 
   it('should take the reader to a group and mark it as the current one', async () => {
     await mountSettings()
-    const link = byTestId('settings-index').findAll('a').find((anchor) => anchor.text() === 'Help')
+    const link = byTestId('settings-index').findAll('a').find((anchor) => anchor.text() === 'Offline content')
     await link.trigger('click')
-    expect(scrolled).toEqual(['settings-help'])
+    expect(scrolled).toEqual(['settings-offline'])
     expect(link.attributes('aria-current')).toBe('true')
   })
 
@@ -271,24 +269,24 @@ describe('SettingsPage — on a phone', () => {
 
 describe('SettingsPage — links to a group', () => {
   it('should land on a group from a link to it', async () => {
-    await mountSettings('/settings#settings-help')
-    expect(scrolled).toContain('settings-help')
+    await mountSettings('/settings#settings-offline')
+    expect(scrolled).toContain('settings-offline')
   })
 
   it('should land on a group when Settings is already alive and the link is followed', async () => {
     await mountSettings('/settings')
-    expect(scrolled).not.toContain('settings-help')
-    await router.push('/settings#settings-help')
+    expect(scrolled).not.toContain('settings-offline')
+    await router.push('/settings#settings-offline')
     await flushPromises()
-    expect(scrolled).toContain('settings-help')
+    expect(scrolled).toContain('settings-offline')
   })
 
   it('should scroll back to the group when its link is followed again from further down', async () => {
-    await mountSettings('/settings#settings-help')
+    await mountSettings('/settings#settings-offline')
     scrolled.length = 0
     window._triggerEvent('route-refollowed')
     await flushPromises()
-    expect(scrolled).toEqual(['settings-help'])
+    expect(scrolled).toEqual(['settings-offline'])
   })
 
   it('should scroll back to the top when the bare Settings link is followed again', async () => {
@@ -301,7 +299,7 @@ describe('SettingsPage — links to a group', () => {
   })
 
   it('should leave the scroll alone on a refollow while Settings is not the active route', async () => {
-    await mountSettings('/settings#settings-help')
+    await mountSettings('/settings#settings-offline')
     await router.push('/glossary')
     await flushPromises()
     scrolled.length = 0
@@ -313,9 +311,9 @@ describe('SettingsPage — links to a group', () => {
   it('should read a hash with quotes as an id, never as a selector', async () => {
     await mountSettings('/settings')
     scrolled.length = 0
-    // Read as a selector, it would also match the help group (and a browser
+    // Read as a selector, it would also match the offline group (and a browser
     // throws on most quotes)
-    await router.push('/settings#x"],[id="settings-help')
+    await router.push('/settings#x"],[id="settings-offline')
     await flushPromises()
     await expect(wrapper.findComponent(SettingsPage).vm.scrollToHash()).resolves.toBeUndefined()
     expect(scrolled).toEqual([])

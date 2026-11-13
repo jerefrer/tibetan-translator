@@ -18,7 +18,8 @@ import { plural } from './pack-summary';
 // Settings, and nothing else (boards DesktopSettings, MobileSettings): each
 // setting a row, its name and a line of explanation on the left, its control
 // on the right, in a few groups. General, Quick lookup (the desktop app),
-// Offline content (scans and recordings), About (the app) and Help.
+// Offline content (scans and recordings), About (the app), and on a phone
+// Help, one row to the help's topics (a desktop has Help in its sidebar).
 // Dictionaries, their packs and their order are on the Dictionaries page.
 //
 // Desktop: a column of groups, an index of them on its left. Phone: the
@@ -48,16 +49,6 @@ export default {
     };
   },
   computed: {
-    helpRows() {
-      // Each opens the help panel on its topic
-      return [
-        { id: 'typing', title: 'Typing Tibetan and Wylie' },
-        { id: 'lookup', title: 'Looking up a word' },
-        { id: 'search', title: 'Searching the definitions' },
-        { id: 'reader', title: 'Reading a text' },
-        { id: 'all', title: 'All help topics' },
-      ];
-    },
     // The groups shown, in order, for the index
     sections() {
       return [
@@ -65,7 +56,6 @@ export default {
         GlobalLookup.isSupported() && { id: 'settings-quick-lookup', title: 'Quick lookup' },
         { id: 'settings-offline', title: 'Offline content' },
         isTauri() && { id: 'settings-about', title: 'About' },
-        { id: 'settings-help', title: 'Help' },
       ].filter(Boolean);
     },
     glossaryStatus() {
@@ -201,14 +191,13 @@ export default {
 
         <about-card />
 
-        <settings-group id="settings-help" title="Help" data-testid="settings-help">
+        <settings-group v-if="isMobile" id="settings-help" title="Help" data-testid="settings-help">
           <settings-row
-            v-for="help in helpRows"
-            :key="help.id"
-            :title="help.title"
+            title="Help topics"
+            description="Typing Wylie, looking up, searching, reading, your glossary"
             clickable
-            :data-testid="'settings-help-' + help.id"
-            @click="openHelp(help.id === 'all' ? null : help.id)"
+            data-testid="settings-help-topics"
+            @click="openHelp()"
           />
         </settings-group>
       </div>

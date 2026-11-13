@@ -99,7 +99,7 @@ src/
     reader/            # Reader: editor, words with their expressions, word panel / sheet
     entry/             # TermEntry: one term's page (In short, dictionary tabs, definitions), shared by Lookup and Reader
     dictionaries/      # DictionariesPage: packs, the dictionaries in lookup order (switches, reordering, undo), the selected one's detail
-    settings/          # SettingsPage (General, Quick lookup, Offline content, About, Help) built from SettingsGroup / SettingsRow
+    settings/          # SettingsPage (General, Quick lookup, Offline content, About; Help on a phone) built from SettingsGroup / SettingsRow
     mixins/            # MobileResponsiveMixin, InfiniteScrollMixin
   ui/                  # Component library (UiButton, UiDialog, UiTibetanField...), icons.js, showcase at /ui-showcase (dev only)
   services/            # Core services (database, packs, search, theme, etc.)
@@ -127,12 +127,12 @@ Routes are defined in `src/router.js`. Lookup, Reader and Settings on a phone (t
 
 - `/lookup/:term?` - LookupPage: one field with a **བོད / EN** switch. `/lookup/<term>` selects a Tibetan term (བོད); `/lookup?mode=en&q=<query>` searches the definitions (EN); `&dict=<name>` keeps that search to one dictionary (Dictionaries' "Search its definitions") until its × or a switch to བོད. What was looked up last is kept under `lookupState`
 - `/reader` - ReaderPage (paste or type a text, read it word by word)
-- `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About, Help); on a phone also the My glossary and Dictionaries rows
+- `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About); on a phone also the My glossary and Dictionaries rows, and Help
 - `/dictionaries` - DictionariesPage: everything about dictionaries (packs, which are on, their order, what each holds). It writes Storage's `dictionaries`, the order and switches lookups read; `?find=` and `?status=` set its search and filter, `?dictionary=` selects one. On a phone opening a dictionary pushes that `?dictionary=`, so Android's Back (the web view's history, see wry's `WryActivity`) closes it
 - `/glossary/:packId?/:dictionaryId?` - LexiconPage (My glossary): the title is the glossary picker, its menu creates, adds and removes glossaries (GlossaryActions); spreadsheets come in through SpreadsheetDropDialog (HTML5 drop, Tauri's own drag and drop being off)
 - `/saved` - SavedPage: every saved term (the sidebar shows the eight newest), to search, list newest first or in Tibetan order, copy or clear
 
-**Help** is one dialog for the whole app (`src/components/help/HelpDialog.vue`, topics in `HelpTopic.vue`, state in `src/services/help.js`), opened on the topic of the screen: the sidebar's Help, F1 or Cmd/Ctrl+/ on desktop, the "?" beside Lookup's and Reader's titles on a phone, and Settings' help rows. A feature that changes needs its topic changed.
+**Help** is one dialog for the whole app (`src/components/help/HelpDialog.vue`, topics in `HelpTopic.vue`, state in `src/services/help.js`), opened on the topic of the screen: the sidebar's Help, F1 or Cmd/Ctrl+/ on desktop, the "?" beside Lookup's and Reader's titles on a phone, and the Help row at the end of Settings on a phone. A feature that changes needs its topic changed.
 
 The former routes redirect, keeping query and hash: `/define/<term>` to `/lookup/<term>`, `/search/<query>` to `/lookup?mode=en&q=<query>`, `/segment` to `/reader`, `/lexicon/...` to `/glossary/...`, and the former Library routes (`/library`, `/library/settings`, `/library/glossary/...`, `/library/dictionaries`) to `/settings`, `/glossary/...` and `/dictionaries`. The former Settings links `/settings?view=preferences`, `/settings#dictionary-order` and `/settings?find=...` land on `/dictionaries`. Links inside definitions are still `/define/<term>` (decorator.js and App.vue rely on it), so they open Lookup on that term.
 
