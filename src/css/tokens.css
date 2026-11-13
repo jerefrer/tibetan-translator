@@ -2,7 +2,8 @@
  * Design tokens for the redesigned interface.
  *
  * Colours: palette 6 "Reference" (neutral ground, ink-blue accent for what can
- * be tapped, Tibetan in the logo's dark red as --rubric). Sizes and names come
+ * be tapped, Tibetan in the logo's dark red as --rubric, in gold on the dark
+ * theme). Sizes and names come
  * from the "B" boards in docs/redesign/mockups.
  *
  * The theme is selected by `data-theme="light" | "dark"` on <html>
@@ -160,7 +161,9 @@
   --accent-soft: #1E2A3D;
   --accent-line: #2F4A78;
   --on-accent: #0B1530;
-  --rubric: #F08A80;
+  /* Gold ink on the dark page, as Tibetan written in gold on dark paper: the
+     light theme's red, lightened, read as the danger colour */
+  --rubric: #D9B36C;
   --ring: #1C2A44;
 
   --amber-bg: #3A2E10;

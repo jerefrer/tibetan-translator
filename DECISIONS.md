@@ -137,3 +137,12 @@
 **Why:** Readers expect བསྒྲུབ་ under ག, not under its prefix བ. The collation keeps paging and search in SQLite as they were. A plain-letter syllable is ambiguous (དགས་ dgas or dags): three letters read as prefix + root when the first can prefix the second, the rule the converters follow.
 **Trade-offs:** Two implementations to keep alike; the fixture catches a divergence only on the words it holds. Sanskrit stacks and malformed syllables get a stable but approximate place (after the readable syllables of their first letter).
 **Revisit if:** a maintained Tibetan collation appears (ICU, a crate, an npm package), or the two implementations drift.
+
+---
+
+## 2026-11-13 — Tibetan in gold on the dark theme
+**Chosen:** User decision: `--rubric` is gold (`#D9B36C`) on the dark theme; the light theme keeps the logo's dark red.
+**Alternatives:** The lightened red it had (`#F08A80`); a vermilion (`#E5735E`); a duller red (`#D27A70`).
+**Why:** Lightened enough to read on the dark ground, the red turned salmon, nearly the dark theme's danger colour (`--danger-ink: #FF9A8D`): every Tibetan word looked like an error, and a list of them shouted. Gold keeps the idea of the light theme (red ink on paper becomes gold ink on dark paper, as precious Tibetan texts are written) and contrasts about 9:1 with the page.
+**Trade-offs:** Gold is near the amber of notices and search hits; hits are filled blocks with dark text, Tibetan is coloured text without a ground, so they stay apart.
+**Revisit if:** amber text (not a filled block) comes to sit beside Tibetan.
