@@ -350,4 +350,16 @@ describe('keyboard shortcuts', () => {
     expect(wrapper.vm.$route.fullPath).toBe('/settings')
     spy.mockRestore()
   })
+
+  it('should open and close the help on F1 and Cmd+/, on the topic of the screen', async () => {
+    const { helpState, closeHelp } = await import('../src/services/help')
+    closeHelp()
+    await mountApp()
+    await finishLoading()
+    await wrapper.vm.$router.push('/reader')
+    $(window).trigger($.Event('keydown', { key: 'F1' }))
+    expect(helpState).toMatchObject({ open: true, topic: 'reader' })
+    $(window).trigger($.Event('keydown', { key: '/', metaKey: true }))
+    expect(helpState.open).toBe(false)
+  })
 })

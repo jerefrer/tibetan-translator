@@ -17,6 +17,7 @@ import PaneWidthMixin from '../mixins/PaneWidthMixin';
 import ReaderEditor from './ReaderEditor.vue';
 import ReaderText from './ReaderText.vue';
 import ReaderWordPanel from './ReaderWordPanel.vue';
+import HelpButton from '../help/HelpButton.vue';
 
 // The passage the empty Reader offers to try (as Split did)
 const EXAMPLE_TEXT = 'སངས་རྒྱས་ཆོས་དང་ཚོགས་ཀྱི་མཆོག་རྣམས་ལ།';
@@ -47,6 +48,7 @@ export default {
     PaneWidthMixin({ storageKey: 'readerPanelWidth', cssVariable: '--reader-panel-width', min: 320, reserve: 400 }),
   ],
   components: {
+    HelpButton,
     ReaderEditor,
     ReaderText,
     ReaderWordPanel,
@@ -402,7 +404,7 @@ export default {
             :aria-pressed="showWylie ? 'true' : 'false'"
             data-testid="reader-show-wylie"
             @click="showWylie = !showWylie"
-          >{{ isMobile ? 'Wylie' : 'Show Wylie' }}</ui-button>
+          ><ui-icon name="a-large-small" :size="15" />{{ isMobile ? 'Wylie' : 'Show Wylie' }}</ui-button>
           <ui-button
             variant="outline"
             size="sm"
@@ -415,7 +417,9 @@ export default {
           >
             <ui-icon name="x" :size="16" />
           </ui-button>
+          <help-button v-if="isMobile" />
         </div>
+        <help-button v-else-if="isMobile" />
       </header>
 
       <div class="reader-body">
@@ -440,7 +444,7 @@ export default {
             <section v-if="recent.length" class="reader-recent" aria-label="Recent texts">
               <div class="reader-section-head">
                 <h2 class="reader-section-label">Recent texts</h2>
-                <ui-button variant="ghost" size="sm" data-testid="reader-recent-clear" @click="clearRecent">Clear</ui-button>
+                <ui-button variant="ghost" size="sm" data-testid="reader-recent-clear" @click="clearRecent"><ui-icon name="trash-2" :size="15" />Clear</ui-button>
               </div>
               <ui-list class="reader-recent__list" data-testid="reader-recent">
                 <ui-list-item

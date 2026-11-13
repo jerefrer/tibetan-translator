@@ -21,6 +21,8 @@ import SelectedTibetanEntriesPopup from "./SelectedTibetanEntriesPopup.vue";
 import OnboardingScreen from "./OnboardingScreen.vue";
 import CustomPackConflictModal from "./CustomPackConflictModal.vue";
 import AppNav from "./AppNav.vue";
+import HelpDialog from "./help/HelpDialog.vue";
+import { helpState, toggleHelp, topicForRoute } from "../services/help";
 import { UiSpinner, UiToast } from "../ui";
 
 import "../css/tokens.css";
@@ -40,6 +42,7 @@ if (Storage.get("keepLongestOnly") == undefined)
 export default {
   components: {
     AppNav,
+    HelpDialog,
     SelectedTibetanEntriesPopup,
     OnboardingScreen,
     CustomPackConflictModal,
@@ -148,6 +151,15 @@ export default {
         id: "tabs-shortcuts",
         type: "keydown",
         callback(event) {
+          // F1 or Ctrl/Cmd+/: the help, on the topic of the screen. Not over
+          // the first-launch screen or another dialog
+          if (event.key === "F1" || ((event.ctrlKey || event.metaKey) && event.key === "/")) {
+            const otherDialog = !helpState.open && document.querySelector('[role="dialog"]');
+            if (vm.showOnboarding || otherDialog) return;
+            event.preventDefault();
+            toggleHelp(topicForRoute(vm.$route));
+            return;
+          }
           // Support both Ctrl (Windows/Linux) and Cmd (Mac)
           if (event.ctrlKey || event.metaKey) {
             const path = paths[event.key.toLowerCase()];
@@ -286,6 +298,8 @@ export default {
         </router-view>
       </main>
     </div>
+
+    <help-dialog />
 
     <!-- Rendered at the app level so drag-drop confirmation works on every page -->
     <CustomPackConflictModal

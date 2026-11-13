@@ -3,11 +3,12 @@ import UiIcon from '../ui/UiIcon.vue';
 import { navItemsFor, activeNavId, REFOLLOW_EVENT } from '../config/navigation';
 import { recentTerms } from '../services/history';
 import { savedTerms } from '../services/saved-terms';
+import { helpState, toggleHelp, topicForRoute } from '../services/help';
 
 const RECENT_LIMIT = 8;
 
 // Desktop: a sidebar with the app name, Lookup / Reader, My glossary / Dictionaries, the recent
-// and saved terms, and Settings at the bottom.
+// and saved terms, and Help and Settings at the bottom.
 // Phone: a bottom bar with Lookup, Reader and Settings.
 export default {
   name: 'AppNav',
@@ -21,6 +22,7 @@ export default {
     return {
       recent: recentTerms().slice(0, RECENT_LIMIT),
       saved: savedTerms(),
+      help: helpState,
     };
   },
   computed: {
@@ -59,6 +61,9 @@ export default {
     },
     refreshRecent() {
       this.recent = recentTerms().slice(0, RECENT_LIMIT);
+    },
+    toggleHelp() {
+      toggleHelp(topicForRoute(this.$route));
     },
     refreshSaved() {
       this.saved = savedTerms();
@@ -162,22 +167,37 @@ export default {
 
       <div class="app-nav__spacer" />
 
-      <router-link v-slot="{ href, navigate }" to="/settings" custom>
-        <a
-          :href="href"
+      <div class="app-nav__items">
+        <button
+          type="button"
           class="app-nav__item"
-          :class="{ 'is-active': activeId === 'settings' }"
-          :aria-current="activeId === 'settings' ? 'page' : undefined"
-          data-testid="nav-settings"
-          @click="followSettings($event, navigate)"
+          :class="{ 'is-active': help.open }"
+          :aria-pressed="help.open ? 'true' : 'false'"
+          title="Help (F1)"
+          data-testid="nav-help"
+          @click="toggleHelp"
         >
-          <span class="app-nav__icon">
-            <ui-icon name="settings" :size="18" />
-            <span v-if="updateReady" class="app-nav__dot" data-testid="nav-update-dot" />
-          </span>
-          Settings
-        </a>
-      </router-link>
+          <span class="app-nav__icon"><ui-icon name="circle-help" :size="18" /></span>
+          Help
+        </button>
+
+        <router-link v-slot="{ href, navigate }" to="/settings" custom>
+          <a
+            :href="href"
+            class="app-nav__item"
+            :class="{ 'is-active': activeId === 'settings' }"
+            :aria-current="activeId === 'settings' ? 'page' : undefined"
+            data-testid="nav-settings"
+            @click="followSettings($event, navigate)"
+          >
+            <span class="app-nav__icon">
+              <ui-icon name="settings" :size="18" />
+              <span v-if="updateReady" class="app-nav__dot" data-testid="nav-update-dot" />
+            </span>
+            Settings
+          </a>
+        </router-link>
+      </div>
     </template>
   </nav>
 </template>
@@ -194,6 +214,10 @@ export default {
 
 .app-nav__item {
   box-sizing: border-box;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
   color: var(--ink);
   text-decoration: none;
   cursor: pointer;

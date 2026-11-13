@@ -137,4 +137,15 @@ describe('AppNav', () => {
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/reader')
   })
+
+  it('should open the help on the topic of the page from the sidebar, and close it again', async () => {
+    const { helpState, closeHelp } = await import('../src/services/help')
+    closeHelp()
+    const { wrapper } = await mountNav('/reader')
+    await wrapper.find('[data-testid="nav-help"]').trigger('click')
+    expect(helpState).toMatchObject({ open: true, topic: 'reader' })
+    expect(wrapper.find('[data-testid="nav-help"]').attributes('aria-pressed')).toBe('true')
+    await wrapper.find('[data-testid="nav-help"]').trigger('click')
+    expect(helpState.open).toBe(false)
+  })
 })

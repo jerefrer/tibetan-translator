@@ -26,6 +26,7 @@ import HeadwordResults from './HeadwordResults.vue';
 import LookupField from './LookupField.vue';
 import LookupHints from './LookupHints.vue';
 import LookupHome from './LookupHome.vue';
+import HelpButton from '../help/HelpButton.vue';
 
 // The dictionaries as they bear on results: which are on, in which order
 function dictionariesSignature() {
@@ -63,6 +64,7 @@ export default {
   components: {
     DefinitionResults,
     HeadwordResults,
+    HelpButton,
     LookupField,
     LookupHints,
     LookupHome,
@@ -433,7 +435,11 @@ export default {
   >
     <div v-show="!showingEntry" class="lookup-results-pane" data-testid="lookup-results-pane">
       <div class="lookup-page__head">
-        <h1 class="lookup-page__title" :class="{ 'ui-visually-hidden': !isMobile }">Lookup</h1>
+        <div v-if="isMobile" class="lookup-page__title-row">
+          <h1 class="lookup-page__title">Lookup</h1>
+          <help-button />
+        </div>
+        <h1 v-else class="lookup-page__title ui-visually-hidden">Lookup</h1>
         <lookup-field
           ref="field"
           v-model="text"
@@ -534,6 +540,12 @@ export default {
   gap: var(--space-3);
   padding: var(--space-4);
   border-bottom: 1px solid var(--line-soft);
+}
+
+.lookup-page__title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .lookup-page__title {
