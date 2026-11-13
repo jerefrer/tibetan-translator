@@ -215,6 +215,9 @@ export default {
 }
 
 .lookup-home__gloss {
+  /* Room for Tibetan stacks and vowels inside the clipped line, the row no taller */
+  padding-block: 0.4em;
+  margin-block: -0.4em;
   flex: 0 1 45%;
   min-width: 0;
   font-size: var(--text-sm);

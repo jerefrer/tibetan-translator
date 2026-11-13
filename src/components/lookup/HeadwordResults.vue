@@ -163,6 +163,9 @@ export default {
 }
 
 .lookup-result__gloss {
+  /* Room for Tibetan stacks and vowels inside the clipped line, the row no taller */
+  padding-block: 0.4em;
+  margin-block: -0.4em;
   min-height: 1.2em;
   font-size: var(--text-sm);
   color: var(--muted);

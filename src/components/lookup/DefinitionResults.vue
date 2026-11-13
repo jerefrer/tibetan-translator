@@ -3,7 +3,7 @@ import { SEARCH_GROUPS_BATCH_SIZE, INFINITE_SCROLL_ROOT_MARGIN_LARGE } from '../
 import SqlDatabase from '../../services/sql-database';
 import Storage from '../../services/storage';
 import Decorator from '../../services/decorator';
-import { plainGloss } from '../../services/glosses';
+import { hasTibetan, plainGloss } from '../../services/glosses';
 import { getScanInfo } from '../../services/scan-service';
 import { plural } from '../../services/quick-lookup';
 import {
@@ -125,6 +125,7 @@ export default {
     this._searchToken = (this._searchToken || 0) + 1;
   },
   methods: {
+    hasTibetan,
     async search() {
       const query = (this.query || '').trim();
       const token = (this._searchToken = (this._searchToken || 0) + 1);
@@ -235,7 +236,7 @@ export default {
             <span class="lookup-result__count" data-testid="lookup-result-count">{{ group.count }}</span>
           </span>
           <!-- Plain text escaped by highlightedGloss, only <em> added -->
-          <span class="lookup-result__gloss" data-testid="lookup-result-gloss" v-html="group.gloss" />
+          <span class="lookup-result__gloss" :class="{ 'has-tibetan': hasTibetan(group.gloss) }" data-testid="lookup-result-gloss" v-html="group.gloss" />
         </div>
         <div ref="loadMoreSentinel" class="lookup-results__sentinel" aria-hidden="true">
           <ui-spinner v-if="hasMore" :size="20" label="Loading more results" />
@@ -310,10 +311,16 @@ export default {
   color: var(--ink);
 }
 
+/* Two lines that hold Tibetan need room for its stacks and vowels: the
+   clamp cuts at the line boxes, so they are made tall enough */
+.lookup-result__gloss.has-tibetan {
+  line-height: 1.95;
+}
+
 .lookup-result__gloss :deep(.lookup-result__gloss-tibetan) {
   font-family: var(--font-tibetan);
-  font-size: 1.15em;
-  line-height: 1;
+  font-size: 1.1em;
+  line-height: inherit;
 }
 
 .lookup-results__sentinel {

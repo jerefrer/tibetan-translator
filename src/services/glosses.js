@@ -18,6 +18,11 @@ if (typeof window !== 'undefined') {
   window.addEventListener('dictionaries-updated', clearGlossCache);
 }
 
+/** Whether a gloss holds Tibetan, which needs taller lines than Latin text. */
+export function hasTibetan(text) {
+  return /[\u0F00-\u0FFF]/.test(text || '');
+}
+
 /** The definition as one line of plain text, cut on a word with an ellipsis. */
 export function plainGloss(definitionHtml, maxLength = 120) {
   const text = decodeEntities((definitionHtml || '').replace(/<[^>]*>/g, ' '))
