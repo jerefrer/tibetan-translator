@@ -98,7 +98,8 @@ src/
     lookup/            # Lookup: LookupPage, LookupField (བོད / EN switch), results, hints, home
     reader/            # Reader: editor, words with their expressions, word panel / sheet
     entry/             # TermEntry: one term's page (In short, dictionary tabs, definitions), shared by Lookup and Reader
-    settings/          # SettingsPage (collections on a phone, general, downloads, dictionary preferences, help) and its cards
+    dictionaries/      # DictionariesPage: packs, the dictionaries in lookup order (switches, reordering, undo), the selected one's detail
+    settings/          # SettingsPage (General, Quick lookup, Offline content, About, Help) built from SettingsGroup / SettingsRow
     mixins/            # MobileResponsiveMixin, InfiniteScrollMixin
   ui/                  # Component library (UiButton, UiDialog, UiTibetanField...), icons.js, showcase at /ui-showcase (dev only)
   services/            # Core services (database, packs, search, theme, etc.)
@@ -126,10 +127,14 @@ Routes are defined in `src/router.js`. Lookup, Reader and Settings on a phone (t
 
 - `/lookup/:term?` - LookupPage: one field with a **བོད / EN** switch. `/lookup/<term>` selects a Tibetan term (བོད); `/lookup?mode=en&q=<query>` searches the definitions (EN). What was looked up last is kept under `lookupState`
 - `/reader` - ReaderPage (paste or type a text, read it word by word)
-- `/settings` - SettingsPage (general, downloads, dictionary preferences at `#dictionary-order`, help; on a phone also the My glossary and Dictionaries rows)
-- `/glossary/:packId?/:dictionaryId?` - LexiconPage; `/dictionaries` - DictionariesPage
+- `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About, Help); on a phone also the My glossary and Dictionaries rows
+- `/dictionaries` - DictionariesPage: everything about dictionaries (packs, which are on, their order, what each holds). It writes Storage's `dictionaries`, the order and switches lookups read; `?find=` and `?status=` set its search and filter
+- `/glossary/:packId?/:dictionaryId?` - LexiconPage (My glossary): the title is the glossary picker, its menu creates, adds and removes glossaries (GlossaryActions); spreadsheets come in through SpreadsheetDropDialog (HTML5 drop, Tauri's own drag and drop being off)
+- `/saved` - SavedPage: every saved term (the sidebar shows the eight newest), to search, sort, copy or clear
 
-The former routes redirect, keeping query and hash: `/define/<term>` to `/lookup/<term>`, `/search/<query>` to `/lookup?mode=en&q=<query>`, `/segment` to `/reader`, `/lexicon/...` to `/glossary/...`, and the former Library routes (`/library`, `/library/settings`, `/library/glossary/...`, `/library/dictionaries`) to `/settings`, `/glossary/...` and `/dictionaries`. The former Settings links `/settings?view=preferences` and `/settings?find=...` land on `/settings#dictionary-order` and `/dictionaries`. Links inside definitions are still `/define/<term>` (decorator.js and App.vue rely on it), so they open Lookup on that term.
+**Help** is one dialog for the whole app (`src/components/help/HelpDialog.vue`, topics in `HelpTopic.vue`, state in `src/services/help.js`), opened on the topic of the screen: the sidebar's Help, F1 or Cmd/Ctrl+/ on desktop, the "?" beside Lookup's and Reader's titles on a phone, and Settings' help rows. A feature that changes needs its topic changed.
+
+The former routes redirect, keeping query and hash: `/define/<term>` to `/lookup/<term>`, `/search/<query>` to `/lookup?mode=en&q=<query>`, `/segment` to `/reader`, `/lexicon/...` to `/glossary/...`, and the former Library routes (`/library`, `/library/settings`, `/library/glossary/...`, `/library/dictionaries`) to `/settings`, `/glossary/...` and `/dictionaries`. The former Settings links `/settings?view=preferences`, `/settings#dictionary-order` and `/settings?find=...` land on `/dictionaries`. Links inside definitions are still `/define/<term>` (decorator.js and App.vue rely on it), so they open Lookup on that term.
 
 App.vue uses `<keep-alive>` for all route components, keyed on the first path segment (every page has its own). This means pages are **not destroyed** when navigating away. Use the `activated()` lifecycle hook (not `mounted()`) for actions that should run each time a page becomes visible, and guard route watchers on the page's own path (`this.$route.path.startsWith('/lookup')`): a page kept alive still sees the other pages' routes.
 
@@ -166,7 +171,8 @@ Pack lifecycle is managed by `PackManager` (`src/services/pack-manager.js`). Aft
 All components use **Options API** with **mixins** for shared logic:
 
 - `DictionariesDetailsMixin` - Dictionary metadata and abbreviation lookups
-- `DictionariesMenuMixin` - The dictionaries of the current results, as enabled and ordered in Settings (TermEntry)
+- `DictionariesMenuMixin` - The dictionaries of the current results, as enabled and ordered on the Dictionaries page (TermEntry)
+- `mixins/PaneWidthMixin` - the width of a pane whose divider was dragged (Lookup, Reader)
 - `mixins/MobileResponsiveMixin`, `mixins/InfiniteScrollMixin` - phone layout and infinite scroll
 
 Screens are built from the `src/ui` components (`import { UiButton, UiDialog } from '../ui'`), never from raw Reka UI. They are styled only with the tokens (`var(--accent)`, `var(--space-4)`, `var(--text-sm)`...), so light and dark both work; the theme is `data-theme="light|dark"` on `<html>`, set by `src/services/theme.js`. Icons are `<ui-icon name="...">` with Lucide names; `src/ui/icons.js` registers each one used (and keeps `mdi-*` aliases only for custom-pack manifests). The app-level toast is the injected `snackbar` (`this.snackbar.open(html)`), rendered by `UiToast` in App.vue.

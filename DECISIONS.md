@@ -95,3 +95,37 @@
 **Why:** Screens and reading habits differ too much for one width to suit everyone. The 2px brackets with 11px hit areas could hardly be clicked, and nothing showed which words a bracket covered before clicking it.
 **Trade-offs:** Taller lanes add space under every line of a text that has expressions. A width chosen in a large window is capped, not kept, in a smaller one.
 **Revisit if:** the lanes make long texts feel loose, or users ask for more than one stored layout.
+
+---
+
+## 2026-11-13 — Folio: Dictionaries, Settings and My glossary redrawn
+**Chosen:** User decision, on mockups added to the Folio canvas (boards DesktopDictionaries, DesktopGlossary, DesktopSettings and their phone versions):
+- **Dictionaries** is the one place for dictionaries: the packs (install with confirmation, update, remove; the update check also runs quietly when the page opens), the dictionaries in lookup order with their switches and handles, those of packs not installed, and a detail pane (sources, languages, subjects, place in lookups, Move to top / bottom, Install). It replaces DictionaryCatalog, Settings' Dictionary preferences and PackManagerCard. On desktop, Up/Down select, Alt+Up/Down move the selected dictionary, Ctrl/Cmd+Z undoes a move or a switch and Ctrl+Y / Ctrl/Cmd+Shift+Z redoes.
+- **Settings** holds settings only, as rows (name and a line of explanation on the left, control on the right) in groups: General, Quick lookup, Offline content, About, Help; on desktop an index of the groups on the left. Scans and recordings fold under one row each (open in the desktop app, folded on a phone and in a browser).
+- **My glossary**: the title is the glossary picker; its menu lists the glossaries and creates (empty, from a spreadsheet, a .tibdict file) or removes them. CustomPackSection became GlossaryActions, the dialogs without the list. With no glossary, the page offers the three ways to start.
+**Alternatives:** Keeping the existing cards in new frames (what the first Folio pass did); a Settings sub-page per group on desktop.
+**Why:** The first pass had restyled these screens without designing them. Dictionaries were managed in two places (order and switches in Settings, browsing and packs in Dictionaries), a pack could be installed from three places with three behaviours, a dictionary's "about" had three renderings, and My glossary showed its own name twice, once in a wrapping dropdown.
+**Trade-offs:** "Search its definitions" from a dictionary's detail, proposed on the mockups, needs a per-dictionary filter in Lookup's English search and was left for later. The undo history lives with the page and is lost on relaunch.
+**Revisit if:** users look for the dictionary order in Settings, or ask for undo across sessions.
+
+---
+
+## 2026-11-13 — Folio: one help panel, a Saved page, a searchable dictionary filter
+**Chosen:** User decisions, picked among proposals:
+- **Help** becomes one panel for the whole app instead of three tabbed dialogs reachable only from Settings. It opens on the topic of the screen, from the sidebar's Help, F1 or Cmd/Ctrl+/ on desktop (beside the page, which stays usable), and from a "?" by the Lookup and Reader titles or Settings' rows on a phone (over the screen). Topics are short; a field finds them, including by words they do not use (`phonetic`, `csv`); search examples are buttons that run them.
+- **Saved** gets its page (`/saved`: search in Tibetan, Wylie or gloss, Tibetan or recent order, copy as a tab-separated list, Clear all with Undo). The sidebar shows eight terms per section, a × to forget or unsave one, Clear for Recent, and folds each section (remembered).
+- **The entry's dictionary tabs** become one filter, "All dictionaries · N", whose list can be searched and shows each dictionary's count. Two dictionaries sharing a name are told apart by their languages.
+**Alternatives:** Help: keep the dialogs and add a "?" per screen. Saved: sidebar changes only, or drop Saved. Tabs: a table of contents beside the entry that scrolls to a dictionary, or nothing.
+**Why:** The help was split in three and hidden in Settings. Saved grew without limit in the sidebar with no way to clear it. Tabs could not hold twenty dictionaries: two or three fitted, the rest went to a long menu that could not be searched.
+**Trade-offs:** The filter hides the other dictionaries rather than scrolling to one. The help's text is now the app's to keep up to date: a feature that changes needs its topic changed.
+**Revisit if:** users ask to jump to a dictionary while keeping the others in view, or for help topics in other languages.
+
+---
+
+## 2026-11-13 — Folio: the help is a dialog after all; no Tibetan order in Saved yet
+**Chosen:** User decision: the help panel beside the page became a dialog, the topics on the left and the one chosen on the right (a list, then a topic, on a phone). Saved lists the newest first only; its "Tibetan order" option is gone.
+**Alternatives:** Keeping the side panel (the page stays usable while reading); an overlay drawer.
+**Why:** Beside Lookup's three panes the panel made four columns, all of them too narrow at common window widths. Trying an example while reading was the panel's one advantage; the dialog keeps the examples, and closes to show their result. `Intl.Collator('bo')` has no Tibetan rules in ICU: it sorts by code point, filing བསྒྲུབ་ under its prefix བ instead of its root letter ག, which is not the order Tibetan readers expect.
+**Trade-offs:** The help covers the page while it is open. Saved cannot be browsed in dictionary order.
+**Revisit if:** a root-letter sort key is written (prefix, superscript, root, subscript, vowel), which would also serve Saved and the glossary.
+
