@@ -224,7 +224,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 - **Styles**: `src/ui` and new code use plain CSS (`<style>`, sometimes `scoped`) on the tokens; some older components still use `lang="stylus"`. Both are fine, do not convert for the sake of it. `src/css/reset.css` is the base reset of the main window (formerly Vuetify's); the quick lookup window does not load it
 - **jQuery** is used in older code (App.vue event delegation, scroll management)
 - **Underscore.js** for debounce, utility functions
-- Keyboard shortcuts: `Cmd/Ctrl+D` (Define), `Cmd/Ctrl+S` (Search), `Cmd/Ctrl+K` (focus the field of Define, or of Search when it is open), `Cmd/Ctrl+T` (Reader), `Cmd/Ctrl+G` (Settings), `Cmd/Ctrl+[` and `]` (Back, Forward)
+- Keyboard shortcuts: `Cmd/Ctrl+D` (Define), `Cmd/Ctrl+S` (Search), `Cmd/Ctrl+K` (focus the field of Define, or of Search when it is open), `Cmd/Ctrl+E` (Reader), `Cmd/Ctrl+1`, `2`, `3` (Define, Search, Reader, read from `event.code` so AZERTY works), `Cmd/Ctrl+G` (Settings), `Cmd/Ctrl+[` and `]` (Back, Forward)
 - Mobile breakpoint: `600px` (`window.innerWidth <= 600`)
 - Theme: light/dark with system preference detection, stored as `themePreference` in localStorage and applied by `src/services/theme.js`; Text size is `fontSize` (a percentage of the root font size), so sizes in rem follow it
 

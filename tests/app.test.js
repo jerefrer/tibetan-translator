@@ -336,6 +336,25 @@ describe('keyboard shortcuts', () => {
     expect(wrapper.vm.$route.path).toBe('/define')
   })
 
+  it('should go to Reader on Cmd+E', async () => {
+    await mountApp()
+    await finishLoading()
+    $(window).trigger($.Event('keydown', { key: 'e', metaKey: true }))
+    await vi.waitFor(() => expect(wrapper.vm.$route.path).toBe('/reader'))
+  })
+
+  it('should go to Define, Search and Reader on Cmd+1, 2 and 3, by the key pressed on any layout', async () => {
+    await mountApp()
+    await finishLoading()
+    // An AZERTY keyboard gives "é" and "\"" for the 2 and 3 keys: their code is what counts
+    $(window).trigger($.Event('keydown', { key: '"', code: 'Digit3', metaKey: true }))
+    await vi.waitFor(() => expect(wrapper.vm.$route.path).toBe('/reader'))
+    $(window).trigger($.Event('keydown', { key: 'é', code: 'Digit2', ctrlKey: true }))
+    await vi.waitFor(() => expect(wrapper.vm.$route.path).toBe('/search'))
+    $(window).trigger($.Event('keydown', { key: '1', code: 'Digit1', metaKey: true }))
+    await vi.waitFor(() => expect(wrapper.vm.$route.path).toBe('/define'))
+  })
+
   it('should go to Settings on Cmd+G, and ask Settings to scroll back when already there', async () => {
     await mountApp()
     await finishLoading()

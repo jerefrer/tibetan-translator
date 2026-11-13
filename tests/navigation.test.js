@@ -5,6 +5,7 @@ import {
   activeNavId,
   routeSegment,
   shortcutPaths,
+  digitShortcutPaths,
 } from '../src/config/navigation.js'
 
 describe('navigation config', () => {
@@ -50,11 +51,18 @@ describe('navigation config', () => {
     expect(activeNavId('/tests', false)).toBe('')
   })
 
-  it('should keep the existing shortcuts D, T and G pointing at the new destinations', () => {
+  it('should map Cmd+E to Reader and Cmd+G to Settings', () => {
     const paths = shortcutPaths()
-    expect(paths.d).toBe('/define')
-    expect(paths.t).toBe('/reader')
+    expect(paths.e).toBe('/reader')
     expect(paths.g).toBe('/settings')
+  })
+
+  it('should no longer map Cmd+T, which a browser keeps for a new tab', () => {
+    expect(shortcutPaths().t).toBeUndefined()
+  })
+
+  it('should map the digit keys 1, 2 and 3 to Define, Search and Reader, in the order of the menu', () => {
+    expect(digitShortcutPaths()).toEqual({ Digit1: '/define', Digit2: '/search', Digit3: '/reader' })
   })
 
   it('should map Cmd+D to Define', () => {

@@ -12,7 +12,7 @@ import AudioPlayerService from "../services/audio-player-service";
 import ResizeService from "../services/resize-service";
 import { isTauri, supportsModularPacks } from "../config/platform";
 import { goBack, goForward, trackHistory } from "../services/navigation-history";
-import { navigateTo, shortcutPaths } from "../config/navigation";
+import { digitShortcutPaths, navigateTo, shortcutPaths } from "../config/navigation";
 import { initDocumentTheme, watchSystemTheme } from "../services/theme";
 import * as ScrollMemory from "../services/scroll-memory";
 
@@ -161,6 +161,7 @@ export default {
     addListenersForKeyboardTabNavigation() {
       var vm = this;
       const paths = shortcutPaths();
+      const digitPaths = digitShortcutPaths();
       EventHandlers.add({
         id: "tabs-shortcuts",
         type: "keydown",
@@ -183,7 +184,7 @@ export default {
           }
           // Support both Ctrl (Windows/Linux) and Cmd (Mac)
           if (event.ctrlKey || event.metaKey) {
-            const path = paths[event.key.toLowerCase()];
+            const path = digitPaths[event.code] || paths[event.key.toLowerCase()];
             if (path) {
               event.preventDefault();
               if (path === "focus-lookup") {

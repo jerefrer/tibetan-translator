@@ -11,7 +11,7 @@
 export const NAV_ITEMS = [
   { id: 'lookup', label: 'Define', path: '/define', icon: 'search', group: 'tools', mobile: true, shortcut: 'D' },
   { id: 'search', label: 'Search', path: '/search', icon: 'text-search', group: 'tools', mobile: true, shortcut: 'S' },
-  { id: 'reader', label: 'Reader', path: '/reader', icon: 'align-left', group: 'tools', mobile: true, shortcut: 'T' },
+  { id: 'reader', label: 'Reader', path: '/reader', icon: 'align-left', group: 'tools', mobile: true, shortcut: 'E' },
   { id: 'glossary', label: 'My glossary', path: '/glossary', icon: 'notebook-pen', group: 'collections', mobile: false, parent: 'settings' },
   { id: 'dictionaries', label: 'Dictionaries', path: '/dictionaries', icon: 'book-open', group: 'collections', mobile: false, parent: 'settings' },
   // On desktop Settings is the sidebar's bottom link, not an item of the list
@@ -62,7 +62,8 @@ export const HELP_SHORTCUTS = [
   { key: 'D', text: 'Define a Tibetan term' },
   { key: 'S', text: 'Search the definitions (Search)' },
   { key: 'K', text: 'Put the cursor in the field of Define, or of Search when it is open' },
-  { key: 'T', text: 'Go to Reader' },
+  { key: 'E', text: 'Go to Reader' },
+  { key: '1 2 3', text: 'Go to Define, Search or Reader, in the order of the menu' },
   { key: 'G', text: 'Go to Settings' },
   { key: '[', text: 'Back, where you were before (the mouse’s back button too)' },
   { key: ']', text: 'Forward again' },
@@ -80,5 +81,18 @@ export function shortcutPaths() {
     if (item.shortcut) map[item.shortcut.toLowerCase()] = item.path;
   });
   map.k = 'focus-lookup';
+  return map;
+}
+
+/**
+ * Cmd/Ctrl + 1, 2, 3 -> Define, Search, Reader, the sidebar's tools in order.
+ * Keyed on `event.code`, the key pressed: on AZERTY the same keys give "&",
+ * "é" and "\"" as `event.key`.
+ */
+export function digitShortcutPaths() {
+  const map = {};
+  NAV_ITEMS.filter((item) => item.group === 'tools' && item.desktop !== false).forEach((item, index) => {
+    map[`Digit${index + 1}`] = item.path;
+  });
   return map;
 }
