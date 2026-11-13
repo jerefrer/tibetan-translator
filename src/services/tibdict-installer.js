@@ -1,8 +1,9 @@
 /**
  * TibdictInstaller — shared install orchestration for .tibdict files.
  *
- * Both the "Import…" button (in CustomPackSection) and the window-wide
- * drag-and-drop handler (in App.vue) go through this module, so they share:
+ * Both "Add a .tibdict file…" (My glossary's title menu, GlossaryActions)
+ * and the window-wide drag-and-drop handler (in App.vue) go through this
+ * module, so they share:
  *   - the same conflict-confirmation modal
  *   - the same snackbar messages
  *   - the same error classification

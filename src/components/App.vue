@@ -83,6 +83,9 @@ export default {
       };
       const onDrop = async (e) => {
         if (!e.dataTransfer?.files?.length) return;
+        // Dragging files over the window is allowed (above), so a file the
+        // app does not take would otherwise be opened in its place
+        e.preventDefault();
         const files = Array.from(e.dataTransfer.files);
         const tibdicts = files.filter((f) => f.name.toLowerCase().endsWith('.tibdict'));
         if (!tibdicts.length) return;

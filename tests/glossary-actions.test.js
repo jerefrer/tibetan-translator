@@ -1,5 +1,6 @@
 /**
- * CustomPackSection Component Tests
+ * GlossaryActions: what is done to the user's glossaries as a whole (formerly
+ * CustomPackSection, now driven by My glossary's title menu).
  *
  * Covers the final-review fix (BLOCKING 2): removing a custom dictionary used
  * to call PackManager.removeCustomPack() straight from the delete icon's
@@ -36,6 +37,7 @@ vi.mock('../src/services/pack-manager', () => ({
 
 const createMock = vi.fn()
 const applyImportMock = vi.fn()
+const readSpreadsheetMock = vi.fn()
 
 vi.mock('../src/services/lexicon', async (importOriginal) => {
   const actual = await importOriginal()
@@ -45,11 +47,12 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
       ...actual.default,
       create: (...args) => createMock(...args),
       applyImport: (...args) => applyImportMock(...args),
+      readSpreadsheet: (...args) => readSpreadsheetMock(...args),
     },
   }
 })
 
-import CustomPackSection from '../src/components/CustomPackSection.vue'
+import GlossaryActions from '../src/components/GlossaryActions.vue'
 
 const snackbar = { open: vi.fn() }
 
@@ -68,7 +71,7 @@ const EDITED_PACK = {
   },
 }
 
-describe('CustomPackSection', () => {
+describe('GlossaryActions', () => {
   beforeEach(() => {
     customPacks = [PACK]
     removeCustomPackMock.mockReset().mockResolvedValue(undefined)
@@ -84,7 +87,7 @@ describe('CustomPackSection', () => {
   })
 
   const mountSection = () =>
-    mount(CustomPackSection, {
+    mount(GlossaryActions, {
       global: {
         provide: { snackbar },
         mocks: { $router: { push: vi.fn() } },
@@ -104,7 +107,7 @@ describe('CustomPackSection', () => {
     await nextTick()
 
     expect(removeCustomPackMock).not.toHaveBeenCalled()
-    expect(document.body.textContent).toContain('Remove dictionary?')
+    expect(document.body.textContent).toContain('Remove glossary?')
     expect(document.body.textContent).toContain('My Lexicon')
 
     wrapper.unmount()
@@ -173,7 +176,7 @@ describe('CustomPackSection', () => {
     findButton('Remove').click()
     await flushPromises()
 
-    expect(snackbar.open).toHaveBeenCalledWith('Could not remove this dictionary.')
+    expect(snackbar.open).toHaveBeenCalledWith('Could not remove this glossary.')
     expect(wrapper.vm.removing).toBe(false)
 
     wrapper.unmount()
@@ -187,7 +190,7 @@ describe('CustomPackSection', () => {
  * user has confirmed both the preview and the name, or backing out of either
  * would leave an empty dictionary behind.
  */
-describe('CustomPackSection — create from a spreadsheet', () => {
+describe('GlossaryActions — create from a spreadsheet', () => {
   const GRID = {
     sheetName: 'vocabulaire',
     headers: ['A', 'B'],
@@ -210,13 +213,28 @@ describe('CustomPackSection — create from a spreadsheet', () => {
   })
 
   const mountSection = () =>
-    mount(CustomPackSection, {
+    mount(GlossaryActions, {
       global: {
         provide: { snackbar },
         mocks: { $router: { push: vi.fn() } },
       },
       attachTo: document.body,
     })
+
+  it('asks for the spreadsheet in the drop dialog, then previews the file dropped there', async () => {
+    readSpreadsheetMock.mockResolvedValue(GRID)
+    const wrapper = mountSection()
+    wrapper.vm.onCreateFromSpreadsheet()
+    await flushPromises()
+    expect(document.body.querySelector('[data-testid="drop-zone"]')).not.toBeNull()
+
+    const file = new File(['x'], 'vocabulaire.xlsx')
+    wrapper.findComponent({ name: 'SpreadsheetDropDialog' }).vm.$emit('file', file)
+    await flushPromises()
+    expect(readSpreadsheetMock).toHaveBeenCalledWith([120], 'vocabulaire.xlsx')
+    expect(wrapper.vm.importOpen).toBe(true)
+    expect(createMock).not.toHaveBeenCalled()
+  })
 
   it('creates nothing while the preview is merely open', async () => {
     const wrapper = mountSection()
@@ -278,35 +296,25 @@ describe('CustomPackSection — create from a spreadsheet', () => {
   })
 })
 
-describe('CustomPackSection — list and empty state', () => {
+describe('GlossaryActions — empty state and the name dialog', () => {
   afterEach(() => {
     document.body.innerHTML = ''
   })
 
   const mountSection = (router = { push: vi.fn() }) =>
-    mount(CustomPackSection, {
+    mount(GlossaryActions, {
       global: { provide: { snackbar }, mocks: { $router: router } },
       attachTo: document.body,
     })
 
-  it('lists each pack with its version and opens its entries from Manage entries', async () => {
-    customPacks = [PACK]
-    const router = { push: vi.fn() }
-    const wrapper = mountSection(router)
-
-    const row = wrapper.get('[data-testid="custom-pack"]')
-    expect(row.text()).toContain('My Lexicon')
-    expect(row.text()).toContain('v1.0.0')
-
-    await wrapper.get('[data-testid="custom-pack-manage"]').trigger('click')
-    expect(router.push).toHaveBeenCalledWith('/glossary/custom-mine')
-    wrapper.unmount()
-  })
-
-  it('still offers all three ways in when there is no dictionary yet', () => {
+  it('offers all three ways in when the page has no glossary yet', () => {
     customPacks = []
-    const wrapper = mountSection()
-    expect(wrapper.text()).toContain("You don't have a dictionary of your own yet.")
+    const wrapper = mount(GlossaryActions, {
+      props: { showEmpty: true },
+      global: { provide: { snackbar }, mocks: { $router: { push: vi.fn() } } },
+      attachTo: document.body,
+    })
+    expect(wrapper.text()).toContain("You don't have a glossary yet")
     for (const testid of ['custom-pack-new', 'custom-pack-from-sheet', 'custom-pack-import']) {
       expect(wrapper.find(`[data-testid="${testid}"]`).exists(), testid).toBe(true)
     }

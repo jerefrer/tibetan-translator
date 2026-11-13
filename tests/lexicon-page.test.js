@@ -62,8 +62,9 @@ vi.mock('../src/config/platform.js', () => ({
 }))
 
 // The page also hosts the list of the user's own dictionaries.
+const customPacks = vi.hoisted(() => [])
 vi.mock('../src/services/pack-manager', () => ({
-  default: { customPacks: [], removeCustomPack: vi.fn() },
+  default: { customPacks, removeCustomPack: vi.fn() },
 }))
 
 // Backed by a real Vue ref rather than a plain array: the real
@@ -77,6 +78,7 @@ const dictionariesRef = ref([])
 const editableDictionariesMock = vi.fn(() => dictionariesRef.value)
 const entriesMock = vi.fn()
 const deleteEntryMock = vi.fn()
+const readSpreadsheetMock = vi.fn()
 
 // Mock only the Tauri-backed reads/writes. Keep everything else (normalizeTerm,
 // slugForName, ...) real — none of it is exercised by LexiconPage directly.
@@ -89,6 +91,7 @@ vi.mock('../src/services/lexicon', async (importOriginal) => {
       editableDictionaries: (...args) => editableDictionariesMock(...args),
       entries: (...args) => entriesMock(...args),
       deleteEntry: (...args) => deleteEntryMock(...args),
+      readSpreadsheet: (...args) => readSpreadsheetMock(...args),
     },
   }
 })
@@ -386,24 +389,56 @@ describe('LexiconPage', () => {
       expect(wrapper.find('.page-title').text()).toBe('A')
       expect(wrapper.text()).toContain('ཡེ་ཤེས་')
       expect(wrapper.text()).toContain('compassion')
-      expect(testid(wrapper, 'lexicon-count').text()).toContain('2 entries.')
-      // A single dictionary needs no switcher
-      expect(testid(wrapper, 'lexicon-switcher').exists()).toBe(false)
+      expect(testid(wrapper, 'lexicon-count').text()).toBe('2 entries · searched along with your other dictionaries')
+      expect(wrapper.find('.page-footer__text').text()).toContain('1–2 of 2')
     })
 
-    it('offers the switcher once there is more than one dictionary', async () => {
+    it('lists the glossaries in the title\'s menu, the shown one checked, then what can be done to them', async () => {
       const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
-      expect(testid(wrapper, 'lexicon-switcher').exists()).toBe(true)
+      expect(testid(wrapper, 'lexicon-picker').text()).toBe('A')
+      const items = lexiconPage(wrapper).vm.glossaryMenuItems
+      expect(items.filter((item) => item.key?.startsWith('select:')).map((item) => [item.label, item.icon, item.description])).toEqual([
+        ['A', 'check', '1 entry'],
+        ['B', 'notebook-text', '1 entry'],
+      ])
+      expect(items.filter((item) => item.key && !item.key.startsWith('select:')).map((item) => item.key)).toEqual([
+        'new', 'sheet', 'tibdict', 'remove',
+      ])
+      expect(items.at(-1)).toMatchObject({ label: 'Remove “A”…', danger: true })
+    })
+
+    it('opens another glossary from the title\'s menu', async () => {
+      const { wrapper, router } = await mountShell('/glossary/custom-a', [PACK_A, PACK_B])
+      await lexiconPage(wrapper).vm.onGlossaryMenu({ key: 'select:custom-b:1' })
+      expect(router.currentRoute.value.path).toBe('/glossary/custom-b/1')
+    })
+
+    it('creates, imports and removes glossaries from the title\'s menu', async () => {
+      customPacks.splice(0, customPacks.length, { id: 'custom-a', manifest: { name: 'A' } })
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      const actions = wrapper.findComponent({ name: 'GlossaryActions' }).vm
+      const spies = ['onCreate', 'onCreateFromSpreadsheet', 'onImportClick', 'onRemove'].map((name) => vi.spyOn(actions, name).mockImplementation(() => {}))
+      const page = lexiconPage(wrapper).vm
+      for (const key of ['new', 'sheet', 'tibdict', 'remove']) page.onGlossaryMenu({ key })
+      expect(spies.map((spy) => spy.mock.calls.length)).toEqual([1, 1, 1, 1])
+      expect(spies[3]).toHaveBeenCalledWith(customPacks[0])
+      customPacks.splice(0)
+    })
+
+    it('offers the three ways to start a glossary when there is none', async () => {
+      const { wrapper } = await mountShell('/glossary', [])
+      expect(testid(wrapper, 'glossary-empty').exists()).toBe(true)
+      expect(testid(wrapper, 'lexicon-picker').exists()).toBe(false)
     })
 
     it('says why the list is empty', async () => {
       const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
-      expect(testid(wrapper, 'lexicon-empty-list').text()).toContain('This dictionary is empty')
+      expect(testid(wrapper, 'lexicon-empty-list').text()).toContain('This glossary is empty')
 
       lexiconPage(wrapper).vm.search = 'zzz'
       await nextTick()
       expect(testid(wrapper, 'lexicon-empty-list').text()).toBe('No entry matches this search.')
-      expect(testid(wrapper, 'lexicon-count').text()).toContain('0 entries matching')
+      expect(testid(wrapper, 'lexicon-count').text()).toBe('0 entries matching')
     })
 
     it('opens the entry dialog on a row from its Edit button', async () => {
@@ -448,9 +483,72 @@ describe('LexiconPage', () => {
       expect(saveDialogMock.mock.calls.at(-1)[0].defaultPath).toBe('A.tibdict')
     })
 
-    it('hosts the list of the user\'s own dictionaries', async () => {
+    it('opens the drop dialog from Import, and previews the spreadsheet dropped there', async () => {
+      readSpreadsheetMock.mockResolvedValue({ sheetName: 's', headers: [], rows: [] })
       const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
-      expect(testid(wrapper, 'custom-pack-section').exists()).toBe(true)
+      await testid(wrapper, 'lexicon-import').trigger('click')
+      await flushPromises()
+      expect(document.body.querySelector('[data-testid="drop-zone"]')).not.toBeNull()
+      wrapper.findComponent({ name: 'SpreadsheetDropDialog' }).vm.$emit('file', new File(['y'], 'w.csv'))
+      await flushPromises()
+      expect(readSpreadsheetMock).toHaveBeenCalledWith([121], 'w.csv')
+    })
+
+    it('imports a spreadsheet dropped anywhere on the window, and leaves other files alone', async () => {
+      readSpreadsheetMock.mockResolvedValue({ sheetName: 's', headers: [], rows: [] })
+      await mountShell('/glossary/custom-a', [PACK_A])
+      const drop = (name) => {
+        const event = { dataTransfer: { files: [new File(['y'], name)] }, preventDefault: vi.fn() }
+        window._triggerEvent('drop', event)
+        return event
+      }
+      expect(drop('notes.pdf').preventDefault).not.toHaveBeenCalled()
+      expect(drop('w.xlsx').preventDefault).toHaveBeenCalled()
+      await flushPromises()
+      expect(readSpreadsheetMock).toHaveBeenCalledWith([121], 'w.xlsx')
+    })
+
+    it('leaves a window drop alone while a dialog is open, on another page, or with a .tibdict', async () => {
+      readSpreadsheetMock.mockResolvedValue({ sheetName: 's', headers: [], rows: [] })
+      const { router } = await mountShell('/glossary/custom-a', [PACK_A])
+      const drop = (...names) => {
+        const event = { dataTransfer: { files: names.map((name) => new File(['y'], name)) }, preventDefault: vi.fn() }
+        window._triggerEvent('drop', event)
+        return event
+      }
+
+      const dialog = document.createElement('div')
+      dialog.setAttribute('role', 'dialog')
+      document.body.appendChild(dialog)
+      drop('w.xlsx')
+      dialog.remove()
+
+      drop('w.xlsx', 'mine.tibdict')
+
+      await router.push('/settings')
+      await flushPromises()
+      drop('w.xlsx')
+      await flushPromises()
+      expect(readSpreadsheetMock).not.toHaveBeenCalled()
+    })
+
+    it('keeps the glossary actions without showing their empty state', async () => {
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      expect(testid(wrapper, 'glossary-actions').exists()).toBe(true)
+      expect(testid(wrapper, 'glossary-empty').exists()).toBe(false)
+    })
+
+    it('on a phone, puts Import and Export under the ⋯ menu', async () => {
+      window.innerWidth = 390
+      saveDialogMock.mockResolvedValue(null)
+      const { wrapper } = await mountShell('/glossary/custom-a', [PACK_A])
+      const page = lexiconPage(wrapper).vm
+      expect(page.moreItems.filter((item) => item.key).map((item) => item.label)).toEqual([
+        'Import a spreadsheet…', 'Export as a dictionary file', 'Export as a spreadsheet',
+      ])
+      await page.onMoreMenu({ key: 'xlsx' })
+      expect(saveDialogMock.mock.calls.at(-1)[0].defaultPath).toBe('A.xlsx')
+      expect(testid(wrapper, 'lexicon-import').exists()).toBe(false)
     })
 
     it('on a phone, shows rows as cards that open the entry, with Delete in the dialog', async () => {
