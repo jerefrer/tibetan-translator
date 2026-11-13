@@ -76,7 +76,19 @@ async function mountEntry(props = {}, rows = ROWS) {
 }
 
 const sources = () => wrapper.findAll('[data-testid="entry-source"]')
-const tabs = () => wrapper.findAll('[data-testid="entry-tab"]')
+const filterButton = () => wrapper.find('[data-testid="entry-filter"]')
+const options = () => wrapper.findAll('[data-testid="entry-filter-option"]')
+const optionTexts = () =>
+  options().map((option) => `${option.find('.dict-filter__name').text()} ${option.find('.dict-filter__count').text()}`)
+async function openFilter() {
+  await filterButton().trigger('click')
+  await flushPromises()
+}
+async function chooseDictionary(name) {
+  await openFilter()
+  await options().find((option) => option.text().includes(name)).trigger('click')
+  await flushPromises()
+}
 const sourceNames = () => sources().map((source) => source.find('[data-testid="entry-source-name"]').text())
 
 beforeEach(() => {
@@ -183,93 +195,79 @@ describe('TermEntry', () => {
 
     expect(sourceNames()).toEqual(['Rangjung Yeshe', 'Tsepak Rigdzin'])
     expect(wrapper.find('[data-testid="entry-transcription"]').text()).toContain('3 definitions')
-    expect(tabs().map((tab) => tab.text())).not.toContain('Hopkins')
+    await openFilter()
+    expect(optionTexts().join(' ')).not.toContain('Hopkins')
   })
 
-  it('should filter by a dictionary tab and go back with All', async () => {
+  it('should show every dictionary at first, the filter saying how many definitions', async () => {
     await mountEntry()
-    expect(tabs()).toHaveLength(3)
-
-    await tabs()[1].trigger('click')
-    expect(sourceNames()).toEqual(['Hopkins 2015'])
-    expect(tabs()[1].attributes('aria-selected')).toBe('true')
-
-    await wrapper.find('[data-testid="entry-tab-all"]').trigger('click')
+    expect(filterButton().text()).toBe('All dictionaries · 4')
     expect(sourceNames()).toHaveLength(3)
-    expect(wrapper.find('[data-testid="entry-tab-all"]').text()).toBe('All · 4')
   })
 
-  it('should go back to All when the term changes', async () => {
+  it('should list the dictionaries of the term in the filter, each with its count', async () => {
     await mountEntry()
-    await tabs()[1].trigger('click')
+    await openFilter()
+    expect(optionTexts()).toEqual(['All dictionaries 4', 'Rangjung Yeshe 2', 'Hopkins 2015 1', 'Tsepak Rigdzin 1'])
+    expect(document.activeElement).toBe(wrapper.find('[data-testid="entry-filter-search"]').element)
+  })
+
+  it('should show only the dictionary chosen, then all of them again', async () => {
+    await mountEntry()
+    await chooseDictionary('Hopkins 2015')
+    expect(sourceNames()).toEqual(['Hopkins 2015'])
+    expect(filterButton().text()).toBe('Hopkins 2015 · 1')
+    expect(options()).toHaveLength(0)
+
+    await wrapper.find('[data-testid="entry-filter-clear"]').trigger('click')
+    expect(sourceNames()).toHaveLength(3)
+    expect(filterButton().text()).toBe('All dictionaries · 4')
+  })
+
+  it('should find a dictionary by typing part of its name, without accents', async () => {
+    await mountEntry()
+    await openFilter()
+    await wrapper.find('[data-testid="entry-filter-search"]').setValue('tsepak')
+    expect(optionTexts()).toEqual(['Tsepak Rigdzin 1'])
+    await wrapper.find('[data-testid="entry-filter-search"]').setValue('zzz')
+    expect(wrapper.find('[data-testid="entry-filter-none"]').text()).toBe('No dictionary of this entry matches.')
+  })
+
+  it('should be used from the keyboard: Down and Up to move, Enter to choose, Escape to close', async () => {
+    await mountEntry()
+    await openFilter()
+    const search = wrapper.find('[data-testid="entry-filter-search"]')
+    await search.trigger('keydown', { key: 'ArrowDown' })
+    await search.trigger('keydown', { key: 'ArrowDown' })
+    expect(options()[2].attributes('aria-selected')).toBe('true')
+    await search.trigger('keydown', { key: 'Enter' })
+    expect(sourceNames()).toEqual(['Hopkins 2015'])
+
+    await openFilter()
+    await wrapper.find('[data-testid="entry-filter-search"]').trigger('keydown', { key: 'Escape' })
+    expect(options()).toHaveLength(0)
+    expect(document.activeElement).toBe(filterButton().element)
+  })
+
+  it('should tell apart two dictionaries with the same name by their languages', async () => {
+    const SYN_EN = { id: 7, name: 'Hopkins-Synonyms1992', enabled: true, position: 4 }
+    const SYN_TIB = { id: 8, name: 'Hopkins-TibetanSynonyms1992', enabled: true, position: 5 }
+    Storage.set('dictionaries', [RY, HOPKINS, TSEPAK, SYN_EN, SYN_TIB])
+    await mountEntry({}, [...ROWS, row(SYN_EN, 'a'), row(SYN_TIB, 'b')])
+    await openFilter()
+    const labels = optionTexts().filter((text) => text.startsWith('Hopkins Synonyms'))
+    expect(labels).toHaveLength(2)
+    expect(new Set(labels).size).toBe(2)
+  })
+
+  it('should go back to every dictionary when the term changes', async () => {
+    await mountEntry()
+    await chooseDictionary('Hopkins 2015')
 
     await wrapper.setProps({ term: 'སངས་རྒྱས་' })
     await flushPromises()
 
     expect(sourceNames()).toHaveLength(3)
-  })
-
-  describe('when the tabs do not all fit', () => {
-    let offsetWidth
-    let clientWidth
-    beforeEach(() => {
-      offsetWidth = vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(100)
-      clientWidth = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(300)
-    })
-
-    it('should put dictionaries that do not fit under More', async () => {
-      await mountEntry()
-
-      expect(tabs()).toHaveLength(1)
-      expect(wrapper.find('[data-testid="entry-tabs-more"]').text()).toBe('More…')
-    })
-
-    it('should show every tab and no More when they all fit', async () => {
-      clientWidth.mockReturnValue(900)
-      await mountEntry()
-
-      expect(tabs()).toHaveLength(3)
-      expect(wrapper.find('[data-testid="entry-tabs-more"]').exists()).toBe(false)
-    })
-
-    it('should filter by a dictionary chosen under More', async () => {
-      await mountEntry()
-
-      await wrapper.find('[data-testid="entry-tabs-more"]').trigger('keydown', { key: 'Enter' })
-      await flushPromises()
-      const item = document.body.querySelector('[data-testid="ui-menu-item-dict-3"]')
-      expect(item).not.toBeNull()
-      item.click()
-      await flushPromises()
-
-      expect(sourceNames()).toEqual(['Tsepak Rigdzin'])
-    })
-
-    it('should give More the tab role when it sits in the tab list', async () => {
-      await mountEntry()
-
-      const roles = wrapper.findAll('[role="tablist"] > button').map((button) => button.attributes('role'))
-      expect(roles).toEqual(['tab', 'tab', 'tab'])
-    })
-
-    it('should measure the tabs again when the web fonts have loaded', async () => {
-      let fontsLoaded
-      const ready = new Promise((resolve) => { fontsLoaded = resolve })
-      Object.defineProperty(document, 'fonts', { value: { ready }, configurable: true })
-      try {
-        await mountEntry()
-        expect(tabs()).toHaveLength(1)
-
-        // The web font is narrower than the fallback the first measure saw
-        offsetWidth.mockReturnValue(50)
-        fontsLoaded()
-        await flushPromises()
-
-        expect(tabs()).toHaveLength(3)
-      } finally {
-        delete document.fonts
-      }
-    })
   })
 
   it('should copy every definition shown', async () => {
@@ -286,9 +284,9 @@ describe('TermEntry', () => {
     expect(snackbar.open).toHaveBeenCalledWith('Copied')
   })
 
-  it('should copy only the dictionary of the tab when one is chosen', async () => {
+  it('should copy only the dictionary chosen in the filter', async () => {
     await mountEntry()
-    await tabs()[1].trigger('click')
+    await chooseDictionary('Hopkins 2015')
 
     await wrapper.find('.term-entry__actions [data-testid="entry-copy"]').trigger('click')
     await flushPromises()
@@ -499,14 +497,15 @@ describe('TermEntry — ported from Define', () => {
 })
 
 describe('TermEntry — custom dictionary names', () => {
-  it('should show a custom dictionary name as text in the tabs and the sections', async () => {
+  it('should show a custom dictionary name as text in the filter and the sections', async () => {
     const NAME = '<img src=x onerror=alert(1)>'
     const CUSTOM = { id: 9, name: NAME, position: 4, enabled: true }
     Storage.set('dictionaries', [RY, CUSTOM])
     await mountEntry({}, [row(RY, 'Blessed One'), row(CUSTOM, 'my own definition')])
 
+    await openFilter()
     expect(wrapper.find('img').exists()).toBe(false)
-    expect(tabs().map((tab) => tab.text())).toContain(NAME)
+    expect(optionTexts()).toContain(`${NAME} 1`)
     expect(sourceNames()).toContain(NAME)
   })
 })

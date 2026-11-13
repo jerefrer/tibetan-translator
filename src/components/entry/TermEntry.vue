@@ -5,6 +5,8 @@ import SqlDatabase from '../../services/sql-database';
 import Storage from '../../services/storage';
 import { getScanInfo } from '../../services/scan-service';
 import { inShort } from '../../services/in-short';
+import DictionariesDetails from '../../services/dictionaries-details';
+import { directionLabel } from '../../services/dictionary-catalog';
 import { isSaved, toggleSaved } from '../../services/saved-terms';
 import { wylieFor, phoneticsForTerm } from '../../services/transcription';
 import { supportsModularPacks } from '../../config/platform';
@@ -15,17 +17,18 @@ import EntriesEntry from '../EntriesEntry.vue';
 import DictionaryAboutDialog from '../DictionaryAboutDialog.vue';
 import QuickAddDialog from '../QuickAddDialog.vue';
 import UninstalledPacksNotice from '../UninstalledPacksNotice.vue';
-import DictionaryTabs from './DictionaryTabs.vue';
+import DictionaryFilter from './DictionaryFilter.vue';
 import InShort from './InShort.vue';
 
 // How many dictionaries the condensed entry (Reader panel) shows
 const COMPACT_DICTIONARIES = 3;
 
 // One Tibetan term as a page: the headword, its Wylie and phonetics, what the
-// dictionaries agree on (In short), a tab per dictionary, then the definitions
-// grouped by dictionary in the user's order, enabled dictionaries only.
+// dictionaries agree on (In short), a filter to show one dictionary, then the
+// definitions grouped by dictionary in the user's order, enabled dictionaries
+// only.
 //
-// `compact` is the Reader panel's version: a smaller headword, no tabs, the
+// `compact` is the Reader panel's version: a smaller headword, no filter, the
 // first three dictionaries and a link that asks the caller to open the entry.
 // `highlight` marks search hits in a definition (HTML in, HTML out).
 //
@@ -37,7 +40,7 @@ export default {
   mixins: [DictionariesMenuMixin],
   components: {
     DictionaryAboutDialog,
-    DictionaryTabs,
+    DictionaryFilter,
     EntriesEntry,
     InShort,
     QuickAddDialog,
@@ -101,16 +104,25 @@ export default {
       }
       return groups;
     },
-    tabDictionaries() {
-      return this.dictionaryGroups.map((group) => ({
-        id: group.id,
-        label: this.dictionaryLabelFor(group.name, { short: true }),
-        text: cleanDictionaryLabel(group.name)
-      }));
+    // The filter's list: each dictionary of the term with its count; two
+    // that share a name (Hopkins Synonyms 1992, Tib↔En and Tib) are told
+    // apart by their languages
+    filterDictionaries() {
+      const names = this.dictionaryGroups.map((group) => cleanDictionaryLabel(group.name));
+      return this.dictionaryGroups.map((group, index) => {
+        const text = names[index];
+        const twin = names.filter((name) => name === text).length > 1;
+        const languages = twin ? directionLabel(DictionariesDetails[group.name]?.language) : '';
+        return {
+          id: group.id,
+          text: languages ? `${text} (${languages})` : text,
+          count: group.entries.length,
+        };
+      });
     },
     // A chosen dictionary that is no longer there (switched off) is no filter
     activeDictionaryId() {
-      return this.tabDictionaries.some((tab) => tab.id === this.selectedDictionaryId)
+      return this.filterDictionaries.some((dictionary) => dictionary.id === this.selectedDictionaryId)
         ? this.selectedDictionaryId
         : null;
     },
@@ -295,10 +307,11 @@ export default {
     <template v-else-if="shownEntries.length">
       <in-short :glosses="glosses" />
 
-      <dictionary-tabs
+      <dictionary-filter
         v-if="!compact"
-        v-model="selectedDictionaryId"
-        :dictionaries="tabDictionaries"
+        :model-value="activeDictionaryId"
+        @update:model-value="selectedDictionaryId = $event"
+        :dictionaries="filterDictionaries"
         :total="shownEntries.length"
       />
 
