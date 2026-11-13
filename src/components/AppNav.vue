@@ -333,18 +333,20 @@ export default {
 .app-nav__brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: 0 6px;
 }
 .app-nav__logo {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   flex: none;
 }
+/* In px, not rem: one line beside the arrows at any Text size */
 .app-nav__name {
   min-width: 0;
-  font-size: 0.9375rem;
+  font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--ink);
 }
 .app-nav__history {
@@ -357,7 +359,7 @@ export default {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
+  width: 22px;
   height: 28px;
   padding: 0;
   border: 0;
