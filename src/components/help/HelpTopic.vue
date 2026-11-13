@@ -138,6 +138,7 @@ export default {
         every dictionary and shown under the glossary's name.
       </p>
       <ul class="help-list">
+        <li v-if="inApp">Entries are listed in Tibetan order, by root letter, as dictionaries file them.</li>
         <li>The glossary's name is a menu: switch to another glossary, create one (empty, or from a spreadsheet), add a <code>.tibdict</code> file someone shared, or remove one.</li>
         <li><strong>Import</strong> adds the rows of a spreadsheet (Excel, OpenDocument, CSV): the Tibetan in one column, its definition in another. You check what will change before anything is written.</li>
         <li><strong>Export</strong> writes a <code>.tibdict</code> file to share or keep, or a spreadsheet to edit and import back.</li>
@@ -148,7 +149,7 @@ export default {
 
     <template v-else-if="id === 'saved'">
       <ul class="help-list">
-        <li><strong>Save</strong>, in an entry, keeps the term. {{ isPhone ? "Lookup's home" : 'The sidebar' }} shows the newest; <button type="button" class="help-link" @click="$emit('go', '/saved')">Saved</button> shows them all, to search, sort, copy as a list (for a spreadsheet) or clear.</li>
+        <li><strong>Save</strong>, in an entry, keeps the term. {{ isPhone ? "Lookup's home" : 'The sidebar' }} shows the newest; <button type="button" class="help-link" @click="$emit('go', '/saved')">Saved</button> shows them all, to search, list newest first or in Tibetan order (by root letter), copy as a list (for a spreadsheet) or clear.</li>
         <li><strong>Recent</strong> lists the terms you looked up last.<template v-if="!isPhone"> The × beside a term forgets it, Clear forgets them all, and each section folds.</template></li>
       </ul>
     </template>

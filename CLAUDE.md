@@ -130,7 +130,7 @@ Routes are defined in `src/router.js`. Lookup, Reader and Settings on a phone (t
 - `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About, Help); on a phone also the My glossary and Dictionaries rows
 - `/dictionaries` - DictionariesPage: everything about dictionaries (packs, which are on, their order, what each holds). It writes Storage's `dictionaries`, the order and switches lookups read; `?find=` and `?status=` set its search and filter
 - `/glossary/:packId?/:dictionaryId?` - LexiconPage (My glossary): the title is the glossary picker, its menu creates, adds and removes glossaries (GlossaryActions); spreadsheets come in through SpreadsheetDropDialog (HTML5 drop, Tauri's own drag and drop being off)
-- `/saved` - SavedPage: every saved term (the sidebar shows the eight newest), to search, sort, copy or clear
+- `/saved` - SavedPage: every saved term (the sidebar shows the eight newest), to search, list newest first or in Tibetan order, copy or clear
 
 **Help** is one dialog for the whole app (`src/components/help/HelpDialog.vue`, topics in `HelpTopic.vue`, state in `src/services/help.js`), opened on the topic of the screen: the sidebar's Help, F1 or Cmd/Ctrl+/ on desktop, the "?" beside Lookup's and Reader's titles on a phone, and Settings' help rows. A feature that changes needs its topic changed.
 
@@ -192,6 +192,7 @@ A **separate Tauri window** (`popup.html` / `src/popup.js`) that provides clipbo
 
 ### Tibetan Text Handling
 
+- **Tibetan order** (by root letter, as dictionaries file them, not by code point): `src/services/tibetan-order.js` (Saved) and its Rust twin `src-tauri/src/tibetan_order.rs`, registered as SQLite's `TIBETAN` collation for the glossary (`ORDER BY term COLLATE TIBETAN`, so pages stay in order). `tests/fixtures/tibetan-order.json` holds both to one order: change them together
 - `src/ui/UiTibetanField.vue` handles Wylie-to-Unicode conversion on space, tsheg, Enter, paste and drop, repairs legacy-font pastes and refuses a second tsheg; Lookup's field (`LookupField`) uses it in བོད mode, and `src/services/typed-wylie.js` keeps the "typed sangs rgyas" echo. The Reader's editor applies the same conversion to a multi-line text, where spaces are word breaks
 - Tibetan punctuation: tsheg `་` (U+0F0B), shad `།` (U+0F0D), rin chen spungs shad `༑` (U+0F11), gter tsheg `༔` (U+0F14)
 - Input normalization: trailing punctuation is replaced with a single tsheg for dictionary lookups

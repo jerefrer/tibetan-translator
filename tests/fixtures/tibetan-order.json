@@ -1,0 +1,26 @@
+{
+  "note": "Tibetan words in the order Tibetan dictionaries file them, by root letter, as [Wylie, Tibetan]. Shared by tests/tibetan-order.test.js and src-tauri/src/tibetan_order.rs: both must sort a shuffled copy back into this order.",
+  "words": [
+    ["ka", "ཀ་"], ["ka ba", "ཀ་བ་"], ["kag", "ཀག་"], ["kang", "ཀང་"],
+    ["ki", "ཀི་"], ["ku", "ཀུ་"], ["ke", "ཀེ་"], ["ko", "ཀོ་"],
+    ["kyang", "ཀྱང་"], ["kra", "ཀྲ་"], ["klu", "ཀླུ་"],
+    ["dkar", "དཀར་"], ["dkyil", "དཀྱིལ་"], ["bka'", "བཀའ་"], ["bkra shis", "བཀྲ་ཤིས་"],
+    ["rkang", "རྐང་"], ["rkyen", "རྐྱེན་"], ["lkog", "ལྐོག་"],
+    ["skad", "སྐད་"], ["skye", "སྐྱེ་"], ["skra", "སྐྲ་"],
+    ["brkyang", "བརྐྱང་"], ["bskyed", "བསྐྱེད་"],
+    ["kha", "ཁ་"], ["mkha'", "མཁའ་"], ["'khor", "འཁོར་"],
+    ["ga", "ག་"], ["gi", "གི་"], ["grogs", "གྲོགས་"],
+    ["dgag", "དགག་"], ["dga'", "དགའ་"], ["dga'i", "དགའི་"],
+    ["bgyi", "བགྱི་"], ["mgo", "མགོ་"], ["'gro", "འགྲོ་"],
+    ["rgya", "རྒྱ་"], ["sgo", "སྒོ་"], ["brgyad", "བརྒྱད་"], ["bsgrub", "བསྒྲུབ་"],
+    ["nga", "ང་"],
+    ["da", "ད་"], ["dag", "དག་"], ["de", "དེ་"],
+    ["gdan", "གདན་"], ["bdag", "བདག་"], ["bde", "བདེ་"], ["mda'", "མདའ་"], ["'das", "འདས་"],
+    ["na", "ན་"], ["nags", "ནགས་"], ["gnas", "གནས་"],
+    ["ba", "བ་"], ["babs", "བབས་"], ["bu", "བུ་"], ["bya", "བྱ་"], ["dbang", "དབང་"], ["'bad", "འབད་"],
+    ["la", "ལ་"], ["lam", "ལམ་"], ["lo", "ལོ་"], ["lha", "ལྷ་"],
+    ["sa", "ས་"], ["sangs rgyas", "སངས་རྒྱས་"], ["su", "སུ་"], ["srung", "སྲུང་"],
+    ["gsang", "གསང་"], ["bsam", "བསམ་"],
+    ["a", "ཨ་"], ["o", "ཨོ་"]
+  ]
+}

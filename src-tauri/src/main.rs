@@ -7,6 +7,7 @@ mod lexicon;
 mod packs;
 mod scans;
 mod spreadsheet;
+mod tibetan_order;
 
 use database::{
     execute_query, get_all_terms, get_dictionaries, get_entries_for_term, init_database,

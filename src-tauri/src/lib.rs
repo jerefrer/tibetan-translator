@@ -5,6 +5,7 @@ mod lexicon;
 mod packs;
 mod scans;
 mod spreadsheet;
+mod tibetan_order;
 
 use custom_packs::{install_custom_pack, install_custom_pack_from_bytes, list_custom_packs, remove_custom_pack};
 use lexicon::{

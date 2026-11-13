@@ -176,8 +176,17 @@ fn pack_dir(app: &AppHandle, pack_id: &str) -> Result<PathBuf, LexiconError> {
 }
 
 fn open_db(dir: &Path) -> Result<Connection, LexiconError> {
-    Connection::open(dir.join("data.sqlite"))
-        .map_err(|e| LexiconError::new("corrupt", format!("open database: {e}")))
+    let conn = Connection::open(dir.join("data.sqlite"))
+        .map_err(|e| LexiconError::new("corrupt", format!("open database: {e}")))?;
+    register_collation(&conn)
+        .map_err(|e| LexiconError::new("corrupt", format!("register collation: {e}")))?;
+    Ok(conn)
+}
+
+/// The TIBETAN collation: entries are listed in Tibetan dictionary order, not
+/// by code point (which files a word under its prefix letter).
+fn register_collation(conn: &Connection) -> rusqlite::Result<()> {
+    conn.create_collation("TIBETAN", crate::tibetan_order::compare)
 }
 
 fn read_manifest(dir: &Path) -> Result<TibdictManifest, LexiconError> {
@@ -410,7 +419,7 @@ pub fn export_rows_in(
     dictionary_id: i64,
 ) -> rusqlite::Result<Vec<Vec<String>>> {
     let mut stmt = conn.prepare(
-        "SELECT term, definition FROM entries WHERE dictionaryId = ? ORDER BY term",
+        "SELECT term, definition FROM entries WHERE dictionaryId = ? ORDER BY term COLLATE TIBETAN",
     )?;
     let rows = stmt.query_map(params![dictionary_id], |row| {
         Ok(vec![row.get::<_, String>(0)?, row.get::<_, String>(1)?])
@@ -480,7 +489,18 @@ pub async fn lexicon_entries(
 ) -> Result<LexiconEntriesPage, LexiconError> {
     let dir = pack_dir(&app, &pack_id)?;
     let conn = open_db(&dir)?;
+    entries_page_in(&conn, dictionary_id, search, limit, offset)
+}
 
+/// One page of a dictionary's entries in Tibetan order. Split out so it can be
+/// tested without an AppHandle.
+fn entries_page_in(
+    conn: &Connection,
+    dictionary_id: i64,
+    search: Option<String>,
+    limit: i64,
+    offset: i64,
+) -> Result<LexiconEntriesPage, LexiconError> {
     let needle = search.unwrap_or_default();
     let pattern = like_pattern(&needle);
     let filtered = !needle.trim().is_empty();
@@ -507,7 +527,7 @@ pub async fn lexicon_entries(
             .prepare(
                 "SELECT id, term, definition FROM entries
                  WHERE dictionaryId = ? AND (term LIKE ? ESCAPE '\\' OR definition LIKE ? ESCAPE '\\')
-                 ORDER BY term LIMIT ? OFFSET ?",
+                 ORDER BY term COLLATE TIBETAN LIMIT ? OFFSET ?",
             )
             .map_err(|e| LexiconError::new("corrupt", format!("prepare: {e}")))?;
         let rows = stmt
@@ -522,7 +542,7 @@ pub async fn lexicon_entries(
         let mut stmt = conn
             .prepare(
                 "SELECT id, term, definition FROM entries
-                 WHERE dictionaryId = ? ORDER BY term LIMIT ? OFFSET ?",
+                 WHERE dictionaryId = ? ORDER BY term COLLATE TIBETAN LIMIT ? OFFSET ?",
             )
             .map_err(|e| LexiconError::new("corrupt", format!("prepare: {e}")))?;
         let rows = stmt
@@ -723,6 +743,7 @@ mod tests {
     #[test]
     fn export_rows_are_ordered_by_term_and_carry_both_columns() {
         let conn = Connection::open_in_memory().unwrap();
+        register_collation(&conn).unwrap();
         conn.execute_batch(
             "CREATE TABLE entries (
                 id INTEGER PRIMARY KEY, dictionaryId INTEGER, term TEXT,
@@ -948,6 +969,7 @@ mod tests {
         let _ = fs::remove_file(&path);
         fs::copy(&template, &path).expect("copy template");
         let conn = Connection::open(&path).expect("open temp db");
+        register_collation(&conn).expect("register collation");
         conn.execute(
             "INSERT INTO dictionaries (id, name, position, enabled) VALUES (1, 'Test', 1, 1)",
             [],
@@ -965,6 +987,22 @@ mod tests {
             definition_phonetics_words_strict: "ds".to_string(),
             definition_phonetics_words_loose: "dl".to_string(),
         }
+    }
+
+    #[test]
+    fn lists_entries_in_tibetan_order_not_by_code_point() {
+        let (conn, path) = temp_db("tibetan-order");
+        for term in ["ཁ་", "བསྒྲུབ་", "ཀ་", "ང་"] {
+            upsert_entry_in(&conn, 1, &input(term, "d")).unwrap();
+        }
+
+        let page = entries_page_in(&conn, 1, None, 50, 0).unwrap();
+        let terms: Vec<&str> = page.entries.iter().map(|e| e.term.as_str()).collect();
+        assert_eq!(terms, vec!["ཀ་", "ཁ་", "བསྒྲུབ་", "ང་"]);
+
+        let found = entries_page_in(&conn, 1, Some("ཀ".to_string()), 50, 0).unwrap();
+        assert_eq!(found.entries.first().map(|e| e.term.as_str()), Some("ཀ་"));
+        let _ = fs::remove_file(path);
     }
 
     #[test]

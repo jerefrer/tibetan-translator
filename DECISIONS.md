@@ -129,3 +129,11 @@
 **Trade-offs:** The help covers the page while it is open. Saved cannot be browsed in dictionary order.
 **Revisit if:** a root-letter sort key is written (prefix, superscript, root, subscript, vowel), which would also serve Saved and the glossary.
 
+---
+
+## 2026-11-13 — Tibetan order by root letter, written twice (JS and Rust)
+**Chosen:** A Tibetan sort key of our own: each syllable read into root, prefix/superscript group, prefix, superscript, subscripts, vowel, suffixes and a fused vowel particle (དགའི་), compared in that order, the letters' Unicode order being the traditional one. Saved offers it beside Newest; the glossary always lists in it. The glossary's order lives in SQL (a `TIBETAN` collation registered on the lexicon connections), so the same algorithm exists in `src/services/tibetan-order.js` and `src-tauri/src/tibetan_order.rs`, held to one order by the shared fixture `tests/fixtures/tibetan-order.json`.
+**Alternatives:** `Intl.Collator('bo')` (no Tibetan rules: code point order). Sorting the glossary in JS (only sorts the page shown: entries come 50 at a time with LIMIT/OFFSET). Fetching the whole glossary to sort it (changes the paging and the memory a large glossary needs). A sort-key column stored with each entry (a migration of every installed glossary, and keys to keep in step on import and edit).
+**Why:** Readers expect བསྒྲུབ་ under ག, not under its prefix བ. The collation keeps paging and search in SQLite as they were. A plain-letter syllable is ambiguous (དགས་ dgas or dags): three letters read as prefix + root when the first can prefix the second, the rule the converters follow.
+**Trade-offs:** Two implementations to keep alike; the fixture catches a divergence only on the words it holds. Sanskrit stacks and malformed syllables get a stable but approximate place (after the readable syllables of their first letter).
+**Revisit if:** a maintained Tibetan collation appears (ICU, a crate, an npm package), or the two implementations drift.

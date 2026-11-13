@@ -5,20 +5,23 @@ import { writeToClipboard } from '../../services/copy-service';
 import { foldForSearch } from '../../services/dictionary-catalog';
 import { loadGlosses, tibetanRuns } from '../../services/glosses';
 import { clearSaved, removeSaved, savedTerms, setSavedTerms } from '../../services/saved-terms';
+import { sortTibetan } from '../../services/tibetan-order';
 import { wylieFor } from '../../services/transcription';
-import { UiButton, UiIcon, UiTextField } from '../../ui';
+import { UiButton, UiIcon, UiSegmented, UiTextField } from '../../ui';
 
 const plural = (count) => `${count} ${count === 1 ? 'term' : 'terms'}`;
 
 // Saved: every term the user saved (the bookmark of an entry), each with a
-// one-line gloss, newest first, to search (Tibetan, Wylie or gloss), open in Lookup,
-// remove one by one, copy as a list (one term and its gloss per line, tab
-// separated, for a spreadsheet), or clear, with an Undo for the clear. The
+// one-line gloss, newest first or in Tibetan order (by root letter, as
+// dictionaries file them), to search (Tibetan, Wylie or gloss), open in
+// Lookup, remove one by one, copy as a list (one term and its gloss per line,
+// tab separated, for a spreadsheet, in the order shown), or clear, with an
+// Undo for the clear. The
 // sidebar shows the eight newest and links here; on a phone, Lookup's home
 // does.
 export default {
   name: 'SavedPage',
-  components: { UiButton, UiIcon, UiTextField },
+  components: { UiButton, UiIcon, UiSegmented, UiTextField },
   inject: { snackbar: { default: null } },
   data() {
     return {
@@ -26,6 +29,12 @@ export default {
       // term -> gloss ('' when no enabled dictionary has one)
       glosses: {},
       query: '',
+      // 'newest' or 'tibetan', kept for the next visit
+      order: Storage.get('savedOrder') === 'tibetan' ? 'tibetan' : 'newest',
+      orderOptions: [
+        { value: 'newest', label: 'Newest' },
+        { value: 'tibetan', label: 'Tibetan order' },
+      ],
       // The list as it was before Clear all, while it can be put back
       cleared: null,
       isPhone: ResizeService.isMobile(),
@@ -34,10 +43,16 @@ export default {
   computed: {
     shown() {
       const query = foldForSearch(this.query).trim();
-      return this.terms.filter((term) => !query || this.matches(term, query));
+      const terms = this.terms.filter((term) => !query || this.matches(term, query));
+      return this.order === 'tibetan' ? sortTibetan(terms) : terms;
     },
     summary() {
       return this.query.trim() ? `${plural(this.shown.length)} of ${this.terms.length}` : plural(this.terms.length);
+    },
+  },
+  watch: {
+    order(order) {
+      Storage.set('savedOrder', order);
     },
   },
   created() {
@@ -176,6 +191,7 @@ export default {
             spellcheck="false"
             data-testid="saved-search"
           />
+          <ui-segmented v-model="order" :options="orderOptions" label="Order" data-testid="saved-order" />
         </div>
 
         <ul v-if="shown.length" class="saved-page__list" data-testid="saved-list">

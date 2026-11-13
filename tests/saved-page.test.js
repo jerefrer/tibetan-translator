@@ -56,6 +56,7 @@ const byTestId = (id) => wrapper.find(`[data-testid="${id}"]`)
 beforeEach(() => {
   env.phone = false
   Storage.delete('savedTerms')
+  Storage.delete('savedOrder')
   // Newest first, as saved: ཆོས་ last saved
   setSavedTerms(['ཆོས་', 'བདེ་བ་', 'ཀ་'])
   writeToClipboard.mockClear()
@@ -135,6 +136,27 @@ describe('SavedPage', () => {
     await byTestId('saved-undo').trigger('click')
     expect(savedTerms()).toEqual(['ཆོས་', 'བདེ་བ་', 'ཀ་'])
     expect(byTestId('saved-undo-bar').exists()).toBe(false)
+  })
+
+  it('should list the terms in Tibetan order on request, and remember it', async () => {
+    setSavedTerms(['ང་', 'བསྒྲུབ་', 'ཀ་'])
+    await mountPage()
+    await byTestId('saved-order').find('[role="radio"]:last-child').trigger('click')
+    // བསྒྲུབ་ goes under its root letter ག, not its prefix བ
+    expect(terms()).toEqual(['ཀ་', 'བསྒྲུབ་', 'ང་'])
+    wrapper.unmount()
+    await mountPage()
+    expect(terms()).toEqual(['ཀ་', 'བསྒྲུབ་', 'ང་'])
+    await byTestId('saved-order').find('[role="radio"]:first-child').trigger('click')
+    expect(terms()).toEqual(['ང་', 'བསྒྲུབ་', 'ཀ་'])
+  })
+
+  it('should copy the list in the order shown', async () => {
+    await mountPage()
+    await byTestId('saved-order').find('[role="radio"]:last-child').trigger('click')
+    await byTestId('saved-copy').trigger('click')
+    await flushPromises()
+    expect(writeToClipboard).toHaveBeenCalledWith('ཀ་\tthe first letter\nཆོས་\tdharma\nབདེ་བ་\tbliss, happiness')
   })
 
   it('should say how to save a term when none is saved', async () => {
