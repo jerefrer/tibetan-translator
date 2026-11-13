@@ -44,7 +44,7 @@ export default {
     },
     // Lookup's English search, kept to this dictionary (by its name)
     searchLink() {
-      return { path: '/lookup', query: { mode: 'en', dict: this.row.key } };
+      return { path: '/search', query: { dict: this.row.key } };
     },
     packState() {
       if (this.row.custom) return 'My glossary';

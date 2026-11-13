@@ -35,8 +35,9 @@ describe('help', () => {
   })
 
   it('should pick the topic of the screen', () => {
-    expect(topicForRoute({ path: '/lookup', query: { mode: 'en' } })).toBe('search')
-    expect(topicForRoute({ path: '/lookup', query: { q: 'wisdom' } })).toBe('search')
+    expect(topicForRoute({ path: '/search', query: {} })).toBe('search')
+    expect(topicForRoute({ path: '/search', query: { q: 'wisdom' } })).toBe('search')
+    expect(topicForRoute({ path: '/lookup', query: {} })).toBe('lookup')
     expect(topicForRoute({ path: '/lookup/ཀ་', query: {} })).toBe('lookup')
     expect(topicForRoute({ path: '/reader', query: {} })).toBe('reader')
     expect(topicForRoute({ path: '/dictionaries', query: {} })).toBe('dictionaries')

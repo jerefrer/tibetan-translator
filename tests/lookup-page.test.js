@@ -1,8 +1,7 @@
 /**
- * LookupPage state: the field, the བོད / EN mode, the route and what is
- * remembered. Mounted the way App.vue mounts it (a <keep-alive> around the
+ * LookupPage state: the field, the route and what is remembered. Mounted the way App.vue mounts it (a <keep-alive> around the
  * <router-view>) with the app's own route table, so the redirects from the
- * old /define and /search links are the real ones.
+ * old /define and /lookup?mode=en links are the real ones.
  */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
@@ -44,22 +43,12 @@ async function mountAt(path) {
 
 const page = () => wrapper.findComponent(LookupPage)
 const input = () => wrapper.find('[data-testid="lookup-field"] input')
-const radios = () => wrapper.findAll('[data-testid="lookup-mode"] [role="radio"]')
-const checkedMode = () =>
-  radios().find((radio) => radio.attributes('aria-checked') === 'true')?.attributes('aria-label')
 const typed = () => wrapper.find('[data-testid="lookup-typed"]')
 
 async function typeWylie(value) {
   await input().setValue(value)
   await input().trigger('keyup', { key: value.at(-1) })
   await nextTick()
-}
-
-async function chooseMode(label) {
-  await radios()
-    .find((radio) => radio.attributes('aria-label') === label)
-    .trigger('click')
-  await flushPromises()
 }
 
 async function go(path) {
@@ -91,27 +80,15 @@ describe('Lookup — route', () => {
   it('should fill the field with the term of the route', async () => {
     await mountAt('/lookup/' + encodeURIComponent(SANGS_RGYAS))
     expect(input().element.value).toBe(SANGS_RGYAS)
-    expect(checkedMode()).toBe('Tibetan')
   })
 
   it('should fill the field from an old Define link with a percent-encoded term', async () => {
     await mountAt('/define/' + encodeURIComponent(SANGS_RGYAS))
     expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(SANGS_RGYAS))
     expect(input().element.value).toBe(SANGS_RGYAS)
-    expect(checkedMode()).toBe('Tibetan')
   })
 
-  it('should open in English mode with the query of an old Search link', async () => {
-    await mountAt('/search/wisdom')
-    expect(checkedMode()).toBe('English')
-    expect(input().element.value).toBe('wisdom')
-  })
 
-  it('should decode a percent-encoded query from an old Search link', async () => {
-    await mountAt('/search/' + encodeURIComponent('buddha nature & (ye shes)'))
-    expect(checkedMode()).toBe('English')
-    expect(input().element.value).toBe('buddha nature & (ye shes)')
-  })
 
   it('should keep the start typed when the route selects a longer term', async () => {
     await mountAt('/lookup')
@@ -121,141 +98,72 @@ describe('Lookup — route', () => {
     expect(input().element.value).toBe('སངས་')
   })
 
-  it('should open a definition link in Tibetan mode while in English mode', async () => {
-    await mountAt('/search/wisdom')
+  it('should open a definition link on its term while Search is shown', async () => {
+    await mountAt('/search?q=wisdom')
     await go('/define/' + encodeURIComponent(KA))
-    expect(checkedMode()).toBe('Tibetan')
+    expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
     expect(input().element.value).toBe(KA)
   })
 
-  it('should run an English search from the field with Enter', async () => {
-    await mountAt('/lookup?mode=en')
-    await input().setValue('buddha nature')
-    await input().trigger('keydown', { key: 'Enter' })
-    await flushPromises()
-    const route = router.currentRoute.value
-    expect(route.path).toBe('/lookup')
-    expect(route.query).toEqual({ mode: 'en', q: 'buddha nature' })
-  })
 
   it('should ignore routes of other pages while it is kept alive', async () => {
     await mountAt('/lookup/' + encodeURIComponent(KA))
     const vm = page().vm
-    await go('/reader?mode=en&q=wisdom')
+    await go('/reader?q=wisdom')
     expect(vm.text).toBe(KA)
-    expect(vm.mode).toBe('bo')
-    expect(Storage.get('lookupState')).toMatchObject({ mode: 'bo', term: KA })
+    expect(Storage.get('lookupState')).toMatchObject({ term: KA })
   })
 })
 
-describe('Lookup — modes', () => {
-  it('should carry the typed Wylie to English and back', async () => {
-    await mountAt('/lookup')
-    await typeWylie('sangs rgyas ')
-    expect(input().element.value).toBe(SANGS_RGYAS)
-    expect(typed().text()).toBe('typed sangs rgyas')
-
-    await chooseMode('English')
-    expect(input().element.value).toBe('sangs rgyas')
-    expect(router.currentRoute.value.query.mode).toBe('en')
-
-    await chooseMode('Tibetan')
-    expect(input().element.value).toBe(SANGS_RGYAS)
-    expect(typed().text()).toBe('typed sangs rgyas')
-    expect(router.currentRoute.value.query.mode).toBe('bo')
-  })
-
-  it('should switch to English with the Tibetan as is when no Wylie was typed', async () => {
-    await mountAt('/lookup/' + encodeURIComponent(KA))
-    await chooseMode('English')
-    expect(input().element.value).toBe(KA)
-  })
-
-  it('should switch to English with the shortcut route', async () => {
-    await mountAt('/lookup')
-    await typeWylie('sangs rgyas ')
-    await go('/lookup?mode=en')
-    expect(checkedMode()).toBe('English')
-    expect(input().element.value).toBe('sangs rgyas')
-  })
-})
 
 describe('Lookup — the Cmd+D route', () => {
-  it('should switch to Tibetan with the Latin read as Wylie when coming back from another page', async () => {
-    await mountAt('/lookup?mode=en')
-    await input().setValue('sangs rgyas')
-    await go('/reader')
-    await go('/lookup?mode=bo')
-    expect(checkedMode()).toBe('Tibetan')
-    expect(input().element.value).toBe(SANGS_RGYAS)
-  })
 
-  it('should keep the term shown when it is already in Tibetan mode', async () => {
+  it('should keep the term shown when coming back from another page', async () => {
     await mountAt('/lookup/' + encodeURIComponent(KA))
     await go('/reader')
-    await go('/lookup?mode=bo')
-    expect(checkedMode()).toBe('Tibetan')
+    await go('/lookup')
     expect(input().element.value).toBe(KA)
-    expect(Storage.get('lookupState')).toMatchObject({ mode: 'bo', term: KA })
+    expect(Storage.get('lookupState')).toMatchObject({ term: KA })
   })
 
   it('should open the last Tibetan term when the field is empty', async () => {
-    Storage.set('lookupState', { mode: 'en', term: KA, query: '' })
+    Storage.set('lookupState', { term: KA, query: '' })
     await mountAt('/reader')
-    await go('/lookup?mode=bo')
+    await go('/lookup')
     expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
-    expect(checkedMode()).toBe('Tibetan')
     expect(input().element.value).toBe(KA)
   })
 })
 
 describe('Lookup — remembering', () => {
-  it('should restore the last mode and term when opened bare', async () => {
-    Storage.set('lookupState', { mode: 'bo', term: KA, query: 'wisdom' })
+  it('should restore the last term when opened bare', async () => {
+    Storage.set('lookupState', { term: KA, query: 'wisdom' })
     await mountAt('/lookup')
     expect(router.currentRoute.value.path).toBe('/lookup/' + encodeURIComponent(KA))
-    expect(checkedMode()).toBe('Tibetan')
     expect(input().element.value).toBe(KA)
   })
 
-  it('should restore the last English query when opened bare', async () => {
-    Storage.set('lookupState', { mode: 'en', term: KA, query: 'wisdom' })
-    await mountAt('/lookup')
-    expect(router.currentRoute.value.query).toEqual({ mode: 'en', q: 'wisdom' })
-    expect(checkedMode()).toBe('English')
-    expect(input().element.value).toBe('wisdom')
-  })
 
-  it('should restore the term of the mode an old Define link asks for', async () => {
-    Storage.set('lookupState', { mode: 'en', term: KA, query: 'wisdom' })
+  it('should restore the last term when a bare old Define link is followed', async () => {
+    Storage.set('lookupState', { term: KA, query: 'wisdom' })
     await mountAt('/define')
-    expect(checkedMode()).toBe('Tibetan')
     expect(input().element.value).toBe(KA)
   })
 
-  it('should remember the mode, the term and the query', async () => {
+  it('should remember the term, next to the query Search remembers', async () => {
     await mountAt('/lookup/' + encodeURIComponent(KA))
-    expect(Storage.get('lookupState')).toMatchObject({ mode: 'bo', term: KA })
-    await go('/search/wisdom')
-    expect(Storage.get('lookupState')).toEqual({ mode: 'en', term: KA, query: 'wisdom' })
-    await chooseMode('Tibetan')
-    expect(Storage.get('lookupState').mode).toBe('bo')
+    expect(Storage.get('lookupState')).toMatchObject({ term: KA })
+    await go('/search?q=wisdom')
+    expect(Storage.get('lookupState')).toEqual({ term: KA, query: 'wisdom' })
   })
 
-  it('should keep the field and mode when coming back', async () => {
+  it('should keep the field when coming back', async () => {
     await mountAt('/lookup')
     await typeWylie('sangs rgyas ')
     await go('/reader')
     await go('/lookup')
-    expect(checkedMode()).toBe('Tibetan')
     expect(input().element.value).toBe(SANGS_RGYAS)
     expect(typed().text()).toBe('typed sangs rgyas')
-
-    await chooseMode('English')
-    await go('/reader')
-    await go('/lookup')
-    expect(checkedMode()).toBe('English')
-    expect(input().element.value).toBe('sangs rgyas')
   })
 
   it('should forget the term when the field is cleared', async () => {
@@ -293,27 +201,35 @@ describe('Lookup — field', () => {
   })
 })
 
-describe('Lookup — hints between the modes', () => {
-  it('should keep Sanskrit with diacritics as typed when switching from Tibetan to English', async () => {
-    await mountAt('/lookup')
-    await typeWylie('kākiṇī ')
-    expect(page().vm.typedWylie).toBe('')
-    expect(input().element.value).not.toContain('kākiṇī')
-    await chooseMode('English')
-    expect(input().element.value).toBe('kākiṇī')
+describe('Lookup — hints leading to Search', () => {
+  beforeEach(() => {
+    // Search, opened by a hint, finds nothing
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
   })
 
-  it('should offer searching Sanskrit with diacritics in the definitions and run the search', async () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should offer searching Sanskrit with diacritics in the definitions and open Search on it', async () => {
     await mountAt('/lookup')
     await typeWylie('kākiṇī ')
     const hint = wrapper.find('[data-testid="hint-search-definitions"]')
     expect(hint.exists()).toBe(true)
     await hint.find('button').trigger('click')
     await flushPromises()
-    expect(checkedMode()).toBe('English')
-    expect(input().element.value).toBe('kākiṇī')
-    expect(router.currentRoute.value.query).toEqual({ mode: 'en', q: 'kākiṇī' })
-    expect(wrapper.find('[data-testid="hint-search-definitions"]').exists()).toBe(false)
+    expect(router.currentRoute.value.path).toBe('/search')
+    expect(router.currentRoute.value.query).toEqual({ q: 'kākiṇī' })
+    expect(wrapper.find('[data-testid="search-field"] input').element.value).toBe('kākiṇī')
+  })
+
+  it('should open Search on the typed Wylie when no Tibetan term starts with the text', async () => {
+    await mountAt('/lookup')
+    await typeWylie('bliss ')
+    await wrapper.get('[data-testid="hint-search-definitions"] button').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/search')
+    expect(router.currentRoute.value.query).toEqual({ q: 'bliss' })
   })
 
   it('should offer the typed Wylie when no Tibetan term starts with the text', async () => {
@@ -374,11 +290,6 @@ describe('Lookup — layout', () => {
     { term: KA, dictionaryId: 1, definition: 'the first letter' },
     { term: SANGS_RGYAS, dictionaryId: 1, definition: 'Buddha; awakened one' },
   ]
-  // What a definitions search finds
-  const SEARCH_ROWS = [
-    { term: SANGS_RGYAS, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'the buddha nature', rank: -2 },
-    { term: KA, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'buddha letter', rank: -1 },
-  ]
   const entryRows = (term) => [
     { term, dictionaryId: 1, dictionary: 'RangjungYeshe', dictionaryPosition: 0, definition: `buddha nature of ${term}` },
   ]
@@ -397,7 +308,7 @@ describe('Lookup — layout', () => {
     const { clearGlossCache } = await import('../src/services/glosses')
     clearGlossCache()
     vi.spyOn(SqlDatabase, 'exec').mockImplementation(async (sql) =>
-      /WHERE term IN/.test(sql) ? GLOSS_ROWS : SEARCH_ROWS
+      /WHERE term IN/.test(sql) ? GLOSS_ROWS : []
     )
     vi.spyOn(SqlDatabase, 'getEntriesFor').mockImplementation(async (term) => entryRows(term))
     SqlDatabase.allTerms = [KA, KAKA, SANGS_RGYAS]
@@ -437,7 +348,7 @@ describe('Lookup — layout', () => {
     const saved = wrapper.find('[data-testid="lookup-saved"]')
     expect(saved.text()).toContain(SANGS_RGYAS)
     expect(saved.text()).toContain('Buddha; awakened one')
-    expect(home().text()).toContain('Type sangs rgyas for སངས་རྒྱས་, or switch to EN to search the definitions.')
+    expect(home().text()).toContain('Type sangs rgyas for སངས་རྒྱས་. English goes in Search.')
   })
 
   it('should give the home its phone layout when the page is in its phone layout', async () => {
@@ -596,7 +507,7 @@ describe('Lookup — layout', () => {
     // jsdom applies no styles: read the rule the phone page gets
     const fs = await import('fs')
     const path = await import('path')
-    const source = fs.readFileSync(path.resolve(__dirname, '../src/components/lookup/LookupPage.vue'), 'utf8')
+    const source = fs.readFileSync(path.resolve(__dirname, '../src/components/lookup/lookup-layout.css'), 'utf8')
     const rule = source.match(/\.lookup-page\.is-phone\s*\{[^}]*\}/)
     expect(rule?.[0]).toMatch(/height:[^;]*var\(--visible-height/)
     expect(source).toMatch(/\.lookup-page\.is-phone \.lookup-page__list\s*\{[^}]*overflow-y:\s*auto/)
@@ -609,28 +520,6 @@ describe('Lookup — layout', () => {
     expect(typed().text()).toBe('typed sangs rgyas')
   })
 
-  it('should open the selected English result with Enter', async () => {
-    await mountAt('/lookup?mode=en')
-    await input().setValue('buddha')
-    await input().trigger('keydown', { key: 'Enter' })
-    await flushPromises()
-    expect(wrapper.findAll('[data-testid="lookup-result"]').length).toBe(2)
-    expect(entryPane().find('[data-testid="term-entry"]').exists()).toBe(false)
-
-    await input().trigger('keydown', { key: 'ArrowDown' })
-    await input().trigger('keydown', { key: 'ArrowDown' })
-    await input().trigger('keydown', { key: 'ArrowUp' })
-    await nextTick()
-    const selected = wrapper.find('[data-testid="lookup-result"].is-selected')
-    expect(selected.find('[data-testid="lookup-result-term"]').text()).toBe(SANGS_RGYAS)
-
-    await input().trigger('keydown', { key: 'Enter' })
-    await flushPromises()
-    expect(headword().text()).toBe(SANGS_RGYAS)
-    // The hits show in the entry
-    expect(entryPane().find('.definition em').text().toLowerCase()).toBe('buddha')
-    expect(checkedMode()).toBe('English')
-  })
 
   it('should clear the field with Escape', async () => {
     await mountAt('/lookup/' + encodeURIComponent(KA))
@@ -640,15 +529,6 @@ describe('Lookup — layout', () => {
     expect(router.currentRoute.value.params.term).toBeFalsy()
   })
 
-  it('should focus the new field after switching mode', async () => {
-    await mountAt('/lookup')
-    await chooseMode('English')
-    await nextTick()
-    expect(document.activeElement).toBe(input().element)
-    await chooseMode('Tibetan')
-    await nextTick()
-    expect(document.activeElement).toBe(input().element)
-  })
 
   // Ported from tests/define-page.test.js (recent terms and the Wylie tip)
   it('should show at most eight recent terms', async () => {
@@ -692,40 +572,8 @@ describe('Lookup — ported from Define and Search', () => {
     expect(document.activeElement).toBe(input().element)
   })
 
-  it('should clear the English query, the stored query, the route and the results', async () => {
-    await mountAt('/lookup?mode=en&q=wisdom')
-    expect(page().vm.query).toBe('wisdom')
 
-    await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
-    await flushPromises()
 
-    expect(input().element.value).toBe('')
-    expect(page().vm.query).toBe('')
-    expect(router.currentRoute.value.query).toEqual({ mode: 'en' })
-    expect(Storage.get('lookupState').query).toBe('')
-    expect(wrapper.find('[data-testid="lookup-no-results"]').exists()).toBe(false)
-    expect(wrapper.find('[data-testid="lookup-definitions"]').exists()).toBe(false)
-  })
-
-  it('should not add a query reached by a link to the recent searches', async () => {
-    await mountAt('/search/wisdom')
-    expect(page().vm.query).toBe('wisdom')
-    expect(Storage.get('previousQueries', [])).toEqual([])
-  })
-
-  it('should show an earlier query again when Back returns to it', async () => {
-    await mountAt('/lookup?mode=en&q=wisdom')
-    await input().setValue('compassion')
-    await input().trigger('keydown', { key: 'Enter' })
-    await flushPromises()
-    expect(page().vm.query).toBe('compassion')
-
-    router.back()
-    await vi.waitFor(() => expect(page().vm.query).toBe('wisdom'))
-    await flushPromises()
-    expect(input().element.value).toBe('wisdom')
-    expect(checkedMode()).toBe('English')
-  })
 })
 
 describe('LookupPage — results width', () => {
@@ -764,65 +612,3 @@ describe('LookupPage — results width', () => {
   })
 })
 
-describe('Lookup — the definitions of one dictionary', () => {
-  const DICTIONARIES = [
-    { id: 1, name: 'RangjungYeshe', position: 0, enabled: true },
-    { id: 2, name: 'MyGlossary', position: 1, enabled: true },
-  ]
-  const SEARCH_ROWS = [
-    { term: SANGS_RGYAS, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'the buddha nature', rank: -2 },
-    { term: KA, dictionaryId: 2, dictionary: 'MyGlossary', definition: 'buddha letter', rank: -1 },
-  ]
-  const resultTerms = () =>
-    wrapper.findAll('[data-testid="lookup-result-term"]').map((term) => term.text())
-  const only = () => wrapper.find('[data-testid="lookup-only"]')
-
-  beforeEach(() => {
-    Storage.set('dictionaries', DICTIONARIES)
-    vi.spyOn(SqlDatabase, 'exec').mockImplementation(async (sql) => (/WHERE term IN/.test(sql) ? [] : SEARCH_ROWS))
-    vi.spyOn(SqlDatabase, 'getEntriesFor').mockImplementation(async () => [])
-  })
-
-  afterEach(() => {
-    vi.restoreAllMocks()
-  })
-
-  it('should search only the definitions of the dictionary the link names', async () => {
-    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
-    expect(resultTerms()).toEqual([KA])
-    expect(only().text()).toContain('MyGlossary')
-    expect(wrapper.find('[data-testid="lookup-read-as"]').text()).toContain('in MyGlossary')
-  })
-
-  it('should keep to that dictionary when another query is typed', async () => {
-    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
-    await input().setValue('letter')
-    await input().trigger('keydown', { key: 'Enter' })
-    await flushPromises()
-    expect(router.currentRoute.value.query).toEqual({ mode: 'en', q: 'letter', dict: 'MyGlossary' })
-  })
-
-  it('should keep to that dictionary when the field is cleared', async () => {
-    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
-    await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.query).toEqual({ mode: 'en', dict: 'MyGlossary' })
-    expect(only().exists()).toBe(true)
-  })
-
-  it('should search every dictionary again with the ×', async () => {
-    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
-    await only().find('button').trigger('click')
-    await flushPromises()
-    expect(router.currentRoute.value.query).toEqual({ mode: 'en', q: 'buddha' })
-    expect(only().exists()).toBe(false)
-    expect(resultTerms()).toEqual([SANGS_RGYAS, KA])
-  })
-
-  it('should drop the dictionary when switching to Tibetan', async () => {
-    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
-    await chooseMode('Tibetan')
-    expect(router.currentRoute.value.query.dict).toBeUndefined()
-    expect(only().exists()).toBe(false)
-  })
-})

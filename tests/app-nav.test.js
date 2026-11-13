@@ -11,7 +11,7 @@ const stub = { template: '<div />' }
 async function mountNav(path, props = {}, slots = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: ['/lookup', '/lookup/:term', '/reader', '/settings', '/glossary', '/dictionaries', '/saved'].map(
+    routes: ['/lookup', '/lookup/:term', '/search', '/reader', '/settings', '/glossary', '/dictionaries', '/saved'].map(
       (route) => ({ path: route, component: stub })
     ),
   })
@@ -50,15 +50,15 @@ describe('AppNav', () => {
     localStorage.clear()
   })
 
-  it('should list the glossary and dictionaries on desktop, three tabs on a phone', async () => {
+  it('should list the glossary and dictionaries on desktop, four tabs on a phone', async () => {
     const desktop = await mountNav('/lookup')
     const ids = (w) => w.findAll('[data-testid^="nav-"][href]').map((a) => a.attributes('data-testid'))
     expect(ids(desktop.wrapper)).toEqual([
-      'nav-lookup', 'nav-reader', 'nav-glossary', 'nav-dictionaries', 'nav-settings',
+      'nav-lookup', 'nav-search', 'nav-reader', 'nav-glossary', 'nav-dictionaries', 'nav-settings',
     ])
     expect(desktop.wrapper.classes()).toContain('app-nav--sidebar')
     const phone = await mountNav('/lookup', { isMobile: true })
-    expect(ids(phone.wrapper)).toEqual(['nav-lookup', 'nav-reader', 'nav-settings'])
+    expect(ids(phone.wrapper)).toEqual(['nav-lookup', 'nav-search', 'nav-reader', 'nav-settings'])
     expect(phone.wrapper.find('[role="separator"]').exists()).toBe(false)
   })
 
@@ -67,7 +67,7 @@ describe('AppNav', () => {
     const children = [...desktop.wrapper.find('.app-nav__items').element.children].map((el) =>
       el.getAttribute('role') === 'separator' ? 'separator' : el.getAttribute('data-testid')
     )
-    expect(children).toEqual(['nav-lookup', 'nav-reader', 'separator', 'nav-glossary', 'nav-dictionaries'])
+    expect(children).toEqual(['nav-lookup', 'nav-search', 'nav-reader', 'separator', 'nav-glossary', 'nav-dictionaries'])
     const phone = await mountNav('/lookup', { isMobile: true })
     expect(phone.wrapper.find('[data-testid="nav-separator"]').exists()).toBe(false)
   })

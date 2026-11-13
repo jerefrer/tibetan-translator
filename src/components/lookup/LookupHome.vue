@@ -117,7 +117,7 @@ export default {
     </section>
 
     <p class="lookup-home__tip" data-testid="lookup-tip">
-      Type <b>sangs rgyas</b> for <span class="lookup-home__tip-tibetan">སངས་རྒྱས་</span>, or switch to EN to search the definitions.
+      Type <b>sangs rgyas</b> for <span class="lookup-home__tip-tibetan">སངས་རྒྱས་</span>. English goes in Search.
     </p>
   </div>
 </template>

@@ -1,13 +1,13 @@
 <script>
 import { UiButton, UiIcon } from '../../ui';
 
-// The hint from བོད to EN: Tibetan read from Latin that is better searched in
-// the definitions (Sanskrit with diacritics, or Wylie that starts no term).
+// The way from Lookup to Search: Tibetan read from Latin that is better
+// searched in the definitions (Sanskrit with diacritics, or Wylie that starts
+// no term).
 export default {
   name: 'LookupHints',
   components: { UiButton, UiIcon },
   props: {
-    mode: { type: String, required: true },
     text: { type: String, default: '' },
     // The Wylie behind the Tibetan in the field
     typedWylie: { type: String, default: '' },
@@ -15,11 +15,11 @@ export default {
     asTyped: { type: String, default: '' },
     headwordCount: { type: Number, default: 0 },
   },
-  emits: ['switch'],
+  emits: ['search'],
   computed: {
-    // The Latin to search in the definitions, when བོད should offer it
+    // The Latin to search in the definitions, when it is worth offering
     searchText() {
-      if (this.mode !== 'bo' || !this.text) return '';
+      if (!this.text) return '';
       if (this.asTyped) return this.asTyped;
       return this.headwordCount === 0 ? this.typedWylie : '';
     },
@@ -32,8 +32,8 @@ export default {
     <p v-if="headwordCount === 0" class="lookup-hint__text">
       No Tibetan term starts with <span class="lookup-hint__tibetan">{{ text }}</span>.
     </p>
-    <ui-button class="lookup-hint__button" size="sm" @click="$emit('switch', { mode: 'en', text: searchText })">
-      <ui-icon name="search" :size="15" />
+    <ui-button class="lookup-hint__button" size="sm" @click="$emit('search', searchText)">
+      <ui-icon name="text-search" :size="15" />
       Search “{{ searchText }}” in the definitions
     </ui-button>
   </section>

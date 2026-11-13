@@ -477,10 +477,11 @@ export default {
   flex: 1;
 }
 
-/* Phone bottom bar: three tabs, accent on the active one */
+/* Phone bottom bar: one equal column per tab, accent on the active one */
 .app-nav--bar {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   height: calc(var(--bottom-bar-height) - 14px + max(14px, var(--safe-bottom)));
   padding: 6px 8px max(14px, var(--safe-bottom));
   background: var(--surface);

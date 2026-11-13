@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Storage from './services/storage'
 
 import LookupPage from './components/lookup/LookupPage.vue'
+import SearchPage from './components/search/SearchPage.vue'
 import ReaderPage from './components/reader/ReaderPage.vue'
 import SettingsPage from './components/settings/SettingsPage.vue'
 import TestsPage from './components/TestsPage.vue'
@@ -28,10 +29,21 @@ function oldSettingsLink(to) {
   return true
 }
 
+// Lookup held Search for a while, as its EN mode (`/lookup?mode=en&q=…`):
+// those links go to Search, and a `mode` left on a Lookup link is dropped
+function oldLookupLink(to) {
+  if (!('mode' in to.query) && !('q' in to.query)) return true
+  const { mode, ...query } = to.query
+  if (mode === 'en' || 'q' in to.query) return { path: '/search', query, hash: to.hash }
+  return { path: to.path, query, hash: to.hash }
+}
+
 const routes = [
   { path: '/', redirect: '/lookup' },
-  // Lookup: query `mode` is `bo` or `en`, `q` is the English-mode query
-  { path: '/lookup/:term?', component: LookupPage },
+  // Lookup: a Tibetan term
+  { path: '/lookup/:term?', component: LookupPage, beforeEnter: oldLookupLink },
+  // Search: `q` is the query, `dict` keeps it to one dictionary
+  { path: '/search', component: SearchPage },
   { path: '/reader', component: ReaderPage },
   { path: '/settings', component: SettingsPage, beforeEnter: oldSettingsLink },
   // "My glossary": the user's own dictionaries (LexiconPage)
@@ -45,17 +57,13 @@ const routes = [
     path: '/define/:term?',
     redirect: (to) => ({
       path: withTerm('/lookup', to.params.term),
-      query: { ...to.query, mode: 'bo' },
+      query: to.query,
       hash: to.hash,
     }),
   },
   {
-    path: '/search/:query?',
-    redirect: (to) => {
-      const query = { ...to.query, mode: 'en' }
-      if (to.params.query) query.q = to.params.query
-      return { path: '/lookup', query, hash: to.hash }
-    },
+    path: '/search/:query',
+    redirect: (to) => ({ path: '/search', query: { ...to.query, q: to.params.query }, hash: to.hash }),
   },
   { path: '/segment', redirect: (to) => ({ path: '/reader', query: to.query, hash: to.hash }) },
   // Library, which held Settings, My glossary and Dictionaries, is gone

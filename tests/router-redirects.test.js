@@ -26,35 +26,85 @@ describe('router', () => {
     await router.push('/define/abc')
     const route = router.currentRoute.value
     expect(route.path).toBe('/lookup/abc')
-    expect(route.query.mode).toBe('bo')
+    expect(route.query).toEqual({})
   })
 
-  it('should open bare Lookup in Tibetan mode when the old Define page is followed', async () => {
+  it('should open bare Lookup when the old Define page is followed', async () => {
     await router.push('/define')
-    expect(router.currentRoute.value.path).toBe('/lookup')
-    expect(router.currentRoute.value.query.mode).toBe('bo')
+    const route = router.currentRoute.value
+    expect(route.path).toBe('/lookup')
+    expect(route.query).toEqual({})
   })
 
   it('should keep the query and hash when an old Define link is followed', async () => {
     await router.push('/define/abc?x=1#top')
     const route = router.currentRoute.value
-    expect(route.query.x).toBe('1')
+    expect(route.query).toEqual({ x: '1' })
     expect(route.hash).toBe('#top')
   })
 
-  it('should open Lookup in English mode on the query when an old Search link is followed', async () => {
+  it('should open Search on the query when an old Search link is followed', async () => {
     await router.push('/search/bliss')
     const route = router.currentRoute.value
-    expect(route.path).toBe('/lookup')
-    expect(route.query).toEqual({ mode: 'en', q: 'bliss' })
+    expect(route.path).toBe('/search')
+    expect(route.query).toEqual({ q: 'bliss' })
   })
 
-  it('should open Lookup in English mode when the bare old Search page is followed', async () => {
+  it('should keep the other query and the hash when an old Search link is followed', async () => {
+    await router.push('/search/bliss?dict=x#top')
+    const route = router.currentRoute.value
+    expect(route.path).toBe('/search')
+    expect(route.query).toEqual({ dict: 'x', q: 'bliss' })
+    expect(route.hash).toBe('#top')
+  })
+
+  it('should open the bare Search page as it is', async () => {
     await router.push('/search')
     const route = router.currentRoute.value
+    expect(route.path).toBe('/search')
+    expect(route.query).toEqual({})
+  })
+
+  it('should open Search when a former English-mode Lookup link is followed', async () => {
+    await router.push('/reader')
+    await router.push('/lookup?mode=en&q=x&dict=y#top')
+    const route = router.currentRoute.value
+    expect(route.path).toBe('/search')
+    expect(route.query).toEqual({ q: 'x', dict: 'y' })
+    expect(route.hash).toBe('#top')
+  })
+
+  it('should open bare Search when a former English-mode Lookup link has no query', async () => {
+    await router.push('/reader')
+    await router.push('/lookup?mode=en')
+    const route = router.currentRoute.value
+    expect(route.path).toBe('/search')
+    expect(route.query).toEqual({})
+  })
+
+  it('should open Search when a Lookup link carries only a query', async () => {
+    await router.push('/reader')
+    await router.push('/lookup?q=x')
+    const route = router.currentRoute.value
+    expect(route.path).toBe('/search')
+    expect(route.query).toEqual({ q: 'x' })
+  })
+
+  it('should drop the mode of a former Tibetan-mode Lookup link', async () => {
+    await router.push('/reader')
+    await router.push('/lookup?mode=bo')
+    const route = router.currentRoute.value
     expect(route.path).toBe('/lookup')
-    expect(route.query.mode).toBe('en')
-    expect(route.query.q).toBeUndefined()
+    expect(route.query).toEqual({})
+  })
+
+  it('should drop the mode of a Tibetan-mode link to a term, keeping the rest', async () => {
+    await router.push('/reader')
+    await router.push('/lookup/abc?mode=bo&x=1#top')
+    const route = router.currentRoute.value
+    expect(route.path).toBe('/lookup/abc')
+    expect(route.query).toEqual({ x: '1' })
+    expect(route.hash).toBe('#top')
   })
 
   it('should open the Reader when an old Split link is followed', async () => {
@@ -113,7 +163,7 @@ describe('router', () => {
   })
 
   it('should resolve the page routes', () => {
-    for (const path of ['/lookup', '/lookup/abc', '/reader', '/settings', '/dictionaries', '/glossary', '/glossary/a/1', '/tests']) {
+    for (const path of ['/lookup', '/lookup/abc', '/search', '/reader', '/settings', '/dictionaries', '/glossary', '/glossary/a/1', '/tests']) {
       expect(router.resolve(path).matched.length, path).toBe(1)
     }
   })

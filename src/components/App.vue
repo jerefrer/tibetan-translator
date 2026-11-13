@@ -169,9 +169,10 @@ export default {
             if (path) {
               event.preventDefault();
               if (path === "focus-lookup") {
-                // Route to Lookup, then ask its field to take the focus
+                // Route to Lookup (unless Search is open), then ask the
+                // page's field to take the focus
                 const done = () => window.dispatchEvent(new CustomEvent("focus-lookup"));
-                if (vm.$route.path.startsWith("/lookup")) done();
+                if (/^\/(lookup|search)/.test(vm.$route.path)) done();
                 else vm.$router.push("/lookup").then(done);
               } else {
                 navigateTo(vm.$router, path);

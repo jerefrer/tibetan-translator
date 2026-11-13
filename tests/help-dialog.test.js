@@ -39,6 +39,7 @@ async function mountHelp() {
     history: createMemoryHistory(),
     routes: [
       { path: '/lookup/:term?', component: { template: '<div />' } },
+      { path: '/search', component: { template: '<div />' } },
       { path: '/settings', component: { template: '<div />' } },
       { path: '/reader', component: { template: '<div />' } },
     ],
@@ -141,7 +142,8 @@ describe('HelpDialog', () => {
     const labels = $$('.help__content [data-testid="help-try"]').map((button) => button.textContent.trim())
     expect(labels).toEqual(expect.arrayContaining(['wisdom', 'seven & limbs', "(dga' ba)", '[trenpa]', '{jom ten te}']))
     await click(tryButton('{jom ten te}'))
-    expect(router.currentRoute.value.query).toEqual({ mode: 'en', q: '{jom ten te}' })
+    expect(router.currentRoute.value.path).toBe('/search')
+    expect(router.currentRoute.value.query).toEqual({ q: '{jom ten te}' })
     expect(helpState.open).toBe(false)
   })
 

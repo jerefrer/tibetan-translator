@@ -44,8 +44,8 @@ export function highlightedGloss(definitionHtml, terms) {
     .join('');
 }
 
-// Lookup's results in EN mode (boards ModeEnglish and MobileResults): the
-// definitions searched the way Search does (same SQL, grouping and order),
+// Search's results (boards ModeEnglish and MobileResults): the
+// definitions searched the way the former Search did (same SQL, grouping and order),
 // one row per Tibetan term with its first definition as a highlighted gloss.
 // `dictionary` (a dictionary's name) keeps to that dictionary's definitions
 // (Dictionaries' "Search its definitions"). Before any query, the queries

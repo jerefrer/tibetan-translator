@@ -1,21 +1,14 @@
 /**
- * What Lookup remembers between visits and launches, and what its field shows
- * when the བོད / EN switch is used.
+ * What Lookup and Search remember between visits and launches.
  *
- * Stored under `lookupState` as { mode: 'bo' | 'en', term, query }: `term` is
- * the Tibetan term last selected, `query` the last English query.
+ * Stored under `lookupState` as { term, query }: `term` is the Tibetan term
+ * Lookup selected last, `query` the last query Search searched. (A former
+ * `mode`, from when one page held both, is ignored.)
  */
 import Storage from './storage';
-import { wylieToTibetan } from './quick-lookup';
 import { MAX_PREVIOUS_QUERIES } from '../config/constants';
 
 const STORAGE_KEY = 'lookupState';
-export const LOOKUP_MODES = ['bo', 'en'];
-const LATIN = /[A-Za-z]/;
-
-export function isLookupMode(value) {
-  return LOOKUP_MODES.includes(value);
-}
 
 export function readLookupState() {
   const stored = Storage.get(STORAGE_KEY);
@@ -23,7 +16,6 @@ export function readLookupState() {
   // (its `selectedTerm`), so the first launch after the update starts there
   const term = stored ? stored.term : Storage.get('selectedTerm');
   return {
-    mode: isLookupMode(stored?.mode) ? stored.mode : 'bo',
     term: typeof term === 'string' ? term : '',
     query: typeof stored?.query === 'string' ? stored.query : '',
   };
@@ -33,22 +25,8 @@ export function writeLookupState(partial) {
   Storage.set(STORAGE_KEY, { ...readLookupState(), ...partial });
 }
 
-/**
- * The text the field shows after switching from `mode` to `newMode`.
- * To English: the Latin the user typed when it is known (the field turned
- * it into Tibetan), else the text as typed (`asTyped`, kept when the field
- * could only convert part of it, as in kākiṇī), else the text as it is. To Tibetan: text holding Latin
- * is read as Wylie, as the Tibetan field would on a space; Tibetan stays.
- */
-export function switchLookupMode({ mode, text, typedWylie, asTyped }, newMode) {
-  const value = text || '';
-  if (newMode === mode) return value;
-  if (newMode === 'en') return typedWylie || asTyped || value;
-  return LATIN.test(value) ? wylieToTibetan(value) : value;
-}
-
-// The English queries searched before, most recent first, shared with what
-// Search kept under `previousQueries`
+// The queries searched before, most recent first, shared with what the
+// former Search page kept under `previousQueries`
 const PREVIOUS_QUERIES_KEY = 'previousQueries';
 
 export function readPreviousQueries() {
@@ -56,8 +34,7 @@ export function readPreviousQueries() {
   return Array.isArray(stored) ? stored : [];
 }
 
-/** As the former Search page: the query goes first, once, and the list is
- *  cut at MAX_PREVIOUS_QUERIES. */
+/** The query goes first, once, and the list is cut at MAX_PREVIOUS_QUERIES. */
 export function storePreviousQuery(query) {
   if (!query) return;
   const queries = [query, ...readPreviousQueries().filter((previous) => previous !== query)];

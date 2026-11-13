@@ -269,10 +269,10 @@ describe('DictionariesPage — the selected dictionary', () => {
     await mountPage()
     await rowOf('Rangjung Yeshe').find('[data-testid="dictionary-select"]').trigger('click')
     await detail().find('[data-testid="dictionary-search-definitions"]').trigger('click')
-    expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ path: '/lookup', query: { mode: 'en', dict: 'RangjungYeshe' } })
+    expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ path: '/search', query: { dict: 'RangjungYeshe' } })
     await rowOf('Practice terms').find('[data-testid="dictionary-select"]').trigger('click')
     await detail().find('[data-testid="dictionary-search-definitions"]').trigger('click')
-    expect(wrapper.vm.$router.push).toHaveBeenLastCalledWith({ path: '/lookup', query: { mode: 'en', dict: 'Practice terms' } })
+    expect(wrapper.vm.$router.push).toHaveBeenLastCalledWith({ path: '/search', query: { dict: 'Practice terms' } })
   })
 
   it('should not offer to search the definitions of a dictionary switched off', async () => {

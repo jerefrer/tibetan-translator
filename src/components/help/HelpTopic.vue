@@ -46,7 +46,7 @@ export default {
   <div class="help-topic" :data-topic="id">
     <template v-if="id === 'typing'">
       <p>
-        Where Tibetan is expected (Lookup in <strong>བོད</strong>, the Reader), type
+        Where Tibetan is expected (Lookup, the Reader), type
         Wylie: it becomes Tibetan as you type, at each space or tsheg. Under the
         field, <em>typed sangs rgyas</em> recalls the Latin you typed.
       </p>
@@ -59,14 +59,14 @@ export default {
       </table>
       <ul class="help-list">
         <li>Paste Tibetan as it is. Text in older Tibetan fonts is turned into Unicode.</li>
-        <li>English typed in <strong>བོད</strong> becomes Tibetan too: switch to <strong>EN</strong> to search the definitions. A hint offers it when no Tibetan term starts with what you typed.</li>
+        <li>English typed in Lookup becomes Tibetan too: <strong>Search</strong> is where English is searched in the definitions. A hint takes you there when no Tibetan term starts with what you typed.</li>
         <li>Sanskrit written in Wylie works as well: <code>buddha</code> gives its Tibetan spelling.</li>
       </ul>
     </template>
 
     <template v-else-if="id === 'lookup'">
       <p>
-        In <strong>བོད</strong>, the terms that start with what you type are listed as
+        Type a Tibetan term, in Tibetan or Wylie: the terms that start with it are listed as
         you type, each with a short gloss, and the first one opens. Open another with
         a click, or move with <kbd class="help-key">↑</kbd> <kbd class="help-key">↓</kbd>.
       </p>
@@ -81,9 +81,10 @@ export default {
 
     <template v-else-if="id === 'search'">
       <p>
-        Switch the Lookup field to <strong>EN</strong> to search the text of the
-        definitions. The results are the terms whose definitions match, the hits
-        highlighted. A few marks refine the search:
+        <strong>Search</strong> looks for words in the text of the definitions. The
+        results are the terms whose definitions match, the hits highlighted;
+        {{ isPhone ? 'tap' : 'click' }} one to read its definitions {{ isPhone ? 'on its own screen' : 'beside the results' }}.
+        A few marks refine the search:
       </p>
       <table class="help-table">
         <tbody>
@@ -100,7 +101,7 @@ export default {
         <li>Searching by sound, split the syllables if nothing comes up: <code>[chom den de]</code>. Syllables that run together need their consonant twice, or a space: <code>[sanggye]</code> or <code>[sang gye]</code>, not <code>[sangye]</code>.</li>
         <li><strong>Advanced</strong>, under the field, writes these queries for you: one row per condition, and an entry must match them all.</li>
         <li>To search a single dictionary, select it in <button type="button" class="help-link" @click="$emit('go', '/dictionaries')">Dictionaries</button> and choose <strong>Search its definitions</strong>. Its name shows under the field until its <strong>×</strong> searches every dictionary again.</li>
-        <li>When what you typed reads as a Tibetan term, switch back to <strong>བོད</strong> to look it up.</li>
+        <li>When what you typed in Tibetan is a term, a button opens it in <strong>Lookup</strong>.</li>
       </ul>
     </template>
 
@@ -122,7 +123,7 @@ export default {
 
     <template v-else-if="id === 'dictionaries'">
       <p>
-        <strong>Dictionaries</strong> lists every dictionary in the order Lookup and the
+        <strong>Dictionaries</strong> lists every dictionary in the order Lookup, Search and the
         Reader show them. Switch one off to leave it out.
       </p>
       <ul class="help-list">
@@ -179,7 +180,14 @@ export default {
       <table class="help-table help-shortcuts">
         <tbody>
           <tr><td><kbd class="help-key">↑</kbd> <kbd class="help-key">↓</kbd></td><td>Move through the results</td></tr>
-          <tr><td><kbd class="help-key">Enter</kbd></td><td>In EN: search, or open the result moved to</td></tr>
+          <tr><td><kbd class="help-key">Esc</kbd></td><td>Clear the field</td></tr>
+        </tbody>
+      </table>
+      <h4 class="help-subheading">Search</h4>
+      <table class="help-table help-shortcuts">
+        <tbody>
+          <tr><td><kbd class="help-key">↑</kbd> <kbd class="help-key">↓</kbd></td><td>Move through the results</td></tr>
+          <tr><td><kbd class="help-key">Enter</kbd></td><td>Search, or open the result moved to</td></tr>
           <tr><td><kbd class="help-key">Esc</kbd></td><td>Clear the field</td></tr>
         </tbody>
       </table>

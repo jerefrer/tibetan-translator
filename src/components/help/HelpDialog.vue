@@ -31,7 +31,7 @@ export default {
         // `words`: what people search the help for, beyond what the topic says
         { id: 'typing', title: 'Typing Tibetan and Wylie', icon: 'keyboard', words: 'ewts transliteration romanization input convert paste unicode font' },
         { id: 'lookup', title: 'Looking up a word', icon: 'search', words: 'entry definition meaning translation copy abbreviation scan audio pronunciation' },
-        { id: 'search', title: 'Searching the definitions', icon: 'book-search', words: 'english phonetic phonetics sound syntax query advanced builder' },
+        { id: 'search', title: 'Searching the definitions', icon: 'text-search', words: 'english phonetic phonetics sound syntax query advanced builder' },
         { id: 'reader', title: 'Reading a text', icon: 'align-left', words: 'split segment sentence passage words expression' },
         { id: 'dictionaries', title: 'Dictionaries', icon: 'book-open', words: 'order enable disable switch pack install update remove undo' },
         { id: 'glossary', title: 'My glossary', icon: 'notebook-pen', words: 'lexicon custom own definitions import export spreadsheet excel csv tibdict' },
@@ -112,7 +112,7 @@ export default {
     },
     trySearch(query) {
       closeHelp();
-      this.$router.push({ path: '/lookup', query: { mode: 'en', q: query } });
+      this.$router.push({ path: '/search', query: { q: query } });
     },
     goTo(path) {
       closeHelp();

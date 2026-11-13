@@ -1,6 +1,6 @@
 <script>
 // A segmented control: a radio group whose options sit side by side in a
-// quiet track, the chosen one raised (Lookup's བོད / EN switch). Only the
+// quiet track, the chosen one raised (Saved's Newest / Tibetan order). Only the
 // chosen option is in the tab order; the arrow keys move the choice.
 export default {
   name: 'UiSegmented',
