@@ -125,7 +125,7 @@ vendor/                # Third-party dictionary source files
 
 Routes are defined in `src/router.js`. Lookup, Reader and Settings on a phone (the Folio navigation, `src/config/navigation.js`); the desktop sidebar lists Lookup and Reader, then My glossary and Dictionaries, and ends with a Settings link. On a phone the glossary and dictionaries are rows of Settings:
 
-- `/lookup/:term?` - LookupPage: one field with a **བོད / EN** switch. `/lookup/<term>` selects a Tibetan term (བོད); `/lookup?mode=en&q=<query>` searches the definitions (EN). What was looked up last is kept under `lookupState`
+- `/lookup/:term?` - LookupPage: one field with a **བོད / EN** switch. `/lookup/<term>` selects a Tibetan term (བོད); `/lookup?mode=en&q=<query>` searches the definitions (EN); `&dict=<name>` keeps that search to one dictionary (Dictionaries' "Search its definitions") until its × or a switch to བོད. What was looked up last is kept under `lookupState`
 - `/reader` - ReaderPage (paste or type a text, read it word by word)
 - `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About, Help); on a phone also the My glossary and Dictionaries rows
 - `/dictionaries` - DictionariesPage: everything about dictionaries (packs, which are on, their order, what each holds). It writes Storage's `dictionaries`, the order and switches lookups read; `?find=` and `?status=` set its search and filter

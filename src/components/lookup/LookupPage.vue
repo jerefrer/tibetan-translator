@@ -5,6 +5,7 @@ import { DEBOUNCE_SEARCH_MS } from '../../config/constants';
 import { hasLatinDiacritics } from '../../services/non-wylie-input';
 import SqlDatabase from '../../services/sql-database';
 import Storage from '../../services/storage';
+import { cleanDictionaryLabel } from '../../services/copy-service';
 import { clearGlossCache } from '../../services/glosses';
 import { recordTerm } from '../../services/history';
 import { TIBETAN_CHAR_RE, plural, termsStartingWith } from '../../services/quick-lookup';
@@ -40,6 +41,9 @@ function dictionariesSignature() {
 // Lookup: one field, Tibetan (བོད) or English (EN).
 // The route carries what is looked up: /lookup/<term> selects a Tibetan term,
 // /lookup?mode=en&q=<query> an English query, and `mode` alone switches.
+// `dict=<name>` keeps an English search to one dictionary's definitions
+// (Dictionaries' "Search its definitions"); it stays while queries change,
+// until its × or a switch to བོད.
 // The old /define/<term> and /search/<query> links are redirected here by
 // the router. What was looked up last is kept in `lookupState`.
 // Results: in བོད the headwords starting with the field (the first selected
@@ -95,6 +99,8 @@ export default {
       activeDefinitionTerm: '',
       // The English query whose results are shown
       query: '',
+      // The dictionary an English search keeps to, by name ('' for all)
+      onlyDictionary: '',
       definitionCount: 0,
       // Bumped when SqlDatabase.allTerms changes (it is not reactive)
       allTermsVersion: 0,
@@ -115,11 +121,15 @@ export default {
     readAs() {
       if (this.mode === 'en') {
         if (!this.query) return '';
-        return `Terms whose definitions say “${this.query}” · ${plural(this.definitionCount, 'term')}`;
+        const where = this.onlyDictionary ? ` in ${this.onlyDictionaryLabel}` : '';
+        return `Terms whose definitions say “${this.query}”${where} · ${plural(this.definitionCount, 'term')}`;
       }
       if (!this.text) return '';
       const count = plural(this.matches.length, 'term');
       return this.typedWylie ? `Wylie ${this.typedWylie} → ${this.text} · ${count}` : count;
+    },
+    onlyDictionaryLabel() {
+      return this.onlyDictionary ? cleanDictionaryLabel(this.onlyDictionary) : '';
     },
     // The term whose entry is shown: a route term means བོད, an English
     // result is chosen locally
@@ -221,6 +231,7 @@ export default {
     applyRoute(route) {
       const term = route.params.term;
       const query = route.query.q;
+      this.onlyDictionary = term ? '' : route.query.dict || '';
       if (term) {
         this.selectTerm(term);
         writeLookupState({ mode: 'bo', term });
@@ -326,7 +337,7 @@ export default {
       this.selectedDefinitionTerm = '';
       this.activeDefinitionTerm = '';
       writeLookupState({ query });
-      this.$router.replace({ path: '/lookup', query: { mode: 'en', q: query } });
+      this.$router.replace({ path: '/lookup', query: this.englishRoute(query) });
     },
     searchPrevious(query) {
       this.text = query;
@@ -360,12 +371,27 @@ export default {
         );
       this.mode = newMode;
       this.text = text;
+      this.onlyDictionary = '';
       // The term stays the last one selected: the text converted to Tibetan
       // may not be a term
       writeLookupState(newMode === 'en' ? { mode: newMode, query: text } : { mode: newMode });
       // The route drops the term or query of the other mode, so that a link
       // to them (a definition link to the same term) is a change again
       if (updateRoute) this.$router.replace({ path: '/lookup', query: { mode: newMode } });
+    },
+    // An English route's query: the query, and the dictionary kept to
+    englishRoute(query) {
+      return {
+        mode: 'en',
+        ...(query ? { q: query } : {}),
+        ...(this.onlyDictionary ? { dict: this.onlyDictionary } : {}),
+      };
+    },
+    // The ×: every dictionary again, the query kept
+    searchEveryDictionary() {
+      this.onlyDictionary = '';
+      this.$router.replace({ path: '/lookup', query: this.englishRoute(this.query) });
+      this.$nextTick(() => this.focusField());
     },
     search() {
       const query = (this.text || '').trim();
@@ -377,7 +403,7 @@ export default {
       }
       this.query = query;
       storePreviousQuery(query);
-      this.$router.push({ path: '/lookup', query: { mode: 'en', q: query } });
+      this.$router.push({ path: '/lookup', query: this.englishRoute(query) });
     },
     clear() {
       this.text = '';
@@ -389,7 +415,7 @@ export default {
         this.selectedTerm = '';
       }
       writeLookupState(this.mode === 'en' ? { query: '' } : { term: '' });
-      const route = { path: '/lookup', query: { mode: this.mode } };
+      const route = { path: '/lookup', query: this.mode === 'en' ? this.englishRoute('') : { mode: this.mode } };
       if (this.$route.fullPath !== this.$router.resolve(route).fullPath) this.$router.push(route);
     },
     onKeydown(event) {
@@ -451,6 +477,19 @@ export default {
           @clear="clear"
           @submit="search"
         />
+        <div v-if="mode === 'en' && onlyDictionary" class="lookup-only" data-testid="lookup-only">
+          <ui-icon name="book-open" :size="15" class="lookup-only__icon" />
+          <span class="lookup-only__text">Only in <strong>{{ onlyDictionaryLabel }}</strong></span>
+          <button
+            type="button"
+            class="lookup-only__clear"
+            aria-label="Search every dictionary"
+            title="Search every dictionary"
+            @click="searchEveryDictionary"
+          >
+            <ui-icon name="x" :size="15" />
+          </button>
+        </div>
         <lookup-hints
           :mode="mode"
           :text="text"
@@ -477,6 +516,7 @@ export default {
             :query="query"
             :selected="highlightedDefinition"
             :refresh-key="refreshKey"
+            :dictionary="onlyDictionary"
             @select="onSelectDefinition"
             @search="searchPrevious"
             @count="definitionCount = $event"
@@ -540,6 +580,50 @@ export default {
   gap: var(--space-3);
   padding: var(--space-4);
   border-bottom: 1px solid var(--line-soft);
+}
+
+.lookup-only {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  max-width: 100%;
+  min-height: var(--control-sm);
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--text-sm);
+}
+.lookup-only__icon {
+  flex: none;
+}
+.lookup-only__text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lookup-only__clear {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.lookup-only__clear:hover {
+  background: var(--accent-line);
+}
+.lookup-only__clear:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
 }
 
 .lookup-page__title-row {

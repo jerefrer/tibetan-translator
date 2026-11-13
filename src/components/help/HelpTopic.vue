@@ -99,6 +99,7 @@ export default {
       <ul class="help-list">
         <li>Searching by sound, split the syllables if nothing comes up: <code>[chom den de]</code>. Syllables that run together need their consonant twice, or a space: <code>[sanggye]</code> or <code>[sang gye]</code>, not <code>[sangye]</code>.</li>
         <li><strong>Advanced</strong>, under the field, writes these queries for you: one row per condition, and an entry must match them all.</li>
+        <li>To search a single dictionary, select it in <button type="button" class="help-link" @click="$emit('go', '/dictionaries')">Dictionaries</button> and choose <strong>Search its definitions</strong>. Its name shows under the field until its <strong>×</strong> searches every dictionary again.</li>
         <li>When what you typed reads as a Tibetan term, switch back to <strong>བོད</strong> to look it up.</li>
       </ul>
     </template>
@@ -127,7 +128,7 @@ export default {
       <ul class="help-list">
         <li>To change the order, drag a dictionary by its handle<template v-if="!isPhone">, press <kbd class="help-key">{{ alt }}</kbd> <kbd class="help-key">↑</kbd> or <kbd class="help-key">↓</kbd> on the one selected,</template> or use <strong>Move to top</strong> and <strong>Move to bottom</strong>.<template v-if="isPhone"> On a phone, <strong>Reorder</strong> shows the handles.</template></li>
         <li v-if="!isPhone"><kbd class="help-key">{{ mod }}</kbd> <kbd class="help-key">Z</kbd> takes back a move or a switch, <kbd class="help-key">{{ mod }}</kbd> <kbd class="help-key">{{ shift }}</kbd> <kbd class="help-key">Z</kbd> does it again.</li>
-        <li>Select a dictionary to read where it comes from, its languages and subjects.</li>
+        <li>Select a dictionary to read where it comes from, its languages and subjects. <strong>Search its definitions</strong> searches that dictionary alone.</li>
         <li v-if="inApp">The packs at the top add dictionaries to this device, and update or remove them. Dictionaries of a pack you have not installed are listed under <em>Not on this device</em>.</li>
       </ul>
     </template>

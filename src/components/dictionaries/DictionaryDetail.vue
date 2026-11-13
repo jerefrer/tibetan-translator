@@ -11,7 +11,9 @@ export function ordinal(number) {
 
 // What is known about one dictionary (board DesktopDictionaries, the right
 // pane; on a phone, a screen of its own): its title and sources, languages
-// and subjects, where it stands in lookups, and what can be done with it.
+// and subjects, where it stands in lookups, and what can be done with it:
+// move it, or search its definitions (Lookup in EN, kept to it; only when it
+// is switched on, as lookups leave the others out).
 //
 // Emits toggle(enabled), move('top' | 'bottom') and install(packId).
 export default {
@@ -39,6 +41,10 @@ export default {
       if (!this.row.installed) return 'Not on this device';
       if (!this.row.enabled) return 'No, switched off';
       return `Yes · ${ordinal(this.rank)} of ${this.enabledCount}`;
+    },
+    // Lookup's English search, kept to this dictionary (by its name)
+    searchLink() {
+      return { path: '/lookup', query: { mode: 'en', dict: this.row.key } };
     },
     packState() {
       if (this.row.custom) return 'My glossary';
@@ -92,6 +98,16 @@ export default {
     </dl>
 
     <div v-if="row.installed" class="dictionary-detail__actions">
+      <ui-button
+        v-if="row.enabled"
+        variant="outline"
+        size="sm"
+        data-testid="dictionary-search-definitions"
+        @click="$router.push(searchLink)"
+      >
+        <ui-icon name="search" :size="15" />
+        Search its definitions
+      </ui-button>
       <ui-button variant="outline" size="sm" :disabled="!canMoveUp" data-testid="dictionary-move-top" @click="$emit('move', 'top')">
         <ui-icon name="arrow-up-to-line" :size="15" />
         Move to top

@@ -763,3 +763,66 @@ describe('LookupPage — results width', () => {
     expect(Storage.get('lookupResultsWidth')).toBeNull()
   })
 })
+
+describe('Lookup — the definitions of one dictionary', () => {
+  const DICTIONARIES = [
+    { id: 1, name: 'RangjungYeshe', position: 0, enabled: true },
+    { id: 2, name: 'MyGlossary', position: 1, enabled: true },
+  ]
+  const SEARCH_ROWS = [
+    { term: SANGS_RGYAS, dictionaryId: 1, dictionary: 'RangjungYeshe', definition: 'the buddha nature', rank: -2 },
+    { term: KA, dictionaryId: 2, dictionary: 'MyGlossary', definition: 'buddha letter', rank: -1 },
+  ]
+  const resultTerms = () =>
+    wrapper.findAll('[data-testid="lookup-result-term"]').map((term) => term.text())
+  const only = () => wrapper.find('[data-testid="lookup-only"]')
+
+  beforeEach(() => {
+    Storage.set('dictionaries', DICTIONARIES)
+    vi.spyOn(SqlDatabase, 'exec').mockImplementation(async (sql) => (/WHERE term IN/.test(sql) ? [] : SEARCH_ROWS))
+    vi.spyOn(SqlDatabase, 'getEntriesFor').mockImplementation(async () => [])
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('should search only the definitions of the dictionary the link names', async () => {
+    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
+    expect(resultTerms()).toEqual([KA])
+    expect(only().text()).toContain('MyGlossary')
+    expect(wrapper.find('[data-testid="lookup-read-as"]').text()).toContain('in MyGlossary')
+  })
+
+  it('should keep to that dictionary when another query is typed', async () => {
+    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
+    await input().setValue('letter')
+    await input().trigger('keydown', { key: 'Enter' })
+    await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({ mode: 'en', q: 'letter', dict: 'MyGlossary' })
+  })
+
+  it('should keep to that dictionary when the field is cleared', async () => {
+    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
+    await wrapper.get('[data-testid="ui-text-field-clear"]').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({ mode: 'en', dict: 'MyGlossary' })
+    expect(only().exists()).toBe(true)
+  })
+
+  it('should search every dictionary again with the ×', async () => {
+    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
+    await only().find('button').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query).toEqual({ mode: 'en', q: 'buddha' })
+    expect(only().exists()).toBe(false)
+    expect(resultTerms()).toEqual([SANGS_RGYAS, KA])
+  })
+
+  it('should drop the dictionary when switching to Tibetan', async () => {
+    await mountAt('/lookup?mode=en&dict=MyGlossary&q=buddha')
+    await chooseMode('Tibetan')
+    expect(router.currentRoute.value.query.dict).toBeUndefined()
+    expect(only().exists()).toBe(false)
+  })
+})

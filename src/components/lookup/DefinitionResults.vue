@@ -47,7 +47,9 @@ export function highlightedGloss(definitionHtml, terms) {
 // Lookup's results in EN mode (boards ModeEnglish and MobileResults): the
 // definitions searched the way Search does (same SQL, grouping and order),
 // one row per Tibetan term with its first definition as a highlighted gloss.
-// Before any query, the queries searched before.
+// `dictionary` (a dictionary's name) keeps to that dictionary's definitions
+// (Dictionaries' "Search its definitions"). Before any query, the queries
+// searched before.
 export default {
   name: 'DefinitionResults',
   components: { UiIcon, UiSpinner, UninstalledPacksNotice },
@@ -58,6 +60,8 @@ export default {
     // Changes when the dictionaries (enabled, order) or packs changed: the
     // query is searched again
     refreshKey: { type: Number, default: 0 },
+    // Only this dictionary's definitions, by name ('' for every dictionary)
+    dictionary: { type: String, default: '' },
   },
   emits: ['select', 'search', 'count'],
   data() {
@@ -103,6 +107,9 @@ export default {
       immediate: true,
     },
     refreshKey() {
+      if (this.query) this.search();
+    },
+    dictionary() {
       if (this.query) this.search();
     },
     displayedCount() {
@@ -151,6 +158,7 @@ export default {
         console.warn('[Lookup] Search failed', error);
       }
       if (token !== this._searchToken) return;
+      if (this.dictionary) rows = rows.filter((row) => row.dictionary === this.dictionary);
       this.searchedTerms = parsed;
       this.dictionaries = Storage.get('dictionaries') || [];
       this.entries = rows;
@@ -244,7 +252,8 @@ export default {
       </div>
       <div v-else class="lookup-results__none" data-testid="lookup-no-results">No results.</div>
 
-      <UninstalledPacksNotice :result-count="groups.length" />
+      <!-- Not while one dictionary is searched: the packs would not add to it -->
+      <UninstalledPacksNotice v-if="!dictionary" :result-count="groups.length" />
     </template>
   </div>
 </template>

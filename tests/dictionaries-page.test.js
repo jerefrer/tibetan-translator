@@ -243,6 +243,22 @@ describe('DictionariesPage — the selected dictionary', () => {
     expect(detail().find('[data-testid="dictionary-detail-rank"]').text()).toBe('Yes · 2nd of 3')
   })
 
+  it('should search the definitions of a dictionary switched on, its own or bundled', async () => {
+    await mountPage()
+    await rowOf('Rangjung Yeshe').find('[data-testid="dictionary-select"]').trigger('click')
+    await detail().find('[data-testid="dictionary-search-definitions"]').trigger('click')
+    expect(wrapper.vm.$router.push).toHaveBeenCalledWith({ path: '/lookup', query: { mode: 'en', dict: 'RangjungYeshe' } })
+    await rowOf('Practice terms').find('[data-testid="dictionary-select"]').trigger('click')
+    await detail().find('[data-testid="dictionary-search-definitions"]').trigger('click')
+    expect(wrapper.vm.$router.push).toHaveBeenLastCalledWith({ path: '/lookup', query: { mode: 'en', dict: 'Practice terms' } })
+  })
+
+  it('should not offer to search the definitions of a dictionary switched off', async () => {
+    await mountPage()
+    await rowOf('James Valby').find('[data-testid="dictionary-select"]').trigger('click')
+    expect(detail().find('[data-testid="dictionary-search-definitions"]').exists()).toBe(false)
+  })
+
   it('should move it to the top or the bottom of the order', async () => {
     await mountPage()
     await rowOf('James Valby').find('[data-testid="dictionary-select"]').trigger('click')
