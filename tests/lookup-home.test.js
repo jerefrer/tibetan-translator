@@ -9,6 +9,8 @@ import LookupHome from '../src/components/lookup/LookupHome.vue'
 import SqlDatabase from '../src/services/sql-database'
 import Storage from '../src/services/storage'
 import { clearHistory, recordTerm } from '../src/services/history'
+import { setSavedTerms } from '../src/services/saved-terms'
+import { RouterLinkStub } from '@vue/test-utils'
 import { clearGlossCache, loadGlosses } from '../src/services/glosses'
 
 const KA = 'ཀ་'
@@ -62,3 +64,17 @@ describe('LookupHome — glosses', () => {
     expect((await loadGlosses([KA], [NEW])).get(KA)).toBe('new gloss')
   })
 })
+
+describe('LookupHome — saved terms', () => {
+  it('should show eight saved terms and a way to all of them', async () => {
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
+    setSavedTerms(Array.from({ length: 11 }, (_, i) => 'ཀ' + String.fromCharCode(0x0f40 + i) + '་'))
+    wrapper = mount(LookupHome, { global: { stubs: { RouterLink: RouterLinkStub } } })
+    await flushPromises()
+    expect(wrapper.findAll('[data-testid="lookup-saved"] li')).toHaveLength(8)
+    const all = wrapper.findComponent(RouterLinkStub)
+    expect(all.props('to')).toBe('/saved')
+    expect(all.text()).toBe('See all 11')
+  })
+})
+

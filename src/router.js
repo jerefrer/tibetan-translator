@@ -8,6 +8,7 @@ import SettingsPage from './components/settings/SettingsPage.vue'
 import TestsPage from './components/TestsPage.vue'
 import LexiconPage from './components/LexiconPage.vue'
 import DictionariesPage from './components/dictionaries/DictionariesPage.vue'
+import SavedPage from './components/saved/SavedPage.vue'
 
 // Redirects keep the query string and the hash of the old link
 const withTerm = (base, term) => (term ? `${base}/${encodeURIComponent(term)}` : base)
@@ -36,6 +37,8 @@ const routes = [
   // "My glossary": the user's own dictionaries (LexiconPage)
   { path: '/glossary/:packId?/:dictionaryId?', component: LexiconPage },
   { path: '/dictionaries', component: DictionariesPage },
+  // Every saved term (the sidebar shows the eight newest)
+  { path: '/saved', component: SavedPage },
 
   // Former routes
   {

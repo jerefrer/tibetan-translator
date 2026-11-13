@@ -5,11 +5,13 @@ import { clearHistory, recentTerms } from '../../services/history';
 import { savedTerms } from '../../services/saved-terms';
 
 const RECENT_ROWS = 8;
+const SAVED_ROWS = 8;
 
 // What Lookup shows before anything is looked up (boards MobileHome and
-// Main): the recent terms (with Clear), the saved ones, each with a one-line
-// gloss, and the Wylie tip. On a phone under the field when it is empty; on a
-// desktop in the entry pane while no term is selected.
+// Main): the recent terms (with Clear), the newest saved ones (with See all,
+// the Saved page), each with a one-line gloss, and the Wylie tip. On a phone
+// under the field when it is empty; on a desktop in the entry pane while no
+// term is selected.
 export default {
   name: 'LookupHome',
   props: {
@@ -21,6 +23,7 @@ export default {
     return {
       recent: [],
       saved: [],
+      savedCount: 0,
       // term -> gloss ('' when no enabled dictionary has one)
       glosses: {},
     };
@@ -47,7 +50,9 @@ export default {
     tibetanRuns,
     refresh() {
       this.recent = recentTerms().slice(0, RECENT_ROWS);
-      this.saved = savedTerms();
+      const saved = savedTerms();
+      this.saved = saved.slice(0, SAVED_ROWS);
+      this.savedCount = saved.length;
       this.loadMissingGlosses();
     },
     reloadGlosses() {
@@ -99,6 +104,7 @@ export default {
     <section v-if="saved.length" class="lookup-home__section" aria-labelledby="lookup-home-saved">
       <div class="lookup-home__head">
         <h2 id="lookup-home-saved" class="lookup-home__label">Saved</h2>
+        <router-link to="/saved" class="lookup-home__clear" data-testid="lookup-saved-all">See all {{ savedCount }}</router-link>
       </div>
       <ul class="lookup-home__group" data-testid="lookup-saved">
         <li v-for="term in saved" :key="term">
@@ -158,6 +164,10 @@ export default {
 
 .lookup-home__clear:hover {
   text-decoration: underline;
+}
+
+a.lookup-home__clear {
+  text-decoration: none;
 }
 
 .lookup-home__group {

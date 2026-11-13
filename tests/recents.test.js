@@ -44,4 +44,11 @@ describe('recents', () => {
     spy.mockRestore()
     expect(events.map((e) => e.detail)).toEqual([{ key: KEY }, { key: KEY }])
   })
+
+  it('should forget one item and keep the others in order', () => {
+    const recents = make()
+    ;['a', 'b', 'c'].forEach((x) => recents.record(x))
+    recents.remove('b')
+    expect(recents.list()).toEqual(['c', 'a'])
+  })
 })

@@ -1,14 +1,19 @@
 <script>
 import UiIcon from '../ui/UiIcon.vue';
 import { navItemsFor, activeNavId, REFOLLOW_EVENT } from '../config/navigation';
-import { recentTerms } from '../services/history';
-import { savedTerms } from '../services/saved-terms';
+import Storage from '../services/storage';
+import { clearHistory, forgetTerm, recentTerms } from '../services/history';
+import { removeSaved, savedTerms } from '../services/saved-terms';
 import { helpState, toggleHelp, topicForRoute } from '../services/help';
 
-const RECENT_LIMIT = 8;
+// Terms each section of the sidebar shows; Saved links to all of them
+const SECTION_LIMIT = 8;
+const FOLDED_KEY = 'sidebarFolded';
 
-// Desktop: a sidebar with the app name, Lookup / Reader, My glossary / Dictionaries, the recent
-// and saved terms, and Help and Settings at the bottom.
+// Desktop: a sidebar with the app name, Lookup / Reader, My glossary /
+// Dictionaries, the recent and saved terms (eight of each, a × on each to
+// forget it, Clear for Recent, All for the Saved page; each section folds, and
+// stays folded), and Help and Settings at the bottom.
 // Phone: a bottom bar with Lookup, Reader and Settings.
 export default {
   name: 'AppNav',
@@ -20,12 +25,16 @@ export default {
   },
   data() {
     return {
-      recent: recentTerms().slice(0, RECENT_LIMIT),
+      recent: recentTerms().slice(0, SECTION_LIMIT),
       saved: savedTerms(),
+      folded: { recent: false, saved: false, ...Storage.get(FOLDED_KEY, {}) },
       help: helpState,
     };
   },
   computed: {
+    sectionLimit() {
+      return SECTION_LIMIT;
+    },
     items() {
       return navItemsFor(this.isMobile);
     },
@@ -60,10 +69,26 @@ export default {
       return `/lookup/${encodeURIComponent(term)}`;
     },
     refreshRecent() {
-      this.recent = recentTerms().slice(0, RECENT_LIMIT);
+      this.recent = recentTerms().slice(0, SECTION_LIMIT);
     },
     toggleHelp() {
       toggleHelp(topicForRoute(this.$route));
+    },
+    toggleFold(section) {
+      this.folded = { ...this.folded, [section]: !this.folded[section] };
+      Storage.set(FOLDED_KEY, this.folded);
+    },
+    forgetRecent(term) {
+      forgetTerm(term);
+      this.refreshRecent();
+    },
+    unsave(term) {
+      removeSaved(term);
+      this.refreshSaved();
+    },
+    clearRecent() {
+      clearHistory();
+      this.refreshRecent();
     },
     refreshSaved() {
       this.saved = savedTerms();
@@ -130,39 +155,50 @@ export default {
 
     <template v-if="!isMobile">
       <section v-if="recent.length" class="app-nav__section" data-testid="nav-recent">
-        <h2 class="app-nav__label">Recent</h2>
-        <router-link
-          v-for="term in recent"
-          :key="term"
-          v-slot="{ href, navigate }"
-          :to="termPath(term)"
-          custom
-        >
-          <a
-            :href="href"
-            class="app-nav__term"
-            :class="{ 'is-current': term === currentTerm }"
-            @click="navigate"
-          >{{ term }}</a>
-        </router-link>
+        <div class="app-nav__section-head">
+          <h2 class="app-nav__label">
+            <button type="button" class="app-nav__fold" :aria-expanded="folded.recent ? 'false' : 'true'" data-testid="nav-fold" @click="toggleFold('recent')">
+              <ui-icon name="chevron-right" :size="12" :stroke-width="2.6" class="app-nav__fold-icon" />
+              Recent
+            </button>
+          </h2>
+          <button type="button" class="app-nav__head-action" data-testid="nav-recent-clear" @click="clearRecent">Clear</button>
+        </div>
+        <template v-if="!folded.recent">
+          <div v-for="term in recent" :key="term" class="app-nav__term-row">
+            <router-link v-slot="{ href, navigate }" :to="termPath(term)" custom>
+              <a :href="href" class="app-nav__term" :class="{ 'is-current': term === currentTerm }" @click="navigate">{{ term }}</a>
+            </router-link>
+            <button type="button" class="app-nav__forget" :aria-label="'Forget ' + term" title="Forget" data-testid="nav-forget" @click="forgetRecent(term)">
+              <ui-icon name="x" :size="14" />
+            </button>
+          </div>
+        </template>
       </section>
 
       <section v-if="saved.length" class="app-nav__section" data-testid="nav-saved">
-        <h2 class="app-nav__label">Saved</h2>
-        <router-link
-          v-for="term in saved"
-          :key="term"
-          v-slot="{ href, navigate }"
-          :to="termPath(term)"
-          custom
-        >
-          <a
-            :href="href"
-            class="app-nav__term"
-            :class="{ 'is-current': term === currentTerm }"
-            @click="navigate"
-          >{{ term }}</a>
-        </router-link>
+        <div class="app-nav__section-head">
+          <h2 class="app-nav__label">
+            <button type="button" class="app-nav__fold" :aria-expanded="folded.saved ? 'false' : 'true'" data-testid="nav-fold" @click="toggleFold('saved')">
+              <ui-icon name="chevron-right" :size="12" :stroke-width="2.6" class="app-nav__fold-icon" />
+              Saved · {{ saved.length }}
+            </button>
+          </h2>
+          <router-link to="/saved" class="app-nav__head-action" data-testid="nav-saved-all">All</router-link>
+        </div>
+        <template v-if="!folded.saved">
+          <div v-for="term in saved.slice(0, sectionLimit)" :key="term" class="app-nav__term-row">
+            <router-link v-slot="{ href, navigate }" :to="termPath(term)" custom>
+              <a :href="href" class="app-nav__term" :class="{ 'is-current': term === currentTerm }" @click="navigate">{{ term }}</a>
+            </router-link>
+            <button type="button" class="app-nav__forget" :aria-label="'Remove ' + term + ' from Saved'" title="Remove from Saved" data-testid="nav-forget" @click="unsave(term)">
+              <ui-icon name="x" :size="14" />
+            </button>
+          </div>
+          <router-link v-if="saved.length > sectionLimit" to="/saved" class="app-nav__more">
+            {{ saved.length - sectionLimit }} more…
+          </router-link>
+        </template>
       </section>
 
       <div class="app-nav__spacer" />
@@ -317,7 +353,110 @@ export default {
   text-transform: uppercase;
   color: var(--faint);
 }
+.app-nav__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding-right: 6px;
+}
+.app-nav__label .app-nav__fold {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: -4px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.app-nav__fold:hover {
+  color: var(--ink);
+}
+.app-nav__fold:focus-visible,
+.app-nav__head-action:focus-visible,
+.app-nav__forget:focus-visible,
+.app-nav__more:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.app-nav__fold-icon {
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+.app-nav__fold[aria-expanded='false'] .app-nav__fold-icon {
+  transform: none;
+}
+.app-nav__head-action {
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: none;
+  font: 500 var(--text-xs) var(--font-ui);
+  color: var(--faint);
+  text-decoration: none;
+  cursor: pointer;
+}
+.app-nav__head-action:hover {
+  color: var(--accent);
+}
+.app-nav__term-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.app-nav__forget {
+  position: absolute;
+  right: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: var(--soft);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.app-nav__term-row:hover .app-nav__forget,
+.app-nav__forget:focus-visible {
+  opacity: 1;
+}
+.app-nav__forget:hover {
+  color: var(--ink);
+}
+@media (hover: none) {
+  .app-nav__forget {
+    opacity: 1;
+  }
+}
+.app-nav__more {
+  padding: 2px 10px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  text-decoration: none;
+}
+.app-nav__more:hover {
+  color: var(--accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-nav__fold-icon,
+  .app-nav__forget {
+    transition: none;
+  }
+}
 .app-nav__term {
+  flex: 1;
+  min-width: 0;
   display: block;
   padding: 4px 10px;
   border-radius: var(--radius-sm);

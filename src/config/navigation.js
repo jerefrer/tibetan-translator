@@ -30,6 +30,8 @@ export function routeSegment(path) {
  * path the route is at or under ("/glossary/x" -> glossary). */
 export function activeNavId(path, isMobile) {
   const route = String(path || '');
+  // Saved belongs with Lookup: the sidebar links to it, a phone's Lookup home too
+  if (route === '/saved') return isMobile ? 'lookup' : '';
   const item = NAV_ITEMS
     .filter((candidate) => route === candidate.path || route.startsWith(candidate.path + '/'))
     .sort((a, b) => b.path.length - a.path.length)[0];

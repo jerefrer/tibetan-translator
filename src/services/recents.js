@@ -22,6 +22,10 @@ export function createRecents({ key, limit, sameAs, replacesLatest }) {
       Storage.set(key, [item, ...previous.filter((x) => !sameAs(x, item))].slice(0, limit));
       announce();
     },
+    remove(item) {
+      Storage.set(key, list().filter((x) => !sameAs(x, item)));
+      announce();
+    },
     clear() {
       Storage.delete(key);
       announce();

@@ -20,4 +20,6 @@ export function recordTerm(term) {
   recents.record(term);
 }
 
+export const forgetTerm = (term) => recents.remove(term);
+
 export const clearHistory = () => recents.clear();

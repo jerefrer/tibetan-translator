@@ -28,6 +28,7 @@ describe('Tibetan in glosses', () => {
     for (const [file, selector] of [
       ['lookup/HeadwordResults.vue', '.lookup-result__gloss'],
       ['lookup/LookupHome.vue', '.lookup-home__gloss'],
+      ['saved/SavedPage.vue', '.saved-row__gloss'],
     ]) {
       const css = source(file)
       const block = css.slice(css.indexOf(`${selector} {`))

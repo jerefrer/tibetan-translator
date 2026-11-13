@@ -2,15 +2,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import AppNav from '../src/components/AppNav.vue'
-import { recordTerm } from '../src/services/history'
-import { toggleSaved } from '../src/services/saved-terms'
+import Storage from '../src/services/storage'
+import { recordTerm, recentTerms } from '../src/services/history'
+import { savedTerms, toggleSaved } from '../src/services/saved-terms'
 
 const stub = { template: '<div />' }
 
 async function mountNav(path, props = {}, slots = {}) {
   const router = createRouter({
     history: createMemoryHistory(),
-    routes: ['/lookup', '/reader', '/settings', '/glossary', '/dictionaries'].map(
+    routes: ['/lookup', '/lookup/:term', '/reader', '/settings', '/glossary', '/dictionaries', '/saved'].map(
       (route) => ({ path: route, component: stub })
     ),
   })
@@ -136,6 +137,63 @@ describe('AppNav', () => {
     await wrapper.find('[data-testid="nav-reader"]').trigger('click')
     await flushPromises()
     expect(router.currentRoute.value.path).toBe('/reader')
+  })
+
+  describe('recent and saved terms in the sidebar', () => {
+    beforeEach(() => {
+      ;['defineHistory', 'savedTerms', 'sidebarFolded'].forEach((key) => Storage.delete(key))
+    })
+
+    const saveMany = (count) => {
+      for (let i = 0; i < count; i++) toggleSaved('ཀ' + String.fromCharCode(0x0f40 + i) + '་')
+    }
+    const savedLinks = (wrapper) => wrapper.findAll('[data-testid="nav-saved"] .app-nav__term')
+
+    it('should forget a recent term with its ×, and clear them all with Clear', async () => {
+      recordTerm('བདེ་བ་')
+      recordTerm('སེམས་ཅན་')
+      const { wrapper } = await mountNav('/lookup')
+      await wrapper.findAll('[data-testid="nav-recent"] [data-testid="nav-forget"]')[0].trigger('click')
+      expect(recentTerms()).toEqual(['བདེ་བ་'])
+      window._triggerEvent('recents-updated')
+      await flushPromises()
+      await wrapper.find('[data-testid="nav-recent-clear"]').trigger('click')
+      window._triggerEvent('recents-updated')
+      await flushPromises()
+      expect(recentTerms()).toEqual([])
+      expect(wrapper.find('[data-testid="nav-recent"]').exists()).toBe(false)
+    })
+
+    it('should remove a saved term with its ×', async () => {
+      toggleSaved('སངས་རྒྱས་')
+      toggleSaved('ཆོས་')
+      const { wrapper } = await mountNav('/lookup')
+      await wrapper.findAll('[data-testid="nav-saved"] [data-testid="nav-forget"]')[1].trigger('click')
+      expect(savedTerms()).toEqual(['ཆོས་'])
+    })
+
+    it('should show eight saved terms, how many there are, and a way to all of them', async () => {
+      saveMany(12)
+      const { wrapper, router } = await mountNav('/lookup')
+      expect(savedLinks(wrapper)).toHaveLength(8)
+      expect(wrapper.find('[data-testid="nav-saved"] .app-nav__label').text()).toContain('12')
+      await wrapper.find('[data-testid="nav-saved-all"]').trigger('click')
+      await flushPromises()
+      expect(router.currentRoute.value.path).toBe('/saved')
+    })
+
+    it('should fold a section, and keep it folded next time', async () => {
+      saveMany(2)
+      const first = await mountNav('/lookup')
+      const toggle = first.wrapper.find('[data-testid="nav-saved"] [data-testid="nav-fold"]')
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+      await toggle.trigger('click')
+      expect(savedLinks(first.wrapper)).toHaveLength(0)
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+
+      const again = await mountNav('/lookup')
+      expect(savedLinks(again.wrapper)).toHaveLength(0)
+    })
   })
 
   it('should open the help on the topic of the page from the sidebar, and close it again', async () => {

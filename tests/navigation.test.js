@@ -72,4 +72,9 @@ describe('navigation config', () => {
     expect(new Set(NAV_ITEMS.map((item) => item.id)).size).toBe(NAV_ITEMS.length)
     expect(new Set(NAV_ITEMS.map((item) => item.path)).size).toBe(NAV_ITEMS.length)
   })
+
+  it('should highlight Lookup on a phone on the Saved page, and nothing in the sidebar', () => {
+    expect(activeNavId('/saved', true)).toBe('lookup')
+    expect(activeNavId('/saved', false)).toBe('')
+  })
 })

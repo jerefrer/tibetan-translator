@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { savedTerms, isSaved, toggleSaved } from '../src/services/saved-terms'
+import { savedTerms, isSaved, toggleSaved, removeSaved, clearSaved, setSavedTerms } from '../src/services/saved-terms'
 import Storage from '../src/services/storage'
 
 beforeEach(() => Storage.delete('savedTerms'))
@@ -29,5 +29,33 @@ describe('saved terms', () => {
     const events = spy.mock.calls.map(([e]) => e).filter((e) => e.type === 'saved-terms-updated')
     spy.mockRestore()
     expect(events).toHaveLength(1)
+  })
+
+  it('should remove one term, and leave the list alone for a term not saved', () => {
+    toggleSaved('ཀ་')
+    toggleSaved('ཁ་')
+    removeSaved('ཀ་')
+    removeSaved('ག་')
+    expect(savedTerms()).toEqual(['ཁ་'])
+  })
+
+  it('should clear every term, and put a list back (to undo)', () => {
+    toggleSaved('ཀ་')
+    toggleSaved('ཁ་')
+    const before = savedTerms()
+    clearSaved()
+    expect(savedTerms()).toEqual([])
+    setSavedTerms(before)
+    expect(savedTerms()).toEqual(['ཁ་', 'ཀ་'])
+  })
+
+  it('should announce a removal and a clear too', () => {
+    toggleSaved('ཀ་')
+    const spy = vi.spyOn(window, 'dispatchEvent')
+    removeSaved('ཀ་')
+    clearSaved()
+    const events = spy.mock.calls.map(([e]) => e).filter((e) => e.type === 'saved-terms-updated')
+    spy.mockRestore()
+    expect(events).toHaveLength(2)
   })
 })
