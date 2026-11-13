@@ -70,6 +70,7 @@ vi.mock('../src/services/scan-service', () => {
     ]),
     isScanDownloaded: vi.fn(async () => false),
     downloadScan: vi.fn(async () => {}),
+    cancelScanDownload: vi.fn(async () => {}),
     deleteScan: vi.fn(async () => {}),
     isAppMode: vi.fn(async () => env.tauri),
   }
@@ -83,6 +84,7 @@ vi.mock('../src/services/audio-service', () => {
     ]),
     isAudioDownloaded: vi.fn(async () => false),
     downloadAudio: vi.fn(async () => {}),
+    cancelAudioDownload: vi.fn(async () => {}),
     deleteAudio: vi.fn(async () => {}),
   }
   return { ...mocks.audio, default: mocks.audio }
@@ -413,6 +415,24 @@ describe('ScannedDictionariesCard', () => {
     expect(mocks.scans.deleteScan).not.toHaveBeenCalled()
   })
 
+  it('should cancel a scan download, and offer it again', async () => {
+    env.tauri = true
+    let reject
+    mocks.scans.downloadScan.mockImplementationOnce(() => new Promise((resolve, fail) => { reject = fail }))
+    await mountWith(ScannedDictionariesCard)
+    await byTestId('scan-download').trigger('click')
+    await flushPromises()
+    await byTestId('scan-cancel').trigger('click')
+    expect(mocks.scans.cancelScanDownload).toHaveBeenCalledWith('das')
+    // Tauri rejects the download with "cancelled"
+    reject('cancelled')
+    await flushPromises()
+    expect(snackbar.open).toHaveBeenCalledWith('Download cancelled')
+    expect(snackbar.open).not.toHaveBeenCalledWith(expect.stringContaining('failed'))
+    expect(byTestId('scan-download').exists()).toBe(true)
+    expect(byTestId('scan-das').text()).toContain('read online')
+  })
+
   it('reports a failed download', async () => {
     env.tauri = true
     mocks.scans.downloadScan.mockRejectedValueOnce(new Error('disk full'))
@@ -473,6 +493,21 @@ describe('AudioCard', () => {
     inBody('delete-cancel').click()
     await flushPromises()
     expect(mocks.audio.deleteAudio).not.toHaveBeenCalled()
+  })
+
+  it('should cancel a recordings download, and offer it again', async () => {
+    env.tauri = true
+    let reject
+    mocks.audio.downloadAudio.mockImplementationOnce(() => new Promise((resolve, fail) => { reject = fail }))
+    await mountWith(AudioCard)
+    await byTestId('audio-download').trigger('click')
+    await flushPromises()
+    await byTestId('audio-cancel').trigger('click')
+    expect(mocks.audio.cancelAudioDownload).toHaveBeenCalledWith('hotl1')
+    reject('cancelled')
+    await flushPromises()
+    expect(snackbar.open).toHaveBeenCalledWith('Download cancelled')
+    expect(byTestId('audio-download').exists()).toBe(true)
   })
 
   it('should report a failed download and offer it again', async () => {

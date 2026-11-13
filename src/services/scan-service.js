@@ -1,5 +1,6 @@
 import Storage from "./storage";
 import DICTIONARIES_DETAILS from "./dictionaries-details";
+import { cancelDownload } from "./downloads";
 
 // GitHub raw URL base for scan images. The upstream repo moved scans from
 // `webapp/data/scan` to `backend/data/scan` at some point — only the new
@@ -92,15 +93,17 @@ export async function getScanUrl(scanId, pageNum) {
 }
 
 /**
- * Check if a dictionary's scans are downloaded locally
+ * Check if a dictionary's scans are downloaded locally: every page, so that a
+ * download cut short does not read as done
  */
 export async function isScanDownloaded(scanId) {
   const isTauri = await checkIsTauri();
   if (!isTauri) return false;
 
+  const dict = getScannedDictionaries().find((d) => d.scanId === scanId);
   try {
     const inv = await getInvoke();
-    return await inv("check_scan_downloaded", { scanId });
+    return await inv("check_scan_downloaded", { scanId, expectedCount: dict?.pageCount || 0 });
   } catch (e) {
     return false;
   }
@@ -176,6 +179,14 @@ export async function downloadScan(scanId, onProgress) {
 }
 
 /**
+ * Stop a scan download: the pages fetched so far are deleted, and
+ * downloadScan rejects with "cancelled"
+ */
+export async function cancelScanDownload(scanId) {
+  await cancelDownload(`scan:${scanId}`);
+}
+
+/**
  * Delete downloaded scan images for a dictionary
  */
 export async function deleteScan(scanId) {
@@ -208,6 +219,7 @@ export default {
   getDownloadStatuses,
   getDownloadProgress,
   downloadScan,
+  cancelScanDownload,
   deleteScan,
   isAppMode
 };

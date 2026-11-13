@@ -46,6 +46,7 @@ vi.mock('../src/services/pack-manager', async () => {
     checkForUpdates: vi.fn(async () => {}),
     updatePack: vi.fn(async () => {}),
     waitForUpdate: vi.fn(async () => {}),
+    cancelPackDownload: vi.fn(async () => {}),
   }
   return { default: packs.api }
 })
@@ -360,6 +361,38 @@ describe('DictionariesPage — packs', () => {
     packs.state.updatingPacks = { 'tibetan-monolingual': { percentage: 10 } }
     await nextTick()
     expect(pack('tibetan-monolingual').find('[data-testid="pack-status"]').text()).toBe('Updating 10%')
+  })
+
+  it('should cancel a pack downloading or updating, but not once it is being unpacked', async () => {
+    packs.state.downloadingPacks = { 'tibetan-monolingual': { percentage: 41.6, status: 'downloading' } }
+    await mountPage()
+    await pack('tibetan-monolingual').find('[data-testid="pack-cancel"]').trigger('click')
+    expect(packs.api.cancelPackDownload).toHaveBeenCalledWith('tibetan-monolingual')
+
+    packs.state.downloadingPacks = { 'tibetan-monolingual': { percentage: 100, status: 'extracting' } }
+    await nextTick()
+    expect(pack('tibetan-monolingual').find('[data-testid="pack-cancel"]').exists()).toBe(false)
+    // Nothing else beside the progress while it lasts
+    expect(pack('tibetan-monolingual').find('[data-testid="pack-install"]').exists()).toBe(false)
+
+    packs.state.downloadingPacks = {}
+    packs.state.installedPacks = ['core', 'tibetan-monolingual']
+    packs.state.updatingPacks = { 'tibetan-monolingual': { percentage: 10, status: 'downloading' } }
+    await nextTick()
+    await pack('tibetan-monolingual').find('[data-testid="pack-cancel"]').trigger('click')
+    expect(packs.api.cancelPackDownload).toHaveBeenCalledTimes(2)
+  })
+
+  it('should say a cancelled install was cancelled, not that it failed', async () => {
+    packs.api.downloadPack.mockRejectedValueOnce('cancelled')
+    await mountPage()
+    await pack('tibetan-monolingual').find('[data-testid="pack-install"]').trigger('click')
+    await flushPromises()
+    document.body.querySelector('[data-testid="pack-confirm-install"]').click()
+    await flushPromises()
+    expect(snackbar.open).toHaveBeenCalledWith('Download cancelled')
+    expect(snackbar.open).not.toHaveBeenCalledWith('Could not install Tibetan Monolingual.')
+    expect(db.reloadPack).not.toHaveBeenCalled()
   })
 
   it('should not offer to install before the pack manager knows what is installed', async () => {

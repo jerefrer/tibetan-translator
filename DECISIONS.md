@@ -146,3 +146,12 @@
 **Why:** Lightened enough to read on the dark ground, the red turned salmon, nearly the dark theme's danger colour (`--danger-ink: #FF9A8D`): every Tibetan word looked like an error, and a list of them shouted. Gold keeps the idea of the light theme (red ink on paper becomes gold ink on dark paper, as precious Tibetan texts are written) and contrasts about 9:1 with the page.
 **Trade-offs:** Gold is near the amber of notices and search hits; hits are filled blocks with dark text, Tibetan is coloured text without a ground, so they stay apart.
 **Revisit if:** amber text (not a filled block) comes to sit beside Tibetan.
+
+---
+
+## 2026-11-13 — Scans: eight pages at a time; every download can be cancelled
+**Chosen:** User decision: scanned dictionaries still download page by page from Christian Steinert's repository, but eight at a time over one kept-alive client; a `.complete` marker says a scan is whole. Scans, recordings and packs can be cancelled through one registry (`src-tauri/src/downloads.rs`, keys `scan:`/`audio:`/`pack:`); a cancelled download keeps nothing and rejects with `"cancelled"`, which the screens report as cancelled rather than failed.
+**Alternatives:** One archive per scanned dictionary in the `dictionary-packs` release, as the recordings (one request, as fast as the connection; but ~136 MB for Jäschke and more for Das to build, upload and rebuild whenever the scans change).
+**Why:** Measured: 32 pages took 15.4 s one at a time and 3.0 s eight at a time, the time going into each request's wait rather than the transfer. Nothing new to host or keep in step. Before the marker, any PNG on disk made a scan read as downloaded, so an interrupted download looked complete.
+**Trade-offs:** Still about 700 requests to a repository we do not control. A scan downloaded before the marker existed, with pages its source lacks, reads as incomplete until downloaded again (which skips the pages present and writes the marker). A pack can no longer be cancelled once it is being unpacked.
+**Revisit if:** the upstream repository moves or throttles, or downloads still feel slow on phones (then the archives).

@@ -3,8 +3,10 @@ import {
   getAudioDictionaries,
   isAudioDownloaded,
   downloadAudio,
+  cancelAudioDownload,
   deleteAudio,
 } from '../../services/audio-service';
+import { wasCancelled } from '../../services/downloads';
 import { isTauri } from '../../config/platform';
 import ResizeService from '../../services/resize-service';
 import { UiButton, UiDialog, UiIcon, UiProgress, UiTooltip } from '../../ui';
@@ -104,8 +106,11 @@ export default {
         this.snackbar.open('Download complete!');
       } catch (e) {
         this.status[audioId] = { ...this.status[audioId], downloading: false, progress: 0 };
-        this.snackbar.open(`Download failed: ${errorMessage(e)}`);
+        this.snackbar.open(wasCancelled(e) ? 'Download cancelled' : `Download failed: ${errorMessage(e)}`);
       }
+    },
+    cancel(audioId) {
+      cancelAudioDownload(audioId).catch((e) => console.warn('Cancel failed:', e));
     },
     confirmRemove(dictionary) {
       this.pendingDelete = dictionary;
@@ -154,11 +159,22 @@ export default {
             class="offline-set__progress"
           />
         </template>
-        <span
-          v-if="status[dictionary.audioId]?.downloading"
-          class="offline-set__percent"
-          data-testid="audio-progress"
-        >{{ status[dictionary.audioId]?.progress || 0 }}%</span>
+        <template v-if="status[dictionary.audioId]?.downloading">
+          <span class="offline-set__percent" data-testid="audio-progress">{{ status[dictionary.audioId]?.progress || 0 }}%</span>
+          <ui-tooltip text="Cancel download">
+            <ui-button
+              icon
+              size="sm"
+              variant="ghost"
+              class="offline-set__cancel"
+              :aria-label="'Cancel the download of ' + dictionary.label"
+              data-testid="audio-cancel"
+              @click="cancel(dictionary.audioId)"
+            >
+              <ui-icon name="x" :size="17" />
+            </ui-button>
+          </ui-tooltip>
+        </template>
         <ui-tooltip v-else-if="status[dictionary.audioId]?.downloaded" text="Delete download">
           <ui-button
             icon

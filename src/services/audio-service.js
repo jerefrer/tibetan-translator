@@ -9,6 +9,7 @@
 
 import { isTauri } from "../config/platform";
 import DICTIONARIES_DETAILS from "./dictionaries-details";
+import { cancelDownload } from "./downloads";
 
 // Served by GitHub from this repository's main branch. Apps already installed
 // keep requesting these paths, so moving or renaming public/audio breaks
@@ -89,6 +90,11 @@ export async function downloadAudio(audioId) {
   await invoke("download_audio", { audioId, url: `${AUDIO_ARCHIVE_BASE}/${audioId}.zip` });
 }
 
+/** Stop a download: nothing is kept, and downloadAudio rejects with "cancelled" */
+export async function cancelAudioDownload(audioId) {
+  await cancelDownload(`audio:${audioId}`);
+}
+
 export async function deleteAudio(audioId) {
   if (!isTauri()) {
     throw new Error("Deleting is only available in the desktop/mobile app");
@@ -101,5 +107,6 @@ export default {
   getAudioUrl,
   isAudioDownloaded,
   downloadAudio,
+  cancelAudioDownload,
   deleteAudio,
 };

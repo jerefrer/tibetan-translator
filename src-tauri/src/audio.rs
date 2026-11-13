@@ -5,6 +5,7 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use tauri::{AppHandle, Emitter, Manager, Window};
 use zip::ZipArchive;
+use crate::downloads::{self, CANCELLED};
 
 /// Dictionary ids and file names come from the frontend and end up in paths,
 /// so only plain names are accepted: no separators, no `..`, nothing hidden.
@@ -120,6 +121,8 @@ pub async fn download_audio(
     let parent = audio_dir.parent().ok_or("Invalid audio dir")?.to_path_buf();
     fs::create_dir_all(&parent).map_err(|e| format!("Failed to create audio dir: {}", e))?;
     let archive_path = parent.join(format!("{}.zip.part", audio_id));
+    let cancel_key = format!("audio:{}", audio_id);
+    let _download = downloads::guard(&cancel_key);
 
     let response = reqwest::get(&url)
         .await
@@ -144,6 +147,11 @@ pub async fn download_audio(
     let mut stream = response.bytes_stream();
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| format!("Download error: {}", e))?;
+        if downloads::is_cancelled(&cancel_key) {
+            drop(file);
+            let _ = fs::remove_file(&archive_path);
+            return Err(CANCELLED.to_string());
+        }
         file.write_all(&chunk).map_err(|e| format!("Write error: {}", e))?;
         // Emit about every 256 KB to avoid flooding the webview
         if downloaded / 262_144 != (downloaded + chunk.len() as u64) / 262_144 {

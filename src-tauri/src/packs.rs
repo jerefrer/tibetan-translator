@@ -1,4 +1,5 @@
 use crate::custom_packs::get_custom_pack_paths;
+use crate::downloads::{self, CANCELLED};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -198,6 +199,8 @@ pub async fn download_pack(
     let packs_dir = get_packs_dir(&app)?;
     let compressed_path = packs_dir.join(format!("{}.7z", pack_id));
     let sqlite_path = packs_dir.join(format!("{}.sqlite", pack_id));
+    let cancel_key = format!("pack:{}", pack_id);
+    let _download = downloads::guard(&cancel_key);
 
     // Download URL
     let url = format!("{}/{}.7z", get_releases_base_url(), pack_id);
@@ -236,6 +239,12 @@ pub async fn download_pack(
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| format!("Download error: {}", e))?;
+        // Cancel applies to the download only; extraction is never interrupted
+        if downloads::is_cancelled(&cancel_key) {
+            drop(file);
+            fs::remove_file(&compressed_path).ok();
+            return Err(CANCELLED.to_string());
+        }
         file.write_all(&chunk)
             .map_err(|e| format!("Write error: {}", e))?;
 
@@ -960,6 +969,8 @@ pub async fn update_pack(
     let packs_dir = get_packs_dir(&app)?;
     let compressed_path = packs_dir.join(format!("{}.7z", pack_id));
     let sqlite_path = packs_dir.join(format!("{}.sqlite", pack_id));
+    let cancel_key = format!("pack:{}", pack_id);
+    let _download = downloads::guard(&cancel_key);
 
     // Download URL
     let url = format!("{}/{}.7z", get_releases_base_url(), pack_id);
@@ -998,6 +1009,12 @@ pub async fn update_pack(
 
     while let Some(chunk) = stream.next().await {
         let chunk = chunk.map_err(|e| format!("Download error: {}", e))?;
+        // Cancel applies to the download only; extraction is never interrupted
+        if downloads::is_cancelled(&cancel_key) {
+            drop(file);
+            fs::remove_file(&compressed_path).ok();
+            return Err(CANCELLED.to_string());
+        }
         file.write_all(&chunk)
             .map_err(|e| format!("Write error: {}", e))?;
 

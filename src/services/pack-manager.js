@@ -10,6 +10,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { convertFileSrc } from '@tauri-apps/api/core';
 import Storage from './storage';
+import { cancelDownload } from './downloads';
 import { supportsModularPacks, isMobile } from '../config/platform';
 import { PACK_DEFINITIONS, getRequiredPackIds, SUPPORTED_SCHEMA_VERSION } from '../config/pack-definitions';
 
@@ -233,6 +234,15 @@ export const PackManager = {
       delete state.downloadingPacks[packId];
       throw error;
     }
+  },
+
+  /**
+   * Stop a pack's download or update while it downloads (not once it is
+   * being unpacked): nothing is kept, an update leaves the installed version,
+   * and downloadPack / updatePack reject with "cancelled"
+   */
+  async cancelPackDownload(packId) {
+    await cancelDownload(`pack:${packId}`);
   },
 
   /**

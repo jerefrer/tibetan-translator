@@ -3,9 +3,11 @@ import {
   getScannedDictionaries,
   isScanDownloaded,
   downloadScan,
+  cancelScanDownload,
   deleteScan,
   isAppMode,
 } from '../../services/scan-service';
+import { wasCancelled } from '../../services/downloads';
 import ResizeService from '../../services/resize-service';
 import { UiButton, UiDialog, UiIcon, UiProgress, UiTooltip } from '../../ui';
 import SettingsRow from './SettingsRow.vue';
@@ -113,6 +115,12 @@ export default {
         this.status[scanId] = { downloaded: true, downloading: false, progress: 100, error: null };
         this.snackbar.open('Download complete!');
       } catch (e) {
+        // A cancelled download keeps nothing: back to reading online
+        if (wasCancelled(e)) {
+          this.status[scanId] = { downloaded: false, downloading: false, progress: 0, error: null };
+          this.snackbar.open('Download cancelled');
+          return;
+        }
         this.status[scanId] = {
           ...this.status[scanId],
           downloading: false,
@@ -121,6 +129,9 @@ export default {
         };
         this.snackbar.open(`Download failed: ${e.message || 'Unknown error'}`);
       }
+    },
+    cancel(scanId) {
+      cancelScanDownload(scanId).catch((e) => console.warn('Cancel failed:', e));
     },
     confirmRemove(dictionary) {
       this.pendingDelete = dictionary;
@@ -169,11 +180,22 @@ export default {
             class="offline-set__progress"
           />
         </template>
-        <span
-          v-if="status[dictionary.scanId]?.downloading"
-          class="offline-set__percent"
-          data-testid="scan-progress"
-        >{{ status[dictionary.scanId]?.progress || 0 }}%</span>
+        <template v-if="status[dictionary.scanId]?.downloading">
+          <span class="offline-set__percent" data-testid="scan-progress">{{ status[dictionary.scanId]?.progress || 0 }}%</span>
+          <ui-tooltip text="Cancel download">
+            <ui-button
+              icon
+              size="sm"
+              variant="ghost"
+              class="offline-set__cancel"
+              :aria-label="'Cancel the download of ' + label(dictionary)"
+              data-testid="scan-cancel"
+              @click="cancel(dictionary.scanId)"
+            >
+              <ui-icon name="x" :size="17" />
+            </ui-button>
+          </ui-tooltip>
+        </template>
         <ui-tooltip v-else-if="status[dictionary.scanId]?.downloaded" text="Delete download">
           <ui-button
             icon
@@ -225,7 +247,9 @@ export default {
   font-weight: 600;
   color: var(--accent);
 }
-.offline-set__delete.ui-button--ghost { color: var(--muted); }
+.offline-set__delete.ui-button--ghost,
+.offline-set__cancel.ui-button--ghost { color: var(--muted); }
+.offline-set__cancel.ui-button--ghost:hover:not(:disabled) { color: var(--ink); }
 .offline-set__delete.ui-button--ghost:hover:not(:disabled) { color: var(--danger-ink); background: var(--danger-soft); }
 .offline-set__note {
   margin: 0;

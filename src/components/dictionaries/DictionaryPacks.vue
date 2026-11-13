@@ -1,6 +1,7 @@
 <script>
 import PackManager from '../../services/pack-manager';
 import db from '../../services/sql-database';
+import { wasCancelled } from '../../services/downloads';
 import { UiButton, UiDialog, UiIcon, UiMenu, UiProgress } from '../../ui';
 import { orderedPackDefinitions, isPackInstalled, plural } from '../settings/pack-summary';
 
@@ -11,7 +12,8 @@ const shortSize = (estimatedSize) =>
 // The dictionary packs, the one place to install, update and remove them
 // (board DesktopDictionaries: a card per pack; MobileDictionaries: a group of
 // rows). An install or a removal is confirmed first; the progress of a
-// download or an update replaces the pack's button. Only where packs are
+// download or an update replaces the pack's button, with a × to cancel it
+// until the pack is being unpacked. Only where packs are
 // modular (the app): the page leaves it out on the web.
 //
 // Exposes askInstall(packId), for a dictionary of a pack not installed.
@@ -48,6 +50,10 @@ export default {
         removable: !definition.included && !definition.required,
         downloading: downloading[definition.id] ? Math.round(downloading[definition.id].percentage || 0) : null,
         updating: updating[definition.id] ? Math.round(updating[definition.id].percentage || 0) : null,
+        // Downloading can be stopped; unpacking cannot
+        cancellable: [downloading[definition.id], updating[definition.id]].some(
+          (progress) => progress && progress.status !== 'extracting' && progress.status !== 'complete'
+        ),
         update: updates[definition.id] || null,
         meta: definition.included
           ? `${plural(definition.dictionaries.length, 'dictionary', 'dictionaries')} · always on this device`
@@ -85,8 +91,12 @@ export default {
         await db.reloadPack(pack.id);
         this.snackbar?.open(`${pack.name} installed`);
       } catch (error) {
-        console.error('Download failed:', error);
-        this.snackbar?.open(`Could not install ${pack.name}.`);
+        if (wasCancelled(error)) {
+          this.snackbar?.open('Download cancelled');
+        } else {
+          console.error('Download failed:', error);
+          this.snackbar?.open(`Could not install ${pack.name}.`);
+        }
       }
       this.installTarget = null;
       this.focusStatus(pack.id);
@@ -127,8 +137,12 @@ export default {
         await PackManager.waitForUpdate(packId);
         await db.reloadPack(packId);
       } catch (error) {
-        console.error('Update failed:', error);
+        if (wasCancelled(error)) this.snackbar?.open('Update cancelled');
+        else console.error('Update failed:', error);
       }
+    },
+    cancel(packId) {
+      PackManager.cancelPackDownload(packId).catch((error) => console.warn('Cancel failed:', error));
     },
     async updateAll() {
       for (const pack of this.packs) {
@@ -184,12 +198,22 @@ export default {
         <div class="dictionary-pack__top">
           <span class="dictionary-pack__name">{{ pack.name }}</span>
 
-          <span v-if="pack.updating !== null" class="dictionary-pack__status is-busy" tabindex="-1" data-testid="pack-status">
-            Updating {{ pack.updating }}%
-          </span>
-          <span v-else-if="pack.downloading !== null" class="dictionary-pack__status is-busy" tabindex="-1" data-testid="pack-status">
-            Downloading {{ pack.downloading }}%
-          </span>
+          <template v-if="pack.updating !== null || pack.downloading !== null">
+            <span class="dictionary-pack__status is-busy" tabindex="-1" data-testid="pack-status">
+              {{ pack.updating !== null ? `Updating ${pack.updating}%` : `Downloading ${pack.downloading}%` }}
+            </span>
+            <button
+              v-if="pack.cancellable"
+              type="button"
+              class="dictionary-pack__more"
+              :aria-label="(pack.updating !== null ? 'Cancel the update of ' : 'Cancel the download of ') + pack.name"
+              title="Cancel"
+              data-testid="pack-cancel"
+              @click="cancel(pack.id)"
+            >
+              <ui-icon name="x" :size="18" />
+            </button>
+          </template>
           <template v-else-if="pack.installed">
             <ui-button v-if="pack.update" size="sm" variant="soft" data-testid="pack-update" @click="updatePack(pack.id)">
               <ui-icon name="download" :size="15" />
