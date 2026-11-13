@@ -602,7 +602,7 @@ export default {
             class="ql-more"
             data-testid="ql-results-more"
           >
-            <ui-button variant="ghost" size="sm" @click="loadMoreSearchEntries()">Show more results</ui-button>
+            <ui-button variant="ghost" size="sm" @click="loadMoreSearchEntries()"><ui-icon name="chevron-down" :size="15" />Show more results</ui-button>
           </div>
         </div>
         <div v-else-if="searchTerm.trim()" class="ql-state" data-testid="ql-no-results">
@@ -658,7 +658,7 @@ export default {
                 class="ql-more"
                 data-testid="ql-terms-more"
               >
-                <ui-button variant="ghost" size="sm" @click="loadMoreTerms()">More</ui-button>
+                <ui-button variant="ghost" size="sm" @click="loadMoreTerms()"><ui-icon name="chevron-down" :size="15" />More</ui-button>
               </div>
             </div>
           </section>

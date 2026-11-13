@@ -26,6 +26,8 @@ export default {
     tall: { type: Boolean, default: false },
     // false keeps the first field from taking focus at opening (no keyboard)
     autoFocus: { type: Boolean, default: true },
+    // A class for the dialog box itself, to size it (the help)
+    contentClass: { type: String, default: '' },
   },
   emits: ['update:modelValue'],
   methods: {
@@ -45,7 +47,7 @@ export default {
       <dialog-overlay class="ui-dialog__overlay" data-testid="ui-dialog-overlay" />
       <dialog-content
         class="ui-dialog"
-        :class="{ 'ui-dialog--tall': tall }"
+        :class="[{ 'ui-dialog--tall': tall }, contentClass]"
         :style="{ maxWidth: maxWidth / 16 + 'rem' }"
         :aria-describedby="description ? undefined : ''"
         data-testid="ui-dialog"

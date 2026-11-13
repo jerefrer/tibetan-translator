@@ -75,6 +75,7 @@
 
     <template #actions>
       <ui-button v-if="step === 'recap'" variant="ghost" @click="step = 'mapping'">
+        <ui-icon name="columns-2" :size="16" />
         Change columns
       </ui-button>
       <div class="ui-spacer" />
@@ -85,6 +86,7 @@
         data-test="continue-mapping"
         @click="step = 'recap'"
       >
+        <ui-icon name="arrow-right" :size="16" />
         Continue
       </ui-button>
       <ui-button
@@ -94,6 +96,7 @@
         data-test="confirm-import"
         @click="confirm"
       >
+        <ui-icon name="file-input" :size="16" />
         Import
       </ui-button>
     </template>
@@ -103,7 +106,7 @@
 <script>
 import { detectLayout, diffRows } from '../services/lexicon-import';
 import Lexicon, { messageForError } from '../services/lexicon';
-import { UiAccordion, UiButton, UiCheckbox, UiDialog, UiSelect } from '../ui';
+import { UiAccordion, UiButton, UiCheckbox, UiDialog, UiIcon, UiSelect } from '../ui';
 
 const REASONS = {
   noTerm: 'no Tibetan in the term column',
@@ -113,7 +116,7 @@ const REASONS = {
 
 export default {
   name: 'ImportPreviewDialog',
-  components: { UiAccordion, UiButton, UiCheckbox, UiDialog, UiSelect },
+  components: { UiAccordion, UiButton, UiCheckbox, UiDialog, UiIcon, UiSelect },
   inject: ['snackbar'],
   props: {
     modelValue: { type: Boolean, default: false },

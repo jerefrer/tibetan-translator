@@ -61,9 +61,10 @@
           :loading="saving"
           @click="resolveConflict('replace')"
         >
+          <ui-icon name="replace" :size="16" />
           Replace it
         </ui-button>
-        <ui-button :loading="saving" @click="resolveConflict('merge')">Keep both</ui-button>
+        <ui-button :loading="saving" @click="resolveConflict('merge')"><ui-icon name="copy-plus" :size="16" />Keep both</ui-button>
       </template>
       <template v-else>
         <ui-button
@@ -78,7 +79,7 @@
         </ui-button>
         <div class="ui-spacer" />
         <ui-button variant="outline" @click="close(false)">Cancel</ui-button>
-        <ui-button :loading="saving" data-testid="entry-save" @click="save">Save</ui-button>
+        <ui-button :loading="saving" data-testid="entry-save" @click="save"><ui-icon name="check" :size="16" />Save</ui-button>
       </template>
     </template>
   </ui-dialog>

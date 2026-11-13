@@ -107,6 +107,11 @@ describe('UiButton', () => {
       expect.arrayContaining(['ui-button--danger', 'ui-button--sm', 'ui-button--icon'])
     )
   })
+
+  it('should offer a soft variant, tinted with the accent', () => {
+    const wrapper = mount(UiButton, { props: { variant: 'soft' } })
+    expect(wrapper.classes()).toContain('ui-button--soft')
+  })
 })
 
 describe('UiCard', () => {

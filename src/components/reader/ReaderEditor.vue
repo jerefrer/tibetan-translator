@@ -152,13 +152,13 @@ export default {
         class="reader-editor__clear"
         data-testid="reader-editor-clear"
         @click="$emit('clear')"
-      >Clear</ui-button>
+      ><ui-icon name="eraser" :size="16" />Clear</ui-button>
       <ui-button
         variant="outline"
         :loading="pasting"
         data-testid="reader-paste"
         @click="$emit('paste')"
-      >Paste</ui-button>
+      ><ui-icon name="clipboard-paste" :size="16" />Paste</ui-button>
       <ui-button
         :disabled="!hasText"
         :loading="splitting"

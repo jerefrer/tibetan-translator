@@ -10,7 +10,7 @@ export default {
     variant: {
       type: String,
       default: 'solid',
-      validator: (value) => ['solid', 'outline', 'ghost', 'danger'].includes(value),
+      validator: (value) => ['solid', 'soft', 'outline', 'ghost', 'danger'].includes(value),
     },
     size: { type: String, default: 'md', validator: (value) => ['sm', 'md'].includes(value) },
     // Square button holding only an icon; give it an aria-label
@@ -83,6 +83,13 @@ export default {
 }
 .ui-button--solid:hover:not(:disabled) { opacity: 0.9; }
 .ui-button--solid:active:not(:disabled) { opacity: 0.85; }
+/* A light call to action: Install, Download (boards Dictionaries, Settings) */
+.ui-button--soft {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.ui-button--soft:hover:not(:disabled) { background: var(--accent-line); }
+.ui-button--soft:active:not(:disabled) { background: var(--accent-line); }
 .ui-button--outline {
   background: var(--surface);
   color: var(--ink);

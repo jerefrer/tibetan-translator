@@ -30,6 +30,12 @@ afterEach(() => {
 })
 
 describe('UiDialog', () => {
+  it('should put the class it is given on the dialog box', async () => {
+    mountAttached(UiDialog, { props: { modelValue: true, title: 'Help', contentClass: 'help-dialog' } })
+    await nextTick()
+    expect(body('ui-dialog').classList).toContain('help-dialog')
+  })
+
   it('should render nothing while closed', () => {
     mountAttached(UiDialog, { props: { modelValue: false, title: 'Remove pack?' } })
     expect(body('ui-dialog')).toBeNull()

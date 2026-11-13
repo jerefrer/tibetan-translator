@@ -63,6 +63,7 @@
         data-testid="quick-add-save"
         @click="save"
       >
+        <ui-icon name="check" :size="16" />
         Save
       </ui-button>
       <ui-button
@@ -71,6 +72,7 @@
         data-testid="quick-add-create"
         @click="createThenSave"
       >
+        <ui-icon name="plus" :size="16" />
         Create
       </ui-button>
     </template>
@@ -79,13 +81,13 @@
 
 <script>
 import _ from 'underscore';
-import { UiAlert, UiButton, UiDialog, UiSelect, UiTextField, UiTibetanField } from '../ui';
+import { UiAlert, UiButton, UiDialog, UiIcon, UiSelect, UiTextField, UiTibetanField } from '../ui';
 import Lexicon, { normalizeTerm, messageForError } from '../services/lexicon';
 import Storage from '../services/storage';
 
 export default {
   name: 'QuickAddDialog',
-  components: { UiAlert, UiButton, UiDialog, UiSelect, UiTextField, UiTibetanField },
+  components: { UiAlert, UiButton, UiDialog, UiIcon, UiSelect, UiTextField, UiTibetanField },
   inject: ['snackbar'],
   props: {
     modelValue: { type: Boolean, default: false },

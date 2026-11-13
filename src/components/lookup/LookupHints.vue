@@ -1,11 +1,11 @@
 <script>
-import { UiButton } from '../../ui';
+import { UiButton, UiIcon } from '../../ui';
 
 // The hint from བོད to EN: Tibetan read from Latin that is better searched in
 // the definitions (Sanskrit with diacritics, or Wylie that starts no term).
 export default {
   name: 'LookupHints',
-  components: { UiButton },
+  components: { UiButton, UiIcon },
   props: {
     mode: { type: String, required: true },
     text: { type: String, default: '' },
@@ -33,6 +33,7 @@ export default {
       No Tibetan term starts with <span class="lookup-hint__tibetan">{{ text }}</span>.
     </p>
     <ui-button class="lookup-hint__button" size="sm" @click="$emit('switch', { mode: 'en', text: searchText })">
+      <ui-icon name="search" :size="15" />
       Search “{{ searchText }}” in the definitions
     </ui-button>
   </section>

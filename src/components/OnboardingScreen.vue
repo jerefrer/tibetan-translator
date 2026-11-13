@@ -358,10 +358,11 @@ export default {
 
       <div class="onboarding__actions">
         <template v-if="hasSelection">
-          <ui-button data-testid="onboarding-download" @click="download">Download {{ selectedSize }} MB</ui-button>
+          <ui-button data-testid="onboarding-download" @click="download"><ui-icon name="download" :size="16" />Download {{ selectedSize }} MB</ui-button>
           <ui-button variant="outline" data-testid="onboarding-skip" @click="skipPacks">Skip for now</ui-button>
         </template>
         <ui-button v-else data-testid="onboarding-continue" @click="skipPacks">
+          <ui-icon name="arrow-right" :size="16" />
           {{ isDesktop ? 'Continue' : 'Get started' }}
         </ui-button>
       </div>
@@ -452,7 +453,7 @@ export default {
       </div>
 
       <div class="onboarding__actions">
-        <ui-button data-testid="onboarding-lookup-done" @click="leaveLookup">Done</ui-button>
+        <ui-button data-testid="onboarding-lookup-done" @click="leaveLookup"><ui-icon name="check" :size="16" />Done</ui-button>
       </div>
     </section>
 
@@ -504,10 +505,10 @@ export default {
       <div class="onboarding__spacer" />
 
       <div v-if="downloadState === 'done'" class="onboarding__actions">
-        <ui-button data-testid="onboarding-finish" @click="finish">Get started</ui-button>
+        <ui-button data-testid="onboarding-finish" @click="finish"><ui-icon name="arrow-right" :size="16" />Get started</ui-button>
       </div>
       <div v-else-if="downloadState === 'error'" class="onboarding__actions">
-        <ui-button data-testid="onboarding-retry" @click="runDownloads">Retry download</ui-button>
+        <ui-button data-testid="onboarding-retry" @click="runDownloads"><ui-icon name="rotate-ccw" :size="16" />Retry download</ui-button>
         <ui-button variant="outline" data-testid="onboarding-error-skip" @click="finish">Skip for now</ui-button>
       </div>
     </section>

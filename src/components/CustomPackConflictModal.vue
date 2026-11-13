@@ -16,17 +16,17 @@
     </ui-alert>
     <template #actions>
       <ui-button variant="outline" @click="onCancel">Cancel</ui-button>
-      <ui-button variant="danger" data-testid="conflict-replace" @click="onConfirm">Replace</ui-button>
+      <ui-button variant="danger" data-testid="conflict-replace" @click="onConfirm"><ui-icon name="replace" :size="16" />Replace</ui-button>
     </template>
   </ui-dialog>
 </template>
 
 <script>
-import { UiAlert, UiButton, UiDialog } from '../ui';
+import { UiAlert, UiButton, UiDialog, UiIcon } from '../ui';
 
 export default {
   name: 'CustomPackConflictModal',
-  components: { UiAlert, UiButton, UiDialog },
+  components: { UiAlert, UiButton, UiDialog, UiIcon },
   props: {
     modelValue: { type: Boolean, default: false },
     existingManifest: { type: Object, default: null },
