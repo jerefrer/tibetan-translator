@@ -27,16 +27,17 @@
 
 ## Features
 
-- **60+ dictionaries** in one place, shown together on a single entry.
-- **Unicode Tibetan display** and **Wylie** support.
-- **Two modes of phonetic search**: strict (`[chomdende]`) and loose (`{jomtenté}`).
-- **Assisted sentence splitting**.
-- **Refined queries** with the `&` (and) operator.
-- **Dictionary filtering**, and optional downloadable dictionary packs (Tibetan monolingual, Sanskrit academic) on top of the core one.
-- **A searchable catalog of dictionaries** by name, subject or language, with suggestions of ones you have not installed yet.
+- **60+ dictionaries** in one place, shown together on a single entry under a short summary.
+- **Define**: type a Tibetan term in Unicode or Wylie and read every dictionary's definition of it.
+- **Search** inside the definitions themselves, in English or Tibetan, with phonetic search, strict (`[chomdende]`) or loose (`{jomtenté}`), and a query builder to combine conditions.
+- **Reader**: paste a Tibetan text and read it word by word, with the definitions beside it.
+- **Recent and Saved**: the terms you looked up, and the ones you keep, listed newest first or in Tibetan order.
+- **Back and Forward** through the places you visited, as in a browser.
+- **Dictionaries**: choose which ones are on and their order, search the catalog by name, subject or language, and add the optional packs (Tibetan monolingual, Sanskrit academic) to the core one.
 - **Your own glossaries**: create dictionaries and entries, import and export them as spreadsheets or `.tibdict` files.
 - **Quick lookup** hotkey: pops up the definition of the Tibetan term on your clipboard.
-- **Keyboard shortcuts** for every page.
+- **Keyboard shortcuts** for every page, and one help for the whole app (F1).
+- **Light and dark themes**, and an adjustable text size.
 - **Works offline**.
 
 ## Install
@@ -47,6 +48,12 @@ macOS, Windows (`.exe`, `.msi`) or Linux (`.deb`, `.AppImage`). The desktop app
 updates itself.
 
 Builds for iOS and Android exist as well; there is no public web version.
+
+## Feedback
+
+Something harder than before, missing or broken? Write to
+[feedback@tibetantoolbox.org](mailto:feedback@tibetantoolbox.org), or use
+**Send feedback** in the app's Settings.
 
 ## Development
 
@@ -73,9 +80,9 @@ Infinite gratitude ...
   on: without his years of work, none of it would exist
 - to the people behind THL Dictionary and Tibthop for giving me the
   inspiration to start this project
-- and to the people behind Vue.js, Vuetify, Google Chrome, Material Design,
-  SQLite, DevDocs.io and all the other tools that make developing beautiful
-  apps so easy and enjoyable.
+- and to the people behind Vue.js, Tauri, Reka UI, Lucide, the Inter and
+  Source Serif typefaces, the DDC Uchen Tibetan font, SQLite and all the
+  other tools that make developing beautiful apps so easy and enjoyable.
 
 ## License
 
