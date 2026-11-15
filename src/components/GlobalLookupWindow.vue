@@ -871,9 +871,11 @@ html, body
   :deep(.ui-field__control)
     min-height var(--control-md)
 
+  // The font's own line holds every stack (UiTextField); its height sized
+  // to this smaller Tibetan, the text centred in the field
   :deep(.ui-field__input)
     font-size var(--text-tibetan-sm)
-    padding-top 0.3rem
+    min-height calc(var(--text-tibetan-sm) * 1.87)
 
   :deep(.ui-field__input::placeholder)
     font-family var(--font-ui)
