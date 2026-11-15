@@ -145,6 +145,10 @@
   padding: 0 var(--space-1);
 }
 
+.lookup-page.is-phone .lookup-page__list :deep(.lookup-previous__group) {
+  border: 0;
+}
+
 .lookup-page.is-phone .lookup-page__list > .lookup-home {
   margin-top: var(--space-2);
 }

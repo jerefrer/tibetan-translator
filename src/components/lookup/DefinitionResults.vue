@@ -2,8 +2,7 @@
 import { SEARCH_GROUPS_BATCH_SIZE, INFINITE_SCROLL_ROOT_MARGIN_LARGE } from '../../config/constants';
 import SqlDatabase from '../../services/sql-database';
 import Storage from '../../services/storage';
-import Decorator from '../../services/decorator';
-import { hasTibetan, plainGloss } from '../../services/glosses';
+import { hasTibetan, plainGloss, tibetanRuns } from '../../services/glosses';
 import { getScanInfo } from '../../services/scan-service';
 import { plural } from '../../services/quick-lookup';
 import {
@@ -12,12 +11,16 @@ import {
   highlightSearchTerms,
   parseSearchQuery,
 } from '../../services/search-query';
-import { clearPreviousQueries, readPreviousQueries } from '../../services/lookup-state';
+import { clearPreviousQueries, readPreviousQueries, removePreviousQuery } from '../../services/lookup-state';
+import { MATCH_MODES, queryConditions } from '../../services/query-conditions';
 import { UiIcon, UiSpinner } from '../../ui';
 import InfiniteScrollMixin from '../mixins/InfiniteScrollMixin';
 import UninstalledPacksNotice from '../UninstalledPacksNotice.vue';
 
 const GLOSS_LENGTH = 240;
+// The recent searches shown before "Show all"
+const PREVIOUS_ROWS = 8;
+const MODE_LABELS = Object.fromEntries(MATCH_MODES.map((mode) => [mode.value, mode.label]));
 // Stand-ins for < and > while the hits are marked, so that a definition's
 // own angle brackets are never read as tags
 const LT = '\uE000';
@@ -66,6 +69,7 @@ export default {
   emits: ['select', 'search', 'count'],
   data() {
     return {
+      PREVIOUS_ROWS,
       loading: false,
       // undefined until a query was searched
       entries: undefined,
@@ -74,6 +78,7 @@ export default {
       searchedTerms: { regular: [], phoneticsStrict: [], phoneticsLoose: [] },
       displayedCount: SEARCH_GROUPS_BATCH_SIZE,
       previousQueries: readPreviousQueries(),
+      allPrevious: false,
     };
   },
   computed: {
@@ -97,6 +102,9 @@ export default {
     },
     hasMore() {
       return this.displayedCount < this.groups.length;
+    },
+    shownPreviousQueries() {
+      return this.allPrevious ? this.previousQueries : this.previousQueries.slice(0, PREVIOUS_ROWS);
     },
   },
   watch: {
@@ -133,6 +141,7 @@ export default {
   },
   methods: {
     hasTibetan,
+    tibetanRuns,
     async search() {
       const query = (this.query || '').trim();
       const token = (this._searchToken = (this._searchToken || 0) + 1);
@@ -178,11 +187,19 @@ export default {
       clearPreviousQueries();
       this.previousQueries = [];
     },
-    // Tibetan in a previous query, in DDC Uchen
-    // (escaped first: a query is text the user typed, never markup)
-    decoratedQuery(query) {
-      const text = query.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      return Decorator.wrapAllTibetanWithSpansAndAddTshekIfMissing(text);
+    removePrevious(query) {
+      removePreviousQuery(query);
+      this.previousQueries = readPreviousQueries();
+    },
+    // A previous query as the conditions to draw: the mode's label for any
+    // but `contains` (drawn as plain text). A query with none is drawn as is.
+    previousConditions(query) {
+      const conditions = queryConditions(query);
+      if (!conditions.length) return [{ mode: 'contains', term: query, label: '' }];
+      return conditions.map((condition) => ({
+        ...condition,
+        label: condition.mode === 'contains' ? '' : MODE_LABELS[condition.mode],
+      }));
     },
   },
 };
@@ -203,21 +220,48 @@ export default {
     >
       <template v-if="previousQueries.length">
         <div class="lookup-previous__head">
-          <ui-icon name="history" :size="16" :stroke-width="2" />
-          <h2 class="lookup-previous__label">Recent searches</h2>
+          <h2 class="lookup-previous__label">Recent</h2>
           <button type="button" class="lookup-previous__clear" data-testid="lookup-previous-clear" @click="clearHistory">
             Clear
           </button>
         </div>
+        <ul class="lookup-previous__group">
+          <li v-for="previous in shownPreviousQueries" :key="previous" class="lookup-previous__row">
+            <button
+              type="button"
+              class="lookup-previous__query"
+              :aria-label="previous"
+              data-testid="lookup-previous-query"
+              @click="$emit('search', previous)"
+            >
+              <template v-for="(condition, index) in previousConditions(previous)" :key="index">
+                <span v-if="index > 0" class="lookup-previous__and">AND</span>
+                <span :class="condition.label ? 'lookup-previous__chip' : 'lookup-previous__plain'">
+                  <small v-if="condition.label">{{ condition.label }}</small>
+                  <span class="lookup-previous__term"><template v-for="(run, runIndex) in tibetanRuns(condition.term)" :key="runIndex"><span v-if="run.tibetan" class="lookup-previous__tibetan">{{ run.text }}</span><template v-else>{{ run.text }}</template></template></span>
+                </span>
+              </template>
+            </button>
+            <button
+              type="button"
+              class="lookup-previous__remove"
+              aria-label="Remove from recent searches"
+              data-testid="lookup-previous-remove"
+              @click="removePrevious(previous)"
+            >
+              <ui-icon name="x" :size="15" />
+            </button>
+          </li>
+        </ul>
         <button
-          v-for="previous in previousQueries"
-          :key="previous"
+          v-if="previousQueries.length > PREVIOUS_ROWS"
           type="button"
-          class="lookup-previous__query"
-          data-testid="lookup-previous-query"
-          @click="$emit('search', previous)"
-          v-html="decoratedQuery(previous)"
-        />
+          class="lookup-previous__all"
+          data-testid="lookup-previous-all"
+          @click="allPrevious = !allPrevious"
+        >
+          {{ allPrevious ? 'Show fewer' : 'Show all ' + previousQueries.length }}
+        </button>
       </template>
     </section>
 
@@ -354,57 +398,164 @@ export default {
 .lookup-previous {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-1);
+  align-items: stretch;
+  gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
 }
 
 .lookup-previous__head {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  align-self: stretch;
-  margin-bottom: var(--space-1);
-  color: var(--faint);
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 var(--space-1);
 }
 
 .lookup-previous__label {
-  flex: 1;
   margin: 0;
   font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
+  color: var(--faint);
 }
 
 .lookup-previous__clear {
-  padding: var(--space-1);
+  padding: 0;
   border: 0;
   background: none;
   color: var(--accent);
-  font: 500 var(--text-sm) var(--font-ui);
+  font: var(--text-base) var(--font-ui);
   cursor: pointer;
 }
 
+.lookup-previous__clear:hover {
+  text-decoration: underline;
+}
+
+.lookup-previous__group {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-group);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.lookup-previous__row {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 6px 8px 6px 14px;
+}
+
+.lookup-previous__row + .lookup-previous__row {
+  border-top: 1px solid var(--line-soft);
+}
+
+.lookup-previous__row:hover {
+  background: var(--bg-quiet);
+}
+
 .lookup-previous__query {
-  max-width: 100%;
-  padding: var(--space-1) 0;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  padding: 0;
   border: 0;
   background: none;
   color: var(--ink);
   font: var(--text-base) var(--font-ui);
+  line-height: 1.3;
   text-align: left;
   overflow-wrap: anywhere;
   cursor: pointer;
 }
 
-.lookup-previous__query:hover {
+.lookup-previous__query:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.lookup-previous__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 1px 7px;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+}
+
+.lookup-previous__chip small {
+  font-size: 11px;
+  font-weight: 600;
   color: var(--accent);
 }
 
-.lookup-previous__query :deep(.tibetan) {
+.lookup-previous__and {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--faint);
+}
+
+.lookup-previous__tibetan {
   font-family: var(--font-tibetan);
   font-size: var(--text-tibetan-sm);
   color: var(--rubric);
+}
+
+.lookup-previous__remove {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  margin-left: var(--space-2);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--faint);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.lookup-previous__row:hover .lookup-previous__remove,
+.lookup-previous__row:focus-within .lookup-previous__remove {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .lookup-previous__remove {
+    opacity: 1;
+  }
+}
+
+.lookup-previous__remove:hover {
+  color: var(--ink);
+  background: var(--soft);
+}
+
+.lookup-previous__remove:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
+.lookup-previous__all {
+  align-self: flex-start;
+  padding: var(--space-1) var(--space-1);
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: var(--text-sm) var(--font-ui);
+  cursor: pointer;
+}
+
+.lookup-previous__all:hover {
+  text-decoration: underline;
 }
 </style>

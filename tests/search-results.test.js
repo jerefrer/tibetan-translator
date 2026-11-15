@@ -122,6 +122,7 @@ beforeEach(() => {
   Storage.delete('lookupState')
   Storage.delete('selectedTerm')
   Storage.delete('previousQueries')
+  Storage.set('previousQueriesCleaned', true)
   Storage.delete('searchBuilderVisible')
   Storage.delete('defineHistory')
 })
@@ -291,6 +292,70 @@ describe('Search results', () => {
     packManager.installedPacks = ['core']
     await mountAt('/search')
     expect(wrapper.find('[data-testid="uninstalled-notice"]').exists()).toBe(false)
+  })
+
+  it('should show the eight most recent searches, then all with Show all and fewer with Show fewer', async () => {
+    Storage.set('previousQueries', Array.from({ length: 12 }, (_, i) => 'query ' + i))
+    await mountAt('/search')
+    const rows = () => wrapper.findAll('[data-testid="lookup-previous-query"]')
+    expect(rows()).toHaveLength(8)
+
+    const all = wrapper.get('[data-testid="lookup-previous-all"]')
+    expect(all.text()).toBe('Show all 12')
+    await all.trigger('click')
+    expect(rows()).toHaveLength(12)
+    expect(wrapper.get('[data-testid="lookup-previous-all"]').text()).toBe('Show fewer')
+
+    await wrapper.get('[data-testid="lookup-previous-all"]').trigger('click')
+    expect(rows()).toHaveLength(8)
+  })
+
+  it('should not offer Show all when there are eight searches or fewer', async () => {
+    Storage.set('previousQueries', Array.from({ length: 8 }, (_, i) => 'query ' + i))
+    await mountAt('/search')
+    expect(wrapper.find('[data-testid="lookup-previous-all"]').exists()).toBe(false)
+  })
+
+  it('should draw a condition that is not contains as a chip, joined to the others by AND', async () => {
+    Storage.set('previousQueries', ['[sang gye] & enlightenment'])
+    await mountAt('/search')
+    const row = wrapper.get('[data-testid="lookup-previous-query"]')
+
+    expect(row.get('.lookup-previous__chip small').text()).toBe('sounds like')
+    expect(row.get('.lookup-previous__chip').text()).toBe('sounds likesang gye')
+    expect(row.findAll('.lookup-previous__chip')).toHaveLength(1)
+    expect(row.get('.lookup-previous__and').text()).toBe('AND')
+    expect(row.get('.lookup-previous__plain').text()).toBe('enlightenment')
+    expect(row.attributes('aria-label')).toBe('[sang gye] & enlightenment')
+  })
+
+  it('should set Tibetan in its own span when a contains condition holds Tibetan', async () => {
+    Storage.set('previousQueries', ['ཡེ་ཤེས་ wisdom'])
+    await mountAt('/search')
+    const row = wrapper.get('[data-testid="lookup-previous-query"]')
+    expect(row.get('.lookup-previous__tibetan').text()).toBe('ཡེ་ཤེས་')
+    expect(row.text()).toBe('ཡེ་ཤེས་ wisdom')
+  })
+
+  it('should render a query holding markup as literal text when it is listed', async () => {
+    Storage.set('previousQueries', ['<img src=x onerror=alert(1)>'])
+    await mountAt('/search')
+    const row = wrapper.get('[data-testid="lookup-previous-query"]')
+    expect(row.find('img').exists()).toBe(false)
+    expect(row.text()).toBe('<img src=x onerror=alert(1)>')
+  })
+
+  it('should remove the row without searching when its × is clicked', async () => {
+    Storage.set('previousQueries', ['wisdom', 'compassion'])
+    await mountAt('/search')
+
+    await wrapper.findAll('[data-testid="lookup-previous-remove"]')[0].trigger('click')
+    await flushPromises()
+
+    expect(wrapper.findAll('[data-testid="lookup-previous-query"]').map((row) => row.text())).toEqual(['compassion'])
+    expect(Storage.get('previousQueries')).toEqual(['compassion'])
+    expect(input().element.value).toBe('')
+    expect(router.currentRoute.value.query).toEqual({})
   })
 
   it('should empty the recent searches with their Clear', async () => {
