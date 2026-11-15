@@ -3,13 +3,16 @@ import changelog from '../../../CHANGELOG.md?raw';
 import UpdateService from '../../services/update-service';
 import { renderReleaseNotes, releaseNotesFor } from '../../services/release-notes-markdown';
 import { isTauri } from '../../config/platform';
+import { writeToClipboard } from '../../services/copy-service';
+import { FEEDBACK_ADDRESS, openFeedbackMail } from '../../services/feedback';
 import { UiButton, UiDialog, UiIcon } from '../../ui';
 import SettingsGroup from './SettingsGroup.vue';
 import SettingsRow from './SettingsRow.vue';
 
-// Settings' About group: the app version with the update check or restart,
-// "What's new", and the credits. In the app only: renders nothing in a
-// browser, where there is no version to show.
+// Settings' About group: Send feedback (everywhere), then, in the app only,
+// the app version with the update check or restart, "What's new", and the
+// credits. In a browser there is no version to show, so the group holds
+// Send feedback alone.
 export default {
   name: 'AboutCard',
   components: { SettingsGroup, SettingsRow, UiButton, UiDialog, UiIcon },
@@ -19,6 +22,7 @@ export default {
       appVersion: null,
       checkingForUpdates: false,
       dialogOpen: false,
+      feedbackAddress: FEEDBACK_ADDRESS,
     };
   },
   computed: {
@@ -61,6 +65,24 @@ export default {
     }
   },
   methods: {
+    async sendFeedback() {
+      try {
+        await openFeedbackMail();
+      } catch (e) {
+        // No mail client: the address is on the row, to copy
+        this.snackbar.open('Could not open your mail app. Copy the address instead.');
+        console.error('Opening the feedback mail failed:', e);
+      }
+    },
+    async copyAddress() {
+      try {
+        await writeToClipboard(FEEDBACK_ADDRESS);
+        this.snackbar.open('Address copied');
+      } catch (e) {
+        this.snackbar.open('Could not copy the address');
+        console.error('Copying the feedback address failed:', e);
+      }
+    },
     openNotes() {
       this.dialogOpen = true;
     },
@@ -93,8 +115,8 @@ export default {
 </script>
 
 <template>
-  <settings-group v-if="appVersion" id="settings-about" title="About" class="about-card" data-testid="about-card">
-    <settings-row :title="versionLine" :description="versionState" icon="info">
+  <settings-group id="settings-about" title="About" class="about-card" data-testid="about-card">
+    <settings-row v-if="appVersion" :title="versionLine" :description="versionState" icon="info">
       <ui-button v-if="updateReady" size="sm" data-testid="about-restart" @click="openNotes">
         <ui-icon name="rotate-cw" :size="15" />
         Restart to update
@@ -116,6 +138,7 @@ export default {
       </ui-button>
     </settings-row>
     <settings-row
+      v-if="appVersion"
       :title="updateReady ? 'What’s new in v' + updateVersion : 'What’s new'"
       icon="sparkles"
       clickable
@@ -123,6 +146,20 @@ export default {
       @click="openNotes"
     />
     <settings-row
+      title="Send feedback"
+      icon="mail"
+      :description="feedbackAddress"
+      data-testid="about-feedback"
+    >
+      <ui-button variant="outline" size="sm" data-testid="about-feedback-send" @click="sendFeedback">
+        Send email
+      </ui-button>
+      <ui-button variant="outline" size="sm" data-testid="about-feedback-copy" @click="copyAddress">
+        Copy
+      </ui-button>
+    </settings-row>
+    <settings-row
+      v-if="appVersion"
       title="Dictionary data"
       icon="library"
       description="Collected and maintained by Christian Steinert (github.com/christiansteinert/tibetan-dictionary)"
@@ -130,6 +167,7 @@ export default {
     />
 
     <ui-dialog
+      v-if="appVersion"
       v-model="dialogOpen"
       :title="'What’s new in v' + notesVersion"
       :max-width="560"

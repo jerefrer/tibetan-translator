@@ -20,6 +20,7 @@ const PAIRS = [
   ['tauri-plugin-dialog',            '@tauri-apps/plugin-dialog'],
   ['tauri-plugin-fs',                '@tauri-apps/plugin-fs'],
   ['tauri-plugin-global-shortcut',   '@tauri-apps/plugin-global-shortcut'],
+  ['tauri-plugin-opener',            '@tauri-apps/plugin-opener'],
   ['tauri-plugin-process',           '@tauri-apps/plugin-process'],
   ['tauri-plugin-updater',           '@tauri-apps/plugin-updater'],
 ];

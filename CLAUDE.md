@@ -100,7 +100,7 @@ src/
     reader/            # Reader: editor, words with their expressions, word panel / sheet
     entry/             # TermEntry: one term's page (In short, dictionary tabs, definitions), shared by Define, Search and Reader
     dictionaries/      # DictionariesPage: packs, the dictionaries in lookup order (switches, reordering, undo), the selected one's detail
-    settings/          # SettingsPage (General, Quick lookup, Offline content, About; Help on a phone) built from SettingsGroup / SettingsRow
+    settings/          # SettingsPage (General, Quick lookup, Offline content, About; Help on a phone) built from SettingsGroup / SettingsRow; About holds Send feedback (feedback@tibetantoolbox.org, in a browser too), the rest of it is app-only
     mixins/            # MobileResponsiveMixin, InfiniteScrollMixin
   ui/                  # Component library (UiButton, UiDialog, UiTibetanField...), icons.js, showcase at /ui-showcase (dev only)
   services/            # Core services (database, packs, search, theme, etc.)
@@ -129,7 +129,7 @@ Routes are defined in `src/router.js`. Define, Search, Reader and Settings on a 
 - `/define/:term?` - LookupPage, shown as "Define": a Tibetan term, typed in Tibetan or Wylie, and its entry. A hint sends Latin that is no term to Search
 - `/search` - SearchPage: `?q=<query>` searches the definitions, `&term=<term>` is the entry open beside the results; `&dict=<name>` keeps that search to one dictionary (Dictionaries' "Search its definitions") until its ×. A result's entry opens in Search itself, beside the results; a query that is a Tibetan term offers to open it in Define. Nothing is carried over between the two pages otherwise (they were one page with a བོད / EN switch for a while, and the conversions it made confused more than they helped). The term Define selected and the query Search ran last are kept under `lookupState`
 - `/reader` - ReaderPage (paste or type a text, read it word by word)
-- `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About); on a phone also the My glossary and Dictionaries rows, and Help
+- `/settings` - SettingsPage: settings only (General, Quick lookup, Offline content, About, whose Send feedback row, feedback@tibetantoolbox.org, is there in a browser too and the rest of About is app-only); on a phone also the My glossary and Dictionaries rows, and Help
 - `/dictionaries` - DictionariesPage: everything about dictionaries (packs, which are on, their order, what each holds). It writes Storage's `dictionaries`, the order and switches lookups read; `?find=` and `?status=` set its search and filter, `?dictionary=` selects one. On a phone opening a dictionary pushes that `?dictionary=`, so Android's Back (the web view's history, see wry's `WryActivity`) closes it
 - `/glossary/:packId?/:dictionaryId?` - LexiconPage (My glossary): the title is the glossary picker, its menu creates, adds and removes glossaries (GlossaryActions); spreadsheets come in through SpreadsheetDropDialog (HTML5 drop, Tauri's own drag and drop being off)
 - `/saved` - SavedPage: every saved term (the sidebar shows the eight newest), to search, list newest first or in Tibetan order, copy or clear

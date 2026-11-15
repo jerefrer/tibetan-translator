@@ -3,7 +3,7 @@ import Storage from '../../services/storage';
 import ResizeService from '../../services/resize-service';
 import GlobalLookup from '../../services/global-lookup';
 import { Lexicon } from '../../services/lexicon';
-import { isTauri, supportsModularPacks } from '../../config/platform';
+import { supportsModularPacks } from '../../config/platform';
 import { REFOLLOW_EVENT } from '../../config/navigation';
 import AppearanceCard from './AppearanceCard.vue';
 import GlobalLookupCard from './GlobalLookupCard.vue';
@@ -55,7 +55,7 @@ export default {
         { id: 'settings-general', title: 'General' },
         GlobalLookup.isSupported() && { id: 'settings-quick-lookup', title: 'Quick lookup' },
         { id: 'settings-offline', title: 'Offline content' },
-        isTauri() && { id: 'settings-about', title: 'About' },
+        { id: 'settings-about', title: 'About' },
       ].filter(Boolean);
     },
     glossaryStatus() {

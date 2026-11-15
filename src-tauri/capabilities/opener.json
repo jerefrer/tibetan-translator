@@ -1,0 +1,11 @@
+{
+  "identifier": "opener",
+  "description": "lets the main window open a mailto: link (Send feedback), and nothing else",
+  "windows": ["main"],
+  "permissions": [
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [{ "url": "mailto:*" }]
+    }
+  ]
+}

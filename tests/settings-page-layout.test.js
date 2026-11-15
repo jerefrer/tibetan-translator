@@ -24,6 +24,7 @@ vi.mock('../src/config/platform', () => ({
   isMobile: () => false,
   supportsModularPacks: () => env.tauri,
   isMacOS: () => false,
+  getPlatformType: () => (env.tauri ? 'macos' : 'web'),
 }))
 
 vi.mock('../src/services/resize-service', () => ({
@@ -142,10 +143,10 @@ afterEach(() => {
 })
 
 describe('SettingsPage — groups', () => {
-  it('should list General and Offline content in a browser, nothing about dictionaries', async () => {
+  it('should list General, Offline content and About in a browser, nothing about dictionaries', async () => {
     await mountSettings()
     expect(wrapper.find('h1').text()).toBe('Settings')
-    expect(groupTitles()).toEqual(['General', 'Offline content'])
+    expect(groupTitles()).toEqual(['General', 'Offline content', 'About'])
     expect(wrapper.find('[data-testid="dictionary-list"]').exists()).toBe(false)
     expect(wrapper.find('[data-testid="dictionary-packs"]').exists()).toBe(false)
   })

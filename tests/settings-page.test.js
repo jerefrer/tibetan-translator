@@ -25,6 +25,7 @@ vi.mock('../src/config/platform', () => ({
   isMobile: () => false,
   supportsModularPacks: () => env.tauri,
   isMacOS: () => false,
+  getPlatformType: () => (env.tauri ? 'macos' : 'web'),
 }))
 
 vi.mock('../src/services/resize-service', () => ({
@@ -279,10 +280,38 @@ describe('AboutCard', () => {
     env.tauri = true
   })
 
-  it('renders nothing in a browser', async () => {
+  it('should show only Send feedback in a browser', async () => {
     env.tauri = false
     await mountWith(AboutCard)
-    expect(byTestId('about-card').exists()).toBe(false)
+    expect(byTestId('about-card').findAll('.settings-row')).toHaveLength(1)
+    expect(byTestId('about-feedback').text()).toContain('Send feedback')
+    expect(byTestId('about-feedback').text()).toContain('feedback@tibetantoolbox.org')
+    expect(byTestId('about-check').exists()).toBe(false)
+    expect(byTestId('about-whats-new').exists()).toBe(false)
+    expect(byTestId('about-credits').exists()).toBe(false)
+  })
+
+  it('should copy the address and say so when Copy is clicked', async () => {
+    env.tauri = false
+    const writeText = vi.fn(async () => {})
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    await mountWith(AboutCard)
+    await byTestId('about-feedback-copy').trigger('click')
+    await flushPromises()
+    expect(writeText).toHaveBeenCalledWith('feedback@tibetantoolbox.org')
+    expect(snackbar.open).toHaveBeenCalledWith('Address copied')
+  })
+
+  it('should open the mail when Send email is clicked', async () => {
+    env.tauri = false
+    const location = { href: '' }
+    const original = Object.getOwnPropertyDescriptor(window, 'location')
+    Object.defineProperty(window, 'location', { value: location, configurable: true })
+    await mountWith(AboutCard)
+    await byTestId('about-feedback-send').trigger('click')
+    await flushPromises()
+    Object.defineProperty(window, 'location', original)
+    expect(location.href).toContain('mailto:feedback@tibetantoolbox.org?subject=')
   })
 
   it('shows the version and this version’s notes under What’s new', async () => {
