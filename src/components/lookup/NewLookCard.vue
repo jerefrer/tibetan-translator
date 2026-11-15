@@ -200,7 +200,8 @@ export default {
 
 .new-look__tiles {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* Two columns only where each tile has room; one in a narrow entry pane */
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: 10px;
   padding: 4px 22px 14px;
 }
