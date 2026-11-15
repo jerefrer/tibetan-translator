@@ -82,7 +82,9 @@ import {
   NotebookText,
   Package,
   PanelLeft,
+  Pause,
   Pencil,
+  Play,
   Plus,
   Pointer,
   RefreshCw,
@@ -101,6 +103,7 @@ import {
   Trash2,
   TriangleAlert,
   Type,
+  Volume2,
   X,
 } from 'lucide-vue-next';
 
@@ -176,7 +179,9 @@ export const ICONS = {
   'notebook-text': NotebookText,
   package: Package,
   'panel-left': PanelLeft,
+  pause: Pause,
   pencil: Pencil,
+  play: Play,
   plus: Plus,
   pointer: Pointer,
   'refresh-cw': RefreshCw,
@@ -195,6 +200,7 @@ export const ICONS = {
   'trash-2': Trash2,
   'triangle-alert': TriangleAlert,
   type: Type,
+  'volume-2': Volume2,
   x: X,
 };
 

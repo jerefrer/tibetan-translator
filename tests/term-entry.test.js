@@ -11,6 +11,7 @@ import { nextTick } from 'vue'
 
 const writeToClipboard = vi.fn()
 const getEntriesFor = vi.fn()
+const getAudioUrl = vi.fn(async (audioId, file) => `/audio/${audioId}/${file}`)
 let tauri = false
 
 vi.mock('../src/services/copy-service', async (importOriginal) => {
@@ -26,6 +27,10 @@ vi.mock('../src/services/sql-database', async (importOriginal) => {
   actual.default.getEntriesFor = (...args) => getEntriesFor(...args)
   return actual
 })
+vi.mock('../src/services/audio-service', () => ({
+  getAudioUrl: (...args) => getAudioUrl(...args),
+  default: { getAudioUrl: (...args) => getAudioUrl(...args) },
+}))
 vi.mock('../src/config/platform', async (importOriginal) => {
   const actual = await importOriginal()
   return {
@@ -507,5 +512,92 @@ describe('TermEntry — custom dictionary names', () => {
     expect(wrapper.find('img').exists()).toBe(false)
     expect(optionTexts()).toContain(`${NAME} 1`)
     expect(sourceNames()).toContain(NAME)
+  })
+})
+
+describe('TermEntry — Listen and In context', () => {
+  const HOTL_DICTIONARY = { id: 9, name: 'hotl1', position: 4, enabled: true }
+  const HOTL = row(
+    HOTL_DICTIONARY,
+    '[sound:1-135a.mp3]\nOld\n-----\nExample: [sound:1-135c.mp3]\n འདི་བཅོམ་ལྡན་འདས་ཡིན།  This is the Blessed One.'
+  )
+  let players
+  let play
+
+  beforeEach(() => {
+    Storage.set('dictionaries', [RY, HOPKINS, TSEPAK, HOTL_DICTIONARY])
+    players = []
+    play = vi.fn(() => Promise.resolve())
+    window.Audio = vi.fn(function (url) {
+      this.url = url
+      this.pause = vi.fn()
+      this.play = play
+      this.addEventListener = vi.fn()
+      players.push(this)
+    })
+  })
+
+  it('should show Listen and the sentence with the term marked and its translation when a Heart of Tibetan Language entry has them', async () => {
+    await mountEntry({}, [...ROWS, HOTL])
+
+    expect(wrapper.find('[data-testid="entry-listen"]').attributes('aria-label')).toBe(`Listen to ${TERM}`)
+    const context = wrapper.find('[data-testid="entry-context"]')
+    expect(context.text()).toContain('འདི་བཅོམ་ལྡན་འདས་ཡིན།')
+    expect(context.text()).toContain('This is the Blessed One.')
+    expect(context.text()).toContain('Heart of Tibetan Language')
+    expect(context.find('mark').text()).toBe('བཅོམ་ལྡན་འདས་')
+  })
+
+  it('should show neither when no entry has a recording', async () => {
+    await mountEntry()
+
+    expect(wrapper.find('[data-testid="entry-listen"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="entry-context"]').exists()).toBe(false)
+  })
+
+  it('should hide In context but keep Listen when compact', async () => {
+    await mountEntry({ compact: true }, [...ROWS, HOTL])
+
+    expect(wrapper.find('[data-testid="entry-listen"]').exists()).toBe(true)
+    expect(wrapper.find('[data-testid="entry-context"]').exists()).toBe(false)
+  })
+
+  it('should play the word from the audio service URL and stop when clicked again', async () => {
+    await mountEntry({}, [...ROWS, HOTL])
+    const listen = wrapper.find('[data-testid="entry-listen"]')
+
+    await listen.trigger('click')
+    await flushPromises()
+    expect(getAudioUrl).toHaveBeenCalledWith('hotl1', '1-135a.mp3')
+    expect(players[0].url).toBe('/audio/hotl1/1-135a.mp3')
+    expect(play).toHaveBeenCalled()
+    expect(listen.text()).toBe('Playing')
+
+    await listen.trigger('click')
+    expect(players[0].pause).toHaveBeenCalled()
+    expect(listen.text()).toBe('Listen')
+  })
+
+  it('should stop the word when the sentence starts', async () => {
+    await mountEntry({}, [...ROWS, HOTL])
+
+    await wrapper.find('[data-testid="entry-listen"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('[data-testid="entry-context-play"]').trigger('click')
+    await flushPromises()
+
+    expect(players[0].pause).toHaveBeenCalled()
+    expect(players[1].url).toBe('/audio/hotl1/1-135c.mp3')
+  })
+
+  it('should tell the user when the recording cannot play', async () => {
+    play.mockRejectedValue(new Error('no'))
+    snackbar.open.mockClear()
+    await mountEntry({}, [...ROWS, HOTL])
+
+    await wrapper.find('[data-testid="entry-listen"]').trigger('click')
+    await flushPromises()
+
+    expect(snackbar.open).toHaveBeenCalledWith('Could not play the recording')
   })
 })

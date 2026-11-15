@@ -10,6 +10,8 @@ import { directionLabel } from '../../services/dictionary-catalog';
 import { isSaved, toggleSaved } from '../../services/saved-terms';
 import { wylieFor, phoneticsForTerm } from '../../services/transcription';
 import { supportsModularPacks } from '../../config/platform';
+import { getAudioUrl } from '../../services/audio-service';
+import { entryAudio, highlightTerm } from '../../services/entry-audio';
 import { tibetanLookupKey } from '../../utils';
 import { UiButton, UiIcon, UiSpinner } from '../../ui';
 import DictionariesMenuMixin from '../DictionariesMenuMixin';
@@ -65,7 +67,9 @@ export default {
       saved: false,
       aboutOpen: false,
       aboutDictionary: '',
-      quickAddOpen: false
+      quickAddOpen: false,
+      // The recording playing: 'word', 'example' or null
+      playing: null
     };
   },
   computed: {
@@ -149,6 +153,14 @@ export default {
         (entry) => shown.has(entry.dictionaryId) && !getScanInfo(entry.dictionary)
       );
     },
+    // The word's and the example sentence's recordings, from a Heart of
+    // Tibetan Language entry of the term
+    audio() {
+      return entryAudio(this.shownEntries);
+    },
+    exampleParts() {
+      return this.audio?.example ? highlightTerm(this.audio.example.tibetan, this.headword) : [];
+    },
     canAddToLexicon() {
       return supportsModularPacks();
     }
@@ -157,6 +169,7 @@ export default {
     term: {
       immediate: true,
       handler() {
+        this.stopAudio();
         this.selectedDictionaryId = null;
         this.entries = [];
         this.saved = isSaved(this.headword);
@@ -172,7 +185,11 @@ export default {
     window.addEventListener('dictionaries-updated', this._onDictionariesUpdated);
     window.addEventListener('saved-terms-updated', this._onSavedUpdated);
   },
+  deactivated() {
+    this.stopAudio();
+  },
   beforeUnmount() {
+    this.stopAudio();
     window.removeEventListener('dictionaries-updated', this._onDictionariesUpdated);
     window.removeEventListener('saved-terms-updated', this._onSavedUpdated);
   },
@@ -182,6 +199,45 @@ export default {
       // A scanned dictionary holds a page number: nothing to highlight
       if (!this.highlight || getScanInfo(entry.dictionary)) return html;
       return this.highlight(html);
+    },
+    // One recording at a time: starting one stops the other, and the same
+    // button again stops it
+    async toggleAudio(kind) {
+      if (this.playing === kind) {
+        this.stopAudio();
+        return;
+      }
+      this.stopAudio();
+      const file = kind === 'word' ? this.audio?.word : this.audio?.example?.file;
+      if (!file) return;
+      this.playing = kind;
+      const token = (this._audioToken = (this._audioToken || 0) + 1);
+      try {
+        const url = await getAudioUrl(this.audio.audioId, file);
+        if (token !== this._audioToken) return;
+        const player = (this._player = new Audio(url));
+        player.addEventListener('ended', () => {
+          if (token === this._audioToken) this.playing = null;
+        });
+        player.addEventListener('error', () => this.audioFailed(token));
+        await player.play();
+      } catch (error) {
+        this.audioFailed(token);
+      }
+    },
+    audioFailed(token) {
+      if (token !== this._audioToken) return;
+      this.playing = null;
+      if (this.snackbar) this.snackbar.open('Could not play the recording');
+      else console.warn('[TermEntry] Could not play the recording');
+    },
+    stopAudio() {
+      this._audioToken = (this._audioToken || 0) + 1;
+      if (this._player) {
+        this._player.pause();
+        this._player = null;
+      }
+      this.playing = null;
     },
     async load() {
       const key = this.headword;
@@ -296,7 +352,17 @@ export default {
           </ui-button>
         </div>
       </div>
-      <p class="term-entry__transcription" data-testid="entry-transcription">{{ transcription }}</p>
+      <p class="term-entry__transcription" data-testid="entry-transcription">{{ transcription }}<button
+          v-if="audio?.word"
+          type="button"
+          class="term-entry__listen"
+          :aria-label="`Listen to ${headword}`"
+          data-testid="entry-listen"
+          @click="toggleAudio('word')"
+        >
+          <ui-icon :name="playing === 'word' ? 'pause' : 'volume-2'" :size="16" />
+          {{ playing === 'word' ? 'Playing' : 'Listen' }}
+        </button></p>
     </header>
 
     <div v-if="loading" class="term-entry__loading" data-testid="entry-loading">
@@ -306,6 +372,35 @@ export default {
 
     <template v-else-if="shownEntries.length">
       <in-short :glosses="glosses" />
+
+      <section
+        v-if="!compact && audio?.example"
+        class="term-entry__context"
+        aria-label="In context"
+        data-testid="entry-context"
+      >
+        <h2 class="term-entry__context-label">In context</h2>
+        <div class="term-entry__context-row">
+          <button
+            type="button"
+            class="term-entry__context-play"
+            aria-label="Play the sentence"
+            data-testid="entry-context-play"
+            @click="toggleAudio('example')"
+          >
+            <ui-icon
+              :name="playing === 'example' ? 'pause' : 'play'"
+              :size="14"
+              fill="currentColor"
+            />
+          </button>
+          <div class="term-entry__context-text">
+            <p class="term-entry__context-tibetan"><template v-for="(part, index) in exampleParts" :key="index"><mark v-if="part.match">{{ part.text }}</mark><template v-else>{{ part.text }}</template></template></p>
+            <p class="term-entry__context-translation">{{ audio.example.translation }}</p>
+            <small class="term-entry__context-source">{{ audio.label }}</small>
+          </div>
+        </div>
+      </section>
 
       <dictionary-filter
         v-if="!compact"
@@ -420,6 +515,99 @@ export default {
   font-size: var(--text-body);
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+
+/* Listen: the pronunciation's recording, at the end of its line */
+.term-entry__listen {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 10px;
+  padding: 3px 10px 3px 8px;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent);
+  font: 500 var(--text-sm) var(--font-ui);
+  vertical-align: middle;
+  cursor: pointer;
+}
+.term-entry__listen:hover {
+  background: var(--accent-line);
+}
+.term-entry__listen:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* In context: a sentence with the term, to read and to hear. The label is
+   In short's */
+.term-entry__context {
+  margin: 12px 0 4px;
+  padding: 14px 18px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+.term-entry__context-label {
+  margin: 0 0 var(--space-1);
+  font: 600 var(--text-caption) / 1.3 var(--font-ui);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.term-entry__context-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.term-entry__context-play {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+.term-entry__context-play:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.term-entry__context-text {
+  min-width: 0;
+}
+.term-entry__context-text p {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.term-entry__context-tibetan {
+  font-family: var(--font-tibetan);
+  font-size: 1.5rem;
+  line-height: 1.6;
+  color: var(--ink);
+}
+.term-entry__context-tibetan mark {
+  background: none;
+  color: var(--rubric);
+  border-bottom: 2px solid var(--accent-line);
+}
+.term-entry__context-translation {
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.term-entry__context-source {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--text-xs);
+  color: var(--faint);
 }
 
 .term-entry__loading {

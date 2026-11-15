@@ -72,6 +72,7 @@ export default {
       </p>
       <ul class="help-list">
         <li><strong>In short</strong> gathers the translations several dictionaries agree on.</li>
+        <li><strong>Listen</strong>, beside the pronunciation, plays the term when a dictionary has a recording of it, and <strong>In context</strong> shows a sentence using it, to read and to hear.</li>
         <li>The definitions follow, dictionary by dictionary, in your order. <strong>All dictionaries</strong> above them is a filter: type a few letters of a dictionary's name to see only its definitions.</li>
         <li>A link in a definition opens that term. A dotted word is an abbreviation: point at it to read it in full.</li>
         <li><strong>Copy</strong> copies the definitions shown, <strong>Save</strong> keeps the term in Saved<template v-if="inApp">, and the last button adds your own definition to My glossary</template>.</li>
