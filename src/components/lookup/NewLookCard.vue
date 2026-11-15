@@ -63,7 +63,7 @@ export default {
       <span class="new-look__badge"><ui-icon name="sparkles" :size="18" /></span>
       <div>
         <h2 id="new-look-title" class="new-look__title">Welcome to the new Tibetan Translator</h2>
-        <p class="new-look__lead">A new design.<br>Your dictionaries, glossaries and settings are all here.</p>
+        <p class="new-look__lead">Your dictionaries, glossaries and settings are just as you left them.</p>
       </div>
     </header>
 
@@ -249,6 +249,8 @@ export default {
   font-size: var(--text-xs);
   line-height: 1.45;
   color: var(--muted);
+  /* A few words: lines of even length */
+  text-wrap: balance;
 }
 
 .new-look__key {
@@ -294,6 +296,8 @@ export default {
   /* Too narrow for this and the button (a phone): the button goes under it */
   flex: 1 1 13rem;
   margin: 0;
+  /* No word left alone on the question's last line */
+  text-wrap: pretty;
   font-size: var(--text-sm);
 }
 
