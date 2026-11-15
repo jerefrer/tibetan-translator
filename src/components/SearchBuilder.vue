@@ -1,5 +1,5 @@
 <script>
-import { UiIcon } from '../ui';
+import { UiCollapse, UiIcon } from '../ui';
 import MobileResponsiveMixin from './mixins/MobileResponsiveMixin';
 import SearchBuilderRow from './SearchBuilderRow.vue';
 
@@ -16,6 +16,7 @@ const MODE_SYNTAX = {
 export default {
   components: {
     SearchBuilderRow,
+    UiCollapse,
     UiIcon
   },
   mixins: [MobileResponsiveMixin],
@@ -155,57 +156,60 @@ export default {
 </script>
 
 <template>
-  <transition name="ui-fade">
-    <section
-      v-if="visible"
-      class="search-builder"
-      :class="{ 'is-phone': isMobile }"
-      aria-label="Query builder"
-      data-testid="search-builder"
-    >
-      <div class="search-builder__header">
-        <span class="search-builder__title">Query builder</span>
-        <button
-          type="button"
-          class="search-builder__link"
-          data-testid="search-builder-hide"
-          @click="hide"
-        >
-          Hide
-        </button>
-      </div>
+  <!-- Opens and closes in place, sliding what is below; the wrapper, without
+       padding or border, is what folds to nothing -->
+  <ui-collapse>
+    <div v-if="visible">
+      <section
+        class="search-builder"
+        :class="{ 'is-phone': isMobile }"
+        aria-label="Query builder"
+        data-testid="search-builder"
+      >
+        <div class="search-builder__header">
+          <span class="search-builder__title">Query builder</span>
+          <button
+            type="button"
+            class="search-builder__link"
+            data-testid="search-builder-hide"
+            @click="hide"
+          >
+            Hide
+          </button>
+        </div>
 
-      <div class="search-builder__rows">
-        <SearchBuilderRow
-          v-for="(row, index) in rows"
-          :key="index"
-          ref="rowComponents"
-          :term="row.term"
-          :mode="row.mode"
-          :can-remove="rows.length > 1"
-          @update:term="updateRowTerm(index, $event)"
-          @update:mode="updateRowMode(index, $event)"
-          @remove="removeRow(index)"
-          @submit="handleSubmit"
-        />
-      </div>
+        <div class="search-builder__rows">
+          <SearchBuilderRow
+            v-for="(row, index) in rows"
+            :key="index"
+            ref="rowComponents"
+            :term="row.term"
+            :mode="row.mode"
+            :can-remove="rows.length > 1"
+            @update:term="updateRowTerm(index, $event)"
+            @update:mode="updateRowMode(index, $event)"
+            @remove="removeRow(index)"
+            @submit="handleSubmit"
+          />
+        </div>
 
-      <div class="search-builder__footer">
-        <button
-          type="button"
-          class="search-builder__add"
-          data-testid="search-builder-add"
-          @click="addRow"
-        >
-          <ui-icon name="plus" :size="14" :stroke-width="2" />
-          Add condition
-        </button>
-        <span class="search-builder__note">
-          {{ isMobile ? 'Match every condition' : 'An entry must match every condition.' }}
-        </span>
-      </div>
-    </section>
-  </transition>
+        <div class="search-builder__footer">
+          <button
+            type="button"
+            class="search-builder__add"
+            data-testid="search-builder-add"
+            @click="addRow"
+          >
+            <ui-icon name="plus" :size="14" :stroke-width="2" />
+            Add condition
+          </button>
+          <span class="search-builder__note">
+            {{ isMobile ? 'Match every condition' : 'An entry must match every condition.' }}
+          </span>
+        </div>
+      </section>
+    </div>
+  </ui-collapse>
 </template>
 
 <style lang="stylus" scoped>

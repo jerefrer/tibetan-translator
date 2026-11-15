@@ -2,15 +2,15 @@
 import Storage from '../../services/storage';
 import { mayNeedLegacyRepair } from '../../services/legacy-to-unicode';
 import { tibetanRuns } from '../../services/glosses';
-import { UiIcon, UiTextField } from '../../ui';
+import { UiCollapse, UiIcon, UiTextField } from '../../ui';
 import SearchBuilder from '../SearchBuilder.vue';
 
 // Search's field: a plain field (nothing converted; legacy fonts repaired on
 // paste), how the query was read under it, and the query builder behind
-// Advanced.
+// its button.
 export default {
   name: 'SearchField',
-  components: { SearchBuilder, UiIcon, UiTextField },
+  components: { SearchBuilder, UiCollapse, UiIcon, UiTextField },
   props: {
     modelValue: { type: String, default: '' },
     // How the query was read, e.g. "Terms whose definitions say “wisdom” · 5 terms"
@@ -19,7 +19,7 @@ export default {
   emits: ['update:modelValue', 'keydown', 'clear', 'submit'],
   data() {
     return {
-      // Behind Advanced: closed until the user opens it; the choice is kept
+      // Behind its button: closed until the user opens it; the choice is kept
       builderVisible: Storage.get('searchBuilderVisible') === true,
     };
   },
@@ -91,20 +91,23 @@ export default {
       @clear="$emit('clear')"
     />
 
-    <div v-if="readAs || !builderVisible" class="search-field__under">
-      <span v-if="readAs" class="search-field__read-as" data-testid="search-read-as"><template v-for="(run, index) in tibetanRuns(readAs)" :key="index"><span v-if="run.tibetan" class="search-field__tibetan">{{ run.text }}</span><template v-else>{{ run.text }}</template></template></span>
-      <!-- Gives way to the builder, which has its own Hide -->
-      <button
-        v-if="!builderVisible"
-        type="button"
-        class="search-field__advanced"
-        data-testid="search-advanced"
-        @click="builderVisible = true"
-      >
-        <ui-icon name="sliders-horizontal" :size="15" :stroke-width="2" />
-        Query builder
-      </button>
-    </div>
+    <div v-if="readAs" class="search-field__under" data-testid="search-read-as"><span class="search-field__read-as"><template v-for="(run, index) in tibetanRuns(readAs)" :key="index"><span v-if="run.tibetan" class="search-field__tibetan">{{ run.text }}</span><template v-else>{{ run.text }}</template></template></span></div>
+
+    <!-- Gives way to the builder, which has its own Hide: one folds as the
+         other unfolds, in one movement -->
+    <ui-collapse>
+      <div v-if="!builderVisible" class="search-field__under search-field__under--end">
+        <button
+          type="button"
+          class="search-field__advanced"
+          data-testid="search-advanced"
+          @click="builderVisible = true"
+        >
+          <ui-icon name="sliders-horizontal" :size="15" :stroke-width="2" />
+          Query builder
+        </button>
+      </div>
+    </ui-collapse>
 
     <SearchBuilder
       :model-value="modelValue"
@@ -141,6 +144,10 @@ export default {
   color: var(--muted);
 }
 
+.search-field__under--end {
+  justify-content: flex-end;
+}
+
 .search-field__tibetan {
   font-family: var(--font-tibetan);
   font-size: 1.15em;
@@ -152,7 +159,6 @@ export default {
   display: inline-flex;
   align-items: center;
   gap: var(--space-1);
-  margin-left: auto;
   padding: 0;
   border: 0;
   background: none;
