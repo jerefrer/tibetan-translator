@@ -5,6 +5,20 @@ All notable changes to Tibetan Translator are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0](https://github.com/jerefrer/tibetan-translator/compare/v2.0.0...v2.1.0) - 2026-11-15
+
+### Added
+- Listen, beside a term's pronunciation, plays its recording when a dictionary has one
+- In context, under In short: a sentence using the term, with its translation and its recording, folded until you open it
+
+### Changed
+- The sidebar keeps its header, Help and Settings in place: only its lists scroll
+
+### Fixed
+- Quick lookup no longer shows the previous lookup for a moment as it opens
+- Quick lookup opens empty, and says so, when the clipboard holds a copied image's path, a link or a long passage
+- Quick lookup's field centres its text again
+
 ## [2.0.0](https://github.com/jerefrer/tibetan-translator/compare/v1.12.0...v2.0.0) - 2026-11-15
 
 A new design for the whole app. Your dictionaries, their order, your glossaries and your settings are all kept.
