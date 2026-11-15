@@ -9,7 +9,6 @@ import { describe, it, expect, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import { nextTick } from 'vue'
 import SearchBuilder from '../src/components/SearchBuilder.vue'
-import SearchBuilderRow from '../src/components/SearchBuilderRow.vue'
 import UiSelect from '../src/ui/UiSelect.vue'
 
 describe('SearchBuilder Component', () => {
@@ -336,12 +335,47 @@ describe('SearchBuilder Component', () => {
       expect(wrapper.find('[data-testid="search-builder"]').exists()).toBe(false)
     })
 
-    it('shows its title, one row per condition and the AND note', () => {
+    it('shows its title, one row per condition and an AND between them', () => {
       const wrapper = mountSearchBuilder({ modelValue: '(ye shes) & wakefulness' })
       expect(wrapper.text()).toContain('Query builder')
       expect(rows(wrapper)).toHaveLength(2)
       expect(terms(wrapper).map((input) => input.element.value)).toEqual(['ye shes', 'wakefulness'])
-      expect(wrapper.text()).toContain('An entry must match every condition.')
+      expect(wrapper.findAll('[data-testid="search-builder-and"]')).toHaveLength(1)
+      expect(wrapper.text()).not.toContain('An entry must match every condition.')
+    })
+
+    it('puts one AND between each pair of conditions and none around a single one', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'a' })
+      expect(wrapper.findAll('[data-testid="search-builder-and"]')).toHaveLength(0)
+      await wrapper.setProps({ modelValue: 'a & b & c' })
+      expect(wrapper.findAll('[data-testid="search-builder-and"]')).toHaveLength(2)
+      expect(wrapper.find('[data-testid="search-builder-and"]').text()).toBe('AND')
+    })
+
+    it('explains the match type of each row under its field', async () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'x & (y) & [z] & {w}' })
+      const hints = () =>
+        wrapper.findAll('[data-testid="search-builder-hint"]').map((hint) => hint.text())
+      expect(hints()).toEqual([
+        'Anywhere in a definition',
+        'Wylie, read as Tibetan',
+        'A Tibetan word pronounced like this, however it is spelled',
+        'A Tibetan word that sounds more or less like this',
+      ])
+      wrapper.findAllComponents(UiSelect)[0].vm.$emit('update:modelValue', 'phonetic-loose')
+      await nextTick()
+      expect(hints()[0]).toBe('A Tibetan word that sounds more or less like this')
+    })
+
+    it('shows the add slot as "Add a condition"', () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'x' })
+      expect(wrapper.find('[data-testid="search-builder-add"]').text()).toBe('Add a condition')
+    })
+
+    it('keeps the remove button inside the field box of its row', () => {
+      const wrapper = mountSearchBuilder({ modelValue: 'a & b' })
+      const row = wrapper.find('[data-testid="search-builder-row"]')
+      expect(row.find('.builder-row__fields [data-testid="search-builder-remove"]').exists()).toBe(true)
     })
 
     it('shows the mode of each row by its label', () => {
@@ -350,10 +384,10 @@ describe('SearchBuilder Component', () => {
         .findAll('[data-testid="ui-select-trigger"]')
         .map((trigger) => trigger.text())
       expect(labels).toEqual([
-        'contains (Wylie)',
+        'Wylie',
         'contains',
-        'sounds precisely like',
-        'sounds more or less like',
+        'sounds like',
+        'sounds roughly like',
       ])
     })
 
@@ -362,9 +396,9 @@ describe('SearchBuilder Component', () => {
       const select = wrapper.findComponent(UiSelect)
       expect(select.props('options').map((option) => option.label)).toEqual([
         'contains',
-        'contains (Wylie)',
-        'sounds precisely like',
-        'sounds more or less like',
+        'Wylie',
+        'sounds like',
+        'sounds roughly like',
       ])
     })
 
@@ -444,13 +478,12 @@ describe('SearchBuilder Component', () => {
       expect(wrapper.emitted('update:visible')).toEqual([[false]])
     })
 
-    it('stacks each row and shortens the note on a phone', async () => {
+    it('keeps the same design on a phone, with a tighter card', async () => {
       window.innerWidth = 390
       const wrapper = mountSearchBuilder({ modelValue: 'a & b' })
       expect(wrapper.find('[data-testid="search-builder"]').classes()).toContain('is-phone')
-      expect(wrapper.findComponent(SearchBuilderRow).classes()).toContain('is-phone')
-      expect(wrapper.text()).toContain('Match every condition')
-      expect(wrapper.text()).not.toContain('An entry must match every condition.')
+      expect(wrapper.findAll('[data-testid="search-builder-and"]')).toHaveLength(1)
+      expect(wrapper.find('[data-testid="search-builder-add"]').text()).toBe('Add a condition')
     })
   })
 })

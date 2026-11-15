@@ -1,15 +1,14 @@
 <script>
 import { UiIcon, UiSelect } from '../ui';
-import MobileResponsiveMixin from './mixins/MobileResponsiveMixin';
 
 // One condition of the query builder: how to match (the mode) and what.
-// Board "B · Search, query builder open": the mode and the term share one
-// box, the mode on the left; on a phone the mode sits above the term.
+// Board "B · Search, query builder open": one box holds the mode as a chip,
+// the term and the remove control, with a line under it saying what the mode
+// matches. The row stays on one line at any width.
 // The term is typed as is: no Wylie conversion here, the mode decides how
 // the query reads it.
 export default {
   components: { UiIcon, UiSelect },
-  mixins: [MobileResponsiveMixin],
   props: {
     term: {
       type: String,
@@ -30,13 +29,21 @@ export default {
     return {
       modes: [
         { value: 'contains', label: 'contains' },
-        { value: 'wylie', label: 'contains (Wylie)' },
-        { value: 'phonetic-strict', label: 'sounds precisely like' },
-        { value: 'phonetic-loose', label: 'sounds more or less like' }
+        { value: 'wylie', label: 'Wylie' },
+        { value: 'phonetic-strict', label: 'sounds like' },
+        { value: 'phonetic-loose', label: 'sounds roughly like' }
       ]
     };
   },
   computed: {
+    hint() {
+      switch (this.mode) {
+        case 'wylie': return 'Wylie, read as Tibetan';
+        case 'phonetic-strict': return 'A Tibetan word pronounced like this, however it is spelled';
+        case 'phonetic-loose': return 'A Tibetan word that sounds more or less like this';
+        default: return 'Anywhere in a definition';
+      }
+    },
     inputPlaceholder() {
       switch (this.mode) {
         case 'wylie': return 'sangs rgyas';
@@ -55,7 +62,7 @@ export default {
 </script>
 
 <template>
-  <div class="builder-row" :class="{ 'is-phone': isMobile }" data-testid="search-builder-row">
+  <div class="builder-row" data-testid="search-builder-row">
     <div class="builder-row__fields">
       <ui-select
         class="builder-row__mode"
@@ -81,72 +88,71 @@ export default {
         @input="$emit('update:term', $event.target.value)"
         @keyup.enter="$emit('submit')"
       />
+      <button
+        v-if="canRemove"
+        type="button"
+        class="builder-row__remove"
+        aria-label="Remove this condition"
+        title="Remove this condition"
+        data-testid="search-builder-remove"
+        @click="$emit('remove')"
+      >
+        <ui-icon name="x" :size="16" />
+      </button>
     </div>
-    <button
-      v-if="canRemove"
-      type="button"
-      class="builder-row__remove"
-      aria-label="Remove this condition"
-      title="Remove this condition"
-      data-testid="search-builder-remove"
-      @click="$emit('remove')"
-    >
-      <ui-icon name="circle-minus" :size="18" />
-    </button>
+    <p class="builder-row__hint" data-testid="search-builder-hint">{{ hint }}</p>
   </div>
 </template>
 
 <style lang="stylus" scoped>
-.builder-row
+// The mode chip, the term and the remove control in one 44px box
+.builder-row__fields
   display flex
   align-items center
-  gap 10px
-
-// The mode and the term in one 44px box
-.builder-row__fields
-  flex 1
-  min-width 0
-  display flex
-  align-items stretch
+  gap 8px
   height 2.75rem
+  padding 0 6px
   box-sizing border-box
   border 1.5px solid var(--line-strong)
   border-radius var(--radius-lg)
   background var(--surface)
-  overflow hidden
 
   &:focus-within
     border-color var(--accent)
     box-shadow 0 0 0 3px var(--ring)
 
+// The select's trigger restyled as an inline chip that never shrinks
 .builder-row__mode
   flex none
   width auto
-  max-width 45%
   gap 0
 
   :deep(.ui-select__trigger)
-    width 100%
-    height 100%
+    height 1.875rem
     min-height 0
-    padding 0 14px
+    padding 0 8px 0 10px
+    gap 4px
     border 0
-    border-right 1px solid var(--line)
-    border-radius 0
-    background var(--soft)
-    font-weight 400
-    font-size var(--text-base)
+    border-radius var(--radius-md)
+    background var(--accent-soft)
+    color var(--accent)
+    font 500 var(--text-sm) var(--font-ui)
+    white-space nowrap
     box-shadow none
+
+  :deep(.ui-select__trigger svg)
+    width 14px
+    height 14px
 
   :deep(.ui-select__trigger:focus-visible)
     outline 2px solid var(--accent)
-    outline-offset -2px
+    box-shadow none
 
 .builder-row__term
   flex 1
   min-width 0
   box-sizing border-box
-  padding 0 14px
+  padding 0 6px
   border 0
   outline 0
   background transparent
@@ -165,12 +171,13 @@ export default {
   display inline-flex
   align-items center
   justify-content center
-  width 2.25rem
-  height 2.25rem
+  width 28px
+  height 28px
+  padding 0
   border 0
   border-radius var(--radius-md)
   background none
-  color var(--muted)
+  color var(--faint)
   cursor pointer
 
   &:hover
@@ -180,52 +187,10 @@ export default {
   &:focus-visible
     outline 2px solid var(--accent)
 
-// Phone (board "B · Search on a phone"): mode on top, term below
-.builder-row.is-phone
-  gap 8px
-
-  .builder-row__fields
-    flex-direction column
-    height auto
-
-  .builder-row__mode
-    width auto
-
-    :deep(.ui-select__trigger)
-      height 2.5rem
-      border-right 0
-      border-bottom 1px solid var(--line)
-      padding 0 12px
-
-  .builder-row__term
-    flex none
-    height 2.75rem
-    padding 0 12px
-
-  .builder-row__remove
-    width 2.75rem
-    height 2.75rem
-</style>
-
-<style scoped>
-/* A narrow builder (Search's results column): the match on top, the term
-   below, as on a phone, so the term keeps the whole width */
-@container (max-width: 30rem) {
-  .builder-row__fields {
-    flex-direction: column;
-    height: auto;
-  }
-  .builder-row__mode {
-    max-width: none;
-  }
-  .builder-row__mode :deep(.ui-select__trigger) {
-    height: 2.5rem;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .builder-row__term {
-    flex: none;
-    height: 2.75rem;
-  }
-}
+// What the mode matches, under the box
+.builder-row__hint
+  margin 4px 2px 0
+  font-size var(--text-xs)
+  color var(--faint)
+  line-height 1.4
 </style>

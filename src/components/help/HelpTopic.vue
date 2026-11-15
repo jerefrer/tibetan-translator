@@ -88,7 +88,7 @@ export default {
       </p>
       <table class="help-table">
         <tbody>
-          <tr><td><button type="button" class="help-try" data-testid="help-try" @click="$emit('try-search', 'wisdom')">wisdom</button></td><td>Contains the word, whatever its case</td></tr>
+          <tr><td><button type="button" class="help-try" data-testid="help-try" @click="$emit('try-search', 'wisdom')">wisdom</button></td><td>Contains the word, in capitals or not</td></tr>
           <tr><td><button type="button" class="help-try" data-testid="help-try" @click="$emit('try-search', 'seven limbs')">seven limbs</button></td><td>Contains these words, one after the other</td></tr>
           <tr><td><button type="button" class="help-try" data-testid="help-try" @click="$emit('try-search', 'seven & limbs')">seven &amp; limbs</button></td><td>Contains both, anywhere, in any order</td></tr>
           <tr><td><button type="button" class="help-try" data-testid="help-try" @click="$emit('try-search', &quot;(dga' ba)&quot;)">(dga' ba)</button></td><td>Wylie in parentheses is read as Tibetan: <span class="help-tibetan">དགའ་བ་</span></td></tr>

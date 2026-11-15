@@ -179,34 +179,30 @@ export default {
         </div>
 
         <div class="search-builder__rows">
-          <SearchBuilderRow
-            v-for="(row, index) in rows"
-            :key="index"
-            ref="rowComponents"
-            :term="row.term"
-            :mode="row.mode"
-            :can-remove="rows.length > 1"
-            @update:term="updateRowTerm(index, $event)"
-            @update:mode="updateRowMode(index, $event)"
-            @remove="removeRow(index)"
-            @submit="handleSubmit"
-          />
+          <template v-for="(row, index) in rows" :key="index">
+            <div v-if="index > 0" class="search-builder__and" data-testid="search-builder-and">AND</div>
+            <SearchBuilderRow
+              ref="rowComponents"
+              :term="row.term"
+              :mode="row.mode"
+              :can-remove="rows.length > 1"
+              @update:term="updateRowTerm(index, $event)"
+              @update:mode="updateRowMode(index, $event)"
+              @remove="removeRow(index)"
+              @submit="handleSubmit"
+            />
+          </template>
         </div>
 
-        <div class="search-builder__footer">
-          <button
-            type="button"
-            class="search-builder__add"
-            data-testid="search-builder-add"
-            @click="addRow"
-          >
-            <ui-icon name="plus" :size="14" :stroke-width="2" />
-            Add condition
-          </button>
-          <span class="search-builder__note">
-            {{ isMobile ? 'Match every condition' : 'An entry must match every condition.' }}
-          </span>
-        </div>
+        <button
+          type="button"
+          class="search-builder__add"
+          data-testid="search-builder-add"
+          @click="addRow"
+        >
+          <ui-icon name="plus" :size="15" :stroke-width="2" />
+          Add a condition
+        </button>
       </section>
     </div>
   </ui-collapse>
@@ -216,8 +212,6 @@ export default {
 .search-builder
   flex none
   box-sizing border-box
-  // Its rows stack the match and the term when it is narrow (SearchBuilderRow)
-  container-type inline-size
   padding 16px 22px 18px
   // Set apart from the white of the page, its fields white on it
   background var(--bg-quiet)
@@ -262,37 +256,46 @@ export default {
   gap 10px
   margin-top 12px
 
-.search-builder__footer
+// Between two conditions: every one must match
+.search-builder__and
   display flex
   align-items center
-  gap 14px
-  margin-top 14px
+  gap 10px
+  margin 2px 0
+  font-size 10.5px
+  font-weight 600
+  letter-spacing 0.08em
+  color var(--faint)
 
+  &::before, &::after
+    content ''
+    flex 1
+    height 1px
+    background var(--line)
+
+// A dashed slot after the last condition
 .search-builder__add
-  flex none
-  white-space nowrap
-  display inline-flex
+  display flex
   align-items center
+  justify-content center
   gap 6px
-  height 2.25rem
-  padding 0 14px
-  border 0
+  width 100%
+  height 2.5rem
+  margin-top 10px
+  box-sizing border-box
+  border 1.5px dashed var(--line-strong)
   border-radius var(--radius-lg)
-  background var(--accent-soft)
+  background transparent
   color var(--accent)
-  font 600 var(--text-sm-plus) var(--font-ui)
+  font 500 var(--text-sm) var(--font-ui)
   cursor pointer
 
   &:hover
-    background var(--accent-line)
+    background var(--accent-soft)
 
   &:focus-visible
     outline 2px solid var(--accent)
     outline-offset 2px
-
-.search-builder__note
-  font-size var(--text-sm)
-  color var(--muted)
 
 // Phone (board "B · Search on a phone")
 .search-builder.is-phone
@@ -300,14 +303,4 @@ export default {
 
   .search-builder__rows
     margin-top 10px
-
-  .search-builder__footer
-    justify-content space-between
-    margin-top 10px
-
-  .search-builder__add
-    height 2.75rem
-
-  .search-builder__note
-    font-size var(--text-chip)
 </style>
