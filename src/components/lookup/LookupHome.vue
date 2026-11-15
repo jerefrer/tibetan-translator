@@ -3,6 +3,8 @@ import Storage from '../../services/storage';
 import { loadGlosses, tibetanRuns } from '../../services/glosses';
 import { clearHistory, recentTerms } from '../../services/history';
 import { savedTerms } from '../../services/saved-terms';
+import { dismissNewLook, newLookPending } from '../../services/new-look';
+import NewLookCard from './NewLookCard.vue';
 
 const RECENT_ROWS = 8;
 const SAVED_ROWS = 8;
@@ -12,10 +14,12 @@ const TRY_TERMS = ['སངས་རྒྱས་', 'བྱང་ཆུབ་ས�
 // What Define shows before anything is looked up (boards MobileHome and
 // Main): the recent terms (with Clear), the newest saved ones (with See all,
 // the Saved page), each with a one-line gloss, and the Wylie tip. With
-// neither, four terms to Try. On a phone under the field when it is empty; on
-// a desktop in the entry pane while no term is selected.
+// neither, four terms to Try. A returning user first sees "A new look", once.
+// On a phone under the field when it is empty; on a desktop in the entry pane
+// while no term is selected.
 export default {
   name: 'LookupHome',
+  components: { NewLookCard },
   props: {
     // The page's phone layout (MobileResponsiveMixin), not a CSS breakpoint
     phone: { type: Boolean, default: false },
@@ -28,6 +32,7 @@ export default {
       savedCount: 0,
       // term -> gloss ('' when no enabled dictionary has one)
       glosses: {},
+      newLook: newLookPending(),
       tryTerms: TRY_TERMS,
     };
   },
@@ -77,6 +82,10 @@ export default {
         console.warn('[Define] Glosses not loaded', error);
       }
     },
+    dismissNewLook() {
+      dismissNewLook();
+      this.newLook = false;
+    },
     clearRecent() {
       clearHistory();
       this.recent = [];
@@ -87,6 +96,8 @@ export default {
 
 <template>
   <div class="lookup-home" :class="{ 'lookup-home--phone': phone }" data-testid="lookup-home">
+    <new-look-card v-if="newLook" :phone="phone" @dismiss="dismissNewLook" />
+
     <section v-if="recent.length" class="lookup-home__section" aria-labelledby="lookup-home-recent">
       <div class="lookup-home__head">
         <h2 id="lookup-home-recent" class="lookup-home__label">Recent</h2>

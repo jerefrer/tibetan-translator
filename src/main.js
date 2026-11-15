@@ -1,4 +1,6 @@
 import { createApp, reactive } from "vue";
+// Before App.vue is imported, which writes defaults: see the file
+import "./record-returning-user";
 // First, so every component style comes after it
 import "./css/reset.css";
 import router from "./router";

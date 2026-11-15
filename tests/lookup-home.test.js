@@ -27,6 +27,7 @@ beforeEach(() => {
   clearHistory()
   clearGlossCache()
   Storage.delete('savedTerms')
+  Storage.delete('newLook')
   recordTerm(KA)
 })
 
@@ -105,5 +106,66 @@ describe('LookupHome — Try', () => {
     wrapper = mount(LookupHome)
     await flushPromises()
     expect(wrapper.find('[data-testid="lookup-try"]').exists()).toBe(false)
+  })
+})
+
+describe('LookupHome — A new look', () => {
+  const mountHome = async () => {
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
+    wrapper = mount(LookupHome, { global: { provide: { snackbar: { open: vi.fn() } } } })
+    await flushPromises()
+  }
+
+  it('should show the card first when it is pending', async () => {
+    Storage.set('newLook', 'pending')
+    await mountHome()
+    expect(wrapper.get('[data-testid="new-look"]').text()).toContain('A new look')
+    expect(wrapper.get('.lookup-home').element.firstElementChild.getAttribute('data-testid')).toBe('new-look')
+  })
+
+  it('should not show the card when it was seen', async () => {
+    Storage.set('newLook', 'seen')
+    await mountHome()
+    expect(wrapper.find('[data-testid="new-look"]').exists()).toBe(false)
+  })
+
+  it('should remove the card and remember it when its close button is clicked', async () => {
+    Storage.set('newLook', 'pending')
+    await mountHome()
+    await wrapper.get('[data-testid="new-look-close"]').trigger('click')
+    expect(wrapper.find('[data-testid="new-look"]').exists()).toBe(false)
+    expect(Storage.get('newLook')).toBe('seen')
+  })
+
+  it('should list only the Reader line on a phone', async () => {
+    Storage.set('newLook', 'pending')
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
+    wrapper = mount(LookupHome, { props: { phone: true }, global: { provide: { snackbar: { open: vi.fn() } } } })
+    await flushPromises()
+    expect(wrapper.findAll('.new-look__list li')).toHaveLength(1)
+    expect(wrapper.get('[data-testid="new-look-reader"]').text()).toBe('Split is now Reader.')
+  })
+
+  it('should list the Reader line, the sidebar pages and the shortcuts on a desktop', async () => {
+    Storage.set('newLook', 'pending')
+    await mountHome()
+    expect(wrapper.findAll('.new-look__list li')).toHaveLength(3)
+    expect(wrapper.get('[data-testid="new-look-reader"]').text()).toMatch(/^Split is now Reader, on (⌘|Ctrl\+)E\.$/)
+    expect(wrapper.get('[data-testid="new-look-pages"]').text()).toContain('My glossary and Dictionaries')
+    expect(wrapper.get('[data-testid="new-look-keys"]').text()).toContain('go back and forward')
+  })
+
+  it('should copy the address when Copy is clicked', async () => {
+    Storage.set('newLook', 'pending')
+    const writeText = vi.fn(async () => {})
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    const open = vi.fn()
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
+    wrapper = mount(LookupHome, { global: { provide: { snackbar: { open } } } })
+    await flushPromises()
+    await wrapper.get('[data-testid="new-look-copy"]').trigger('click')
+    await flushPromises()
+    expect(writeText).toHaveBeenCalledWith('feedback@tibetantoolbox.org')
+    expect(open).toHaveBeenCalledWith('Address copied')
   })
 })
