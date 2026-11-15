@@ -14,7 +14,10 @@
         "label": "main",
         "title": "Tibetan Translator",
         "width": 1280,
-        "height": 1024,
+        "height": 840,
+        "minWidth": 640,
+        "minHeight": 480,
+        "center": true,
         "resizable": true,
         "fullscreen": false,
         "dragDropEnabled": false

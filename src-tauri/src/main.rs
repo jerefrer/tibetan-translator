@@ -306,6 +306,17 @@ fn main() {
         builder = builder.plugin(tauri_nspanel::init());
     }
 
+    // The main window opens at the size and place it was left at; the quick
+    // lookup popup places itself near the text, so it is left out
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_denylist(&["global-lookup-popup"])
+                .build(),
+        );
+    }
+
     builder = builder.invoke_handler(tauri::generate_handler![
             // Database commands
             init_database,
