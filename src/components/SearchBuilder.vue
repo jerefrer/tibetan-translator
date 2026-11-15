@@ -249,8 +249,13 @@ export default {
     outline-offset 2px
 
 // Phone (board "B · Search on a phone")
+// On the phone's grey ground: white, as the lists below it, its fields
+// standing out by their border
 .search-builder.is-phone
   padding 12px 14px
+  background var(--surface)
+  border 0
+  box-shadow none
 
   .search-builder__rows
     margin-top 10px
