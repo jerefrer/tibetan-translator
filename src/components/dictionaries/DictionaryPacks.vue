@@ -197,47 +197,49 @@ export default {
       >
         <div class="dictionary-pack__top">
           <span class="dictionary-pack__name">{{ pack.name }}</span>
-
-          <template v-if="pack.updating !== null || pack.downloading !== null">
-            <span class="dictionary-pack__status is-busy" tabindex="-1" data-testid="pack-status">
-              {{ pack.updating !== null ? `Updating ${pack.updating}%` : `Downloading ${pack.downloading}%` }}
-            </span>
-            <button
-              v-if="pack.cancellable"
-              type="button"
-              class="dictionary-pack__more"
-              :aria-label="(pack.updating !== null ? 'Cancel the update of ' : 'Cancel the download of ') + pack.name"
-              title="Cancel"
-              data-testid="pack-cancel"
-              @click="cancel(pack.id)"
-            >
-              <ui-icon name="x" :size="18" />
-            </button>
-          </template>
-          <template v-else-if="pack.installed">
-            <ui-button v-if="pack.update" size="sm" variant="soft" data-testid="pack-update" @click="updatePack(pack.id)">
-              <ui-icon name="download" :size="15" />
-              Update<template v-if="pack.update.sizeMB"> · {{ pack.update.sizeMB }} MB</template>
-            </ui-button>
-            <span v-else class="dictionary-pack__status" tabindex="-1" data-testid="pack-status">
-              {{ pack.included ? 'Included' : 'Installed' }}
-            </span>
-            <ui-menu v-if="pack.removable" :items="menuItems(pack)" align="end" @select="askRemove(pack)">
-              <button type="button" class="dictionary-pack__more" :aria-label="'More for ' + pack.name" data-testid="pack-more">
-                <ui-icon name="ellipsis" :size="18" />
+          <!-- The status and actions, kept together: under the name when it needs the room -->
+          <div class="dictionary-pack__side">
+            <template v-if="pack.updating !== null || pack.downloading !== null">
+              <span class="dictionary-pack__status is-busy" tabindex="-1" data-testid="pack-status">
+                {{ pack.updating !== null ? `Updating ${pack.updating}%` : `Downloading ${pack.downloading}%` }}
+              </span>
+              <button
+                v-if="pack.cancellable"
+                type="button"
+                class="dictionary-pack__more"
+                :aria-label="(pack.updating !== null ? 'Cancel the update of ' : 'Cancel the download of ') + pack.name"
+                title="Cancel"
+                data-testid="pack-cancel"
+                @click="cancel(pack.id)"
+              >
+                <ui-icon name="x" :size="18" />
               </button>
-            </ui-menu>
-          </template>
-          <ui-button
-            v-else-if="ready"
-            size="sm"
-            variant="soft"
-            data-testid="pack-install"
-            @click="askInstall(pack.id)"
-          >
-            <ui-icon name="download" :size="15" />
-            Install
-          </ui-button>
+            </template>
+            <template v-else-if="pack.installed">
+              <ui-button v-if="pack.update" size="sm" variant="soft" data-testid="pack-update" @click="updatePack(pack.id)">
+                <ui-icon name="download" :size="15" />
+                Update<template v-if="pack.update.sizeMB"> · {{ pack.update.sizeMB }} MB</template>
+              </ui-button>
+              <span v-else class="dictionary-pack__status" tabindex="-1" data-testid="pack-status">
+                {{ pack.included ? 'Included' : 'Installed' }}
+              </span>
+              <ui-menu v-if="pack.removable" :items="menuItems(pack)" align="end" @select="askRemove(pack)">
+                <button type="button" class="dictionary-pack__more" :aria-label="'More for ' + pack.name" data-testid="pack-more">
+                  <ui-icon name="ellipsis" :size="18" />
+                </button>
+              </ui-menu>
+            </template>
+            <ui-button
+              v-else-if="ready"
+              size="sm"
+              variant="soft"
+              data-testid="pack-install"
+              @click="askInstall(pack.id)"
+            >
+              <ui-icon name="download" :size="15" />
+              Install
+            </ui-button>
+          </div>
         </div>
 
         <ui-progress
@@ -324,16 +326,24 @@ export default {
 }
 .dictionary-pack__top {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
   min-height: var(--control-sm);
 }
 .dictionary-pack__name {
-  flex: 1;
+  /* Never under the actions: too long for both, the actions go below */
+  flex: 1 1 8rem;
   min-width: 0;
   font-size: var(--text-base);
   font-weight: 600;
   color: var(--ink);
+}
+.dictionary-pack__side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
 }
 .dictionary-pack__status {
   font-size: var(--text-sm);
