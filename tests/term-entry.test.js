@@ -526,6 +526,7 @@ describe('TermEntry — Listen and In context', () => {
 
   beforeEach(() => {
     Storage.set('dictionaries', [RY, HOPKINS, TSEPAK, HOTL_DICTIONARY])
+    Storage.delete('entryContextOpen')
     players = []
     play = vi.fn(() => Promise.resolve())
     window.Audio = vi.fn(function (url) {
@@ -539,6 +540,7 @@ describe('TermEntry — Listen and In context', () => {
 
   it('should show Listen and the sentence with the term marked and its translation when a Heart of Tibetan Language entry has them', async () => {
     await mountEntry({}, [...ROWS, HOTL])
+    await wrapper.find('[data-testid="entry-context-toggle"]').trigger('click')
 
     expect(wrapper.find('[data-testid="entry-listen"]').attributes('aria-label')).toBe(`Listen to ${TERM}`)
     const context = wrapper.find('[data-testid="entry-context"]')
@@ -546,6 +548,36 @@ describe('TermEntry — Listen and In context', () => {
     expect(context.text()).toContain('This is the Blessed One.')
     expect(context.text()).toContain('Heart of Tibetan Language')
     expect(context.find('mark').text()).toBe('བཅོམ་ལྡན་འདས་')
+  })
+
+  it('should fold In context to one line by default, the sentence hidden', async () => {
+    await mountEntry({}, [...ROWS, HOTL])
+
+    const toggle = wrapper.find('[data-testid="entry-context-toggle"]')
+    expect(toggle.attributes('aria-expanded')).toBe('false')
+    expect(toggle.text()).toContain('Hear the term in a sentence')
+    expect(wrapper.find('[data-testid="entry-context-play"]').exists()).toBe(false)
+  })
+
+  it('should keep In context open for the next entries once the user opened it', async () => {
+    await mountEntry({}, [...ROWS, HOTL])
+    await wrapper.find('[data-testid="entry-context-toggle"]').trigger('click')
+    expect(Storage.get('entryContextOpen')).toBe(true)
+    wrapper.unmount()
+
+    await mountEntry({}, [...ROWS, HOTL])
+    expect(wrapper.find('[data-testid="entry-context-toggle"]').attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find('[data-testid="entry-context-play"]').exists()).toBe(true)
+  })
+
+  it('should stop the sentence when In context is folded while it plays', async () => {
+    Storage.set('entryContextOpen', true)
+    await mountEntry({}, [...ROWS, HOTL])
+    await wrapper.find('[data-testid="entry-context-play"]').trigger('click')
+    await flushPromises()
+
+    await wrapper.find('[data-testid="entry-context-toggle"]').trigger('click')
+    expect(players[0].pause).toHaveBeenCalled()
   })
 
   it('should show neither when no entry has a recording', async () => {
@@ -583,6 +615,7 @@ describe('TermEntry — Listen and In context', () => {
 
     await wrapper.find('[data-testid="entry-listen"]').trigger('click')
     await flushPromises()
+    await wrapper.find('[data-testid="entry-context-toggle"]').trigger('click')
     await wrapper.find('[data-testid="entry-context-play"]').trigger('click')
     await flushPromises()
 

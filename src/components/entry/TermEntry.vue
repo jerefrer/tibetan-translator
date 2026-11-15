@@ -13,7 +13,7 @@ import { supportsModularPacks } from '../../config/platform';
 import { getAudioUrl } from '../../services/audio-service';
 import { entryAudio, highlightTerm } from '../../services/entry-audio';
 import { tibetanLookupKey } from '../../utils';
-import { UiButton, UiIcon, UiSpinner } from '../../ui';
+import { UiButton, UiCollapse, UiIcon, UiSpinner } from '../../ui';
 import DictionariesMenuMixin from '../DictionariesMenuMixin';
 import EntriesEntry from '../EntriesEntry.vue';
 import DictionaryAboutDialog from '../DictionaryAboutDialog.vue';
@@ -47,6 +47,7 @@ export default {
     InShort,
     QuickAddDialog,
     UiButton,
+    UiCollapse,
     UiIcon,
     UiSpinner,
     UninstalledPacksNotice
@@ -69,7 +70,9 @@ export default {
       aboutDictionary: '',
       quickAddOpen: false,
       // The recording playing: 'word', 'example' or null
-      playing: null
+      playing: null,
+      // In context folded unless the user opened it (kept for every entry)
+      contextOpen: Storage.get('entryContextOpen') === true
     };
   },
   computed: {
@@ -202,6 +205,12 @@ export default {
     },
     // One recording at a time: starting one stops the other, and the same
     // button again stops it
+    toggleContext() {
+      this.contextOpen = !this.contextOpen;
+      Storage.set('entryContextOpen', this.contextOpen);
+      // Folded away while its sentence plays: it stops
+      if (!this.contextOpen && this.playing === 'example') this.stopAudio();
+    },
     async toggleAudio(kind) {
       if (this.playing === kind) {
         this.stopAudio();
@@ -379,8 +388,19 @@ export default {
         aria-label="In context"
         data-testid="entry-context"
       >
-        <h2 class="term-entry__context-label">In context</h2>
-        <div class="term-entry__context-row">
+        <button
+          type="button"
+          class="term-entry__context-toggle"
+          :aria-expanded="contextOpen ? 'true' : 'false'"
+          data-testid="entry-context-toggle"
+          @click="toggleContext"
+        >
+          <ui-icon name="chevron-right" :size="14" class="term-entry__context-chevron" :class="{ 'is-open': contextOpen }" />
+          <span class="term-entry__context-label">In context</span>
+          <span v-if="!contextOpen" class="term-entry__context-hint">Hear the term in a sentence</span>
+        </button>
+        <ui-collapse>
+        <div v-if="contextOpen" class="term-entry__context-row">
           <button
             type="button"
             class="term-entry__context-play"
@@ -400,6 +420,7 @@ export default {
             <small class="term-entry__context-source">{{ audio.label }}</small>
           </div>
         </div>
+        </ui-collapse>
       </section>
 
       <dictionary-filter
@@ -540,26 +561,55 @@ export default {
   outline-offset: 2px;
 }
 
-/* In context: a sentence with the term, to read and to hear. The label is
-   In short's */
+/* In context: folded to one quiet line, the sentence with the term to read
+   and hear once opened (kept open for every entry when the user wants it).
+   The label is In short's */
 .term-entry__context {
-  margin: 12px 0 4px;
-  padding: 14px 18px 16px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
+  margin: 10px 0 4px;
+}
+.term-entry__context-toggle {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: var(--faint);
+  cursor: pointer;
+}
+.term-entry__context-toggle:hover .term-entry__context-hint {
+  color: var(--ink);
+}
+.term-entry__context-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+.term-entry__context-chevron {
+  align-self: center;
+  transition: transform 0.15s;
+}
+.term-entry__context-chevron.is-open {
+  transform: rotate(90deg);
 }
 .term-entry__context-label {
-  margin: 0 0 var(--space-1);
   font: 600 var(--text-caption) / 1.3 var(--font-ui);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--faint);
+}
+.term-entry__context-hint {
+  font: var(--text-sm) var(--font-ui);
+  color: var(--muted);
 }
 .term-entry__context-row {
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  margin-top: 6px;
+  padding: 14px 18px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 .term-entry__context-play {
   flex: none;
