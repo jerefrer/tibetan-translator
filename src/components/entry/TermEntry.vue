@@ -380,17 +380,22 @@ export default {
 }
 .term-entry__top {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
 }
+/* A headword too long to share its line with the actions keeps the whole
+   width and the actions go below it. Its lines are spaced for the stacks
+   above and below them; the negative margins take that room back from a
+   single line, so it sits where a 1.2 line height would put it */
 .term-entry__headword {
   min-width: 0;
-  margin: 0;
+  margin: -0.125em 0;
   font-family: var(--font-tibetan);
   font-size: var(--text-headword-xl);
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.45;
   color: var(--rubric);
   overflow-wrap: anywhere;
 }
@@ -577,7 +582,6 @@ export default {
   }
   .term-entry__headword {
     font-size: var(--text-headword-lg);
-    line-height: 1.25;
   }
   .term-entry__actions {
     justify-content: flex-end;
