@@ -16,6 +16,8 @@ const POPUP_WIDTH = 650;
 const POPUP_HEIGHT = 500;
 const POPUP_MAX_WIDTH = 820;
 const POPUP_MAX_HEIGHT = 600;
+// How long the main window waits for the popup to hold the new text
+const PREPARE_TIMEOUT_MS = 150;
 
 let isInitialized = false;
 // The default size is applied on the first show of each launch only, so a
@@ -178,6 +180,27 @@ export function appSelectionText() {
 }
 
 /**
+ * Resolves true when the event arrives, false after `timeoutMs`; the listener
+ * is removed either way.
+ */
+export async function waitForEvent(name, timeoutMs) {
+  const { once } = await import('@tauri-apps/api/event');
+  let timer;
+  let unlisten;
+  try {
+    return await new Promise((resolve) => {
+      timer = setTimeout(() => resolve(false), timeoutMs);
+      once(name, () => resolve(true)).then((off) => {
+        unlisten = off;
+      }, () => resolve(false));
+    });
+  } finally {
+    clearTimeout(timer);
+    unlisten?.();
+  }
+}
+
+/**
  * Show the popup window. `selection`, when given, is looked up instead of
  * the clipboard.
  */
@@ -215,11 +238,13 @@ async function showPopupWindow(text, selection = '') {
 
     if (existingWindow) {
       console.log('[GlobalLookup] Using existing popup window');
-      if (selection) {
-        // Before showing it: the window reads its text when it is shown
-        const { emitTo } = await import('@tauri-apps/api/event');
-        await emitTo('global-lookup-popup', 'lookup-selection', selection);
-      }
+      // Fill the popup before showing it: it used to read the text only once
+      // shown, so it painted the previous lookup for a moment first. The wait
+      // is bounded so a popup that does not answer still opens.
+      const { emitTo } = await import('@tauri-apps/api/event');
+      const ready = waitForEvent('lookup-ready', PREPARE_TIMEOUT_MS);
+      await emitTo('global-lookup-popup', 'lookup-prepare', { text, selection });
+      await ready;
       // Window exists, position it and use the panel-aware show command
       await existingWindow.setPosition({ type: 'Physical', x: Math.round(x * scaleFactor), y: Math.round(y * scaleFactor) });
       // Use our custom show command that properly handles NSPanel key window status

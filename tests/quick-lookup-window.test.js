@@ -14,6 +14,7 @@ import path from 'path'
 const invoke = vi.fn()
 const readText = vi.fn()
 const listeners = {}
+const emitTo = vi.fn()
 const onFocusChanged = vi.fn()
 const startDragging = vi.fn()
 const hide = vi.fn()
@@ -27,6 +28,7 @@ vi.mock('@tauri-apps/api/event', () => ({
     listeners[event] = handler
     return () => delete listeners[event]
   },
+  emitTo: (...args) => emitTo(...args),
 }))
 vi.mock('@tauri-apps/api/window', () => ({
   getCurrentWindow: () => ({
@@ -128,6 +130,7 @@ beforeEach(() => {
   installedPacks = ['core', 'tibetan-monolingual', 'sanskrit-academic']
   invoke.mockReset().mockImplementation(defaultInvoke)
   readText.mockReset()
+  emitTo.mockReset().mockResolvedValue()
   onFocusChanged.mockReset()
   startDragging.mockReset().mockResolvedValue()
   hide.mockReset().mockResolvedValue()
@@ -590,16 +593,52 @@ describe('closing and the window', () => {
 
   it('should look up the text selected in the main window instead of the clipboard', async () => {
     await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
-    listeners['lookup-selection']({ payload: 'སངས་རྒྱས་' })
+    listeners['lookup-prepare']({ payload: { text: 'སངས་རྒྱས་', selection: 'སངས་རྒྱས་' } })
     listeners['panel-shown']()
     await settle()
     expect(find('ql-field').find('input').element.value).toBe('སངས་རྒྱས་')
     expect(find('ql-title').text()).toBe('From your selection')
   })
 
+  it('should fill the field and answer lookup-ready when asked to prepare, without re-reading the clipboard on panel-shown', async () => {
+    await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
+    readText.mockClear()
+    readText.mockResolvedValue('ཀ་')
+    await listeners['lookup-prepare']({ payload: { text: 'སངས་རྒྱས།', selection: '' } })
+    expect(find('ql-field').find('input').element.value).toBe('སངས་རྒྱས་')
+    expect(emitTo).toHaveBeenCalledWith('main', 'lookup-ready')
+    listeners['panel-shown']()
+    await settle()
+    expect(readText).not.toHaveBeenCalled()
+    expect(find('ql-field').find('input').element.value).toBe('སངས་རྒྱས་')
+    // The next showing without a prepare reads the clipboard again
+    listeners['panel-shown']()
+    await settle()
+    expect(find('ql-field').find('input').element.value).toBe('ཀ་')
+  })
+
+  it('should open empty, saying so, when the clipboard holds a copied image\'s path instead of the previous lookup', async () => {
+    await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
+    expect(find('ql-field').find('input').element.value).toBe('ཡེ་ཤེས་')
+    await listeners['lookup-prepare']({ payload: { text: '/Users/jeremy/Library/Caches/Clop/images/CleanShot 2026-11-16 at 00.08.32@2x.png', selection: '' } })
+    await settle()
+    expect(find('ql-field').find('input').element.value).toBe('')
+    expect(find('ql-nothing').text()).toContain('Nothing to look up in the clipboard.')
+  })
+
+  it('should drop the nothing-to-look-up message once a term is typed', async () => {
+    await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
+    await listeners['lookup-prepare']({ payload: { text: 'https://example.org', selection: '' } })
+    await settle()
+    await find('ql-field').find('input').setValue('')
+    await find('ql-field').find('input').setValue('ཀ')
+    await settle()
+    expect(find('ql-nothing').exists()).toBe(false)
+  })
+
   it('should keep the selection when the window then regains focus with the clipboard unchanged', async () => {
     await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
-    listeners['lookup-selection']({ payload: 'སངས་རྒྱས་' })
+    listeners['lookup-prepare']({ payload: { text: 'སངས་རྒྱས་', selection: 'སངས་རྒྱས་' } })
     listeners['panel-shown']()
     await settle()
     onFocusChanged.mock.calls[0][0]({ payload: true })
@@ -609,7 +648,7 @@ describe('closing and the window', () => {
 
   it('should go back to the clipboard on the next hotkey press without a selection', async () => {
     await mountWindow({ clipboard: 'ཡེ་ཤེས།' })
-    listeners['lookup-selection']({ payload: 'སངས་རྒྱས་' })
+    listeners['lookup-prepare']({ payload: { text: 'སངས་རྒྱས་', selection: 'སངས་རྒྱས་' } })
     listeners['panel-shown']()
     await settle()
     listeners['panel-shown']()

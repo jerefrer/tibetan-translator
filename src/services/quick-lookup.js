@@ -23,11 +23,26 @@ export function termsStartingWith(allTerms, prefix) {
 }
 
 
+// Longer than any term or expression: a passage, not a lookup
+const MAX_LOOKUP_LENGTH = 200;
+
+/**
+ * Text with no Tibetan that cannot be a lookup: a file's path (copying an
+ * image or a file leaves its path on the clipboard too), a link, or a text
+ * too long to be a term or an expression.
+ */
+export function isNotLookupText(text) {
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(text)) return true;
+  if (/^(~?\/|[a-z]:\\)\S*[\\/]/i.test(text)) return true;
+  return text.length > MAX_LOOKUP_LENGTH;
+}
+
 /**
  * Decides what the clipboard text (already repaired if it was in a legacy
  * font) is: Tibetan goes to Define as its lookup key; Wylie that converts to
  * the start of a known term goes to Define as Tibetan; anything else
- * (English, Sanskrit, a sentence) goes to Search as it is.
+ * (English, Sanskrit, a sentence) goes to Search as it is, unless it is no
+ * lookup at all (isNotLookupText).
  *
  * Returns { mode, text, wylie } or null when there is nothing to look up.
  * `wylie` is the Wylie the text was converted from, when it was.
@@ -40,6 +55,7 @@ export function classifyClipboardText(raw, allTerms) {
     const key = tibetanLookupKey(text);
     return key ? { mode: 'define', text: key, wylie: '' } : null;
   }
+  if (isNotLookupText(text)) return null;
 
   const converted = wylieToTibetan(text);
   if (

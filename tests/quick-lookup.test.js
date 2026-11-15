@@ -26,6 +26,30 @@ describe('classifyClipboardText', () => {
     expect(classifyClipboardText(null, ALL_TERMS)).toBeNull()
   })
 
+  it('should look nothing up when the clipboard holds a file path, as a copied image leaves there', () => {
+    expect(classifyClipboardText('/Users/jeremy/Library/Caches/Clop/images/CleanShot 2026-11-16 at 00.08.32@2x.png', ALL_TERMS)).toBeNull()
+    expect(classifyClipboardText('~/Desktop/notes.txt', ALL_TERMS)).toBeNull()
+    expect(classifyClipboardText('C:\\Users\\Jeremy\\Pictures\\scan.png', ALL_TERMS)).toBeNull()
+  })
+
+  it('should look nothing up when the clipboard holds a link', () => {
+    expect(classifyClipboardText('https://example.org/page?x=1', ALL_TERMS)).toBeNull()
+    expect(classifyClipboardText('file:///Users/jeremy/scan.png', ALL_TERMS)).toBeNull()
+  })
+
+  it('should look nothing up when a text with no Tibetan is too long to be a term or an expression', () => {
+    expect(classifyClipboardText('word '.repeat(50), ALL_TERMS)).toBeNull()
+  })
+
+  it('should still look up Tibetan however long or odd it is', () => {
+    expect(classifyClipboardText('/ ཡེ་ཤེས་ /', ALL_TERMS).text).toBe('ཡེ་ཤེས་')
+    expect(classifyClipboardText('ཡེ་ཤེས་ ' + 'word '.repeat(50), ALL_TERMS)).not.toBeNull()
+  })
+
+  it('should still search ordinary English, slashes included', () => {
+    expect(classifyClipboardText('mind / awareness', ALL_TERMS)).toEqual({ mode: 'search', text: 'mind / awareness', wylie: '' })
+  })
+
   it('should send Tibetan to Define as its lookup key, trailing punctuation as one tsheg', () => {
     expect(classifyClipboardText('ཡེ་ཤེས།', ALL_TERMS)).toEqual({ mode: 'define', text: 'ཡེ་ཤེས་', wylie: '' })
     expect(classifyClipboardText('  = ཡེ་ཤེས་ ! ', ALL_TERMS).text).toBe('ཡེ་ཤེས་')

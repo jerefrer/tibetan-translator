@@ -5,7 +5,10 @@
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { appSelectionText, defaultPopupSize } from '../src/services/global-lookup'
+
+const once = vi.fn()
+vi.mock('@tauri-apps/api/event', () => ({ once: (...args) => once(...args) }))
+import { appSelectionText, defaultPopupSize, waitForEvent } from '../src/services/global-lookup'
 
 describe('defaultPopupSize', () => {
   it('should open wider than the minimum on a large screen, up to 820 × 600', () => {
@@ -52,5 +55,25 @@ describe('appSelectionText', () => {
     vi.spyOn(document, 'hasFocus').mockReturnValue(true)
     document.getSelection().removeAllRanges()
     expect(appSelectionText()).toBe('')
+  })
+})
+
+describe('waitForEvent', () => {
+  it('should resolve true and stop listening when the event arrives', async () => {
+    const unlisten = vi.fn()
+    once.mockImplementation(async (name, handler) => {
+      setTimeout(handler, 0)
+      return unlisten
+    })
+    expect(await waitForEvent('lookup-ready', 1000)).toBe(true)
+    expect(once).toHaveBeenCalledWith('lookup-ready', expect.any(Function))
+    expect(unlisten).toHaveBeenCalled()
+  })
+
+  it('should resolve false and stop listening when the event does not arrive in time', async () => {
+    const unlisten = vi.fn()
+    once.mockImplementation(async () => unlisten)
+    expect(await waitForEvent('lookup-ready', 10)).toBe(false)
+    expect(unlisten).toHaveBeenCalled()
   })
 })

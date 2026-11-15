@@ -1,7 +1,7 @@
 <script>
 import _ from 'underscore';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { emitTo, listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { readText } from '@tauri-apps/plugin-clipboard-manager';
 
@@ -88,6 +88,9 @@ export default {
       textSource: 'clipboard',
       // The Wylie the clipboard held, when the field shows it converted
       clipboardWylie: '',
+      // The hotkey found nothing to look up on the clipboard (a copied
+      // image's path, a link, a long passage): the field is left empty
+      nothingToLookUp: false,
       lastClipboardText: null,
       dictionaries: Storage.get('dictionaries') || [],
       uninstalledPacks: [],
@@ -180,6 +183,7 @@ export default {
       if (!this._applyingClipboard) {
         this.fromClipboard = false;
         this.clipboardWylie = '';
+        this.nothingToLookUp = false;
       }
       this.displayedTermsCount = TERMS_BATCH_SIZE;
       if (this.mode === 'search') {
@@ -284,51 +288,77 @@ export default {
       });
     },
     /**
+     * Looks `text` up: repairs a legacy-font paste, picks Define or Search for
+     * it and puts it in the field. `selection` marks text selected in the main
+     * window, not copied.
+     */
+    async applyLookupText(text, { selection = false } = {}) {
+      if (selection) {
+        // The clipboard as it is now counts as seen, or the focus fallback
+        // would put it back over the selection
+        this.lastClipboardText = await readText().catch(() => null);
+      }
+
+      let raw = text.trim();
+      // The Tauri clipboard exposes no HTML flavour, so a term copied out of
+      // a pre-Unicode Tibetan document can only be repaired from the text
+      // itself. That is enough whenever the source used a single legacy font,
+      // which is the common case for a copied term.
+      if (mayNeedLegacyRepair({ text: raw })) {
+        const { convertLegacyPaste } = await import('../services/legacy-to-unicode');
+        raw = (await convertLegacyPaste({ text: raw })) || raw;
+      }
+
+      const result = classifyClipboardText(raw, this.allTerms);
+      if (!result) {
+        // Not the previous lookup either: an empty field, ready to type
+        this.mode = 'define';
+        this.setText('');
+        this.fromClipboard = false;
+        this.clipboardWylie = '';
+        this.nothingToLookUp = true;
+        return;
+      }
+      this.nothingToLookUp = false;
+      this.mode = result.mode;
+      this.setText(result.text);
+      this.fromClipboard = true;
+      this.textSource = selection ? 'selection' : 'clipboard';
+      this.clipboardWylie = result.wylie;
+      // A clipboard landing in Search starts the session's Define memory afresh
+      this.lastDefineTerm = result.mode === 'define' ? result.text : '';
+    },
+    /**
      * Reads the clipboard and looks it up. `onlyIfChanged` is for the focus
      * fallback: coming back to the window must not wipe what was typed when
      * the clipboard still holds what was already looked up.
      */
     async readClipboardAndSetSearch({ onlyIfChanged = false } = {}) {
       try {
-        // The hotkey pressed over a selection in the main window sends the
-        // selection first: it wins over the clipboard, once
-        const selection = this._pendingSelection;
-        this._pendingSelection = null;
-        let text;
-        if (selection) {
-          text = selection;
-          // The clipboard as it is now counts as seen, or the focus fallback
-          // would put it back over the selection
-          this.lastClipboardText = await readText().catch(() => null);
-        } else {
-          text = await readText();
-          if (!text || !text.trim()) return;
-          if (onlyIfChanged && text === this.lastClipboardText) return;
-          this.lastClipboardText = text;
-        }
-
-        let raw = text.trim();
-        // The Tauri clipboard exposes no HTML flavour, so a term copied out of
-        // a pre-Unicode Tibetan document can only be repaired from the text
-        // itself. That is enough whenever the source used a single legacy font,
-        // which is the common case for a copied term.
-        if (mayNeedLegacyRepair({ text: raw })) {
-          const { convertLegacyPaste } = await import('../services/legacy-to-unicode');
-          raw = (await convertLegacyPaste({ text: raw })) || raw;
-        }
-
-        const result = classifyClipboardText(raw, this.allTerms);
-        if (!result) return;
-        this.mode = result.mode;
-        this.setText(result.text);
-        this.fromClipboard = true;
-        this.textSource = selection ? 'selection' : 'clipboard';
-        this.clipboardWylie = result.wylie;
-        // A clipboard landing in Search starts the session's Define memory afresh
-        this.lastDefineTerm = result.mode === 'define' ? result.text : '';
+        const text = await readText();
+        if (!text || !text.trim()) return;
+        if (onlyIfChanged && text === this.lastClipboardText) return;
+        this.lastClipboardText = text;
+        await this.applyLookupText(text);
       } catch (err) {
         console.error('[GlobalLookupWindow] Error reading clipboard:', err);
       }
+    },
+    // The main window sends the text before it shows this window, so that the
+    // window never paints the previous lookup first; it answers once the field
+    // holds the new text.
+    async onLookupPrepare({ text, selection }) {
+      this._prepared = true;
+      try {
+        if (!selection) this.lastClipboardText = text;
+        await this.applyLookupText(selection || text, { selection: !!selection });
+        // The DOM holds the new term; no requestAnimationFrame, which a hidden
+        // webview may never run
+        await this.$nextTick();
+      } catch (err) {
+        console.error('[GlobalLookupWindow] Error preparing the lookup:', err);
+      }
+      await emitTo('main', 'lookup-ready').catch(() => {});
     },
     setMode(newMode) {
       const next = switchMode(
@@ -367,8 +397,10 @@ export default {
       this.refreshFromSettings();
       // Read the clipboard at once so the copied word appears without waiting
       // for the term list, which can take hundreds of ms with many packs; the
-      // list re-filters when the refresh lands.
-      this.readClipboardAndSetSearch();
+      // list re-filters when the refresh lands. Not when the main window
+      // already sent the text (lookup-prepare) for this showing.
+      if (this._prepared) this._prepared = false;
+      else this.readClipboardAndSetSearch();
       this.focusInput();
       this.loadAllTerms().catch((err) => {
         console.warn('[GlobalLookupWindow] Could not refresh allTerms on panel-shown:', err);
@@ -481,10 +513,9 @@ export default {
       // Emitted by show_lookup_panel on every hotkey press; more reliable than
       // focus events for an NSPanel
       this._unlistenPanelShown = await listen('panel-shown', () => this.onPanelShown());
-      // Sent by the main window just before it shows this one
-      this._unlistenSelection = await listen('lookup-selection', ({ payload }) => {
-        this._pendingSelection = payload;
-      });
+      // Sent by the main window just before it shows this one: the text to
+      // look up, read from the clipboard or selected there
+      this._unlistenPrepare = await listen('lookup-prepare', ({ payload }) => this.onLookupPrepare(payload));
 
       // Fallback when panel-shown does not come
       this._unlistenFocus = await getCurrentWindow().onFocusChanged(({ payload: focused }) => {
@@ -502,7 +533,7 @@ export default {
     document.removeEventListener('click', this.handleDefinitionClick);
     this.runFullTextSearchDebounced?.cancel();
     this._unlistenPanelShown?.();
-    this._unlistenSelection?.();
+    this._unlistenPrepare?.();
     this._unlistenFocus?.();
   },
 };
@@ -616,7 +647,13 @@ export default {
 
       <!-- Define: terms beside the selected term -->
       <template v-else>
-        <div v-if="!searchTerm" class="ql-state" data-testid="ql-empty">
+        <div v-if="!searchTerm && nothingToLookUp" class="ql-state" data-testid="ql-nothing">
+          <ui-icon name="clipboard-list" :size="28" class="ql-state__icon" />
+          <p class="ql-state__title">Nothing to look up in the clipboard.</p>
+          <p class="ql-state__text">Type a term above, in Tibetan or Wylie.</p>
+        </div>
+
+        <div v-else-if="!searchTerm" class="ql-state" data-testid="ql-empty">
           <ui-icon name="clipboard-list" :size="28" class="ql-state__icon" />
           <p class="ql-state__title">Copy Tibetan text anywhere, then press <kbd class="ql-kbd">{{ hotkeyLabel }}</kbd></p>
           <p class="ql-state__text">Or type it above, in Tibetan or Wylie.</p>
