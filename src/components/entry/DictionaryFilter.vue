@@ -113,7 +113,7 @@ export default {
         data-testid="entry-filter"
         @click="toggle"
       >
-        <ui-icon name="book-open" :size="15" class="dict-filter__icon" />
+        <ui-icon name="list-filter" :size="15" class="dict-filter__icon" />
         <span class="dict-filter__label">{{ current.text }} · {{ current.count }}</span>
         <ui-icon name="chevron-down" :size="15" class="dict-filter__chevron" />
       </button>
