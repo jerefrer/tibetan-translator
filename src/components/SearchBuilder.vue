@@ -1,15 +1,8 @@
 <script>
 import { UiCollapse, UiIcon } from '../ui';
 import MobileResponsiveMixin from './mixins/MobileResponsiveMixin';
+import { conditionsQuery, queryConditions } from '../services/query-conditions';
 import SearchBuilderRow from './SearchBuilderRow.vue';
-
-// Syntax definitions for each mode
-const MODE_SYNTAX = {
-  'contains': { prefix: '', suffix: '' },
-  'wylie': { prefix: '(', suffix: ')' },
-  'phonetic-strict': { prefix: '[', suffix: ']' },
-  'phonetic-loose': { prefix: '{', suffix: '}' }
-};
 
 // The query builder (board "B · Search, query builder open"): one row per
 // condition, kept in sync both ways with the query in the search field.
@@ -65,54 +58,12 @@ export default {
   },
   methods: {
     parseQueryToRows(query) {
-      if (!query || !query.trim()) {
-        this.rows = [{ term: '', mode: 'contains' }];
-        return;
-      }
-
-      // Split by & and parse each term
-      const terms = query.split('&').map(t => t.trim()).filter(t => t);
-
-      if (terms.length === 0) {
-        this.rows = [{ term: '', mode: 'contains' }];
-        return;
-      }
-
-      this.rows = terms.map(term => this.parseTermToRow(term));
-    },
-
-    parseTermToRow(term) {
-      // Check for phonetic strict: [term]
-      const strictMatch = term.match(/^\[(.+)\]$/);
-      if (strictMatch) {
-        return { term: strictMatch[1], mode: 'phonetic-strict' };
-      }
-
-      // Check for phonetic loose: {term}
-      const looseMatch = term.match(/^\{(.+)\}$/);
-      if (looseMatch) {
-        return { term: looseMatch[1], mode: 'phonetic-loose' };
-      }
-
-      // Check for wylie: (term)
-      const wylieMatch = term.match(/^\((.+)\)$/);
-      if (wylieMatch) {
-        return { term: wylieMatch[1], mode: 'wylie' };
-      }
-
-      // Default: regular contains
-      return { term: term, mode: 'contains' };
+      const conditions = queryConditions(query);
+      this.rows = conditions.length ? conditions : [{ term: '', mode: 'contains' }];
     },
 
     rowsToQuery() {
-      const parts = this.rows
-        .filter(row => row.term && row.term.trim())
-        .map(row => {
-          const syntax = MODE_SYNTAX[row.mode];
-          return syntax.prefix + row.term.trim() + syntax.suffix;
-        });
-
-      return parts.join(' & ');
+      return conditionsQuery(this.rows);
     },
 
     addRow() {

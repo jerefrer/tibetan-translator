@@ -1,5 +1,6 @@
 <script>
 import { UiIcon, UiSelect } from '../ui';
+import { MATCH_MODES } from '../services/query-conditions';
 
 // One condition of the query builder: how to match (the mode) and what.
 // Board "B · Search, query builder open": one box holds the mode as a chip,
@@ -27,22 +28,12 @@ export default {
   emits: ['update:term', 'update:mode', 'remove', 'submit'],
   data() {
     return {
-      modes: [
-        { value: 'contains', label: 'contains' },
-        { value: 'wylie', label: 'Wylie' },
-        { value: 'phonetic-strict', label: 'sounds like' },
-        { value: 'phonetic-loose', label: 'sounds roughly like' }
-      ]
+      modes: MATCH_MODES.map(({ value, label }) => ({ value, label }))
     };
   },
   computed: {
     hint() {
-      switch (this.mode) {
-        case 'wylie': return 'Wylie, read as Tibetan';
-        case 'phonetic-strict': return 'A Tibetan word pronounced like this, however it is spelled';
-        case 'phonetic-loose': return 'A Tibetan word that sounds more or less like this';
-        default: return 'Anywhere in a definition';
-      }
+      return (MATCH_MODES.find((mode) => mode.value === this.mode) || MATCH_MODES[0]).hint;
     },
     inputPlaceholder() {
       switch (this.mode) {
