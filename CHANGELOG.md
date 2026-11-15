@@ -5,6 +5,42 @@ All notable changes to Tibetan Translator are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0](https://github.com/jerefrer/tibetan-translator/compare/v1.12.0...v2.0.0) - 2026-11-15
+
+A new design for the whole app. Your dictionaries, their order, your glossaries and your settings are all kept.
+
+### Changed
+- A new look throughout, with a sidebar on desktop in place of the tabs
+- Split is now Reader, opened with Cmd/Ctrl+E (it was Cmd/Ctrl+T)
+- My glossary and Dictionaries have their own pages on desktop, out of Settings
+- The dictionaries of an entry are picked from a searchable filter instead of tabs
+- Larger search fields, and Tibetan typed in Search shown in the Tibetan font, as in Define
+- A query builder that reads each condition as a short sentence, and slides open and closed
+- Recent searches easier to read, the most recent first, each removable on its own
+- Glossaries are picked from the page's title, and a spreadsheet can be dropped on My glossary to import it
+- Tibetan written in gold in the dark theme
+- Wider results and query builder on large screens
+
+### Added
+- Back and Forward through the places you visited: the arrows at the top of the sidebar, Cmd/Ctrl+[ and ], the mouse's side buttons, and Android's Back
+- Recent terms, and a Saved page to keep the terms you want, list them newest first or in Tibetan order, and copy them
+- Cmd/Ctrl+1, 2 and 3 to switch between Define, Search and Reader, and Cmd/Ctrl+K to put the cursor in the field
+- One help for the whole app, searchable, opened on the topic of the screen you are on with F1 or Cmd/Ctrl+/
+- Searching the definitions of a single dictionary, from Dictionaries ("Search its definitions")
+- Dividers between the list and the entry that can be dragged to any width, in Define, Search and Reader
+- Saved terms and glossaries listed in Tibetan order
+- Expressions in Reader that are easier to click and show their words
+- Terms and searches to try on empty pages
+- Send feedback, in Settings
+- Downloads of packs, scans and recordings that can be cancelled, and scans that download five times faster
+
+### Fixed
+- Tibetan typed in Define and in the glossary shown whole on Windows, Android and in Chrome, no longer cut at the top
+- Tibetan in result glosses no longer cut off or spilling over
+- Names of custom dictionaries always shown as text
+- On a phone, a term followed from Reader opens its entry
+- Android's Back closes an open dictionary
+
 ## [1.12.0](https://github.com/jerefrer/tibetan-translator/compare/v1.11.3...v1.12.0) - 2026-10-22
 
 ### Added
