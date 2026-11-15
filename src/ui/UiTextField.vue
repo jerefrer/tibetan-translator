@@ -169,16 +169,19 @@ export default {
 .ui-field__input::placeholder { color: var(--muted); }
 .ui-field--multiline .ui-field__control { align-items: flex-start; padding-top: var(--space-3); padding-bottom: var(--space-3); }
 .ui-field--multiline .ui-field__input { resize: vertical; line-height: 1.5; }
+/* Chromium (Windows, Android, Chrome) clips a field's text to its line: at
+   1.5 a stack under a vowel sign (སྙི) lost its top. The font's own line
+   (normal, about 1.87em for DDC Uchen) holds every stack; the same height
+   while the placeholder shows keeps the field from growing at the first key */
 .ui-field--tibetan .ui-field__input {
   font-family: var(--font-tibetan);
   font-size: var(--text-tibetan-lg);
-  line-height: 1.5;
-  padding-top: 0.3rem;
+  line-height: normal;
+  min-height: calc(var(--text-tibetan-lg) * 1.87);
 }
 /* While the placeholder shows, look exactly like an ordinary field (Search) */
 .ui-field--tibetan .ui-field__input:placeholder-shown {
   font: var(--text-md) var(--font-ui);
-  padding-top: 0;
 }
 .ui-field--lg .ui-field__control {
   min-height: 3.25rem;
@@ -190,6 +193,7 @@ export default {
 }
 .ui-field--lg.ui-field--tibetan .ui-field__input {
   font-size: var(--text-tibetan-xl);
+  min-height: calc(var(--text-tibetan-xl) * 1.87);
 }
 .ui-field__clear {
   position: relative;
