@@ -78,3 +78,32 @@ describe('LookupHome — saved terms', () => {
   })
 })
 
+
+describe('LookupHome — Try', () => {
+  const TRY = ['སངས་རྒྱས་', 'བྱང་ཆུབ་སེམས་', 'སྟོང་པ་ཉིད་', 'སྙིང་རྗེ་']
+
+  it('should offer four terms to try when there are no recent or saved terms', async () => {
+    clearHistory()
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
+    wrapper = mount(LookupHome)
+    await flushPromises()
+    const rows = wrapper.findAll('[data-testid="lookup-try"] [data-testid="lookup-home-term"]')
+    expect(rows.map((row) => row.find('.lookup-home__term').text())).toEqual(TRY)
+  })
+
+  it('should open the term when a Try row is clicked', async () => {
+    clearHistory()
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
+    wrapper = mount(LookupHome)
+    await flushPromises()
+    await wrapper.findAll('[data-testid="lookup-try"] button')[1].trigger('click')
+    expect(wrapper.emitted('open')[0]).toEqual([TRY[1]])
+  })
+
+  it('should hide Try when there is a recent term', async () => {
+    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
+    wrapper = mount(LookupHome)
+    await flushPromises()
+    expect(wrapper.find('[data-testid="lookup-try"]').exists()).toBe(false)
+  })
+})

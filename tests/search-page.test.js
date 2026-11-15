@@ -290,6 +290,21 @@ describe('Search — the entry of a result', () => {
     expect(wrapper.find('[data-testid="search-pick"]').exists()).toBe(false)
   })
 
+  it('should show five examples to try when there is no query', async () => {
+    await mountAt('/search')
+    expect(wrapper.find('[data-testid="search-home"]').exists()).toBe(true)
+    expect(wrapper.findAll('[data-testid="search-home-example"]')).toHaveLength(5)
+  })
+
+  it('should search an example when its row is clicked', async () => {
+    await mountAt('/search')
+    await wrapper.findAll('[data-testid="search-home-example"]')[2].trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.path).toBe('/search')
+    expect(router.currentRoute.value.query).toEqual({ q: 'seven & limbs' })
+    expect(wrapper.find('[data-testid="search-home"]').exists()).toBe(false)
+  })
+
   it('should not ask to choose a term before any search', async () => {
     await mountAt('/search')
     expect(wrapper.find('[data-testid="search-pick"]').exists()).toBe(false)

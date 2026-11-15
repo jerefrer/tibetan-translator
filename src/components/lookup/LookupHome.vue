@@ -6,12 +6,14 @@ import { savedTerms } from '../../services/saved-terms';
 
 const RECENT_ROWS = 8;
 const SAVED_ROWS = 8;
+// Offered while nothing was looked up yet, glossed like the recent terms
+const TRY_TERMS = ['སངས་རྒྱས་', 'བྱང་ཆུབ་སེམས་', 'སྟོང་པ་ཉིད་', 'སྙིང་རྗེ་'];
 
 // What Define shows before anything is looked up (boards MobileHome and
 // Main): the recent terms (with Clear), the newest saved ones (with See all,
-// the Saved page), each with a one-line gloss, and the Wylie tip. On a phone
-// under the field when it is empty; on a desktop in the entry pane while no
-// term is selected.
+// the Saved page), each with a one-line gloss, and the Wylie tip. With
+// neither, four terms to Try. On a phone under the field when it is empty; on
+// a desktop in the entry pane while no term is selected.
 export default {
   name: 'LookupHome',
   props: {
@@ -26,6 +28,7 @@ export default {
       savedCount: 0,
       // term -> gloss ('' when no enabled dictionary has one)
       glosses: {},
+      tryTerms: TRY_TERMS,
     };
   },
   created() {
@@ -63,7 +66,7 @@ export default {
       this.loadMissingGlosses();
     },
     async loadMissingGlosses() {
-      const missing = [...this.recent, ...this.saved].filter((term) => !(term in this.glosses));
+      const missing = [...this.recent, ...this.saved, ...TRY_TERMS].filter((term) => !(term in this.glosses));
       if (!missing.length) return;
       const run = this._glossRun;
       try {
@@ -108,6 +111,20 @@ export default {
       </div>
       <ul class="lookup-home__group" data-testid="lookup-saved">
         <li v-for="term in saved" :key="term">
+          <button type="button" class="lookup-home__row" data-testid="lookup-home-term" @click="$emit('open', term)">
+            <span class="lookup-home__term">{{ term }}</span>
+            <span class="lookup-home__gloss"><template v-for="(run, index) in tibetanRuns(glosses[term])" :key="index"><span v-if="run.tibetan" class="lookup-home__gloss-tibetan">{{ run.text }}</span><template v-else>{{ run.text }}</template></template></span>
+          </button>
+        </li>
+      </ul>
+    </section>
+
+    <section v-if="!recent.length && !saved.length" class="lookup-home__section" aria-labelledby="lookup-home-try">
+      <div class="lookup-home__head">
+        <h2 id="lookup-home-try" class="lookup-home__label">Try</h2>
+      </div>
+      <ul class="lookup-home__group" data-testid="lookup-try">
+        <li v-for="term in tryTerms" :key="term">
           <button type="button" class="lookup-home__row" data-testid="lookup-home-term" @click="$emit('open', term)">
             <span class="lookup-home__term">{{ term }}</span>
             <span class="lookup-home__gloss"><template v-for="(run, index) in tibetanRuns(glosses[term])" :key="index"><span v-if="run.tibetan" class="lookup-home__gloss-tibetan">{{ run.text }}</span><template v-else>{{ run.text }}</template></template></span>

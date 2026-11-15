@@ -18,6 +18,7 @@ import TermEntry from '../entry/TermEntry.vue';
 import DefinitionResults from '../lookup/DefinitionResults.vue';
 import HelpButton from '../help/HelpButton.vue';
 import SearchField from './SearchField.vue';
+import SearchHome from './SearchHome.vue';
 
 // Search: the definitions searched for a query, and the entry of the term
 // chosen among the results, opened here rather than in Define so the results
@@ -31,6 +32,9 @@ import SearchField from './SearchField.vue';
 // The query runs on Enter or after a pause. A query that is a Tibetan term
 // offers to look it up in Define; nothing is converted from one page to the
 // other.
+//
+// Without a query, SearchHome (what a query can say, to try) shows in the
+// entry pane, or on a phone above the queries searched before.
 //
 // Layout: as Define (lookup-layout.css). Desktop: the results column with the
 // field on top, and the entry pane, the divider between them draggable. Phone:
@@ -50,6 +54,7 @@ export default {
     DefinitionResults,
     HelpButton,
     SearchField,
+    SearchHome,
     TermEntry,
     UiButton,
     UiIcon,
@@ -200,6 +205,10 @@ export default {
       storePreviousQuery(query);
       if (query !== this.query) this.$router.push({ path: '/search', query: this.routeQuery(query) });
     },
+    // An example of the home, run as the Help's are
+    trySearch(query) {
+      this.$router.push({ path: '/search', query: this.routeQuery(query) });
+    },
     // A query searched before, picked from the list
     searchPrevious(query) {
       this.text = query;
@@ -318,6 +327,7 @@ export default {
         </section>
       </div>
       <div class="lookup-page__list">
+        <search-home v-if="isMobile && !query" phone @search="trySearch" />
         <definition-results
           ref="results"
           :query="query"
@@ -350,6 +360,7 @@ export default {
             </button>
           </template>
         </term-entry>
+        <search-home v-else-if="!isMobile && !query" @search="trySearch" />
         <p v-else-if="!isMobile && query && definitionCount" class="search-page__pick" data-testid="search-pick">
           Choose a term to read its definitions here.
         </p>

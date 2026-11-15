@@ -178,9 +178,9 @@ describe('Define results — Tibetan', () => {
     )
     // Its only definition is in a dictionary turned off: no gloss
     expect(results()[1].find('[data-testid="lookup-result-gloss"]').text()).toBe('')
-    const [sql] = database.exec.mock.calls.find(([query]) => isGlossQuery(query))
+    // Define's home also reads glosses (the terms to Try): this is the results'
+    const [sql] = database.exec.mock.calls.find(([query]) => isGlossQuery(query) && query.includes(`'${KAKA}'`))
     expect(sql).toContain(`'${KA}'`)
-    expect(sql).toContain(`'${KAKA}'`)
   })
 
   it('should select the first match after a pause and record it in Recent', async () => {
