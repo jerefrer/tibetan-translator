@@ -94,7 +94,7 @@ export default {
 
 <template>
   <settings-group v-if="appVersion" id="settings-about" title="About" class="about-card" data-testid="about-card">
-    <settings-row :title="versionLine" :description="versionState">
+    <settings-row :title="versionLine" :description="versionState" icon="info">
       <ui-button v-if="updateReady" size="sm" data-testid="about-restart" @click="openNotes">
         <ui-icon name="rotate-cw" :size="15" />
         Restart to update
@@ -117,12 +117,14 @@ export default {
     </settings-row>
     <settings-row
       :title="updateReady ? 'What’s new in v' + updateVersion : 'What’s new'"
+      icon="sparkles"
       clickable
       data-testid="about-whats-new"
       @click="openNotes"
     />
     <settings-row
       title="Dictionary data"
+      icon="library"
       description="Collected and maintained by Christian Steinert (github.com/christiansteinert/tibetan-dictionary)"
       data-testid="about-credits"
     />

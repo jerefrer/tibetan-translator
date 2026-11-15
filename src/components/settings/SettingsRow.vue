@@ -4,7 +4,8 @@ import { UiIcon } from '../../ui';
 // One setting (boards DesktopSettings, MobileSettings): its name and a line
 // of explanation on the left, its control on the right (default slot).
 // `below` holds what goes under the text (a progress bar). `nested` indents
-// the row under the one it belongs to.
+// the row under the one it belongs to. `icon` (a Lucide name) sets a small
+// tinted tile before the title, which gives each setting a face.
 //
 // A row that leads somewhere (`clickable`) is a button with a chevron: its
 // default slot then holds a value ("1 of 4") and it emits `click`. With
@@ -20,6 +21,7 @@ export default {
     expanded: { type: Boolean, default: undefined },
     nested: { type: Boolean, default: false },
     tone: { type: String, default: '' },
+    icon: { type: String, default: '' },
   },
   emits: ['click'],
 };
@@ -34,6 +36,7 @@ export default {
     :aria-expanded="expanded === undefined ? undefined : String(expanded)"
     @click="$emit('click', $event)"
   >
+    <span v-if="icon" class="settings-row__icon" aria-hidden="true"><ui-icon :name="icon" :size="17" :stroke-width="2" /></span>
     <span class="settings-row__text">
       <span class="settings-row__title">{{ title }}</span>
       <span v-if="description" class="settings-row__description">{{ description }}</span>
@@ -48,6 +51,7 @@ export default {
     />
   </button>
   <div v-else class="settings-row" :class="[{ 'is-nested': nested }, tone && 'is-' + tone]">
+    <span v-if="icon" class="settings-row__icon" aria-hidden="true"><ui-icon :name="icon" :size="17" :stroke-width="2" /></span>
     <span class="settings-row__text">
       <span class="settings-row__title">{{ title }}</span>
       <span v-if="description" class="settings-row__description">{{ description }}</span>
@@ -79,7 +83,7 @@ export default {
   border-top: 0;
 }
 .settings-row.is-nested {
-  padding-left: var(--space-8);
+  padding-left: calc(var(--space-4) + 1.875rem + var(--space-4));
   background: color-mix(in srgb, var(--bg-quiet) 60%, var(--surface));
 }
 .settings-row.is-warning {
@@ -95,6 +99,22 @@ export default {
 .settings-row.is-clickable:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+/* Before the title: the setting's icon on a tile of its tone */
+.settings-row__icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.settings-row.is-warning .settings-row__icon {
+  background: var(--amber-bg);
+  color: var(--amber-ink);
 }
 .settings-row__text {
   flex: 1;
@@ -149,7 +169,7 @@ export default {
     font-weight: 400;
   }
   .settings-row.is-nested {
-    padding-left: var(--space-6);
+    padding-left: calc(var(--space-4) + 1.875rem + var(--space-3));
   }
 }
 </style>

@@ -53,10 +53,10 @@ export default {
 
 <template>
   <settings-group id="settings-general" title="General" class="appearance-card" data-testid="appearance-card">
-    <settings-row title="Theme">
+    <settings-row title="Theme" icon="sun-moon">
       <ui-segmented v-model="themePreference" :options="themeOptions" label="Theme" data-testid="theme" />
     </settings-row>
-    <settings-row title="Text size" description="Definitions, lists and the interface" class="appearance-card__size">
+    <settings-row title="Text size" icon="a-large-small" description="Definitions, lists and the interface" class="appearance-card__size">
       <ui-button
         v-if="fontSize !== defaultFontSize"
         variant="ghost"

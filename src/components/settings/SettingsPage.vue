@@ -167,10 +167,10 @@ export default {
         <h1 class="settings-page__title">Settings</h1>
 
         <settings-group v-if="isMobile" id="settings-collections" data-testid="settings-collections">
-          <settings-row title="My glossary" clickable data-testid="settings-row-glossary" @click="$router.push('/glossary')">
+          <settings-row title="My glossary" icon="notebook-pen" clickable data-testid="settings-row-glossary" @click="$router.push('/glossary')">
             {{ glossaryStatus }}
           </settings-row>
-          <settings-row title="Dictionaries" clickable data-testid="settings-row-dictionaries" @click="$router.push('/dictionaries')">
+          <settings-row title="Dictionaries" icon="book-open" clickable data-testid="settings-row-dictionaries" @click="$router.push('/dictionaries')">
             {{ dictionariesStatus }}
           </settings-row>
         </settings-group>
@@ -194,6 +194,7 @@ export default {
         <settings-group v-if="isMobile" id="settings-help" title="Help" data-testid="settings-help">
           <settings-row
             title="Help topics"
+            icon="circle-help"
             description="Typing Wylie, looking up, searching, reading, your glossary"
             clickable
             data-testid="settings-help-topics"

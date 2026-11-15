@@ -158,6 +158,7 @@ export default {
   <div v-if="dictionaries.length > 0" class="offline-set" data-testid="scanned-card">
     <settings-row
       title="Scanned dictionaries"
+      icon="book-image"
       :description="summary"
       clickable
       :expanded="open"

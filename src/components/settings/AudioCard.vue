@@ -137,6 +137,7 @@ export default {
   <div v-if="dictionaries.length > 0" class="offline-set" data-testid="audio-card">
     <settings-row
       title="Audio recordings"
+      icon="audio-lines"
       :description="summary"
       clickable
       :expanded="open"

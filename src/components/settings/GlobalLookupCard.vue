@@ -109,6 +109,7 @@ export default {
   >
     <settings-row
       title="Look up from any app"
+      icon="app-window"
       description="Copy Tibetan text anywhere, then press the shortcut to see its entry in a small window. In this app, selecting it is enough."
     >
       <ui-switch v-model="enabled" aria-label="Look up from any app" data-testid="global-lookup-switch" />
@@ -117,6 +118,7 @@ export default {
     <settings-row
       v-if="showPermissionWarning"
       title="macOS needs your permission"
+      icon="triangle-alert"
       description="Allow Tibetan Translator in Privacy & Security › Accessibility, or the shortcut cannot read the copied text."
       tone="warning"
       data-testid="accessibility-warning"
@@ -127,7 +129,7 @@ export default {
       </ui-button>
     </settings-row>
 
-    <settings-row title="Shortcut" class="global-lookup-card__hotkey" :class="{ 'is-disabled': !enabled }">
+    <settings-row title="Shortcut" icon="keyboard" class="global-lookup-card__hotkey" :class="{ 'is-disabled': !enabled }">
       <ui-text-field
         ref="hotkeyField"
         :model-value="fieldValue"
