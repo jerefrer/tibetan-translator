@@ -1,117 +1,82 @@
-# TibetanTranslator
+<p align="center">
+  <img src="docs/images/icon.png" width="128" height="128" alt="Tibetan Translator icon">
+</p>
 
-An attempt at providing access to the best Tibetan dictionaries in a pleasant
-interface for all devices.
+<h1 align="center">Tibetan Translator</h1>
+
+<p align="center"><i>The best Tibetan dictionaries, in a pleasant interface for all devices.</i></p>
+
+<p align="center">
+  Look up a Tibetan term, in Unicode or Wylie, across more than 60 dictionaries at once.<br>
+  Works offline.
+</p>
+
+<p align="center">
+  <a href="https://github.com/jerefrer/tibetan-translator/releases/latest"><b>Download</b></a>
+  ·
+  <a href="https://jerefrer.github.io/tibetan-translator/">Website</a>
+  ·
+  <a href="CHANGELOG.md">Release notes</a>
+  ·
+  macOS · Windows · Linux · iOS · Android
+</p>
+
+<p align="center">
+  <img src="docs/images/screenshot.png" alt="The Define page showing the entry for སངས་རྒྱས་ with its matching terms on the left and a short summary and the definitions from several dictionaries on the right">
+</p>
 
 ## Features
 
-* Unicode Tibetan display
-* Wylie support
-* Two modes of phonetic search: strict (`[chomdende]`) and loose (`{jomtenté}`)
-* Assisted sentence splitting
-* Queries can be refined using `&` (and) operator
-* Dictionaries filtering
-* Keyboard shortcuts
-* Works offline
+- **60+ dictionaries** in one place, shown together on a single entry.
+- **Unicode Tibetan display** and **Wylie** support.
+- **Two modes of phonetic search**: strict (`[chomdende]`) and loose (`{jomtenté}`).
+- **Assisted sentence splitting**.
+- **Refined queries** with the `&` (and) operator.
+- **Dictionary filtering**, and optional downloadable dictionary packs (Tibetan monolingual, Sanskrit academic) on top of the core one.
+- **A searchable catalog of dictionaries** by name, subject or language, with suggestions of ones you have not installed yet.
+- **Your own glossaries**: create dictionaries and entries, import and export them as spreadsheets or `.tibdict` files.
+- **Quick lookup** hotkey: pops up the definition of the Tibetan term on your clipboard.
+- **Keyboard shortcuts** for every page.
+- **Works offline**.
 
-## TODO
+## Install
 
-### Quick fixes
+Get the installer for your system from the
+[latest release](https://github.com/jerefrer/tibetan-translator/releases/latest):
+macOS, Windows (`.exe`, `.msi`) or Linux (`.deb`, `.AppImage`). The desktop app
+updates itself.
 
-* Fix highlighting + linking bugs:
-  * Search "[sang gye] & tibet" to see the problem:
-    <span class="<em>tibet</em>an"><span class="<em>tibet</em>an"><a href="#/define/གཏེར་སྟོན་">གཏེར་སྟོན་</a></span></span>
-* Fix the double performSearch on SearchPage
-* Find an elegant way to explain that the SQL query returned too much results
-  * "Too much results, please narrow down your query."
-* Add last definitions on DefinePage when empty
-* Add substitution of Illuminator verbs in TranslatePage autocompletes
-* Prevents things like ཚངས་སྤྱོད་འདི་ལ་ལེགས་སྤྱད་ཅིང་། /ལམ་ལའང་ལེགས་པར་བསྒོམས་པ་ནི།།
-  with the / not being processed
-* Take spaces in consideration for PhoneticSearch:
-  * [ang gye] should match སངས་རྒྱས་
-  * [ ang gye] should not
-* Consider having the scrollbar start after the top bars
-* Add limiting the query to either the term or the definition
-  * by adding "TERM:" or "DEF[INITION]:" in front?
-* Understand why:
-  CSS `grid-template-columns: repeat(auto-fill, minmax( min(360px, 100%), 1fr ));`
-  When put in a `<style lang="stylus">` will yield
-  `grid-template-columns: repeat(auto-fill, minmax(100%, 1fr ));`
-  (see `ResultsAndPaginationAndDictionaries.vue`)
-* Have pu'o be matched on TranslatePage:
-  `དངོས་གཞི་ལས་ཀྱི་བྱང་བུའོ༔`
+Builds for iOS and Android exist as well; there is no public web version.
 
-### More complex
+## Development
 
-* Maybe compress the DB to take much less space ?
-  https://github.com/phiresky/sqlite-zstd
-  Or try to get rid of the regular entries table to have only a fts5 table?
-  What is actually the benefit of having the regular table?
-* Have another column in the DB for loose phonetics with merged syllables
-  to search against so that `sangye` will match even if we don't put two `p`s.
-  => Already tried and almost working in `phoneticSearchWithMergedSyllables`
-     branch but remains the question of what to do with the syllables splitting.
-     `sangye` searches for `san gye` so either we don't split syllables at all
-     or we have merged syllables support. Is there a way to have both?
-* Refactor getAbbreviations
-* [C,MV] is not matched as two abbreviations, only C:
-  * Hopkins 1992 for ཀུན་འབྱུང་གི་བདེན་པ་
-* When using the prev/next navigation, continue showing the loader until the
-  results shown are for the term actually chosen. If possible just abort other
-  requests as we change the page, otherwise just show the loader until the
-  right one has finished.
-* If we can't find a result using square brackets, after showing no results
-  try using curly brackets and if there are matches show a message saying we
-  found N matches with curly matches, hit ENTER again to show them.
-* Have a popup appear with the definitions when we highlight some Tibetan
-* When doing a loose phonetic search, if there are results that would also
-  match a strict phonetic search, show them first.
-* Find a way to match ལྟ་བ་ཡིས། when looking for ལྟ་བ་ཡིས་
-* Make `npm run build:database` multi-threaded to speed up the process
-* Find a way to prevent the freezes when having a lot of Tibetan in a search:
-  * {selwar} & vivid => yields a lot of Negi results, therefore much time spent
-    trying to find matches for the phonetic {selwar}.
-    * Maybe make the highlighting asynchronous and entry by entry so that the first
-      one will show up immediately and by the time the user starts scrolling the
-      others are ready.
-* Consider treating "nyi" as "ni" (yi > i) in loose phonetic search
-* Consider being able to use wildcards (%)
-  * For instance I needed to find something that starts with དབྱིངས་ and ends
-    with ཡེ་ཤེས་, but doing དབྱིངས་ & ཡེ་ཤེས་ yields too much results, including
-    ཡེ་ཤེས་དབྱིངས་ which is the inverse of what I'm looking for.
-* Scroll 0 when changing step in the tutorial
-* Fix size of Tibetan in tutorial last step alert info
-* Maybe reverse to Roboto mixed with DDC_Uchen in TranslatePage autocomplete results
-* Add CTRL+Z feature on TranslatePage
-* Add support for 'ang and 'am in word splitting?
-  * Add both in `positionFor` and `everyCombinationsFor`
-  * Maybe increase by 1 the number of syllables of combinations for SearchPage?
+```sh
+pnpm install
+pnpm tauri:dev     # desktop app with hot reload
+pnpm dev           # Vite dev server only, on port 8080 (browser mode)
+pnpm test          # unit tests (Vitest)
+pnpm tauri:build   # native desktop build
+pnpm ios:dev       # iOS simulator
+pnpm android:dev   # Android
+```
 
-## Possible optimizations
-
-* Before trying to add `ra` or `'i`, check that it's an open vowel
-
-## To report on Christian Steinert's github
-
-* Two things to fix about the conversion of Negi:
-  * Everything that is "g}\.{y" should be just "g.y" (1351 occurences)
-  * Groups like this one should only be one single chunk:
-    {mos dang nga rgyal dga' dang dor/} /{lhur len dbang bsgyur stobs kyis ni/} /{brtson 'grus spel phyir 'bad par bya//}
-* Other dictionaries fixes:
-  * ac06315
-  * The two commits later
+See [CLAUDE.md](CLAUDE.md) for the architecture and the release process, and
+[docs/TODO.md](docs/TODO.md) for the list of known issues and ideas.
 
 ## Credits
 
 Infinite gratitude ...
-* to my teachers for revealing what is possible
-* to the people behind all these incredible dictionaries
-* to [Christian Steinert](https://github.com/christiansteinert/tibetan-dictionary),
+- to my teachers for revealing what is possible
+- to the people behind all these incredible dictionaries
+- to [Christian Steinert](https://github.com/christiansteinert/tibetan-dictionary),
   who collected, converted and maintains the dictionary data this app is built
   on: without his years of work, none of it would exist
-* to the people behind THL Dictionary and Tibthop for giving me the
+- to the people behind THL Dictionary and Tibthop for giving me the
   inspiration to start this project
-* and to the people behind Vue.js, Vuetify, Google Chrome, Material Design,
+- and to the people behind Vue.js, Vuetify, Google Chrome, Material Design,
   SQLite, DevDocs.io and all the other tools that make developing beautiful
   apps so easy and enjoyable.
+
+## License
+
+MIT, as declared in `package.json` and `src-tauri/Cargo.toml` (the repository has no separate LICENSE file).
