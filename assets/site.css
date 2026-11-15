@@ -1,0 +1,352 @@
+/* Tibetan Translator's site, in the app's own look: white surfaces, a blue
+   accent, Inter and Source Serif, and red kept for Tibetan alone */
+
+@font-face {
+  font-family: "DDC Uchen";
+  src: url("fonts/DDC_Uchen.woff") format("woff");
+  font-display: swap;
+}
+
+:root {
+  --bg: #ffffff;
+  --bg-quiet: #f7f7f6;
+  --ink: #141416;
+  --muted: #5f6368;
+  --line: #e7e7e5;
+  --accent: #1f5bb8;
+  --accent-dark: #174a97;
+  --accent-soft: #e8effa;
+  --rubric: #8e1b1b;
+
+  --font-ui: "Inter", system-ui, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-tibetan: "DDC Uchen", serif;
+
+  --page: 68rem;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 1rem/1.5 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+video {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+a {
+  color: var(--accent);
+}
+
+a:focus-visible,
+.button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+.tibetan {
+  font-family: var(--font-tibetan);
+  color: var(--rubric);
+}
+
+.wrap {
+  width: min(100% - 2 * var(--gutter), var(--page));
+  margin-inline: auto;
+}
+
+/* Top bar: the app's name, and the code */
+.bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-block: 1.25rem;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.brand img {
+  width: 28px;
+  height: 28px;
+}
+
+.bar a:not(.brand) {
+  font-size: 0.9375rem;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.bar a:not(.brand):hover {
+  color: var(--ink);
+}
+
+/* Opening: what the app is, and an entry as it shows one */
+.intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 5rem);
+  padding-block: clamp(2.5rem, 7vw, 5.5rem) clamp(2.5rem, 6vw, 4.5rem);
+}
+
+.intro h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2.25rem, 4.6vw, 3.5rem);
+  line-height: 1.05;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  text-wrap: balance;
+}
+
+.lead {
+  margin: 0 0 2rem;
+  max-width: 34rem;
+  font: 400 clamp(1.125rem, 1.6vw, 1.3125rem)/1.55 var(--font-serif);
+  color: #3c3f44;
+  text-wrap: pretty;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.85rem 1.35rem;
+  border-radius: 12px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  font-size: 1rem;
+  text-decoration: none;
+  transition: background-color 0.15s;
+}
+
+.button:hover {
+  background: var(--accent-dark);
+}
+
+.button svg {
+  flex: none;
+}
+
+.others {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.others li:first-child {
+  width: 100%;
+}
+
+.others a {
+  text-decoration: none;
+}
+
+.others a:hover {
+  text-decoration: underline;
+}
+
+/* The entry: a headword set large, its readings, then what it means */
+.entry {
+  margin: 0;
+  padding-left: clamp(0rem, 3vw, 2.5rem);
+  border-left: 1px solid var(--line);
+}
+
+.entry .headword {
+  display: block;
+  font-size: clamp(5rem, 11vw, 8.5rem);
+  line-height: 1.2;
+}
+
+.entry .readings {
+  /* Below the subjoined letters' tails, which hang under the line */
+  margin: 1rem 0 1.5rem;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.entry .gloss {
+  margin: 0;
+  padding: 1rem 1.25rem;
+  border-radius: 14px;
+  background: var(--bg-quiet);
+  font: 400 clamp(1.125rem, 1.7vw, 1.375rem)/1.45 var(--font-serif);
+}
+
+.entry figcaption {
+  margin-top: 0.85rem;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+/* The app itself */
+.shot {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(20, 20, 22, 0.04), 0 24px 60px -24px rgba(20, 20, 22, 0.22);
+  background: var(--bg);
+}
+
+.shot--hero {
+  /* .shot's margin reset would otherwise undo .wrap's centring */
+  margin: 0 auto clamp(4rem, 9vw, 7rem);
+}
+
+/* What it does: text and picture side by side, sides alternating */
+.features {
+  display: grid;
+  gap: clamp(4rem, 9vw, 7rem);
+  padding-bottom: clamp(4rem, 9vw, 7rem);
+}
+
+.feature {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: clamp(2rem, 5vw, 4.5rem);
+}
+
+.feature:nth-child(even) {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.8fr);
+}
+
+.feature:nth-child(even) .feature__text {
+  order: 2;
+}
+
+.feature h2 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.5rem, 2.4vw, 1.875rem);
+  line-height: 1.2;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  text-wrap: balance;
+}
+
+.feature p {
+  margin: 0;
+  max-width: 30rem;
+  font: 400 1.125rem/1.65 var(--font-serif);
+  color: #3c3f44;
+  text-wrap: pretty;
+}
+
+.feature code {
+  font: 500 0.95em var(--font-ui);
+  padding: 0.05em 0.35em;
+  border-radius: 6px;
+  background: var(--bg-quiet);
+  color: var(--ink);
+}
+
+kbd {
+  font: 600 0.8em var(--font-ui);
+  padding: 0.1em 0.4em;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+/* Closing: feedback, the code, the author */
+.end {
+  border-top: 1px solid var(--line);
+  background: var(--bg-quiet);
+}
+
+.end .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 2rem;
+  padding-block: 2.5rem;
+  font-size: 0.9375rem;
+  color: var(--muted);
+}
+
+.end p {
+  margin: 0;
+}
+
+.end nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+}
+
+.end nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.end nav a:hover {
+  text-decoration: underline;
+}
+
+.end nav img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+@media (max-width: 760px) {
+  .intro,
+  .feature,
+  .feature:nth-child(even) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .feature:nth-child(even) .feature__text {
+    order: 0;
+  }
+
+  .entry {
+    padding: 1.5rem 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button {
+    transition: none;
+  }
+}

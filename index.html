@@ -1,17 +1,9 @@
 <!doctype html>
-<!--
-	Solid State by HTML5 UP
-	html5up.net | @ajlkn
-	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
--->
 <html lang="en">
   <head>
-    <title>Tibetan Translator</title>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, user-scalable=no"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tibetan Translator</title>
     <meta name="description" content="The best Tibetan dictionaries in one pleasant app for Mac, Windows and Linux: more than 60 dictionaries, Wylie and phonetic search, and it works offline." />
     <link rel="canonical" href="https://jerefrer.github.io/tibetan-translator/" />
     <link rel="icon" href="images/app-icon.png" type="image/png" />
@@ -42,353 +34,195 @@
         "author": { "@type": "Person", "name": "Jérémy Frère", "alternateName": "Frère Jérémy", "url": "https://frerejeremy.me/" }
       }
     </script>
-    <link rel="stylesheet" href="assets/css/main.css" />
-    <link rel="stylesheet" href="assets/css/custom.css" />
-    <noscript>
-      <link rel="stylesheet" href="assets/css/noscript.css" />
-    </noscript>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap" />
+    <link rel="preload" href="assets/fonts/DDC_Uchen.woff" as="font" type="font/woff" crossorigin />
+    <link rel="stylesheet" href="assets/site.css" />
   </head>
-  <body class="is-preload">
-    <!-- Page Wrapper -->
-    <div id="page-wrapper">
-      <!-- Banner -->
-      <section id="banner">
-        <div class="inner">
-          <div class="logo">
-            <img src="images/app-icon.png" alt="Tibetan Translator logo" />
-          </div>
-          <h2>Tibetan Translator</h2>
-          <p>
-            The best Tibetan dictionaries in a pleasant interface for all
-            platforms.
+  <body>
+    <header class="wrap bar">
+      <a class="brand" href="./">
+        <img src="images/app-icon.png" alt="" width="28" height="28" />
+        Tibetan Translator
+      </a>
+      <a href="https://github.com/jerefrer/tibetan-translator">Source on GitHub</a>
+    </header>
+
+    <main>
+      <section class="wrap intro" aria-labelledby="title">
+        <div>
+          <h1 id="title">The best Tibetan dictionaries, in one place</h1>
+          <p class="lead">
+            Look up a Tibetan term, in Unicode or Wylie, across more than 60
+            dictionaries at once, read whole texts word by word, and keep it
+            all with you offline.
           </p>
-          <div class="download-buttons">
-            <a
-              class="download-button"
-              data-asset-pattern="x64-setup.exe"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_x64-setup.exe"
-              target="_blank"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="m3 5.557l7.357-1.002l.004 7.097l-7.354.042L3 5.557zm7.354 6.913l.006 7.103l-7.354-1.011v-6.14l7.348.048zm.892-8.046L21.001 3v8.562l-9.755.077V4.424zm9.758 8.113l-.003 8.523l-9.755-1.378l-.014-7.161l9.772.016z"
-                ></path>
-              </svg>
-              <div>
-                Windows
-                <span>.exe</span>
-              </div>
-            </a>
-            <a
-              class="download-button macos"
-              data-asset-pattern="aarch64.dmg"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_aarch64.dmg"
-              target="_blank"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="M19.665 16.811a10.316 10.316 0 0 1-1.021 1.837c-.537.767-.978 1.297-1.316 1.592c-.525.482-1.089.73-1.692.744c-.432 0-.954-.123-1.562-.373c-.61-.249-1.17-.371-1.683-.371c-.537 0-1.113.122-1.73.371c-.616.25-1.114.381-1.495.393c-.577.025-1.154-.229-1.729-.764c-.367-.32-.826-.87-1.377-1.648c-.59-.829-1.075-1.794-1.455-2.891c-.407-1.187-.611-2.335-.611-3.447c0-1.273.275-2.372.826-3.292a4.857 4.857 0 0 1 1.73-1.751a4.65 4.65 0 0 1 2.34-.662c.46 0 1.063.142 1.81.422s1.227.422 1.436.422c.158 0 .689-.167 1.593-.498c.853-.307 1.573-.434 2.163-.384c1.6.129 2.801.759 3.6 1.895c-1.43.867-2.137 2.08-2.123 3.637c.012 1.213.453 2.222 1.317 3.023a4.33 4.33 0 0 0 1.315.863c-.106.307-.218.6-.336.882zM15.998 2.38c0 .95-.348 1.838-1.039 2.659c-.836.976-1.846 1.541-2.941 1.452a2.955 2.955 0 0 1-.021-.36c0-.913.396-1.889 1.103-2.688c.352-.404.8-.741 1.343-1.009c.542-.264 1.054-.41 1.536-.435c.013.128.019.255.019.381z"
-                ></path>
-              </svg>
-              <div>
-                MacOS
-                <span>Silicon</span>
-              </div>
-            </a>
-            <a
-              class="download-button"
-              data-asset-pattern="amd64.deb"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_amd64.deb"
-              target="_blank"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="M14.62 8.35c-.42.28-1.75 1.04-1.95 1.19c-.39.31-.75.29-1.14-.01c-.2-.16-1.53-.92-1.95-1.19c-.48-.31-.45-.7.08-.92c1.64-.69 3.28-.64 4.91.03c.49.21.51.6.05.9m7.22 7.28c-.93-2.09-2.2-3.99-3.84-5.66a4.31 4.31 0 0 1-1.06-1.88c-.1-.33-.17-.67-.24-1.01c-.2-.88-.29-1.78-.7-2.61c-.73-1.58-2-2.4-3.84-2.47c-1.81.05-3.16.81-3.95 2.4c-.21.43-.36.88-.46 1.34c-.17.76-.32 1.55-.5 2.32c-.15.65-.45 1.21-.96 1.71c-1.61 1.57-2.9 3.37-3.88 5.35c-.14.29-.28.58-.37.88c-.19.66.29 1.12.99.96c.44-.09.88-.18 1.3-.31c.41-.15.57-.05.67.35c.65 2.15 2.07 3.66 4.24 4.5c4.12 1.56 8.93-.66 9.97-4.58c.07-.27.17-.37.47-.27c.46.14.93.24 1.4.35c.49.09.85-.16.92-.64c.03-.26-.06-.49-.16-.73"
-                />
-              </svg>
-              <div>
-                Linux
-                <span>.deb</span>
-              </div>
-            </a>
-            <a
-              class="download-button"
-              data-asset-pattern="x64_en-US.msi"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_x64_en-US.msi"
-              target="_blank"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="m3 5.557l7.357-1.002l.004 7.097l-7.354.042L3 5.557zm7.354 6.913l.006 7.103l-7.354-1.011v-6.14l7.348.048zm.892-8.046L21.001 3v8.562l-9.755.077V4.424zm9.758 8.113l-.003 8.523l-9.755-1.378l-.014-7.161l9.772.016z"
-                ></path>
-              </svg>
-              <div>
-                Windows
-                <span>.msi</span>
-              </div>
-            </a>
-            <a
-              class="download-button macos"
-              data-asset-pattern="x64.dmg"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_x64.dmg"
-              target="_blank"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="M19.665 16.811a10.316 10.316 0 0 1-1.021 1.837c-.537.767-.978 1.297-1.316 1.592c-.525.482-1.089.73-1.692.744c-.432 0-.954-.123-1.562-.373c-.61-.249-1.17-.371-1.683-.371c-.537 0-1.113.122-1.73.371c-.616.25-1.114.381-1.495.393c-.577.025-1.154-.229-1.729-.764c-.367-.32-.826-.87-1.377-1.648c-.59-.829-1.075-1.794-1.455-2.891c-.407-1.187-.611-2.335-.611-3.447c0-1.273.275-2.372.826-3.292a4.857 4.857 0 0 1 1.73-1.751a4.65 4.65 0 0 1 2.34-.662c.46 0 1.063.142 1.81.422s1.227.422 1.436.422c.158 0 .689-.167 1.593-.498c.853-.307 1.573-.434 2.163-.384c1.6.129 2.801.759 3.6 1.895c-1.43.867-2.137 2.08-2.123 3.637c.012 1.213.453 2.222 1.317 3.023a4.33 4.33 0 0 0 1.315.863c-.106.307-.218.6-.336.882zM15.998 2.38c0 .95-.348 1.838-1.039 2.659c-.836.976-1.846 1.541-2.941 1.452a2.955 2.955 0 0 1-.021-.36c0-.913.396-1.889 1.103-2.688c.352-.404.8-.741 1.343-1.009c.542-.264 1.054-.41 1.536-.435c.013.128.019.255.019.381z"
-                ></path>
-              </svg>
-              <div>
-                MacOS
-                <span>Intel</span>
-              </div>
-            </a>
-            <a
-              class="download-button"
-              data-asset-pattern="amd64.AppImage"
-              href="https://github.com/jerefrer/tibetan-translator/releases/download/app-v1.0.0/TibetanTranslator_1.0.0_amd64.AppImage"
-              target="_blank"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="32"
-                height="32"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="M14.62 8.35c-.42.28-1.75 1.04-1.95 1.19c-.39.31-.75.29-1.14-.01c-.2-.16-1.53-.92-1.95-1.19c-.48-.31-.45-.7.08-.92c1.64-.69 3.28-.64 4.91.03c.49.21.51.6.05.9m7.22 7.28c-.93-2.09-2.2-3.99-3.84-5.66a4.31 4.31 0 0 1-1.06-1.88c-.1-.33-.17-.67-.24-1.01c-.2-.88-.29-1.78-.7-2.61c-.73-1.58-2-2.4-3.84-2.47c-1.81.05-3.16.81-3.95 2.4c-.21.43-.36.88-.46 1.34c-.17.76-.32 1.55-.5 2.32c-.15.65-.45 1.21-.96 1.71c-1.61 1.57-2.9 3.37-3.88 5.35c-.14.29-.28.58-.37.88c-.19.66.29 1.12.99.96c.44-.09.88-.18 1.3-.31c.41-.15.57-.05.67.35c.65 2.15 2.07 3.66 4.24 4.5c4.12 1.56 8.93-.66 9.97-4.58c.07-.27.17-.37.47-.27c.46.14.93.24 1.4.35c.49.09.85-.16.92-.64c.03-.26-.06-.49-.16-.73"
-                />
-              </svg>
-              <div>
-                Linux
-                <span>.AppImage</span>
-              </div>
-            </a>
-          </div>
-        </div>
-      </section>
 
-      <!-- Wrapper -->
-      <section id="wrapper">
-        <!-- One -->
-        <section id="one" class="wrapper spotlight style1">
-          <div class="inner">
-            <div class="image">
-              <video
-                src="images/global-lookup-demo.mp4"
-                autoplay
-                loop
-                muted
-                playsinline
-                aria-label="Demo video showing the quick lookup popup feature in action"
-              ></video>
-            </div>
-            <div class="content">
-              <h2 class="major">Quick lookup</h2>
-              <p>
-                Copy any Tibetan text from anywhere on your computer, then press
-                a hotkey to instantly see dictionary results in a floating popup
-                window.
-              </p>
-            </div>
-          </div>
-        </section>
+          <a class="button" id="download" href="https://github.com/jerefrer/tibetan-translator/releases/latest">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            <span id="download-label">Download</span>
+          </a>
 
-        <!-- Two -->
-        <section id="two" class="wrapper alt spotlight style2">
-          <div class="inner">
-            <div class="image">
-              <img
-                src="images/phonetic-search.png"
-                alt="Search page: the phonetic query {nying je} lists the terms that sound like it, with the entry of སྙིང་རྗེ་ beside them"
-              />
-            </div>
-            <div class="content">
-              <h2 class="major">Phonetic search</h2>
-              <p>
-                Don't know exactly how to spell a Tibetan word? No problem, just
-                type
-                <em>how it sounds</em>
-                and immediately see all possible words, no matter their
-                spelling.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Three -->
-        <section id="three" class="wrapper spotlight style3">
-          <div class="inner">
-            <div class="image">
-              <img
-                src="images/refined-queries.png"
-                alt="The query builder combining a term that sounds like trenpa with definitions containing mindfulness, beside the entry of དྲན་པ་"
-              />
-            </div>
-            <div class="content">
-              <h2 class="major">Combine conditions</h2>
-              <p>
-                Too many results? Narrow them down by combining conditions with
-                the ampersand (&amp;), or build the query one condition at a
-                time in the query builder, each one read as a short sentence.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Reader -->
-        <section id="reader" class="wrapper alt spotlight style4">
-          <div class="inner">
-            <div class="image">
-              <img
-                src="images/reader.png"
-                alt="Reader: a Tibetan line split into words, longer expressions underlined, and the entry of the word chosen, ཆོས་, beside it"
-              />
-            </div>
-            <div class="content">
-              <h2 class="major">Read a whole text</h2>
-              <p>
-                Paste a Tibetan text and read it word by word: click any word
-                to see its entry beside it, and the longer expressions are
-                underlined so you can look them up too.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Four -->
-        <section id="four" class="wrapper spotlight style1">
-          <div class="inner">
-            <div class="image">
-              <img
-                src="images/offline-access.png"
-                alt="Settings, Offline content: scanned dictionaries and audio recordings, some on this device, the others ready to download"
-              />
-            </div>
-            <div class="content">
-              <h2 class="major">Works fully offline</h2>
-              <p>
-                Once downloaded, everything works without an internet
-                connection. Dictionary packs, scanned dictionaries, and audio
-                pronunciations are all stored locally on your device.
-              </p>
-            </div>
-          </div>
-        </section>
-
-        <!-- Five -->
-        <section id="five" class="wrapper alt spotlight style2">
-          <div class="inner">
-            <div class="image">
-              <img
-                src="images/dictionaries.png"
-                alt="Dictionaries page: every dictionary with its languages and subjects, its switch and its place in the order, and the selected one's details"
-              />
-            </div>
-            <div class="content">
-              <h2 class="major">Pick your dictionaries</h2>
-              <p>
-                More than 60 dictionaries. Find them by name, subject or
-                language, turn on the ones you want and drag them into the
-                order you prefer.
-              </p>
-            </div>
-          </div>
-        </section>
-      </section>
-
-      <!-- Footer -->
-      <section id="footer">
-        <div class="inner" style="justify-content: center">
-          <ul class="contact">
-            <li class="icon brands fa-github">
-              <a href="https://github.com/jerefrer/tibetan-translator">
-                github.com/jerefrer/tibetan-translator
-              </a>
-            </li>
-            <li class="with-image">
-              <img src="images/jeremy.png" alt="Jeremy Frere" />
-              <a href="https://frerejeremy.me/">
-                Discover other useful tools for Tibetan
-              </a>
-            </li>
+          <ul class="others" aria-label="Every download">
+            <li>Free, for every computer:</li>
+            <li><a data-asset-pattern="aarch64.dmg" href="https://github.com/jerefrer/tibetan-translator/releases/latest">macOS, Apple silicon</a></li>
+            <li><a data-asset-pattern="x64.dmg" href="https://github.com/jerefrer/tibetan-translator/releases/latest">macOS, Intel</a></li>
+            <li><a data-asset-pattern="x64-setup.exe" href="https://github.com/jerefrer/tibetan-translator/releases/latest">Windows</a></li>
+            <li><a data-asset-pattern="x64_en-US.msi" href="https://github.com/jerefrer/tibetan-translator/releases/latest">Windows, .msi</a></li>
+            <li><a data-asset-pattern="amd64.deb" href="https://github.com/jerefrer/tibetan-translator/releases/latest">Linux, .deb</a></li>
+            <li><a data-asset-pattern="amd64.AppImage" href="https://github.com/jerefrer/tibetan-translator/releases/latest">Linux, AppImage</a></li>
           </ul>
         </div>
+
+        <figure class="entry" aria-label="An entry as the app shows it">
+          <span class="headword tibetan" lang="bo">སྙིང་རྗེ་</span>
+          <p class="readings">snying rje · nyingjé · 45 definitions</p>
+          <p class="gloss">compassion · karuṇā · kāruṇya</p>
+          <figcaption>Every dictionary's definitions of a term, under a short summary.</figcaption>
+        </figure>
       </section>
-    </div>
 
-    <!-- Scripts -->
-    <script src="assets/js/jquery.min.js"></script>
-    <script src="assets/js/jquery.scrollex.min.js"></script>
-    <script src="assets/js/browser.min.js"></script>
-    <script src="assets/js/breakpoints.min.js"></script>
-    <script src="assets/js/util.js"></script>
-    <script src="assets/js/main.js"></script>
+      <figure class="wrap shot shot--hero">
+        <img
+          src="images/app.png"
+          width="2560"
+          height="1600"
+          alt="Tibetan Translator on the term སངས་རྒྱས་: the terms that start with it on the left, and its entry on the right, a short summary above the definitions of each dictionary"
+        />
+      </figure>
+
+      <div class="wrap features">
+        <section class="feature">
+          <div class="feature__text">
+            <h2>Quick lookup</h2>
+            <p>
+              Copy Tibetan anywhere on your computer and press a shortcut: its
+              definitions open in a small window, over whatever you are reading.
+            </p>
+          </div>
+          <figure class="shot">
+            <video src="images/global-lookup-demo.mp4" autoplay loop muted playsinline aria-label="The quick lookup window opening on Tibetan copied from a text"></video>
+          </figure>
+        </section>
+
+        <section class="feature">
+          <div class="feature__text">
+            <h2>Search by sound</h2>
+            <p>
+              Not sure how a word is spelled? Type how it sounds, like
+              <code>{nying je}</code>, and see every word that sounds like it,
+              however it is written.
+            </p>
+          </div>
+          <figure class="shot">
+            <img src="images/phonetic-search.png" width="1304" height="1120" alt="Search: the phonetic query {nying je} lists the terms that sound like it, with the entry of སྙིང་རྗེ་ beside them" />
+          </figure>
+        </section>
+
+        <section class="feature">
+          <div class="feature__text">
+            <h2>Combine conditions</h2>
+            <p>
+              Too many results? Narrow them down with <code>&amp;</code>, or
+              build the query one condition at a time, each one read as a short
+              sentence.
+            </p>
+          </div>
+          <figure class="shot">
+            <img src="images/refined-queries.png" width="1304" height="1120" alt="The query builder combining a term that sounds like trenpa with definitions containing mindfulness, beside the entry of དྲན་པ་" />
+          </figure>
+        </section>
+
+        <section class="feature">
+          <div class="feature__text">
+            <h2>Read a whole text</h2>
+            <p>
+              Paste a Tibetan text and read it word by word: click a word to see
+              its entry beside it. Longer expressions are underlined, so you can
+              look them up too.
+            </p>
+          </div>
+          <figure class="shot">
+            <img src="images/reader.png" width="1540" height="1040" alt="Reader: a Tibetan line split into words, longer expressions underlined, and the entry of the word chosen, ཆོས་, beside it" />
+          </figure>
+        </section>
+
+        <section class="feature">
+          <div class="feature__text">
+            <h2>Works fully offline</h2>
+            <p>
+              Once downloaded, everything works without a connection: the
+              dictionaries, the scanned dictionaries' pages and the recorded
+              pronunciations all stay on your device.
+            </p>
+          </div>
+          <figure class="shot">
+            <img src="images/offline-access.png" width="1510" height="1332" alt="Settings, Offline content: scanned dictionaries and audio recordings, some on this device, the others ready to download" />
+          </figure>
+        </section>
+
+        <section class="feature">
+          <div class="feature__text">
+            <h2>Pick your dictionaries</h2>
+            <p>
+              More than 60 dictionaries. Find them by name, subject or language,
+              turn on the ones you want and drag them into the order you prefer.
+            </p>
+          </div>
+          <figure class="shot">
+            <img src="images/dictionaries.png" width="1304" height="1120" alt="Dictionaries: every dictionary with its languages and subjects, its switch and its place in the order, and the selected one's details" />
+          </figure>
+        </section>
+      </div>
+    </main>
+
+    <footer class="end">
+      <div class="wrap">
+        <p>Something missing or not working? <a href="mailto:feedback@tibetantoolbox.org">feedback@tibetantoolbox.org</a></p>
+        <nav aria-label="More">
+          <a href="https://github.com/jerefrer/tibetan-translator">Source on GitHub</a>
+          <a href="https://frerejeremy.me/"><img src="images/jeremy.png" alt="" width="24" height="24" />Other tools for Tibetan</a>
+        </nav>
+      </div>
+    </footer>
+
     <script>
-      // Fetch releases and update download links to latest available for each platform
+      // Each download points to the newest release that has its file; the main
+      // button offers the visitor's own system
       (function () {
-        const GITHUB_API =
-          'https://api.github.com/repos/jerefrer/tibetan-translator/releases';
+        var links = document.querySelectorAll('[data-asset-pattern]');
+        var button = document.getElementById('download');
+        var label = document.getElementById('download-label');
+        var platform = (navigator.userAgentData && navigator.userAgentData.platform) || navigator.platform || '';
+        var agent = navigator.userAgent;
+        var mine = null;
+        if (/iPhone|iPad|Android/i.test(agent)) mine = null;
+        else if (/Mac/i.test(platform)) mine = { pattern: 'aarch64.dmg', text: 'Download for macOS' };
+        else if (/Win/i.test(platform)) mine = { pattern: 'x64-setup.exe', text: 'Download for Windows' };
+        else if (/Linux/i.test(platform)) mine = { pattern: 'amd64.AppImage', text: 'Download for Linux' };
+        if (mine) label.textContent = mine.text;
+        else label.textContent = 'See every download';
 
-        fetch(GITHUB_API)
-          .then((response) => response.json())
-          .then((releases) => {
+        fetch('https://api.github.com/repos/jerefrer/tibetan-translator/releases')
+          .then(function (response) { return response.json(); })
+          .then(function (releases) {
             if (!Array.isArray(releases)) return;
-
-            const buttons = document.querySelectorAll(
-              '.download-button[data-asset-pattern]',
-            );
-
-            buttons.forEach((button) => {
-              const pattern = button.getAttribute('data-asset-pattern');
-
-              // Find the first (most recent) release that has this asset
-              for (const release of releases) {
-                if (!release.assets) continue;
-                const asset = release.assets.find((a) =>
-                  a.name.endsWith(pattern),
-                );
-                if (asset) {
-                  button.href = asset.browser_download_url;
-                  break;
-                }
+            var urlFor = function (pattern) {
+              for (var i = 0; i < releases.length; i++) {
+                var asset = (releases[i].assets || []).find(function (a) { return a.name.endsWith(pattern); });
+                if (asset) return asset.browser_download_url;
               }
+              return null;
+            };
+            links.forEach(function (link) {
+              var url = urlFor(link.getAttribute('data-asset-pattern'));
+              if (url) link.href = url;
             });
+            var url = mine && urlFor(mine.pattern);
+            if (url) button.href = url;
           })
-          .catch((error) => {
-            console.log('Using fallback download links:', error);
-          });
+          .catch(function () {});
       })();
     </script>
   </body>
