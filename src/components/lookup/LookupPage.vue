@@ -8,6 +8,7 @@ import { recordTerm } from '../../services/history';
 import { TIBETAN_CHAR_RE, plural, termsStartingWith } from '../../services/quick-lookup';
 import { initialTypedWylie, nextTypedWylie, typedWylieFor } from '../../services/typed-wylie';
 import { readLookupState, writeLookupState } from '../../services/lookup-state';
+import { newLookPending } from '../../services/new-look';
 import { historyState, isEntryLocation } from '../../services/navigation-history';
 import { UiIcon, UiResizeHandle } from '../../ui';
 import MobileResponsiveMixin from '../mixins/MobileResponsiveMixin';
@@ -229,7 +230,9 @@ export default {
       if (index + step >= 0 && next) this.openTerm(next, { typed: true });
     },
     restoreIfEmpty(to) {
-      if (this.text) return;
+      // A returning user's first launch stays on the home, where A new look
+      // shows; the term comes back once the card is closed
+      if (this.text || newLookPending()) return;
       const { term } = readLookupState();
       if (term) this.$router.replace({ path: '/define/' + encodeURIComponent(term), query: to.query, hash: to.hash });
     },

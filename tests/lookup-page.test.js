@@ -67,6 +67,7 @@ beforeEach(() => {
   // Storage writes localStorage properties, which the setup's clear() keeps
   Storage.delete('lookupState')
   Storage.delete('searchBuilderVisible')
+  Storage.delete('newLook')
   // The entry of a selected term reads them (the app has them once loaded)
   Storage.set('dictionaries', [])
 })
@@ -144,6 +145,23 @@ describe('Define — remembering', () => {
     expect(input().element.value).toBe(KA)
   })
 
+
+  it('should stay on its home, where A new look shows, when the card was not seen yet', async () => {
+    // A user coming from 1.12: a last term remembered, the card still pending
+    Storage.set('lookupState', { term: KA, query: '' })
+    Storage.set('newLook', 'pending')
+    await mountAt('/define')
+    expect(router.currentRoute.value.path).toBe('/define')
+    expect(input().element.value).toBe('')
+    expect(wrapper.find('[data-testid="new-look"]').exists()).toBe(true)
+  })
+
+  it('should restore the last term again once the card was seen', async () => {
+    Storage.set('lookupState', { term: KA, query: '' })
+    Storage.set('newLook', 'seen')
+    await mountAt('/define')
+    expect(router.currentRoute.value.path).toBe('/define/' + encodeURIComponent(KA))
+  })
 
   it('should restore the last term when a bare old Define link is followed', async () => {
     Storage.set('lookupState', { term: KA, query: 'wisdom' })
