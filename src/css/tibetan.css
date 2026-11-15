@@ -12,6 +12,13 @@
   unicode-range: U+0F00-0FFF;
   size-adjust: 150%;
 }
+/* The same, smaller, for a field too low for the full size (the query builder) */
+@font-face {
+  font-family: "DDC_Uchen inline compact";
+  src: url("../../vendor/fonts/DDC_Uchen-webfont.ttf") format('truetype');
+  unicode-range: U+0F00-0FFF;
+  size-adjust: 125%;
+}
 
 .tibetan {
   font-family: DDC_Uchen;

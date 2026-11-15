@@ -96,7 +96,7 @@ pnpm check:tauri-versions  # Verify @tauri-apps/* npm vs Rust crate alignment
 src/
   components/          # Screens and app components (Options API with mixins); App.vue is the root
     lookup/            # Define (LookupPage): LookupField (Tibetan), results (headwords, and the definitions Search lists), hints, home, the layout both pages share
-    search/            # Search: SearchPage, SearchField (query builder behind Advanced)
+    search/            # Search: SearchPage, SearchField (the query builder behind its button)
     reader/            # Reader: editor, words with their expressions, word panel / sheet
     entry/             # TermEntry: one term's page (In short, dictionary tabs, definitions), shared by Define, Search and Reader
     dictionaries/      # DictionariesPage: packs, the dictionaries in lookup order (switches, reordering, undo), the selected one's detail

@@ -215,7 +215,8 @@ export default {
   // Its rows stack the match and the term when it is narrow (SearchBuilderRow)
   container-type inline-size
   padding 16px 22px 18px
-  background var(--surface)
+  // Set apart from the white of the page, its fields white on it
+  background var(--bg-quiet)
   border 1px solid var(--line)
   border-radius var(--radius-card)
   box-shadow var(--shadow-card)

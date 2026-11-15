@@ -1,6 +1,6 @@
 /**
  * SearchField: Search's plain field, with how the query was read under it and
- * the query builder behind Advanced.
+ * the query builder behind its button.
  */
 import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
@@ -72,20 +72,16 @@ describe('SearchField', () => {
     expect(wrapper.find('[data-testid="search-read-as"]').exists()).toBe(false)
   })
 
-  it('should toggle the query builder with Advanced', async () => {
+  it('should open the query builder with its button, which then gives way to the builder', async () => {
     mountField()
-    const advanced = wrapper.get('[data-testid="search-advanced"]')
-    expect(advanced.attributes('aria-expanded')).toBe('false')
+    const open = wrapper.get('[data-testid="search-advanced"]')
+    expect(open.text()).toBe('Query builder')
     expect(wrapper.find('[data-testid="search-builder"]').exists()).toBe(false)
 
-    await advanced.trigger('click')
+    await open.trigger('click')
     expect(wrapper.find('[data-testid="search-builder"]').exists()).toBe(true)
-    expect(advanced.attributes('aria-expanded')).toBe('true')
+    expect(wrapper.find('[data-testid="search-advanced"]').exists()).toBe(false)
     expect(Storage.get('searchBuilderVisible')).toBe(true)
-
-    await advanced.trigger('click')
-    expect(wrapper.find('[data-testid="search-builder"]').exists()).toBe(false)
-    expect(Storage.get('searchBuilderVisible')).toBe(false)
   })
 
   it('should open the query builder when it was left open', () => {
@@ -154,7 +150,7 @@ describe('SearchField', () => {
     mountField()
     await wrapper.get('[data-testid="search-builder-hide"]').trigger('click')
     expect(wrapper.find('[data-testid="search-builder"]').exists()).toBe(false)
-    expect(wrapper.get('[data-testid="search-advanced"]').attributes('aria-expanded')).toBe('false')
+    expect(wrapper.find('[data-testid="search-advanced"]').exists()).toBe(true)
     expect(Storage.get('searchBuilderVisible')).toBe(false)
   })
 })

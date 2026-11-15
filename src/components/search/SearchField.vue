@@ -40,9 +40,6 @@ export default {
     focus() {
       this.$refs.input?.focus();
     },
-    toggleBuilder() {
-      this.builderVisible = !this.builderVisible;
-    },
     // The field converts nothing, so a paste in a pre-Unicode Tibetan font is
     // repaired and every other paste is left to the browser
     async onPaste(event) {
@@ -94,17 +91,18 @@ export default {
       @clear="$emit('clear')"
     />
 
-    <div class="search-field__under">
+    <div v-if="readAs || !builderVisible" class="search-field__under">
       <span v-if="readAs" class="search-field__read-as" data-testid="search-read-as"><template v-for="(run, index) in tibetanRuns(readAs)" :key="index"><span v-if="run.tibetan" class="search-field__tibetan">{{ run.text }}</span><template v-else>{{ run.text }}</template></template></span>
+      <!-- Gives way to the builder, which has its own Hide -->
       <button
+        v-if="!builderVisible"
         type="button"
         class="search-field__advanced"
-        :aria-expanded="builderVisible ? 'true' : 'false'"
         data-testid="search-advanced"
-        @click="toggleBuilder"
+        @click="builderVisible = true"
       >
         <ui-icon name="sliders-horizontal" :size="15" :stroke-width="2" />
-        Advanced
+        Query builder
       </button>
     </div>
 

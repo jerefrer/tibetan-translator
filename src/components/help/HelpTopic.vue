@@ -99,7 +99,7 @@ export default {
       </table>
       <ul class="help-list">
         <li>Searching by sound, split the syllables if nothing comes up: <code>[chom den de]</code>. Syllables that run together need their consonant twice, or a space: <code>[sanggye]</code> or <code>[sang gye]</code>, not <code>[sangye]</code>.</li>
-        <li><strong>Advanced</strong>, under the field, writes these queries for you: one row per condition, and an entry must match them all.</li>
+        <li><strong>Query builder</strong>, under the field, writes these queries for you: one row per condition, and an entry must match them all.</li>
         <li>To search a single dictionary, select it in <button type="button" class="help-link" @click="$emit('go', '/dictionaries')">Dictionaries</button> and choose <strong>Search its definitions</strong>. Its name shows under the field until its <strong>×</strong> searches every dictionary again.</li>
         <li>When what you typed in Tibetan is a term, a button opens it in <strong>Define</strong>.</li>
       </ul>

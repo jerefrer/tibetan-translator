@@ -151,9 +151,11 @@ export default {
   outline 0
   background transparent
   color var(--ink)
-  // Tibetan falls through Source Serif to DDC Uchen, scaled to match
-  font-family 'Source Serif 4', 'DDC_Uchen inline'
+  // Tibetan falls through Source Serif to DDC Uchen, scaled to match. The
+  // compact face and the baseline lowered a little keep its vowels inside
+  font-family 'Source Serif 4', 'DDC_Uchen inline compact'
   font-size 1.125rem
+  padding-top 4px
 
   &::placeholder
     color var(--muted)
