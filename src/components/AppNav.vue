@@ -152,92 +152,97 @@ export default {
       </div>
     </div>
 
-    <div class="app-nav__items">
-      <template v-for="(item, index) in items" :key="item.id">
-      <span
-        v-if="!isMobile && index > 0 && item.group !== items[index - 1].group"
-        class="app-nav__separator"
-        role="separator"
-        data-testid="nav-separator"
-      />
-      <router-link
-        v-slot="{ href, navigate }"
-        :to="item.path"
-        custom
-      >
-        <a
-          :href="href"
-          class="app-nav__item"
-          :class="{ 'is-active': item.id === activeId }"
-          :aria-current="item.id === activeId ? 'page' : undefined"
-          :title="isMobile ? undefined : hint(item)"
-          :data-testid="'nav-' + item.id"
-          @click="navigate"
+    <!-- Desktop: only this middle scrolls, so a scrollbar never squeezes the
+         name and arrows above nor Help and Settings below. The phone's bar
+         lays its tabs out as if it were not there -->
+    <div class="app-nav__scroll">
+      <div class="app-nav__items">
+        <template v-for="(item, index) in items" :key="item.id">
+        <span
+          v-if="!isMobile && index > 0 && item.group !== items[index - 1].group"
+          class="app-nav__separator"
+          role="separator"
+          data-testid="nav-separator"
+        />
+        <router-link
+          v-slot="{ href, navigate }"
+          :to="item.path"
+          custom
         >
-          <span class="app-nav__icon">
-            <ui-icon :name="item.icon" :size="isMobile ? 24 : 18" />
-            <span
-              v-if="isMobile && item.id === 'settings' && updateReady"
-              class="app-nav__dot"
-              data-testid="nav-update-dot"
-            />
-          </span>
-          {{ item.label }}
-        </a>
-      </router-link>
+          <a
+            :href="href"
+            class="app-nav__item"
+            :class="{ 'is-active': item.id === activeId }"
+            :aria-current="item.id === activeId ? 'page' : undefined"
+            :title="isMobile ? undefined : hint(item)"
+            :data-testid="'nav-' + item.id"
+            @click="navigate"
+          >
+            <span class="app-nav__icon">
+              <ui-icon :name="item.icon" :size="isMobile ? 24 : 18" />
+              <span
+                v-if="isMobile && item.id === 'settings' && updateReady"
+                class="app-nav__dot"
+                data-testid="nav-update-dot"
+              />
+            </span>
+            {{ item.label }}
+          </a>
+        </router-link>
+        </template>
+      </div>
+
+      <template v-if="!isMobile">
+        <section v-if="recent.length" class="app-nav__section" data-testid="nav-recent">
+          <div class="app-nav__section-head">
+            <h2 class="app-nav__label">
+              <button type="button" class="app-nav__fold" :aria-expanded="folded.recent ? 'false' : 'true'" data-testid="nav-fold" @click="toggleFold('recent')">
+                <ui-icon name="chevron-right" :size="12" :stroke-width="2.6" class="app-nav__fold-icon" />
+                Recent
+              </button>
+            </h2>
+            <button type="button" class="app-nav__head-action" data-testid="nav-recent-clear" @click="clearRecent">Clear</button>
+          </div>
+          <template v-if="!folded.recent">
+            <div v-for="term in recent" :key="term" class="app-nav__term-row">
+              <router-link v-slot="{ href, navigate }" :to="termPath(term)" custom>
+                <a :href="href" class="app-nav__term" :class="{ 'is-current': term === currentTerm }" @click="navigate">{{ term }}</a>
+              </router-link>
+              <button type="button" class="app-nav__forget" :aria-label="'Forget ' + term" title="Forget" data-testid="nav-forget" @click="forgetRecent(term)">
+                <ui-icon name="x" :size="14" />
+              </button>
+            </div>
+          </template>
+        </section>
+
+        <section v-if="saved.length" class="app-nav__section" data-testid="nav-saved">
+          <div class="app-nav__section-head">
+            <h2 class="app-nav__label">
+              <button type="button" class="app-nav__fold" :aria-expanded="folded.saved ? 'false' : 'true'" data-testid="nav-fold" @click="toggleFold('saved')">
+                <ui-icon name="chevron-right" :size="12" :stroke-width="2.6" class="app-nav__fold-icon" />
+                Saved · {{ saved.length }}
+              </button>
+            </h2>
+            <router-link to="/saved" class="app-nav__head-action" data-testid="nav-saved-all">All</router-link>
+          </div>
+          <template v-if="!folded.saved">
+            <div v-for="term in saved.slice(0, sectionLimit)" :key="term" class="app-nav__term-row">
+              <router-link v-slot="{ href, navigate }" :to="termPath(term)" custom>
+                <a :href="href" class="app-nav__term" :class="{ 'is-current': term === currentTerm }" @click="navigate">{{ term }}</a>
+              </router-link>
+              <button type="button" class="app-nav__forget" :aria-label="'Remove ' + term + ' from Saved'" title="Remove from Saved" data-testid="nav-forget" @click="unsave(term)">
+                <ui-icon name="x" :size="14" />
+              </button>
+            </div>
+            <router-link v-if="saved.length > sectionLimit" to="/saved" class="app-nav__more">
+              {{ saved.length - sectionLimit }} more…
+            </router-link>
+          </template>
+        </section>
       </template>
     </div>
 
     <template v-if="!isMobile">
-      <section v-if="recent.length" class="app-nav__section" data-testid="nav-recent">
-        <div class="app-nav__section-head">
-          <h2 class="app-nav__label">
-            <button type="button" class="app-nav__fold" :aria-expanded="folded.recent ? 'false' : 'true'" data-testid="nav-fold" @click="toggleFold('recent')">
-              <ui-icon name="chevron-right" :size="12" :stroke-width="2.6" class="app-nav__fold-icon" />
-              Recent
-            </button>
-          </h2>
-          <button type="button" class="app-nav__head-action" data-testid="nav-recent-clear" @click="clearRecent">Clear</button>
-        </div>
-        <template v-if="!folded.recent">
-          <div v-for="term in recent" :key="term" class="app-nav__term-row">
-            <router-link v-slot="{ href, navigate }" :to="termPath(term)" custom>
-              <a :href="href" class="app-nav__term" :class="{ 'is-current': term === currentTerm }" @click="navigate">{{ term }}</a>
-            </router-link>
-            <button type="button" class="app-nav__forget" :aria-label="'Forget ' + term" title="Forget" data-testid="nav-forget" @click="forgetRecent(term)">
-              <ui-icon name="x" :size="14" />
-            </button>
-          </div>
-        </template>
-      </section>
-
-      <section v-if="saved.length" class="app-nav__section" data-testid="nav-saved">
-        <div class="app-nav__section-head">
-          <h2 class="app-nav__label">
-            <button type="button" class="app-nav__fold" :aria-expanded="folded.saved ? 'false' : 'true'" data-testid="nav-fold" @click="toggleFold('saved')">
-              <ui-icon name="chevron-right" :size="12" :stroke-width="2.6" class="app-nav__fold-icon" />
-              Saved · {{ saved.length }}
-            </button>
-          </h2>
-          <router-link to="/saved" class="app-nav__head-action" data-testid="nav-saved-all">All</router-link>
-        </div>
-        <template v-if="!folded.saved">
-          <div v-for="term in saved.slice(0, sectionLimit)" :key="term" class="app-nav__term-row">
-            <router-link v-slot="{ href, navigate }" :to="termPath(term)" custom>
-              <a :href="href" class="app-nav__term" :class="{ 'is-current': term === currentTerm }" @click="navigate">{{ term }}</a>
-            </router-link>
-            <button type="button" class="app-nav__forget" :aria-label="'Remove ' + term + ' from Saved'" title="Remove from Saved" data-testid="nav-forget" @click="unsave(term)">
-              <ui-icon name="x" :size="14" />
-            </button>
-          </div>
-          <router-link v-if="saved.length > sectionLimit" to="/saved" class="app-nav__more">
-            {{ saved.length - sectionLimit }} more…
-          </router-link>
-        </template>
-      </section>
-
-      <div class="app-nav__spacer" />
-
       <div class="app-nav__items">
         <button
           type="button"
@@ -325,7 +330,20 @@ export default {
   padding-top: calc(18px + var(--safe-top));
   background: var(--bg-quiet);
   border-right: 1px solid var(--line);
+}
+.app-nav__scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  /* The scrollbar at the sidebar's edge, focus rings not clipped */
+  margin: 0 -14px;
+  padding: 0 14px;
+}
+.app-nav--bar .app-nav__scroll {
+  display: contents;
 }
 .is-android .app-nav--sidebar {
   padding-top: calc(18px + 24px);
@@ -341,12 +359,15 @@ export default {
   height: 24px;
   flex: none;
 }
-/* In px, not rem: one line beside the arrows at any Text size */
+/* In px, not rem: one line beside the arrows at any Text size; cut short
+   rather than run into them */
 .app-nav__name {
   min-width: 0;
   font-size: 14px;
   font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   color: var(--ink);
 }
 .app-nav__history {
@@ -540,9 +561,6 @@ export default {
 .app-nav__term:hover,
 .app-nav__term.is-current {
   background: var(--soft);
-}
-.app-nav__spacer {
-  flex: 1;
 }
 
 /* Phone bottom bar: one equal column per tab, accent on the active one */
