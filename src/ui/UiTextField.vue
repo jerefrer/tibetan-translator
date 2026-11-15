@@ -8,6 +8,7 @@ let uid = 0;
 // Class, style and data-testid go on the wrapper; every other attribute
 // (placeholder, autocomplete, maxlength...) goes on the input itself.
 // `tibetan` switches the input to DDC Uchen at the search-field size.
+// `size="lg"` is a page's main field (Define, Search): taller, larger text.
 export default {
   name: 'UiTextField',
   components: { UiIcon, UiSpinner },
@@ -26,6 +27,7 @@ export default {
     multiline: { type: Boolean, default: false },
     rows: { type: Number, default: 3 },
     prependIcon: { type: String, default: '' },
+    size: { type: String, default: 'md' },
   },
   emits: ['update:modelValue', 'clear'],
   data() {
@@ -66,13 +68,13 @@ export default {
 <template>
   <div
     class="ui-field"
-    :class="[{ 'is-error': !!error, 'is-disabled': disabled, 'ui-field--tibetan': tibetan, 'ui-field--multiline': multiline }, wrapperAttrs.class]"
+    :class="[{ 'is-error': !!error, 'is-disabled': disabled, 'ui-field--tibetan': tibetan, 'ui-field--multiline': multiline, 'ui-field--lg': size === 'lg' }, wrapperAttrs.class]"
     :style="wrapperAttrs.style"
     :data-testid="wrapperAttrs['data-testid']"
   >
     <label v-if="label" class="ui-field__label" :for="id">{{ label }}</label>
     <div class="ui-field__control">
-      <ui-icon v-if="prependIcon" :name="prependIcon" :size="20" class="ui-field__prepend" />
+      <ui-icon v-if="prependIcon" :name="prependIcon" :size="size === 'lg' ? 22 : 20" class="ui-field__prepend" />
       <textarea
         v-if="multiline"
         :id="id"
@@ -177,6 +179,17 @@ export default {
 .ui-field--tibetan .ui-field__input:placeholder-shown {
   font: var(--text-md) var(--font-ui);
   padding-top: 0;
+}
+.ui-field--lg .ui-field__control {
+  min-height: 3.25rem;
+  padding-left: var(--space-5);
+}
+.ui-field--lg .ui-field__input,
+.ui-field--lg.ui-field--tibetan .ui-field__input:placeholder-shown {
+  font-size: var(--text-field-lg);
+}
+.ui-field--lg.ui-field--tibetan .ui-field__input {
+  font-size: var(--text-tibetan-xl);
 }
 .ui-field__clear {
   position: relative;

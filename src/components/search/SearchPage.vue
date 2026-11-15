@@ -410,7 +410,7 @@ export default {
 }
 .search-hint__tibetan {
   font-family: var(--font-tibetan);
-  font-size: 1.15em;
+  font-size: 1.4em;
   line-height: 1;
 }
 

@@ -41,6 +41,18 @@ afterEach(() => {
 })
 
 describe('SearchField', () => {
+  it('should show a query in Tibetan alone in the Tibetan colour', () => {
+    mountField({ modelValue: 'སངས་རྒྱས་' })
+    expect(wrapper.find('[data-testid="search-field"]').classes()).toContain('search-field__input--tibetan')
+  })
+
+  it('should leave a query with Latin in it in the ordinary colour', async () => {
+    mountField({ modelValue: 'སངས་རྒྱས་ buddha' })
+    expect(wrapper.find('[data-testid="search-field"]').classes()).not.toContain('search-field__input--tibetan')
+    await wrapper.setProps({ modelValue: '{chin kyi lob}' })
+    expect(wrapper.find('[data-testid="search-field"]').classes()).not.toContain('search-field__input--tibetan')
+  })
+
   it('should not convert what is typed', async () => {
     mountField()
     await input().setValue('sangs rgyas ')

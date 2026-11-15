@@ -23,6 +23,13 @@ export default {
       builderVisible: Storage.get('searchBuilderVisible') === true,
     };
   },
+  computed: {
+    // Tibetan and no Latin letter: shown in the Tibetan colour, as in Define
+    tibetanOnly() {
+      const query = this.modelValue || '';
+      return /[\u0F00-\u0FFF]/.test(query) && !/[A-Za-z]/.test(query);
+    },
+  },
   watch: {
     builderVisible(value) {
       Storage.set('searchBuilderVisible', value);
@@ -68,7 +75,9 @@ export default {
     <ui-text-field
       ref="input"
       :model-value="modelValue"
-      prepend-icon="text-search"
+      class="search-field__input"
+      :class="{ 'search-field__input--tibetan': tibetanOnly }"
+      size="lg"
       placeholder="Search the definitions"
       aria-label="Search the definitions"
       enterkeyhint="search"
@@ -113,6 +122,15 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+/* Tibetan typed or pasted reads at the size of Define's, Latin around it at
+   the field's own; a query in Tibetan alone is in the Tibetan colour */
+.search-field__input :deep(.ui-field__input) {
+  font-family: var(--font-ui-tibetan);
+}
+.search-field__input--tibetan :deep(.ui-field__input) {
+  color: var(--rubric);
 }
 
 .search-field__under {

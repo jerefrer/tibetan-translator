@@ -3,6 +3,16 @@
   src: url("../../vendor/fonts/DDC_Uchen-webfont.ttf") format('truetype');
 }
 
+/* DDC Uchen for the Tibetan in a line of Latin text (a Search query), scaled up
+   so it reads at the size of the Latin around it. Only Tibetan code points use
+   it: see --font-ui-tibetan */
+@font-face {
+  font-family: "DDC_Uchen inline";
+  src: url("../../vendor/fonts/DDC_Uchen-webfont.ttf") format('truetype');
+  unicode-range: U+0F00-0FFF;
+  size-adjust: 150%;
+}
+
 .tibetan {
   font-family: DDC_Uchen;
   font-size: 1.1875rem;

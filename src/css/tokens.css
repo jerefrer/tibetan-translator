@@ -82,6 +82,8 @@
 
   /* Fonts. DDC Uchen is declared in tibetan.css. */
   --font-ui: 'Inter', system-ui, sans-serif;
+  /* Inter, with Tibetan in a scaled DDC Uchen (tibetan.css) */
+  --font-ui-tibetan: 'DDC_Uchen inline', var(--font-ui);
   --font-serif: 'Source Serif 4', Georgia, serif;
   --font-tibetan: 'DDC_Uchen', serif;
 
@@ -94,12 +96,14 @@
   --text-base: 0.875rem;      /* 14px */
   --text-body: 0.9063rem;     /* 14.5px: dialog and card body */
   --text-md: 1rem;            /* 16px */
+  --text-field-lg: 1.125rem;  /* 18px: a page's main field (Define, Search) */
   --text-entry: 1.0938rem;    /* 17.5px: definitions (serif) */
   --text-title: 1.25rem;      /* 20px: dialog titles */
   --text-heading: 1.5rem;     /* 24px: page titles */
   --text-tibetan-sm: 1.375rem; /* 22px */
   --text-tibetan-md: 1.5rem;   /* 24px */
-  --text-tibetan-lg: 1.625rem; /* 26px: search field */
+  --text-tibetan-lg: 1.625rem; /* 26px */
+  --text-tibetan-xl: 1.875rem; /* 30px: Define's field */
   --text-large-title: 2rem;        /* 32px: phone screen titles, weight 700 */
   --text-headword-xl: 3.25rem;     /* 52px: desktop entry */
   --text-headword-lg: 2.5rem;      /* 40px: phone entry, Reader panel */

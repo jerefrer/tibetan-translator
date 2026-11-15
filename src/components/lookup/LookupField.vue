@@ -30,7 +30,7 @@ export default {
       ref="input"
       :model-value="modelValue"
       class="lookup-field__input"
-      prepend-icon="search"
+      size="lg"
       placeholder="Type Tibetan or Wylie"
       aria-label="Term to look up"
       enterkeyhint="search"
@@ -58,11 +58,6 @@ export default {
 
 .lookup-field__input :deep(.ui-field__input) {
   color: var(--rubric);
-}
-
-/* Empty, the Tibetan field reads like an ordinary one */
-.lookup-field__input :deep(.ui-field__input:placeholder-shown) {
-  font: var(--text-md) var(--font-ui);
 }
 
 .lookup-field__under {
