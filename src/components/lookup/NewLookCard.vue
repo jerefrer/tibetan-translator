@@ -63,7 +63,7 @@ export default {
       <span class="new-look__badge"><ui-icon name="sparkles" :size="18" /></span>
       <div>
         <h2 id="new-look-title" class="new-look__title">Welcome to the new Tibetan Translator</h2>
-        <p class="new-look__lead">A new design. Your dictionaries, glossaries and settings are all here.</p>
+        <p class="new-look__lead">A new design.<br>Your dictionaries, glossaries and settings are all here.</p>
       </div>
     </header>
 
@@ -110,7 +110,7 @@ export default {
       <span class="new-look__chip new-look__chip--small"><ui-icon name="mail" :size="16" /></span>
       <p class="new-look__ask">
         Something harder than before, missing or broken?
-        <small><span class="new-look__address">{{ address }}</span> · every message is read</small>
+        <small><span class="new-look__address">{{ address }}</span><br>Every message is read.</small>
       </p>
       <ui-button size="sm" class="new-look__send" data-testid="new-look-send" @click="sendFeedback">Send feedback</ui-button>
     </footer>
