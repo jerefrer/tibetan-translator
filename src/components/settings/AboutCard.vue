@@ -5,6 +5,7 @@ import { renderReleaseNotes, releaseNotesFor } from '../../services/release-note
 import { isTauri } from '../../config/platform';
 import { writeToClipboard } from '../../services/copy-service';
 import { FEEDBACK_ADDRESS, openFeedbackMail } from '../../services/feedback';
+import '../../css/release-notes.css';
 import { UiButton, UiDialog, UiIcon } from '../../ui';
 import SettingsGroup from './SettingsGroup.vue';
 import SettingsRow from './SettingsRow.vue';
@@ -199,32 +200,5 @@ export default {
   margin: var(--space-4) 0 0;
   font-size: var(--text-xs);
   color: var(--muted);
-}
-
-/* The dialog is teleported to <body>, so these are not nested in the card */
-.release-notes {
-  max-height: 50vh;
-  overflow-y: auto;
-}
-.release-notes h4 {
-  margin: var(--space-3) 0 var(--space-1);
-  font-size: var(--text-base);
-  font-weight: 600;
-}
-.release-notes h4:first-child {
-  margin-top: 0;
-}
-.release-notes ul {
-  margin: 0;
-  padding-left: var(--space-5);
-}
-.release-notes li {
-  font-size: var(--text-base);
-  line-height: 1.5;
-  margin-bottom: var(--space-1);
-}
-.release-notes p {
-  font-size: var(--text-base);
-  margin: 0 0 var(--space-2);
 }
 </style>

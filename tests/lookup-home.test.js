@@ -12,6 +12,9 @@ import { clearHistory, recordTerm } from '../src/services/history'
 import { setSavedTerms } from '../src/services/saved-terms'
 import { RouterLinkStub } from '@vue/test-utils'
 import { clearGlossCache, loadGlosses } from '../src/services/glosses'
+import * as feedback from '../src/services/feedback'
+import { latestReleaseNotes } from '../src/services/release-notes-markdown'
+import changelog from '../CHANGELOG.md?raw'
 
 const KA = 'ཀ་'
 const OLD = { id: 1, name: 'Old', position: 0, enabled: true }
@@ -110,16 +113,17 @@ describe('LookupHome — Try', () => {
 })
 
 describe('LookupHome — A new look', () => {
-  const mountHome = async () => {
+  const mountHome = async (props = {}) => {
     vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
-    wrapper = mount(LookupHome, { global: { provide: { snackbar: { open: vi.fn() } } } })
+    wrapper = mount(LookupHome, { props, attachTo: document.body, global: { provide: { snackbar: { open: vi.fn() } } } })
     await flushPromises()
   }
+  const tiles = () => wrapper.findAll('.new-look__tile').map((tile) => tile.attributes('data-testid'))
 
   it('should show the card first when it is pending', async () => {
     Storage.set('newLook', 'pending')
     await mountHome()
-    expect(wrapper.get('[data-testid="new-look"]').text()).toContain('A new look')
+    expect(wrapper.get('[data-testid="new-look"]').text()).toContain('Welcome to the new Tibetan Translator')
     expect(wrapper.get('.lookup-home').element.firstElementChild.getAttribute('data-testid')).toBe('new-look')
   })
 
@@ -137,35 +141,41 @@ describe('LookupHome — A new look', () => {
     expect(Storage.get('newLook')).toBe('seen')
   })
 
-  it('should list only the Reader line on a phone', async () => {
-    Storage.set('newLook', 'pending')
-    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
-    wrapper = mount(LookupHome, { props: { phone: true }, global: { provide: { snackbar: { open: vi.fn() } } } })
-    await flushPromises()
-    expect(wrapper.findAll('.new-look__list li')).toHaveLength(1)
-    expect(wrapper.get('[data-testid="new-look-reader"]').text()).toBe('Split is now Reader.')
-  })
-
-  it('should list the Reader line, the sidebar pages and the shortcuts on a desktop', async () => {
+  it('should show four tiles with keycaps on a desktop', async () => {
     Storage.set('newLook', 'pending')
     await mountHome()
-    expect(wrapper.findAll('.new-look__list li')).toHaveLength(3)
-    expect(wrapper.get('[data-testid="new-look-reader"]').text()).toMatch(/^Split is now Reader, on (⌘|Ctrl\+)E\.$/)
+    expect(tiles()).toEqual(['new-look-reader', 'new-look-pages', 'new-look-keys', 'new-look-saved'])
+    expect(wrapper.get('[data-testid="new-look-reader"] kbd').text()).toMatch(/^(⌘|Ctrl\+)E$/)
+    expect(wrapper.findAll('[data-testid="new-look-keys"] kbd').map((key) => key.text())).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^(⌘|Ctrl\+)\[$/), expect.stringMatching(/^(⌘|Ctrl\+)\]$/)])
+    )
     expect(wrapper.get('[data-testid="new-look-pages"]').text()).toContain('My glossary and Dictionaries')
-    expect(wrapper.get('[data-testid="new-look-keys"]').text()).toContain('go back and forward')
+    expect(wrapper.get('[data-testid="new-look-keys"]').text()).toContain('Return where you were.')
   })
 
-  it('should copy the address when Copy is clicked', async () => {
+  it('should show three tiles without keycaps on a phone', async () => {
     Storage.set('newLook', 'pending')
-    const writeText = vi.fn(async () => {})
-    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
-    const open = vi.fn()
-    vi.spyOn(SqlDatabase, 'exec').mockResolvedValue([])
-    wrapper = mount(LookupHome, { global: { provide: { snackbar: { open } } } })
+    await mountHome({ phone: true })
+    expect(tiles()).toEqual(['new-look-reader', 'new-look-keys', 'new-look-saved'])
+    expect(wrapper.find('.new-look kbd').exists()).toBe(false)
+    expect(wrapper.get('[data-testid="new-look-keys"]').text()).toContain('Return where you were, with Back.')
+  })
+
+  it('should open the newest release notes when Everything that is new is clicked', async () => {
+    Storage.set('newLook', 'pending')
+    await mountHome()
+    const { version } = latestReleaseNotes(changelog)
+    await wrapper.get('[data-testid="new-look-all"]').trigger('click')
     await flushPromises()
-    await wrapper.get('[data-testid="new-look-copy"]').trigger('click')
-    await flushPromises()
-    expect(writeText).toHaveBeenCalledWith('feedback@tibetantoolbox.org')
-    expect(open).toHaveBeenCalledWith('Address copied')
+    expect(document.body.textContent).toContain(`What's new in v${version}`)
+    expect(document.body.querySelector('[data-testid="new-look-notes"]')).not.toBeNull()
+  })
+
+  it('should open the mail app when Send feedback is clicked', async () => {
+    Storage.set('newLook', 'pending')
+    const send = vi.spyOn(feedback, 'openFeedbackMail').mockResolvedValue()
+    await mountHome()
+    await wrapper.get('[data-testid="new-look-send"]').trigger('click')
+    expect(send).toHaveBeenCalledTimes(1)
   })
 })

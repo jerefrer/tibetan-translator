@@ -1,0 +1,27 @@
+/* Release notes in a dialog (About, A new look). The dialog is teleported to
+   <body>, so these are global, not nested in a card */
+.release-notes {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.release-notes h4 {
+  margin: var(--space-3) 0 var(--space-1);
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+.release-notes h4:first-child {
+  margin-top: 0;
+}
+.release-notes ul {
+  margin: 0;
+  padding-left: var(--space-5);
+}
+.release-notes li {
+  font-size: var(--text-base);
+  line-height: 1.5;
+  margin-bottom: var(--space-1);
+}
+.release-notes p {
+  font-size: var(--text-base);
+  margin: 0 0 var(--space-2);
+}

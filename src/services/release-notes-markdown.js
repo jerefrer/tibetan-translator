@@ -69,10 +69,24 @@ export const renderReleaseNotes = (markdown) => {
   return html.join('');
 };
 
+// Splits a changelog into its version sections, newest first as written:
+// `## [1.12.0](…) - date` (or `## 1.12.0`) opens one, the next `## ` ends it.
+const versionSections = (changelog) => {
+  const sections = [];
+  for (const line of String(changelog || '').split('\n')) {
+    const heading = line.match(/^##\s+\[?v?([^\]\s]+)\]?/);
+    if (heading && !line.startsWith('###')) {
+      sections.push({ version: heading[1], lines: [] });
+    } else if (sections.length) {
+      sections[sections.length - 1].lines.push(line);
+    }
+  }
+  return sections.map(({ version, lines }) => ({ version, markdown: lines.join('\n').trim() }));
+};
+
 /**
  * The Markdown body of one version's section in CHANGELOG.md, or '' when the
- * file has no section for it. Sections open with `## [1.12.0](…) - date` (or
- * `## 1.12.0`); the body runs to the next `## ` heading.
+ * file has no section for it.
  *
  * @param {string} changelog Contents of CHANGELOG.md.
  * @param {string} version   Version without a leading "v".
@@ -81,21 +95,16 @@ export const renderReleaseNotes = (markdown) => {
 export const releaseNotesFor = (changelog, version) => {
   if (!version) return '';
   const wanted = String(version).replace(/^v/, '');
-  const lines = String(changelog || '').split('\n');
-  const body = [];
-  let inSection = false;
-
-  for (const line of lines) {
-    const section = line.match(/^##\s+\[?v?([^\]\s]+)\]?/);
-    if (section && !line.startsWith('###')) {
-      if (inSection) break;
-      inSection = section[1] === wanted;
-      continue;
-    }
-    if (inSection) body.push(line);
-  }
-
-  return body.join('\n').trim();
+  const section = versionSections(changelog).find((candidate) => candidate.version === wanted);
+  return section ? section.markdown : '';
 };
+
+/**
+ * The first version section of CHANGELOG.md, which is the newest one.
+ *
+ * @param {string} changelog Contents of CHANGELOG.md.
+ * @returns {{ version: string, markdown: string } | null} null when the file has no section.
+ */
+export const latestReleaseNotes = (changelog) => versionSections(changelog)[0] || null;
 
 export default renderReleaseNotes;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderReleaseNotes, releaseNotesFor } from '../src/services/release-notes-markdown.js';
+import { renderReleaseNotes, releaseNotesFor, latestReleaseNotes } from '../src/services/release-notes-markdown.js';
 
 describe('renderReleaseNotes', () => {
   it('renders a heading followed by a bullet list', () => {
@@ -108,5 +108,28 @@ describe('releaseNotesFor', () => {
     const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
     const real = fs.readFileSync('CHANGELOG.md', 'utf8');
     expect(releaseNotesFor(real, pkg.version)).not.toBe('');
+  });
+});
+
+describe('latestReleaseNotes', () => {
+  const changelog = [
+    '# Changelog',
+    '',
+    '## [1.12.0](https://example.com) - 2026-10-22',
+    '',
+    '### Added',
+    '- Catalog',
+    '',
+    '## 1.11.3',
+    '- Older',
+  ].join('\n');
+
+  it('should return the first version section when the changelog has several', () => {
+    expect(latestReleaseNotes(changelog)).toEqual({ version: '1.12.0', markdown: '### Added\n- Catalog' });
+  });
+
+  it('should return null when the changelog has no version section', () => {
+    expect(latestReleaseNotes('# Changelog\n\nNothing yet.')).toBeNull();
+    expect(latestReleaseNotes('')).toBeNull();
   });
 });
