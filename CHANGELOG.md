@@ -5,6 +5,12 @@ All notable changes to Tibetan Translator are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1](https://github.com/jerefrer/tibetan-translator/compare/v2.1.0...v2.1.1) - 2026-11-19
+
+### Fixed
+- Long sessions no longer slow down as results pile up
+- Each new search opens at the top of its results
+
 ## [2.1.0](https://github.com/jerefrer/tibetan-translator/compare/v2.0.0...v2.1.0) - 2026-11-15
 
 ### Added
