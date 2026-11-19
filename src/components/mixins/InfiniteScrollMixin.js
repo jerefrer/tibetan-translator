@@ -45,6 +45,10 @@ export default {
       this.teardownInfiniteScroll();
 
       this.$nextTick(() => {
+        // Set up twice in one tick (a search resets the count, whose watcher
+        // sets up again), the first observer would be overwritten while still
+        // observing: each would load a batch, and none would ever be released
+        this.teardownInfiniteScroll();
         const sentinel = this.$refs.loadMoreSentinel;
         if (!sentinel) return;
 

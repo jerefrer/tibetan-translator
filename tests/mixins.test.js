@@ -439,3 +439,56 @@ describe('Component cleanup on unmount', () => {
     expect(disconnectSpy).toHaveBeenCalled()
   })
 })
+
+describe('InfiniteScrollMixin', async () => {
+  const { default: InfiniteScrollMixin } = await import('../src/components/mixins/InfiniteScrollMixin.js')
+
+  let observers
+  beforeEach(() => {
+    observers = []
+    const Mock = window.IntersectionObserver
+    vi.spyOn(window, 'IntersectionObserver').mockImplementation(function (callback, options) {
+      const observer = new Mock(callback, options)
+      observers.push(observer)
+      return observer
+    })
+  })
+  afterEach(() => vi.restoreAllMocks())
+
+  const List = defineComponent({
+    mixins: [InfiniteScrollMixin],
+    data: () => ({ loading: false, displayedCount: 20 }),
+    computed: { hasMore: () => true },
+    methods: { loadMore() { this.displayedCount += 20 } },
+    render() { return h('div', [h('div', { ref: 'loadMoreSentinel' })]) },
+  })
+  const observing = () => observers.filter((observer) => observer.elements.size > 0)
+
+  it('should keep a single observer when set up twice in the same tick', async () => {
+    const wrapper = mount(List)
+    wrapper.vm.setupInfiniteScroll()
+    wrapper.vm.setupInfiniteScroll()
+    await nextTick()
+    expect(observing()).toHaveLength(1)
+    wrapper.unmount()
+  })
+
+  it('should load one batch per intersection after being set up twice in the same tick', async () => {
+    const wrapper = mount(List)
+    wrapper.vm.setupInfiniteScroll()
+    wrapper.vm.setupInfiniteScroll()
+    await nextTick()
+    observing().forEach((observer) => observer._trigger(true))
+    expect(wrapper.vm.displayedCount).toBe(40)
+    wrapper.unmount()
+  })
+
+  it('should leave no observer behind once unmounted', async () => {
+    const wrapper = mount(List)
+    wrapper.vm.setupInfiniteScroll()
+    wrapper.vm.setupInfiniteScroll()
+    await nextTick()
+    wrapper.unmount()
+    expect(observing()).toHaveLength(0)
+  })
+})
