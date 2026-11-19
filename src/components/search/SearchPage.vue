@@ -122,6 +122,12 @@ export default {
     text() {
       this.debouncedRunQuery();
     },
+    // A new query's results show from their top: left scrolled down, the
+    // list would open midway and the infinite scroll would load every batch
+    // down to where the previous results were left
+    query() {
+      if (this.$refs.list) this.$refs.list.scrollTop = 0;
+    },
     $route(route, from) {
       // Kept alive while another page is open: its routes are not Search's
       if (route.path !== '/search') return;
@@ -326,7 +332,7 @@ export default {
           </ui-button>
         </section>
       </div>
-      <div class="lookup-page__list">
+      <div ref="list" class="lookup-page__list">
         <search-home v-if="isMobile && !query" phone @search="trySearch" />
         <definition-results
           ref="results"

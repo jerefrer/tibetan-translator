@@ -250,6 +250,25 @@ describe('Search — field', () => {
   })
 })
 
+describe('Search — results scroll', () => {
+  const list = () => wrapper.find('.lookup-page__list').element
+
+  it('should show the top of the results when a new query is searched', async () => {
+    await mountAt('/search?q=buddha')
+    list().scrollTop = 800
+    await submit('wisdom')
+    expect(list().scrollTop).toBe(0)
+  })
+
+  it('should keep the results where they were when the page is shown again (keep-alive)', async () => {
+    await mountAt('/search?q=buddha')
+    list().scrollTop = 800
+    await go('/reader')
+    await go('/search')
+    expect(list().scrollTop).toBe(800)
+  })
+})
+
 describe('Search — the entry of a result', () => {
   it('should open the entry of the result clicked beside the results without leaving Search', async () => {
     await mountAt('/search?q=buddha')
