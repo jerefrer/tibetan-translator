@@ -288,6 +288,22 @@ describe('Define results — Tibetan', () => {
   })
 })
 
+describe('Define results — erasing', () => {
+  // Erasing a word leaves the term it had selected far down the longer list
+  // of a shorter prefix: rendering every row down to it froze the app
+  it('should list 100 terms when a shorter prefix leaves the selected term further down', async () => {
+    const terms = Array.from({ length: 300 }, (_, i) => KA + String(i).padStart(3, '0'))
+    database.allTerms = terms
+    await mountAt('/define')
+    await typeTibetan(KA + '2')
+    await waitForTerm(terms[200])
+
+    await typeTibetan(KA)
+    await flushPromises()
+    expect(results()).toHaveLength(100)
+  })
+})
+
 // Ported from tests/define-page.test.js
 describe('Define results — ported from Define', () => {
   it('should render enough terms for the term picked with the keyboard to be in the list', async () => {

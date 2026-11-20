@@ -39,9 +39,11 @@ export default {
     },
   },
   watch: {
+    // A new list starts at its first rows. The term still selected is not
+    // revealed: erasing a word leaves it thousands of rows down a short
+    // prefix's list, and the first match replaces it after the pause anyway
     terms() {
       this.displayedCount = TERMS_BATCH_SIZE;
-      this.revealSelected();
     },
     selected() {
       this.revealSelected();
